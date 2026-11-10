@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.FakePlayer;
@@ -213,7 +214,8 @@ public final class TestLabCriticalTask implements TestLabTask {
             case RUN:
                 if (!state.isStructureValidated()) return result(TestLabReport.Status.FAIL, "生产期真实结构失效");
                 if (kind == CriticalMachineKind.SUN) {
-                    if (state.getStellarRuntimeData()
+                    if (state.runtimeSnapshot()
+                        .stellar()
                         .getBoolean("sustainPaidThisTick")) sustainTicks++;
                     long stored = tile.getStoredEU();
                     suppliedEnergy += lastStoredEnergy - stored;
@@ -228,14 +230,16 @@ public final class TestLabCriticalTask implements TestLabTask {
                         .isEmpty())
                     return verifyStellar();
                 if (kind == CriticalMachineKind.BATTERY && sawBatch
-                    && !state.energyRuntimeData()
+                    && !state.runtimeSnapshot()
+                        .energy()
                         .getBoolean("funded"))
                     return verifyChemical();
                 if (expectedRecipe != null) {
                     if (sawBatch && state.getBatchId()
                         .isEmpty()) return verifyRecipe();
                 } else if ((kind == CriticalMachineKind.SOLAR || kind == CriticalMachineKind.TURBINE) && sawBatch
-                    && !state.energyRuntimeData()
+                    && !state.runtimeSnapshot()
+                        .energy()
                         .getBoolean("funded"))
                     return verifyFluids();
                 if (elapsedTicks - phaseStarted > 1100) return result(TestLabReport.Status.FAIL, "最小生产批次未交付");
@@ -313,10 +317,14 @@ public final class TestLabCriticalTask implements TestLabTask {
             if (solarCoolant.fill(ForgeDirection.UNKNOWN, coolantInput.copy(), true) != coolantInput.amount
                 || solarExciter.fill(ForgeDirection.UNKNOWN, exciterInput.copy(), true) != exciterInput.amount)
                 return result(TestLabReport.Status.FAIL, "真实输入仓拒绝冷却剂或激活剂");
-            state.energyRuntimeData()
+            // Explicit saved-state fixture; never borrow a mutable runtime object from production.
+            NBTTagCompound fixture = new NBTTagCompound();
+            state.writeToNBT(fixture);
+            fixture.getCompoundTag("criticalEnergyRuntime")
                 .setInteger("steamMode", 5);
-            state.energyRuntimeData()
+            fixture.getCompoundTag("criticalEnergyRuntime")
                 .setBoolean("solarSaltMode", false);
+            state.readFromNBT(fixture);
         } else {
             // Refuse even a test UUID that somebody has explicitly joined to a different team.
             if (!TestLabFixtures.OWNER.equals(SpaceProjectManager.getLeader(TestLabFixtures.OWNER)))

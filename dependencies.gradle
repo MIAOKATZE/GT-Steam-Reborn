@@ -84,7 +84,7 @@ dependencies {
 
 // Shared library API; immutable candidate versions may be supplied for isolated integration builds.
 dependencies {
-    // Core 0.2.6 provides shared BetterQuesting recovery and integrated-server sync protection.
-    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.6"
+    // Core 0.2.7 adds shared BetterQuesting definition and pack preflight.
+    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.7"
     api("com.miaokatze.miaokatzecore:miaokatzecore:${coreVersion}:dev") { transitive = false }
 }

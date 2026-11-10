@@ -62,7 +62,15 @@ public class GTSRRecipeMaps {
         .build();
 
     public static final RecipeMap<RecipeMapBackend> ammoniaPlantRecipes = RecipeMapBuilder
-        .of("gtsr.recipe.ammonia_plant")
+        .<RecipeMapBackend>of("gtsr.recipe.ammonia_plant", properties -> new RecipeMapBackend(properties) {
+
+            @Override
+            public boolean containsInput(net.minecraftforge.fluids.Fluid fluid) {
+                // Thermal steam is an input obligation even though it is not a recipe ingredient.
+                return fluid != null
+                    && (fluid == gregtech.api.enums.Materials.Steam.mGas || super.containsInput(fluid));
+            }
+        })
         .maxIO(0, 2, 2, 1)
         .minInputs(0, 2)
         .progressBar(GTUITextures.PROGRESSBAR_ARROW, ProgressBar.Direction.RIGHT)

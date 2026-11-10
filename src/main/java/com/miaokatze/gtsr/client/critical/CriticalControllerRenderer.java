@@ -27,6 +27,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
 import com.google.gson.JsonObject;
+import com.miaokatze.gtsr.client.render.ClientDisplayList;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry.Voxel;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
@@ -483,53 +484,59 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             }
         }
         List<Mesh> result = new ArrayList<>();
-        for (List<Face> faces : batches.values()) {
-            Face first = faces.get(0);
-            JsonObject properties = CriticalMaterials.properties(first.voxel.material);
-            String id = properties.get("id")
-                .getAsString();
-            boolean animated = first.side >= 2 && properties.get("animated")
-                .getAsBoolean();
-            String suffix = first.side < 2 ? "__top" : "";
-            int list = GL11.glGenLists(1);
-            GL11.glNewList(list, GL11.GL_COMPILE);
-            Tessellator t = Tessellator.instance;
-            t.startDrawingQuads();
-            for (Face face : faces) {
-                int[] normal = NEIGHBOR[face.side];
-                t.setNormal(normal[0], normal[1], normal[2]);
-                double shade = face.side == 0 ? .58 : face.side == 1 ? 1 : face.side < 4 ? .78 : .88;
-                t.setColorOpaque_F((float) shade, (float) shade, (float) shade);
-                for (int vertex = 0; vertex < 4; vertex++) {
-                    double[] c = CORNERS[face.side][vertex];
-                    t.addVertexWithUV(
-                        face.voxel.x + c[0],
-                        face.voxel.y + c[1],
-                        face.voxel.z + c[2],
-                        vertex >= 2 ? 1 : 0,
-                        (vertex == 0 || vertex == 3 ? 0 : 1) / (animated ? 8D : 1D));
-                }
+        List<Integer> unpublished = new ArrayList<>();
+        try {
+            for (List<Face> faces : batches.values()) {
+                Face first = faces.get(0);
+                JsonObject properties = CriticalMaterials.properties(first.voxel.material);
+                String id = properties.get("id")
+                    .getAsString();
+                boolean animated = first.side >= 2 && properties.get("animated")
+                    .getAsBoolean();
+                String suffix = first.side < 2 ? "__top" : "";
+                int list = ClientDisplayList.compile(() -> {
+                    Tessellator t = Tessellator.instance;
+                    t.startDrawingQuads();
+                    for (Face face : faces) {
+                        int[] normal = NEIGHBOR[face.side];
+                        t.setNormal(normal[0], normal[1], normal[2]);
+                        double shade = face.side == 0 ? .58 : face.side == 1 ? 1 : face.side < 4 ? .78 : .88;
+                        t.setColorOpaque_F((float) shade, (float) shade, (float) shade);
+                        for (int vertex = 0; vertex < 4; vertex++) {
+                            double[] c = CORNERS[face.side][vertex];
+                            t.addVertexWithUV(
+                                face.voxel.x + c[0],
+                                face.voxel.y + c[1],
+                                face.voxel.z + c[2],
+                                vertex >= 2 ? 1 : 0,
+                                (vertex == 0 || vertex == 3 ? 0 : 1) / (animated ? 8D : 1D));
+                        }
+                    }
+                    t.draw();
+                });
+                unpublished.add(list);
+                float strength = properties.get("emissionStrength")
+                    .getAsFloat();
+                result.add(
+                    new Mesh(
+                        list,
+                        model.animations.has(first.voxel.group) ? model.animations.getAsJsonObject(first.voxel.group)
+                            : new JsonObject(),
+                        texture(id + suffix),
+                        strength > 0 && suffix.isEmpty() ? texture(id + "_emission") : null,
+                        animated,
+                        properties.get("alphaMode")
+                            .getAsString(),
+                        strength,
+                        first.voxel.group,
+                        slug + ":" + first.voxel.group,
+                        meshCenter(faces)));
             }
-            t.draw();
-            GL11.glEndList();
-            float strength = properties.get("emissionStrength")
-                .getAsFloat();
-            result.add(
-                new Mesh(
-                    list,
-                    model.animations.has(first.voxel.group) ? model.animations.getAsJsonObject(first.voxel.group)
-                        : new JsonObject(),
-                    texture(id + suffix),
-                    strength > 0 && suffix.isEmpty() ? texture(id + "_emission") : null,
-                    animated,
-                    properties.get("alphaMode")
-                        .getAsString(),
-                    strength,
-                    first.voxel.group,
-                    slug + ":" + first.voxel.group,
-                    meshCenter(faces)));
+            return result;
+        } catch (RuntimeException | Error failure) {
+            ClientDisplayList.rollback(unpublished, failure);
+            throw failure;
         }
-        return result;
     }
 
     private static double[] meshCenter(List<Face> faces) {

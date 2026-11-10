@@ -1,16 +1,23 @@
 package com.miaokatze.gtsr.common.machine.base;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.DoubleFunction;
 import java.util.function.DoubleSupplier;
 
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.api.compat.IAdditionalSteamSourceHolder;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressBar;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
+import com.miaokatze.gtsr.compat.gtnl.IndependentSteamSupport;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 
 /**
  * GTSR 自有多方块基类：扩展 GT5U MTEEnhancedMultiBlockBase，统一接入 GTSR 进度显示基础设施
@@ -19,7 +26,33 @@ import gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase;
  * 接口与便捷方法签名与 {@link MTESingularityModeMachineBase} 完全一致（子类统一调用 registerEntry(...)）。
  */
 public abstract class MTEGTSRMultiBlockBase<T extends MTEGTSRMultiBlockBase<T>> extends MTEEnhancedMultiBlockBase<T>
-    implements IGTSRProgressProvider {
+    implements IGTSRProgressProvider, IAdditionalSteamSourceHolder {
+
+    private final List<MTEHatch> additionalSteamSources = new ArrayList<>();
+
+    @Override
+    public List<MTEHatch> gtsr$getAdditionalSteamSources() {
+        return additionalSteamSources;
+    }
+
+    @Override
+    public void clearHatches() {
+        super.clearHatches();
+        additionalSteamSources.clear();
+    }
+
+    @Override
+    public ArrayList<FluidStack> getStoredFluids() {
+        ArrayList<FluidStack> fluids = super.getStoredFluids();
+        fluids.addAll(PipelessSteamSupport.getStored(this));
+        return fluids;
+    }
+
+    @Override
+    public boolean addInputHatchToMachineList(IGregTechTileEntity tile, int casing) {
+        return IndependentSteamSupport.accepts(this) && PipelessSteamSupport.add(this, tile, casing)
+            || super.addInputHatchToMachineList(tile, casing);
+    }
 
     /** GTSR 进度显示基础设施：子类机器构造时用 registerEntry(...) 注册词条，GUI 终端统一渲染 */
     protected final GTSRProgressBar progressBar = new GTSRProgressBar();

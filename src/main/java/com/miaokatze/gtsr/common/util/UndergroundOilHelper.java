@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 import gregtech.common.UndergroundOil;
 
 /**
- * GT5U {@link UndergroundOil} 反射访问助手（唯一消费方 MTEVeinSteamPyrolyzer）。
+ * GT5U {@link UndergroundOil} 储量与流体身份访问助手。
  * SR-OPT-05/O5 修复口径：全部反射目标（Field/Method）静态懒解析缓存，仅查找一次；
  * 查找失败缓存失败态并不再重试（读点直接返回安全默认 0/false），失败仅一次性告警——
  * 避免 GT5U 签名漂移后表现为「每次调用重复反射解析 + 热解机周期内反复刷 error 日志」。
@@ -166,6 +166,22 @@ public class UndergroundOilHelper {
         // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
         LOG.error(
             "[GTSR] UndergroundOilHelper: UndergroundOil storage is null (logged once); oil reads/writes return 0/false");
+    }
+
+    /** Reads the live deposit identity without the low-reserve mutation of undergroundOil(..., -1). */
+    public static Fluid getFluidType(World world, int chunkX, int chunkZ) {
+        try {
+            Object storage = getStorage();
+            if (storage == null) return null;
+            Method get = STORAGE_GET.get(storage);
+            if (get == null) return null;
+            Object chunkData = get.invoke(storage, world, chunkX, chunkZ);
+            if (chunkData == null) return null;
+            Method getFluid = CHUNK_GET_FLUID.get(chunkData);
+            return getFluid == null ? null : (Fluid) getFluid.invoke(chunkData);
+        } catch (ReflectiveOperationException e) {
+            return null;
+        }
     }
 
     public static int increaseFluidAmount(World w, int chunkX, int chunkZ, int increase, int maxAmount) {

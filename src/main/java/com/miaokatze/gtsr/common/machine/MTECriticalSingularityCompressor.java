@@ -38,6 +38,7 @@ import com.miaokatze.gtsr.common.event.GTSRSingularityStructCollapseEvent;
 import com.miaokatze.gtsr.common.gui.MTECriticalSingularityCompressorGui;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import bartworks.system.material.Werkstoff;
 import bartworks.system.material.WerkstoffLoader;
@@ -618,6 +619,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        PipelessSteamSupport.clear(this);
         mCasingCount = 0;
         mPressureSteamInputs.clear();
         mTier = getRequiredTier();
@@ -628,7 +630,8 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
             return;
         }
 
-        if ((mInputHatches.isEmpty() && mPressureSteamInputs.isEmpty()) || mOutputBusses.isEmpty()) {
+        if ((mInputHatches.isEmpty() && (mPressureSteamInputs.isEmpty() && PipelessSteamSupport.count(this) == 0))
+            || mOutputBusses.isEmpty()) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }

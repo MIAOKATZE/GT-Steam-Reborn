@@ -73,7 +73,8 @@ def main():
             (fixture_dir / filename).write_text(content)
         inputs = [*sorted(fixture_dir.glob('*.java')), *sources]
         if name == 'bq':
-            inputs.append(args.core_source_root / 'src/main/java/com/miaokatze/miaokatzecore/api/bq/QuestProgressRecovery.java')
+            inputs.extend(args.core_source_root / ('src/main/java/com/miaokatze/miaokatzecore/api/bq/' + name + '.java')
+                          for name in ['QuestProgressRecovery', 'QuestDefinitionPreflight', 'QuestPackPreflight'])
         source_manifest[name] = [{'path': str(p), 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()} for p in inputs]
         (work / 'source-manifest.json').write_text(json.dumps(source_manifest, indent=2))
         passed = run(name + '-compile', [javac, '-encoding', 'UTF-8', '-proc:none', '-sourcepath', str(empty),

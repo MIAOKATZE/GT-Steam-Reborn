@@ -61,6 +61,7 @@ import com.miaokatze.gtsr.common.util.GTSROutputBusCompat;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.common.util.HubBindingUtil;
 import com.miaokatze.gtsr.common.util.HubTeleportUtil;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -249,6 +250,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             }
         }
         SteamCoolingSupport.updateHatchTextures((ICoolingHatchHolder) this, textureID);
+        PipelessSteamSupport.updateTextures(this, getCasingTextureID());
     }
 
     @Override
@@ -383,7 +385,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             return;
         }
 
-        if (this.mSteamInputFluids.isEmpty() && this.mInputHatches.isEmpty()
+        if ((this.mSteamInputFluids.isEmpty() && PipelessSteamSupport.count(this) == 0) && this.mInputHatches.isEmpty()
             && !GTSRHatchFluidAccess.hasWorkingFluidDualInput(mDualInputHatches)) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;

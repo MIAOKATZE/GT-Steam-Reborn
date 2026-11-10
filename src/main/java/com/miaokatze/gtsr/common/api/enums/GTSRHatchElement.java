@@ -8,6 +8,7 @@ import net.minecraft.util.StatCollector;
 import com.google.common.collect.ImmutableList;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import gregtech.api.interfaces.IHatchElement;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -96,7 +97,7 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
 
         @Override
         public long count(MTEMultiBlockBase t) {
-            return t.mInputHatches.size();
+            return t.mInputHatches.size() + PipelessSteamSupport.count(t);
         }
     },
 
@@ -161,7 +162,7 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
         @Override
         public boolean matchesHatch(IMetaTileEntity mte) {
             if (mte instanceof IDualInputHatch dual) return GTSRHatchFluidAccess.isWorkingFluidDualInput(dual);
-            return mte instanceof MTEHatchInput || pressureSteamInputHatchClass().isInstance(mte);
+            return PipelessSteamSupport.matches(mte, mteClasses());
         }
 
         @Override
@@ -174,7 +175,7 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
                     .filter(pressureSteamInputHatchClass()::isInstance)
                     .count();
             }
-            return count;
+            return count + PipelessSteamSupport.count(t);
         }
     };
 
@@ -220,8 +221,14 @@ public enum GTSRHatchElement implements IHatchElement<MTEMultiBlockBase> {
     }
 
     @Override
+    public boolean matchesHatch(IMetaTileEntity tile) {
+        return PipelessSteamSupport.matches(tile, mteClasses());
+    }
+
+    @Override
     public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-        return mteClassesSupplier.get();
+        return PipelessSteamSupport
+            .candidates(mteClassesSupplier.get(), this == SteamInputHatch || this == PressureSteamInputHatch);
     }
 
     @Override

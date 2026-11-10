@@ -8,9 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,8 +20,6 @@ import java.util.stream.Collectors;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -35,6 +31,8 @@ import com.google.gson.JsonParser;
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.GTSteamReborn;
+import com.miaokatze.miaokatzecore.api.bq.QuestDefinitionPreflight;
+import com.miaokatze.miaokatzecore.api.bq.QuestPackPreflight;
 import com.miaokatze.miaokatzecore.api.bq.QuestProgressRecovery;
 
 import betterquesting.api.questing.IQuest;
@@ -197,108 +195,7 @@ public final class BqQuestInjector {
 
     /** Preflight custom packs as well as the bundled pack; an explicitly empty entries list is valid. */
     static Map<String, NBTTagCompound> prepareResources(JsonArray lines, Function<String, NBTTagCompound> reader) {
-        Map<String, NBTTagCompound> resources = new HashMap<>();
-        Set<UUID> lineIds = new HashSet<>();
-        Map<UUID, String> questFiles = new HashMap<>();
-        for (JsonElement element : lines) {
-            JsonObject line = element.getAsJsonObject();
-            UUID lineId = new UUID(requireLong(line, "idHigh"), requireLong(line, "idLow"));
-            Math.toIntExact(requireLong(line, "orderIndex"));
-            if (!lineIds.add(lineId)) throw new IllegalStateException("Duplicate BQ quest line: " + lineId);
-            NBTTagCompound lineTag = requireResource(
-                resources,
-                reader,
-                line.get("lineFile")
-                    .getAsString());
-            if (!lineId.equals(requireId(lineTag, "questLineID"))) {
-                throw new IllegalStateException("BQ quest line identity disagrees with manifest: " + lineId);
-            }
-            Set<UUID> entriesSeen = new HashSet<>();
-            JsonArray entries = line.getAsJsonArray("entries");
-            if (entries == null) throw new IllegalStateException("Missing BQ entries array: " + lineId);
-            for (JsonElement entryElement : entries) {
-                JsonObject entry = entryElement.getAsJsonObject();
-                String questFile = entry.get("questFile")
-                    .getAsString();
-                NBTTagCompound quest = requireResource(resources, reader, questFile);
-                UUID questId = requireId(quest, "questID");
-                String priorFile = questFiles.putIfAbsent(questId, questFile);
-                if ((priorFile != null && !priorFile.equals(questFile)) || !entriesSeen.add(questId)) {
-                    throw new IllegalStateException("Conflicting BQ quest definition/entry: " + questId);
-                }
-                NBTTagCompound entryTag = requireResource(
-                    resources,
-                    reader,
-                    entry.get("entryFile")
-                        .getAsString());
-                if (!questId.equals(requireId(entryTag, "questID"))) {
-                    throw new IllegalStateException("BQ quest entry identity disagrees with definition: " + questId);
-                }
-            }
-        }
-        // JSON/NBT and UUID validity do not imply that a registered BQ task/reward parser
-        // accepts the definition. For example, Standard's completion reward throws on a
-        // malformed target UUID, after readFromNBT has already replaced a live quest's
-        // properties and tasks. Exercise native deserialization on detached instances for
-        // the entire pack before the first live write. This is not plugin-side-effect rollback.
-        for (String questFile : new HashSet<>(questFiles.values())) {
-            try {
-                NBTTagCompound definition = resources.get(questFile);
-                validatePrerequisites(definition);
-                new QuestInstance().readFromNBT((NBTTagCompound) definition.copy());
-            } catch (RuntimeException e) {
-                throw new IllegalStateException("Invalid BQ quest definition: " + questFile, e);
-            }
-        }
-        return resources;
-    }
-
-    private static void validatePrerequisites(NBTTagCompound quest) {
-        if (!quest.hasKey("preRequisites")) return;
-        // Native BQ supports legacy integer arrays, but silently drops malformed UUID-list
-        // entries. Losing a prerequisite is not a safe interpretation of a damaged quest pack.
-        if (quest.hasKey("preRequisites", Constants.NBT.TAG_INT_ARRAY)) return;
-        if (!quest.hasKey("preRequisites", Constants.NBT.TAG_LIST)) {
-            throw new IllegalStateException("Invalid BQ prerequisite list");
-        }
-        NBTTagList prerequisites = (NBTTagList) quest.getTag("preRequisites");
-        if (prerequisites.tagCount() > 0 && prerequisites.func_150303_d() != Constants.NBT.TAG_COMPOUND) {
-            throw new IllegalStateException("Invalid BQ prerequisite entry type");
-        }
-        for (int i = 0; i < prerequisites.tagCount(); i++) {
-            requireId(prerequisites.getCompoundTagAt(i), "questID");
-        }
-    }
-
-    private static long requireLong(JsonObject object, String key) {
-        JsonElement value = object.get(key);
-        if (value == null || !value.isJsonPrimitive()
-            || !value.getAsJsonPrimitive()
-                .isNumber()) {
-            throw new IllegalStateException("Missing/non-numeric BQ identity or order: " + key);
-        }
-        // Gson getAsLong silently truncates fractional and overflowing values.
-        return new BigDecimal(value.getAsString()).longValueExact();
-    }
-
-    private static UUID requireId(NBTTagCompound tag, String prefix) {
-        // Native BQ readId defaults absent or wrongly typed halves to zero.
-        if (!tag.hasKey(prefix + "High", Constants.NBT.TAG_LONG)
-            || !tag.hasKey(prefix + "Low", Constants.NBT.TAG_LONG)) {
-            throw new IllegalStateException("Missing/invalid BQ identity: " + prefix);
-        }
-        return new UUID(tag.getLong(prefix + "High"), tag.getLong(prefix + "Low"));
-    }
-
-    private static NBTTagCompound requireResource(Map<String, NBTTagCompound> resources,
-        Function<String, NBTTagCompound> reader, String path) {
-        NBTTagCompound tag = resources.get(path);
-        if (tag == null) {
-            tag = reader.apply(path);
-            if (tag == null) throw new IllegalStateException("Incomplete BQ quest pack: " + path);
-            resources.put(path, tag);
-        }
-        return tag;
+        return QuestPackPreflight.prepareResources(lines, reader);
     }
 
     /**
@@ -355,7 +252,8 @@ public final class BqQuestInjector {
             NBTTagCompound questTag = resources.get(
                 entry.get("questFile")
                     .getAsString());
-            UUID questId = requireId(questTag, "questID");
+            // The entire pack has already passed Core's strict ID/type preflight.
+            UUID questId = new UUID(questTag.getLong("questIDHigh"), questTag.getLong("questIDLow"));
             expected.add(questId);
             IQuest existing = QuestDatabase.INSTANCE.get(questId);
             if (existing == null) {
@@ -515,23 +413,7 @@ public final class BqQuestInjector {
     }
 
     private static void validateResourceIds(JsonElement element) {
-        if (element.isJsonArray()) {
-            for (JsonElement child : element.getAsJsonArray()) validateResourceIds(child);
-        } else if (element.isJsonObject()) {
-            JsonObject object = element.getAsJsonObject();
-            for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
-                String key = entry.getKey();
-                for (String id : new String[] { "questIDHigh", "questIDLow", "questLineIDHigh", "questLineIDLow" }) {
-                    if (key.equals(id) || key.startsWith(id + ":")) {
-                        // Reject alternate type tags too: JSONtoNBT strips suffixes and could
-                        // otherwise let a second same-name tag overwrite the checked UUID half.
-                        if (!key.equals(id + ":4")) throw new IllegalStateException("Invalid BQ UUID tag: " + key);
-                        requireLong(object, key);
-                    }
-                }
-                validateResourceIds(entry.getValue());
-            }
-        }
+        QuestDefinitionPreflight.validateJsonIds(element);
     }
 
     /** Resolve only GTSR's explicitly marked targets after GT has registered its material cells. */

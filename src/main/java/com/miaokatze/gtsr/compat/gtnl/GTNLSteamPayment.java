@@ -70,16 +70,16 @@ public final class GTNLSteamPayment {
             try {
                 Class<?> types = Class.forName("com.science.gtnl.utils.enums.SteamTypes");
                 List<Fuel> result = new ArrayList<>();
+                java.lang.reflect.Field fluid = types.getField("fluid");
+                java.lang.reflect.Field efficiency = types.getField("efficiencyFactor");
                 for (Object value : types.getEnumConstants()) {
-                    GTNLSteamType type = (GTNLSteamType) value;
                     result.add(
                         new Fuel(
-                            type.gtsr$getFluid()
-                                .getFluidStack(1),
-                            type.gtsr$getEfficiencyFactor()));
+                            ((gregtech.api.util.GTUtility.FluidId) fluid.get(value)).getFluidStack(1),
+                            efficiency.getInt(value)));
                 }
                 return Collections.unmodifiableList(result);
-            } catch (ClassNotFoundException missing) {
+            } catch (ReflectiveOperationException missing) {
                 throw new IllegalStateException("GTNL enhancement loaded without SteamTypes", missing);
             }
         }

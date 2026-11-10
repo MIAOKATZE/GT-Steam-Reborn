@@ -368,8 +368,11 @@ public enum GTSRItemList implements IItemContainer {
     }
 
     /**
-     * 获取充能后的物品堆栈（目前未实现逻辑）
+     * 旧接口占位，未实现充能，始终返回 null；保留签名供旧调用方链接。
+     * 
+     * @deprecated 不提供充能能力，请勿用于新代码。
      */
+    @Deprecated
     public ItemStack getWithCharge(long aAmount, int aEnergy, Object... aReplacements) {
         ItemStack rStack = get(1, aReplacements);
         return null;
@@ -389,16 +392,22 @@ public enum GTSRItemList implements IItemContainer {
     }
 
     /**
-     * 将该物品注册到矿物词典 (OreDictionary)
+     * 旧接口占位，不执行矿物词典注册。
+     * 
+     * @deprecated 不提供登记能力，请使用显式的 OreDictionary/GT 注册入口。
      */
+    @Deprecated
     @Override
     public IItemContainer registerOre(Object... aOreNames) {
         return this;
     }
 
     /**
-     * 将该物品的通配符版本注册到矿物词典
+     * 旧接口占位，不执行通配符矿物词典注册。
+     * 
+     * @deprecated 不提供登记能力，请使用显式的 OreDictionary/GT 注册入口。
      */
+    @Deprecated
     public IItemContainer registerWildcardAsOre(Object... aOreNames) {
         return this;
     }

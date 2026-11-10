@@ -72,6 +72,11 @@ import gregtech.api.structure.error.StructureErrorRegistry;
  */
 public class CommonProxy {
 
+    /** Client context only; common providers must not link Minecraft on a dedicated server. */
+    public net.minecraft.entity.Entity getRenderCamera(net.minecraft.world.World world) {
+        return null;
+    }
+
     public void renderMachineVisual(com.miaokatze.gtsr.common.machinevisual.MachineVisualHost host, double x, double y,
         double z, float partialTick) {}
 
@@ -131,21 +136,17 @@ public class CommonProxy {
 
         GTSteamReborn.LOG.info("GTSteamReborn 开始初始化 (版本: " + Tags.VERSION + ")");
 
-        try {
+        com.miaokatze.gtsr.loader.RequiredRegistration.run("preInit", "items", () -> {
             ItemLoader.initItems();
             GTSteamReborn.LOG.info("[0/3] 物品注册完成。");
-        } catch (Throwable t) {
-            GTSteamReborn.LOG.error("[0/3] 物品注册过程中发生严重错误，请检查日志", t);
-        }
+        });
 
-        try {
+        com.miaokatze.gtsr.loader.RequiredRegistration.run("preInit", "blocks", () -> {
             BlockLoader.initBlocks();
             com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterBlocks.registerBlocks();
             com.miaokatze.gtsr.common.dimension.prosperity.remaster.RemasterRuntime.register();
             GTSteamReborn.LOG.info("[0/3] 方块注册完成。");
-        } catch (Throwable t) {
-            GTSteamReborn.LOG.error("[0/3] 方块注册过程中发生严重错误，请检查日志", t);
-        }
+        });
 
         // ═══ P9 / L7 生物层注册（plan §5 P9；本片在此段只<b>新增</b>调用，不改任何既有顺序）═══
         // 必须在下面的群系挂接之前：GTSRBiomeBase 的填充是"第一次读 spawn 列表时"惰性发生的，
@@ -211,12 +212,10 @@ public class CommonProxy {
 
         Runnable registerRunnable = () -> {
             GTSteamReborn.LOG.info("[1/3] 开始执行机器注册流程...");
-            try {
+            com.miaokatze.gtsr.loader.RequiredRegistration.run("afterGTPreload", "machines", () -> {
                 MachineLoader.initMachines();
                 GTSteamReborn.LOG.info("[1/3] 机器注册流程执行完毕。");
-            } catch (Throwable t) {
-                GTSteamReborn.LOG.error("[1/3] 机器注册过程中发生严重错误，请检查日志", t);
-            }
+            });
             // 红石仓数量超限结构错误原型注册（客户端按 id 反序列化分发需要 registry 有原型）
             StructureErrorRegistry.register(new GTSRRedstoneHatchLimitError());
         };

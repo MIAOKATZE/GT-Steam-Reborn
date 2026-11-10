@@ -1,6 +1,5 @@
 package com.miaokatze.gtsr.common.machine.base;
 
-import java.lang.reflect.Field;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -8,12 +7,7 @@ import org.apache.logging.log4j.Logger;
 
 import bwcrossmod.galacticgreg.VoidMinerUtility;
 
-/**
- * 跨 mod 反射 shim：读取 GalacticGreg {@link VoidMinerUtility} 的维度掉落表静态字段。
- * SR-BUG-05 修复口径：反射查找仅执行一次（{@code initialized} 先置位再反射，失败缓存为 null、
- * 永不重试，读点 {@link #getDropMap}/{@link #getExtraDropMap} 恒返回空 DropMap 安全默认）；
- * 失败分支补一次性 warn（静态布尔防重复，含失败目标字段与后果），消除上游签名漂移后的静默退化。
- */
+/** Fixed GTNH 2.9.0 public drop-table adapter, retaining cached optional field failure and empty-map fallback. */
 public class VoidMinerUtilityShim {
 
     // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
@@ -28,20 +22,17 @@ public class VoidMinerUtilityShim {
     private static synchronized void init() {
         if (initialized) return;
         initialized = true;
-        dropMapsByName = readDropMapField("dropMapsByDimName");
-        extraDropsByName = readDropMapField("extraDropsByDimName");
+        dropMapsByName = readDropMapField(false);
+        extraDropsByName = readDropMapField(true);
         if (dropMapsByName == null || extraDropsByName == null) {
             warnInitFailureOnce();
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<String, VoidMinerUtility.DropMap> readDropMapField(String fieldName) {
+    private static Map<String, VoidMinerUtility.DropMap> readDropMapField(boolean extra) {
         try {
-            Field f = VoidMinerUtility.class.getDeclaredField(fieldName);
-            return (Map<String, VoidMinerUtility.DropMap>) f.get(null);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            // SR-BUG-05：失败态由外层缓存（null + initialized）不再重试；此处仅返回 null，由 warnInitFailureOnce 统一告警
+            return extra ? VoidMinerUtility.extraDropsByDimName : VoidMinerUtility.dropMapsByDimName;
+        } catch (NoSuchFieldError | IllegalAccessError unavailable) {
             return null;
         }
     }
@@ -56,7 +47,7 @@ public class VoidMinerUtilityShim {
         initFailureLogged = true;
         // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTLog.err/GTMod.GT_FML_LOGGER 于 beta-3 移除，改用环境 log4j2（三版本通用）
         LOG.warn(
-            "[GTSR] VoidMinerUtilityShim failed to read GalacticGreg VoidMinerUtility drop tables"
+            "[GTSR] VoidMinerUtilityShim failed to link GalacticGreg VoidMinerUtility public drop tables"
                 + " (dropMapsByDimName present: "
                 + (dropMapsByName != null)
                 + ", extraDropsByDimName present: "

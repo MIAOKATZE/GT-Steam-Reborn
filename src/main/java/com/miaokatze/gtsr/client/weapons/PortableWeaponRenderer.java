@@ -22,6 +22,7 @@ import net.minecraftforge.client.model.IModelCustom;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
+import com.miaokatze.gtsr.client.render.ClientDisplayList;
 import com.miaokatze.gtsr.common.weapons.EntityWeaponProjectile;
 import com.miaokatze.gtsr.common.weapons.EntityWeaponSingularity;
 import com.miaokatze.gtsr.common.weapons.PortableWeapons;
@@ -279,14 +280,11 @@ public final class PortableWeaponRenderer implements IItemRenderer, IResourceMan
                 model = AdvancedModelLoader.loadModel(new ResourceLocation("gtsr", "models/weapons/" + key + ".obj"));
                 MODELS.put(key, model);
             }
-            list = GL11.glGenLists(1);
-            GL11.glNewList(list, GL11.GL_COMPILE);
-            try {
-                if ("all".equals(group)) model.renderAll();
-                else model.renderOnly(group);
-            } finally {
-                GL11.glEndList();
-            }
+            IModelCustom compiledModel = model;
+            list = ClientDisplayList.compile(() -> {
+                if ("all".equals(group)) compiledModel.renderAll();
+                else compiledModel.renderOnly(group);
+            });
             LISTS.put(cacheKey, list);
         }
         GL11.glCallList(list);

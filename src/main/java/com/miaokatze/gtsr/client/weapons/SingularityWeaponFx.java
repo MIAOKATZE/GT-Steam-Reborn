@@ -32,6 +32,16 @@ final class SingularityWeaponFx {
     private static Object lastWorld;
     private static final Map<Integer, List<EntityFX>> OWNED = new HashMap<>();
 
+    static void clear() {
+        for (Entity core : CORES.values()) core.setDead();
+        for (List<EntityFX> effects : OWNED.values()) {
+            for (EntityFX effect : effects) effect.setDead();
+        }
+        CORES.clear();
+        OWNED.clear();
+        lastWorld = null;
+    }
+
     static void stop(int entityId) {
         Entity core = CORES.remove(entityId);
         if (core == null && Minecraft.getMinecraft().theWorld != null) {
@@ -52,10 +62,10 @@ final class SingularityWeaponFx {
 
     static void tick(World world) {
         if (lastWorld != world) {
-            for (Integer id : new ArrayList<>(CORES.keySet())) stop(id);
-            OWNED.clear();
+            clear();
             lastWorld = world;
         }
+        if (world == null) return;
         for (Integer id : new ArrayList<>(CORES.keySet())) {
             Entity core = CORES.get(id);
             if (core.isDead || ((EntityWeaponSingularity) core).life() >= ((EntityWeaponSingularity) core).duration()

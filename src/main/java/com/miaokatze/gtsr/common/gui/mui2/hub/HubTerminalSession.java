@@ -13,6 +13,7 @@ import net.minecraft.tileentity.TileEntity;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.value.sync.SyncHandler;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions;
+import com.miaokatze.gtsr.common.gui.mui2.Mui2SessionGate;
 import com.miaokatze.gtsr.common.machine.MTESingularityDrillingHub;
 import com.miaokatze.gtsr.common.machine.base.MTEHubArrayBase;
 import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
@@ -63,11 +64,8 @@ public final class HubTerminalSession extends SyncHandler<HubTerminalSession> {
     }
 
     public boolean active() {
-        return isValid() && !getSyncManager().isClient()
-            && ServerPacketAuthority.isCurrentPlayer(data.getPlayer(), connection)
-            && tile != null
+        return Mui2SessionGate.active(this, data, connection) && tile != null
             && !tile.isInvalid()
-            && data.getPlayer().openContainer == getSyncManager().getContainer()
             && data.getTileEntity() == tile
             && factory.machine(data) == machine
             && factory.canInteractWith(data.getPlayer(), data);

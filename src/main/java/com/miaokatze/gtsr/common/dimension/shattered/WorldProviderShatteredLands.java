@@ -1,7 +1,6 @@
 package com.miaokatze.gtsr.common.dimension.shattered;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.chunk.Chunk;
@@ -9,6 +8,7 @@ import net.minecraft.world.chunk.Chunk;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldProviderBase;
 import com.miaokatze.gtsr.common.dimension.shattered.biome.ShatteredBiomes;
+import com.miaokatze.gtsr.main.GTSteamReborn;
 
 /**
  * 破碎之地 WorldProvider（dim1 S6a，04 §1.7 + plan §S6a）。
@@ -17,7 +17,7 @@ import com.miaokatze.gtsr.common.dimension.shattered.biome.ShatteredBiomes;
  * <li>无太阳视觉：{@link #fixedCelestialAngle()} 恒 0.75F（永夜偏移，太阳/月亮恒在地平线下，
  * 天光经 moonlight 档保持可见不全黑）；</li>
  * <li>天空/雾色：04 §1.1 暗紫三变体按当前群系取色（{@link ShatteredBiomes#skyFogColorFor}），
- * getFogColor 无坐标参数，取最近玩家（渲染端即本地玩家）所在群系；<b>P2 起群系身份走 L1
+ * getFogColor 无坐标参数，通过客户端代理取渲染相机所在群系；<b>P2 起群系身份走 L1
  * {@link GTSRBiomeAuthority#ordinalAt(int, int)}</b>，不再读 {@code Chunk} 的 byte 平面
  * （{@code World.getBiomeGenForCoords}），见 {@link #biomeIdentityAt}；</li>
  * <li>canDoLightning=true（天气层允许闪电，强制雷暴与附加雷击 = S6b 责任）；</li>
@@ -42,10 +42,9 @@ public class WorldProviderShatteredLands extends GTSRWorldProviderBase {
 
     @Override
     public Vec3 getFogColor(float partialTicks, float renderPass) {
-        // 渲染端调用；最近玩家即本地玩家（客户端 playerEntities 只含本地玩家）
-        final EntityPlayer player = this.worldObj.getClosestPlayer(0.0D, 128.0D, 0.0D, Double.MAX_VALUE);
-        final int x = player != null ? MathHelper.floor_double(player.posX) : 0;
-        final int z = player != null ? MathHelper.floor_double(player.posZ) : 0;
+        final Entity camera = GTSteamReborn.proxy.getRenderCamera(this.worldObj);
+        final int x = camera != null ? MathHelper.floor_double(camera.posX) : 0;
+        final int z = camera != null ? MathHelper.floor_double(camera.posZ) : 0;
         return toVec3(ShatteredBiomes.skyFogColorFor(biomeIdentityAt(x, z)));
     }
 

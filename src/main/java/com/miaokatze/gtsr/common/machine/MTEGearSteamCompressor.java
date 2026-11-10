@@ -58,6 +58,8 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.IndependentSteamSupport;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Materials;
@@ -138,7 +140,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
 
             @Override
             public long count(MTEGearSteamCompressor t) {
-                return t.mPressureSteamInputs.size();
+                return t.mPressureSteamInputs.size() + PipelessSteamSupport.count(t);
             }
 
             @Override
@@ -174,8 +176,13 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
         }
 
         @Override
+        public boolean matchesHatch(IMetaTileEntity tile) {
+            return PipelessSteamSupport.matches(tile, mteClasses());
+        }
+
+        @Override
         public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
+            return PipelessSteamSupport.candidates(mteClasses, this == PressureSteamInput);
         }
 
         @Override
@@ -364,6 +371,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
     }
 
     private boolean addPressureSteamToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (PipelessSteamSupport.add(this, aTileEntity, aBaseCasingIndex)) return true;
         if (aTileEntity == null) return false;
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEHatchPressureSteamInput hatch) {
@@ -399,6 +407,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
 
     @Override
     public void checkMachine(IGregTechTileEntity aBaseMetaTileEntity, ItemStack aStack, List<StructureError> errors) {
+        PipelessSteamSupport.clear(this);
         mMechanicalCasingCount = 0;
         mCasingAmount = 0;
         mCasingTier = -1;
@@ -435,7 +444,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
     }
 
     private boolean hasPressureSteamHatch() {
-        return !mPressureSteamInputs.isEmpty();
+        return PipelessSteamSupport.count(this) > 0 || !mPressureSteamInputs.isEmpty();
     }
 
     private boolean hasSteamCoolingHatch() {
@@ -443,6 +452,19 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
     }
 
     private boolean depleteSteam(long required) {
+        if (PipelessSteamSupport.count(this) > 0) {
+            if (required <= 0) return true;
+            if (!hasEnoughSteam(required)) return false;
+            long remaining = required;
+            for (FluidStack fluid : IndependentSteamSupport.steamKinds(this, getStoredFluids(), mPressureSteamInputs)) {
+                long amount = Math.min(
+                    remaining,
+                    IndependentSteamSupport.available(this, mInputHatches, mPressureSteamInputs, fluid, remaining));
+                remaining -= IndependentSteamSupport.drain(this, mInputHatches, mPressureSteamInputs, fluid, amount);
+                if (remaining <= 0) break;
+            }
+            return remaining <= 0;
+        }
         if (required <= 0) return true;
         // v1.10.61：先探测后实扣——原实现在门控后直接扣减，不足时窗口内已真实消耗的蒸汽
         // 由 endRecipeProcessing 结算，导致每 idle tick 损失 ≤1280L 蒸汽。
@@ -477,6 +499,15 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
      * 输入仓为本地罐直接读存量。合计 ≥ required 才算充足，供 depleteSteam 先探测后实扣。
      */
     private boolean hasEnoughSteam(long required) {
+        if (PipelessSteamSupport.count(this) > 0) {
+            long available = 0;
+            for (FluidStack fluid : IndependentSteamSupport.steamKinds(this, getStoredFluids(), mPressureSteamInputs)) {
+                available += IndependentSteamSupport
+                    .available(this, mInputHatches, mPressureSteamInputs, fluid, required);
+                if (available >= required) break;
+            }
+            return available >= required;
+        }
         long available = 0;
         Set<Fluid> probedFluids = new HashSet<>();
         for (FluidStack fs : getStoredFluids()) {
@@ -591,6 +622,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
         for (IDualInputHatch dual : mDualInputHatches) {
             if (dual != null) dual.updateTexture(textureIndex);
         }
+        PipelessSteamSupport.updateTextures(this, getCasingTextureIndex());
     }
 
     private int getCasingTextureIndex() {

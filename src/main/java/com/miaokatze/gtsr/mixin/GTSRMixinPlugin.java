@@ -19,6 +19,10 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
  */
 public class GTSRMixinPlugin implements IMixinConfigPlugin {
 
+    public static boolean supportsAngelicaCapture() {
+        return AngelicaCaptureShape.SUPPORTED;
+    }
+
     @Override
     public void onLoad(String mixinPackage) {
         // 无需初始化

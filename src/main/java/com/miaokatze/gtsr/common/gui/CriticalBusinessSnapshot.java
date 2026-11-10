@@ -433,8 +433,8 @@ final class CriticalBusinessSnapshot {
     }
 
     private static String[][] runtime(CriticalMachineState state) {
-        NBTTagCompound data = (NBTTagCompound) state.energyRuntimeData()
-            .copy();
+        NBTTagCompound data = state.runtimeSnapshot()
+            .energy();
         List<String[]> rows = new ArrayList<>();
         if (state.getKind() != CriticalMachineKind.SUN)
             row(rows, "sample_scope", data.getBoolean("funded") ? "active" : "last");

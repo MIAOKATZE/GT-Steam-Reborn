@@ -216,6 +216,14 @@ public final class CriticalMaterials {
             Block neighbor = world.getBlock(x, y, z);
             if (neighbor instanceof MaterialBlock material && !isAnimatedAt(world, x, y, z)
                 && (!material.transparent || material == this)) return false;
+            if (com.miaokatze.gtsr.mixin.GTSRMixinPlugin.supportsAngelicaCapture()) {
+                return side == 0 && getBlockBoundsMinY() > 0 || side == 1 && getBlockBoundsMaxY() < 1
+                    || side == 2 && getBlockBoundsMinZ() > 0
+                    || side == 3 && getBlockBoundsMaxZ() < 1
+                    || side == 4 && getBlockBoundsMinX() > 0
+                    || side == 5 && getBlockBoundsMaxX() < 1
+                    || !neighbor.isOpaqueCube();
+            }
             return super.shouldSideBeRendered(world, x, y, z, side);
         }
     }

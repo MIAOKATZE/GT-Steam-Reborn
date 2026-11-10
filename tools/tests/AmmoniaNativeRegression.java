@@ -10,22 +10,24 @@ import com.miaokatze.gtsr.common.machine.MTEAmmoniaPlant;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
 
-import gregtech.api.enums.VoidingMode;
 import gregtech.api.enums.Materials;
+import gregtech.api.enums.VoidingMode;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
-import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
+import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.util.GTUtility;
 import gregtech.common.tileentities.machines.outputme.MTEHatchOutputME;
 
 /** Calls the production machine and GT205 transactions. World/AE transport is not booted. */
 public final class AmmoniaNativeRegression {
+
     public static void main(String[] args) throws Exception {
         Issue37RegistrationRegression.launch("AmmoniaNativeRuntime", args[0]);
     }
 }
 
 class AmmoniaNativeRuntime {
+
     private static final List<String> failures = new ArrayList<>();
 
     static void check(boolean ok, String label) {
@@ -67,11 +69,19 @@ class AmmoniaNativeRuntime {
     }
 
     static void attach(Object machine) throws Exception {
-        Object tile = java.lang.reflect.Proxy.newProxyInstance(AmmoniaNativeRuntime.class.getClassLoader(),
-            new Class<?>[] { gregtech.api.interfaces.tileentity.IGregTechTileEntity.class }, (p, m, a) -> {
-                if (m.getName().equals("getMetaTileEntity")) return machine;
-                if (m.getName().equals("getFrontFacing")) return net.minecraftforge.common.util.ForgeDirection.NORTH;
-                if (m.getName().equals("isServerSide") || m.getName().equals("isAllowedToWork")) return true;
+        Object tile = java.lang.reflect.Proxy.newProxyInstance(
+            AmmoniaNativeRuntime.class.getClassLoader(),
+            new Class<?>[] { gregtech.api.interfaces.tileentity.IGregTechTileEntity.class },
+            (p, m, a) -> {
+                if (m.getName()
+                    .equals("getMetaTileEntity")) return machine;
+                if (m.getName()
+                    .equals("getFrontFacing")) return net.minecraftforge.common.util.ForgeDirection.NORTH;
+                if (m.getName()
+                    .equals("isServerSide")
+                    || m.getName()
+                        .equals("isAllowedToWork"))
+                    return true;
                 Class<?> type = m.getReturnType();
                 if (type == boolean.class) return false;
                 if (type == int.class) return 0;
@@ -84,43 +94,96 @@ class AmmoniaNativeRuntime {
     }
 
     static class Ordinary extends MTEHatchOutput {
-        Ordinary() { super("ordinary", 4, new String[0], null); }
-        @Override public boolean isValid() { return true; }
+
+        Ordinary() {
+            super("ordinary", 4, new String[0], null);
+        }
+
+        @Override
+        public boolean isValid() {
+            return true;
+        }
     }
 
     static class SteamOnly extends MTESteamOutputHatch {
-        SteamOnly() { super("steam", 1, new String[0], null); }
-        @Override public boolean isValid() { return true; }
+
+        SteamOnly() {
+            super("steam", 1, new String[0], null);
+        }
+
+        @Override
+        public boolean isValid() {
+            return true;
+        }
     }
 
     static class Pressure extends MTEPressureSteamOutputHatch {
-        Pressure() { super("pressure", 2, new String[0], null); }
-        @Override public boolean isValid() { return true; }
+
+        Pressure() {
+            super("pressure", 2, new String[0], null);
+        }
+
+        @Override
+        public boolean isValid() {
+            return true;
+        }
     }
 
     // Only AE network availability/filter metadata is controlled here; routing uses the real machine methods.
     static class ME extends MTEHatchOutputME {
+
         boolean filtered;
         boolean checks;
         boolean space = true;
-        ME(boolean filtered) { super("me", 4, new String[0], null); this.filtered = filtered; }
-        @Override public boolean isValid() { return true; }
-        @Override public boolean isFiltered() { return filtered; }
-        @Override public boolean isFilteredToFluid(GTUtility.FluidId id) { return true; }
-        @Override public boolean hasPhysicalSpace() { return space; }
-        @Override public boolean getCheckMode() { return checks; }
+
+        ME(boolean filtered) {
+            super("me", 4, new String[0], null);
+            this.filtered = filtered;
+        }
+
+        @Override
+        public boolean isValid() {
+            return true;
+        }
+
+        @Override
+        public boolean isFiltered() {
+            return filtered;
+        }
+
+        @Override
+        public boolean isFilteredToFluid(GTUtility.FluidId id) {
+            return true;
+        }
+
+        @Override
+        public boolean hasPhysicalSpace() {
+            return space;
+        }
+
+        @Override
+        public boolean getCheckMode() {
+            return checks;
+        }
     }
 
     static class Input extends MTEHatchInput {
+
         int realLimit = Integer.MAX_VALUE;
+
         Input(FluidStack fluid) throws Exception {
             super("input", 10, new String[0], null);
             attach(this);
             setFillableStack(fluid);
         }
-        @Override public boolean isValid() { return true; }
-        @Override public FluidStack drain(net.minecraftforge.common.util.ForgeDirection side,
-            FluidStack request, boolean real) {
+
+        @Override
+        public boolean isValid() {
+            return true;
+        }
+
+        @Override
+        public FluidStack drain(net.minecraftforge.common.util.ForgeDirection side, FluidStack request, boolean real) {
             FluidStack capped = request.copy();
             if (real) capped.amount = Math.min(capped.amount, realLimit);
             return super.drain(side, capped, real);
@@ -144,7 +207,10 @@ class AmmoniaNativeRuntime {
         FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("refinerygas"));
         Materials.Steam.mGas = FluidRegistry.getFluid("steam");
         Materials.Gas.mGas = FluidRegistry.getFluid("refinerygas");
-        System.out.println("SOURCE ammonia " + MTEAmmoniaPlant.class.getProtectionDomain().getCodeSource().getLocation());
+        System.out.println(
+            "SOURCE ammonia " + MTEAmmoniaPlant.class.getProtectionDomain()
+                .getCodeSource()
+                .getLocation());
         var steamOnly = new SteamOnly();
         var steamMachine = machine(steamOnly);
         push(steamMachine, 400);
@@ -156,7 +222,11 @@ class AmmoniaNativeRuntime {
         var split = machine(ordinary, pressure);
         push(split, 400);
         check(ordinary.getFluidAmount() == 0 && pending(split) == 400, "AM01-backpressure-keeps-ammonia-port-empty");
-        check(split.getOutputHatches().contains(ordinary) && !split.getOutputHatches().contains(pressure),
+        check(
+            split.getOutputHatches()
+                .contains(ordinary)
+                && !split.getOutputHatches()
+                    .contains(pressure),
             "AM01-primary-precheck-excludes-steam-port");
 
         var balance = machine();
@@ -170,21 +240,28 @@ class AmmoniaNativeRuntime {
         locked.lockFluid(true);
         var lockMachine = machine(locked);
         push(lockMachine, 400);
-        check(locked.getFluidAmount() == 400 && pending(lockMachine) == 0,
+        check(
+            locked.getFluidAmount() == 400 && pending(lockMachine) == 0,
             "AM01-explicit-superheat-lock-still-receives");
 
         split.addOutput(FluidRegistry.getFluidStack("ammonia", 1000));
-        check(ordinary.getFluidAmount() == 1000 && ordinary.getFluid().getFluid() == FluidRegistry.getFluid("ammonia"),
+        check(
+            ordinary.getFluidAmount() == 1000 && ordinary.getFluid()
+                .getFluid() == FluidRegistry.getFluid("ammonia"),
             "AM01-native-ammonia-delivery-after-side-backpressure");
 
         var mixedME = new ME(true);
         var meMachine = machine(mixedME);
         var ammoniaId = GTUtility.FluidId.create(FluidRegistry.getFluidStack("ammonia", 1));
-        check(meMachine.getOutputHatches().isEmpty() && !meMachine.canDumpFluidToME(List.of(ammoniaId)),
+        check(
+            meMachine.getOutputHatches()
+                .isEmpty() && !meMachine.canDumpFluidToME(List.of(ammoniaId)),
             "AM01-ME-mixed-filter-side-port-cannot-bypass-primary-precheck");
         var primaryME = new ME(false);
         meMachine = machine(primaryME);
-        check(meMachine.getOutputHatches().contains(primaryME) && meMachine.canDumpFluidToME(List.of(ammoniaId)),
+        check(
+            meMachine.getOutputHatches()
+                .contains(primaryME) && meMachine.canDumpFluidToME(List.of(ammoniaId)),
             "AM01-unfiltered-ME-remains-primary-port");
         primaryME.checks = true;
         check(!meMachine.canDumpFluidToME(List.of(ammoniaId)), "AM01-ME-check-mode-keeps-native-capacity-check");
@@ -197,11 +274,20 @@ class AmmoniaNativeRuntime {
         push(fractional, 400);
         check(pending(fractional) == 0, "AM07-explicit-void-mode-discards-backlog");
 
+        check(
+            machine().getRecipeMap()
+                .containsInput(Materials.Steam.getGas(1)),
+            "AM09-recipe-filter-admits-required-thermal-steam");
+        check(
+            !machine().getRecipeMap()
+                .containsInput(FluidRegistry.getFluidStack("ic2superheatedsteam", 1)),
+            "AM09-recipe-filter-still-rejects-wrong-thermal-steam");
         Input gas = new Input(Materials.Gas.getGas(200));
         Input steam = new Input(Materials.Steam.getGas(8000));
         var heating = thermal(gas, steam);
         for (long tick = 1; tick <= 20; tick++) heating.onPostTick(heating.getBaseMetaTileEntity(), tick);
-        check(heating.mHeatLevel == 10 && gas.getFluidAmount() == 0 && steam.getFluidAmount() == 0,
+        check(
+            heating.mHeatLevel == 10 && gas.getFluidAmount() == 0 && steam.getFluidAmount() == 0,
             "AM03-twenty-paid-ticks-are-ten-heat");
 
         gas = new Input(Materials.Gas.getGas(0));
@@ -221,7 +307,8 @@ class AmmoniaNativeRuntime {
         var shortTick = thermal(gas, steam);
         shortTick.mHeatLevel = 10000;
         set(shortTick, "mMaxProgresstime", 1280);
-        check(!shortTick.onRunningTick(null) && gas.getFluidAmount() == 100 && steam.getFluidAmount() == 700,
+        check(
+            !shortTick.onRunningTick(null) && gas.getFluidAmount() == 100 && steam.getFluidAmount() == 700,
             "AM05-running-tick-shortage-does-not-partially-pay");
 
         gas = new Input(Materials.Gas.getGas(100));
@@ -229,11 +316,15 @@ class AmmoniaNativeRuntime {
         var paidTick = thermal(gas, steam);
         paidTick.mHeatLevel = 10000;
         set(paidTick, "mMaxProgresstime", 1280);
-        check(paidTick.onRunningTick(null) && steam.getFluidAmount() == 3600 && gas.getFluidAmount() == 90
-            && pending(paidTick) == 1400, "AM05-whole-tick-conserves-paid-steam");
+        check(
+            paidTick.onRunningTick(null) && steam.getFluidAmount() == 3600
+                && gas.getFluidAmount() == 90
+                && pending(paidTick) == 1400,
+            "AM05-whole-tick-conserves-paid-steam");
         paidTick.mParallelCount = 256;
         set(paidTick, "mReactionTimeSec", 1);
-        check(paidTick.onRunningTick(null) && steam.getFluidAmount() == 2200,
+        check(
+            paidTick.onRunningTick(null) && steam.getFluidAmount() == 2200,
             "AM04-live-catalyst-change-does-not-change-batch-charge");
 
         gas = new Input(Materials.Gas.getGas(100));
@@ -242,8 +333,35 @@ class AmmoniaNativeRuntime {
         var partial = thermal(gas, steam);
         partial.mHeatLevel = 10000;
         set(partial, "mMaxProgresstime", 1280);
-        check(!partial.onRunningTick(null) && pending(partial) == 100 && steam.getFluidAmount() == 4900,
-            "AM05-partial-real-extraction-converts-only-receipt-and-stops");
+        check(
+            !partial.onRunningTick(null) && pending(partial) == 0
+                && steam.getFluidAmount() == 4900
+                && gas.getFluidAmount() == 90
+                && partial.mMaxProgresstime == 1280
+                && partial.thermalGasCredit() == 10
+                && partial.thermalSteamCredit() == 100,
+            "AM05-short-payment-retains-pair-without-output-or-batch-abort");
+
+        var partialSaved = new net.minecraft.nbt.NBTTagCompound();
+        partial.saveNBTData(partialSaved);
+        var partialItem = new net.minecraft.nbt.NBTTagCompound();
+        partial.setItemNBT(partialItem);
+        check(
+            partialItem.getCompoundTag("gtsrAmmoniaThermalPayment")
+                .equals(partialSaved.getCompoundTag("gtsrAmmoniaThermalPayment")),
+            "AM08-item-carries-confirmed-thermal-credits");
+        var resumedPartial = thermal(gas, steam);
+        resumedPartial.loadNBTData(partialSaved);
+        steam.realLimit = Integer.MAX_VALUE;
+        Method pay = MTEAmmoniaPlant.class.getDeclaredMethod("consumeFuelAndSteam", int.class, int.class);
+        pay.setAccessible(true);
+        check(
+            (Boolean) pay.invoke(resumedPartial, 10, 1400) && gas.getFluidAmount() == 90
+                && steam.getFluidAmount() == 3600
+                && pending(resumedPartial) == 1400
+                && resumedPartial.thermalGasCredit() == 0
+                && resumedPartial.thermalSteamCredit() == 0,
+            "AM08-reload-retries-only-unpaid-balance-and-authorizes-one-pair");
 
         var saved = new net.minecraft.nbt.NBTTagCompound();
         paidTick.saveNBTData(saved);
@@ -251,8 +369,9 @@ class AmmoniaNativeRuntime {
         restored.loadNBTData(saved);
         restored.mParallelCount = 256;
         set(restored, "mReactionTimeSec", 1);
-        check(restored.onRunningTick(null) && pending(restored) == 1400,
-            "AM04-NBT-restores-frozen-charge-without-restoring-old-pending");
+        check(
+            restored.onRunningTick(null) && pending(restored) == 4200,
+            "AM04-NBT-restores-frozen-charge-and-owned-thermal-output");
 
         FluidRegistry.registerFluid(new net.minecraftforge.fluids.Fluid("nitrogen"));
         var recipeMachine = thermal(new Input(Materials.Gas.getGas(1100)), new Input(Materials.Steam.getGas(5000)));
@@ -263,12 +382,18 @@ class AmmoniaNativeRuntime {
         recipeMachine.mHeatLevel = 10000;
         gregtech.api.util.GTRecipeBuilder.builder()
             .fluidInputs(Materials.Gas.getGas(1000), FluidRegistry.getFluidStack("nitrogen", 1000))
-            .fluidOutputs(FluidRegistry.getFluidStack("ammonia", 1000)).duration(1280).eut(0)
+            .fluidOutputs(FluidRegistry.getFluidStack("ammonia", 1000))
+            .duration(1280)
+            .eut(0)
             .addTo(recipeMachine.getRecipeMap());
-        check(recipeMachine.checkProcessing().wasSuccessful(), "AM04-native-ProcessingLogic-starts-real-one-parallel-recipe");
+        check(
+            recipeMachine.checkProcessing()
+                .wasSuccessful(),
+            "AM04-native-ProcessingLogic-starts-real-one-parallel-recipe");
         recipeMachine.mParallelCount = 256;
         set(recipeMachine, "mReactionTimeSec", 1);
-        check(recipeMachine.onRunningTick(null) && pending(recipeMachine) == 1400,
+        check(
+            recipeMachine.onRunningTick(null) && pending(recipeMachine) == 1400,
             "AM04-successful-start-freezes-fixed-load-charge-even-at-one-actual-parallel");
         if (!failures.isEmpty()) throw new AssertionError("Failed: " + failures);
     }

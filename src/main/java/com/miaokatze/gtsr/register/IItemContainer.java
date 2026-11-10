@@ -50,7 +50,7 @@ public interface IItemContainer {
      * 设置并注册物品（带条件注册）
      */
     default IItemContainer setAndRegister(Supplier<Item> itemSupplier, boolean shouldRegister) {
-        return setAndRegister(itemSupplier.get(), null, shouldRegister);
+        return shouldRegister ? setAndRegister(itemSupplier.get(), null, true) : this;
     }
 
     /**

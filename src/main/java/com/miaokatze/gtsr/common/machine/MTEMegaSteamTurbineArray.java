@@ -38,6 +38,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.api.compat.IAdditionalSteamSourceHolder;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEMegaSteamTurbineArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
@@ -52,6 +53,7 @@ import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
+import com.miaokatze.gtsr.compat.gtnl.PipelessSteamSupport;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.GTValues;
@@ -82,7 +84,27 @@ import tectech.thing.metaTileEntity.hatch.MTEHatchDynamoMulti;
 
 @IMetaTileEntity.SkipGenerateDescription
 public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEMegaSteamTurbineArray>
-    implements IConstructable, ISurvivalConstructable, MachineVisualHost {
+    implements IConstructable, ISurvivalConstructable, MachineVisualHost, IAdditionalSteamSourceHolder {
+
+    private final List<MTEHatch> additionalSteamSources = new ArrayList<>();
+
+    @Override
+    public List<MTEHatch> gtsr$getAdditionalSteamSources() {
+        return additionalSteamSources;
+    }
+
+    @Override
+    public void clearHatches() {
+        super.clearHatches();
+        additionalSteamSources.clear();
+    }
+
+    @Override
+    public ArrayList<FluidStack> getStoredFluids() {
+        ArrayList<FluidStack> fluids = super.getStoredFluids();
+        fluids.addAll(PipelessSteamSupport.getStored(this));
+        return fluids;
+    }
 
     private final MachineVisualState machineVisualState = new MachineVisualState();
     public int mGlassTier = -1;
@@ -170,7 +192,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
             @Override
             public long count(MTEMegaSteamTurbineArray t) {
-                return t.mPressureSteamInputs.size();
+                return t.mPressureSteamInputs.size() + PipelessSteamSupport.count(t);
             }
         },
 
@@ -214,8 +236,13 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         }
 
         @Override
+        public boolean matchesHatch(IMetaTileEntity tile) {
+            return PipelessSteamSupport.matches(tile, mteClasses());
+        }
+
+        @Override
         public List<? extends Class<? extends IMetaTileEntity>> mteClasses() {
-            return mteClasses;
+            return PipelessSteamSupport.candidates(mteClasses, this == PressureSteamInput);
         }
 
         @Override
@@ -556,6 +583,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     private boolean addPressureSteamToMachineList(IGregTechTileEntity aTileEntity, int aBaseCasingIndex) {
+        if (PipelessSteamSupport.add(this, aTileEntity, aBaseCasingIndex)) return true;
         if (aTileEntity == null) return false;
         IMetaTileEntity mte = aTileEntity.getMetaTileEntity();
         if (mte instanceof MTEHatchPressureSteamInput hatch) {
@@ -580,7 +608,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     private boolean hasPressureSteamHatch() {
-        return !mPressureSteamInputs.isEmpty() || !mOverpressureInputs.isEmpty();
+        return PipelessSteamSupport.count(this) > 0 || !mPressureSteamInputs.isEmpty()
+            || !mOverpressureInputs.isEmpty();
     }
 
     private boolean hasSteamCoolingHatch() {
@@ -607,6 +636,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     /** Reset through GT's hatch lifecycle before rebuilding accepted pieces after a failed stack probe. */
     private void resetStructureRegistration() {
+        additionalSteamSources.clear();
         clearHatches();
         mCasingAmount = 0;
         mStackCount = 0;
@@ -1109,6 +1139,11 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
                 if (remaining <= 0) return true;
             }
         }
+        for (FluidStack stored : PipelessSteamSupport.getStored(this)) {
+            if (classifyFluid(stored) != type) continue;
+            remaining -= PipelessSteamSupport.drain(this, stored, remaining, false);
+            if (remaining <= 0) return true;
+        }
         return remaining <= 0;
     }
 
@@ -1402,6 +1437,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         for (var exoticDynamoHatch : GTUtility.validMTEList(eDynamoMulti)) {
             exoticDynamoHatch.updateTexture(textureIndex);
         }
+        PipelessSteamSupport.updateTextures(this, getCasingTextureIndex());
     }
 
     @Override
