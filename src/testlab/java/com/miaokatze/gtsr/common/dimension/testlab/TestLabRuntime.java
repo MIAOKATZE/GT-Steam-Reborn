@@ -52,6 +52,8 @@ public final class TestLabRuntime {
     private boolean readinessAnnounced;
     private boolean resetting;
     private String afterReset;
+    private String afterResetRequestId;
+    private String commandRequestId;
     private int ticks;
     private int loadIndex;
     private int targetChunks;
@@ -98,9 +100,10 @@ public final class TestLabRuntime {
         world = null;
         listener = null;
         resetting = false;
-        afterReset = null;
+        clearAfterReset();
         initialized = false;
         readinessAnnounced = false;
+        commandRequestId = null;
         pendingWrite = null;
         persistenceError = false;
         activePrepared = false;
@@ -136,6 +139,28 @@ public final class TestLabRuntime {
             GTSteamReborn.LOG.error(PREFIX + "无法读取旧报告", e);
             throw new IllegalStateException("旧报告读取失败，请检查日志", e);
         }
+    }
+
+    /** Server-thread command scope; asynchronous reset owns a separate, one-run copy. */
+    void withRequest(String requestId, Runnable operation) {
+        String previous = commandRequestId;
+        commandRequestId = requestId;
+        try {
+            operation.run();
+        } finally {
+            commandRequestId = previous;
+        }
+    }
+
+    private TestLabReport newReport() {
+        TestLabReport created = new TestLabReport();
+        created.requestId = commandRequestId;
+        return created;
+    }
+
+    private void clearAfterReset() {
+        afterReset = null;
+        afterResetRequestId = null;
     }
 
     public void run(String requested, ICommandSender sender) {
@@ -211,7 +236,7 @@ public final class TestLabRuntime {
             TestLabPerformance.end("dimension.createOrReuse", dimensionTiming);
         }
         persistenceError = false;
-        report = new TestLabReport();
+        report = newReport();
         report.artifactIdentity = ArtifactIdentity.capture(GTSteamReborn.class)
             .asMap();
         report.coreArtifactIdentity = ArtifactIdentity.capture(LabEvents.class)
@@ -283,11 +308,13 @@ public final class TestLabRuntime {
         result.put(
             "state",
             pendingWrite != null ? "REPORT_RETRY" : resetting ? "RESETTING" : report == null ? "IDLE" : report.state);
-        result.put("runId", report == null ? null : report.runId);
-        result.put("reportPath", report == null ? null : report.reportPath);
+        result.put("runId", resetting || report == null ? null : report.runId);
+        result.put("requestId", resetting ? afterResetRequestId : report == null ? null : report.requestId);
+        result.put("reportPath", resetting || report == null ? null : report.reportPath);
         result.put(
             "reportWritten",
-            report != null && report.reportPath != null
+            !resetting && report != null
+                && report.reportPath != null
                 && pendingWrite == null
                 && !persistenceError
                 && new java.io.File(report.reportPath).isFile());
@@ -413,6 +440,7 @@ public final class TestLabRuntime {
         resetting = true;
         watchdog = 0;
         afterReset = rerun;
+        afterResetRequestId = rerun == null ? null : commandRequestId;
         listener = sender;
         announce("state=RESETTING rerun=" + rerun);
     }
@@ -435,7 +463,7 @@ public final class TestLabRuntime {
                 append(task.id(), task.displayName(), new TestLabReport.Result(TestLabReport.Status.SKIP, reason), 0);
             }
             resetting = false;
-            afterReset = null;
+            clearAfterReset();
             releaseTickets();
             try {
                 if (report != null && "RUNNING".equals(report.state)) finish("STOPPED");
@@ -531,9 +559,10 @@ public final class TestLabRuntime {
                 if (TestLabFixtures.tickReset(world)) {
                     resetting = false;
                     String rerun = afterReset;
-                    afterReset = null;
+                    String requestId = afterResetRequestId;
+                    clearAfterReset();
                     announce("state=RESET_COMPLETE");
-                    if (rerun != null) startRun(rerun, listener);
+                    if (rerun != null) withRequest(requestId, () -> startRun(rerun, listener));
                     else releaseAnchor();
                 }
                 return;
@@ -657,7 +686,7 @@ public final class TestLabRuntime {
                 if (resetting) {
                     TestLabFixtures.cancelReset();
                     resetting = false;
-                    afterReset = null;
+                    clearAfterReset();
                     announce("state=RESET_FAILED detail=" + e.getMessage());
                     releaseAnchor();
                 }
@@ -673,7 +702,7 @@ public final class TestLabRuntime {
                 pending.clear();
                 TestLabFixtures.cancelReset();
                 resetting = false;
-                afterReset = null;
+                clearAfterReset();
                 releaseTickets();
                 releaseAnchor();
                 if (report != null) report.state = "ERROR";
@@ -1026,7 +1055,7 @@ public final class TestLabRuntime {
         pending.clear();
         TestLabFixtures.cancelReset();
         resetting = false;
-        afterReset = null;
+        clearAfterReset();
         releaseTickets();
         releaseAnchor();
         if (report != null) {

@@ -16,9 +16,10 @@ public final class TestLabContracts {
         worldHooks();
         persistenceRetry();
         terminalSnapshots();
+        requestCorrelation();
         if (args.length > 0) exportDeclaredCases(java.nio.file.Paths.get(args[0]));
         System.out.println(
-            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 104/95/119 catalog, performance selection, independent report retry");
+            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 104/95/119 catalog, performance selection, independent report retry, request correlation");
     }
 
     private static void bootstrapWithoutImplementation() throws Exception {
@@ -231,6 +232,127 @@ public final class TestLabContracts {
             pendingField.set(runtime, null);
             resettingField.set(runtime, false);
             reportField.set(runtime, original);
+        }
+    }
+
+    private static void requestCorrelation() throws Exception {
+        TestLabRuntime runtime = TestLabRuntime.INSTANCE;
+        java.lang.reflect.Field reportField = TestLabRuntime.class.getDeclaredField("report");
+        java.lang.reflect.Field resetting = TestLabRuntime.class.getDeclaredField("resetting");
+        java.lang.reflect.Field rerun = TestLabRuntime.class.getDeclaredField("afterReset");
+        java.lang.reflect.Field deferred = TestLabRuntime.class.getDeclaredField("afterResetRequestId");
+        java.lang.reflect.Field command = TestLabRuntime.class.getDeclaredField("commandRequestId");
+        java.lang.reflect.Field initialized = TestLabRuntime.class.getDeclaredField("initialized");
+        java.lang.reflect.Field stateField = TestLabRuntime.class.getDeclaredField("state");
+        java.lang.reflect.Method newReport = TestLabRuntime.class.getDeclaredMethod("newReport");
+        java.lang.reflect.Method clear = TestLabRuntime.class.getDeclaredMethod("clearAfterReset");
+        java.lang.reflect.Field[] fields = { reportField, resetting, rerun, deferred, command, initialized,
+            stateField };
+        Object[] originals = new Object[fields.length];
+        for (int i = 0; i < fields.length; i++) {
+            fields[i].setAccessible(true);
+            originals[i] = fields[i].get(runtime);
+        }
+        newReport.setAccessible(true);
+        clear.setAccessible(true);
+        String oldRequest = "11111111-1111-4111-8111-111111111111";
+        String request = "22222222-2222-4222-8222-222222222222";
+        String pollRequest = "33333333-3333-4333-8333-333333333333";
+        net.minecraft.command.ICommandSender sender = (net.minecraft.command.ICommandSender) java.lang.reflect.Proxy
+            .newProxyInstance(
+                TestLabContracts.class.getClassLoader(),
+                new Class<?>[] { net.minecraft.command.ICommandSender.class },
+                (proxy, method, args) -> {
+                    if ("canCommandSenderUseCommand".equals(method.getName())) return true;
+                    if ("addChatMessage".equals(method.getName())) return null;
+                    throw new AssertionError("Unexpected sender operation: " + method.getName());
+                });
+        Path stopDirectory = Files.createTempDirectory("gtsr-stop-request-contract-");
+        try {
+            initialized.set(runtime, true);
+            TestLabReport old = new TestLabReport();
+            old.state = "COMPLETE";
+            old.runId = "previous-business-run";
+            old.requestId = oldRequest;
+            old.reportPath = "previous-report.json";
+            reportField.set(runtime, old);
+            resetting.set(runtime, true);
+            rerun.set(runtime, "steam_cache_node");
+            deferred.set(runtime, request);
+            java.util.Map<String, Object> during = runtime.snapshot();
+            require(request.equals(during.get("requestId")), "reset lost the new request correlation");
+            require(
+                during.get("runId") == null && during.get("reportPath") == null,
+                "new reset request inherited previous business identity");
+            require(Boolean.FALSE.equals(during.get("reportWritten")), "reset inherited old report completion");
+            new TestLabSupport().execute(sender, new String[] { "report" }, pollRequest);
+            new TestLabSupport().execute(sender, new String[] { "status" }, pollRequest);
+            require(request.equals(deferred.get(runtime)), "poll request overwrote deferred run request");
+            require(oldRequest.equals(old.requestId), "poll rewrote previous report request identity");
+            require(command.get(runtime) == null, "report/status poll leaked its command request");
+            String carried = (String) deferred.get(runtime);
+            clear.invoke(runtime);
+            resetting.set(runtime, false);
+            TestLabReport[] started = { null };
+            runtime.withRequest(carried, () -> {
+                try {
+                    started[0] = (TestLabReport) newReport.invoke(runtime);
+                } catch (ReflectiveOperationException failure) {
+                    throw new AssertionError(failure);
+                }
+            });
+            require(deferred.get(runtime) == null && rerun.get(runtime) == null, "reset correlation was not consumed");
+            require(command.get(runtime) == null, "request leaked outside command scope");
+            require(request.equals(started[0].requestId), "asynchronous run lost its initiating request");
+            started[0].state = "COMPLETE";
+            started[0].runId = "next-business-run";
+            reportField.set(runtime, started[0]);
+            new TestLabSupport().execute(sender, new String[] { "report" }, pollRequest);
+            require(
+                request.equals(
+                    runtime.snapshot()
+                        .get("requestId")),
+                "business snapshot lost its request");
+            TestLabState state = new TestLabState(
+                new java.io.File(System.getProperty("java.io.tmpdir"), "gtsr-request-contract-no-write"));
+            TestLabReport raw = new com.google.gson.Gson()
+                .fromJson(state.prepare(started[0]).json, TestLabReport.class);
+            require(request.equals(raw.requestId), "raw report lost initiating request");
+            require(((TestLabReport) newReport.invoke(runtime)).requestId == null, "legacy run reused previous UUID");
+            try {
+                runtime.withRequest(request, () -> { throw new IllegalStateException("request-failure-fixture"); });
+            } catch (IllegalStateException expected) {
+                require(command.get(runtime) == null, "failed request leaked UUID");
+            }
+            try {
+                new TestLabSupport().execute(sender, new String[] { "unknown-action" }, request);
+                throw new AssertionError("unsupported command accepted");
+            } catch (IllegalArgumentException expected) {
+                require(command.get(runtime) == null, "canonical three-argument execute leaked failed request");
+            }
+            resetting.set(runtime, true);
+            rerun.set(runtime, "steam_cache_node");
+            deferred.set(runtime, oldRequest);
+            started[0].state = "RUNNING";
+            TestLabState stoppingState = new TestLabState(stopDirectory.toFile());
+            stateField.set(runtime, stoppingState);
+            new TestLabSupport().execute(sender, new String[] { "stop" }, pollRequest);
+            TestLabReport cancelled = stoppingState.readLatest();
+            require(
+                "STOPPED".equals(cancelled.state) && "CANCELLED".equals(cancelled.outcome),
+                "stop did not persist cancellation outcome");
+            require(request.equals(cancelled.requestId), "stop report attributed to polling/stopping request");
+            require(
+                deferred.get(runtime) == null && rerun.get(runtime) == null,
+                "stop retained a cancelled reset UUID");
+            require(request.equals(started[0].requestId), "stop rewrote the original report request identity");
+            require(((TestLabReport) newReport.invoke(runtime)).requestId == null, "run after stop reused UUID");
+        } finally {
+            for (int i = 0; i < fields.length; i++) fields[i].set(runtime, originals[i]);
+            try (java.util.stream.Stream<Path> files = Files.walk(stopDirectory)) {
+                for (Path file : (Iterable<Path>) files.sorted(java.util.Comparator.reverseOrder())::iterator)
+                    Files.delete(file);
+            }
         }
     }
 

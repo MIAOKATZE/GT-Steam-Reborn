@@ -65,6 +65,8 @@ public final class TestLabReport {
     public String category;
     public String executionScope;
     public String runId;
+    /** Core command request that initiated this business run; null for legacy commands. */
+    public String requestId;
     public String state;
     /** Business outcome, separate from the legacy queue lifecycle state. Refreshed before every serialization. */
     public String outcome;

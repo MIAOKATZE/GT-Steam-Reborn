@@ -90,6 +90,11 @@ public final class TestLabSupport implements LabModule {
         return result;
     }
 
+    @Override
+    public void execute(ICommandSender sender, String[] args, String requestId) {
+        TestLabRuntime.INSTANCE.withRequest(requestId, () -> execute(sender, args));
+    }
+
     public void execute(ICommandSender sender, String[] args) {
         if (!sender.canCommandSenderUseCommand(2, "miaotest"))
             throw new IllegalArgumentException("OP level 2 required");
