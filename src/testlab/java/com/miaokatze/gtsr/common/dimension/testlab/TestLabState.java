@@ -100,6 +100,7 @@ public final class TestLabState {
         long timing = TestLabPerformance.begin();
         try {
             report.reportPath = reportFile(report.runId).getAbsolutePath();
+            report.outcome = report.calculateOutcome();
             return new PendingWrite(reportFile(report.runId), new File(directory, "latest.json"), GSON.toJson(report));
         } finally {
             TestLabPerformance.end("report.serialize", timing);

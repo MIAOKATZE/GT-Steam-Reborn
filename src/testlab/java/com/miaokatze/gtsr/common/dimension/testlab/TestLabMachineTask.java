@@ -104,6 +104,10 @@ final class TestLabMachineTask implements TestLabTask {
         }
     }
 
+    MetaTileEntityID targetId() {
+        return targetId;
+    }
+
     @Override
     public String id() {
         if (targetId == MetaTileEntityID.HEAVY_STEAM_TURBINE && variant == 3) return "heavy_steam_turbine_superheated";

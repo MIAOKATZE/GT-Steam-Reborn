@@ -11,6 +11,11 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRWorldProviderBase;
 public final class TestLabWorldProvider extends GTSRWorldProviderBase {
 
     @Override
+    public boolean allowsOwnedGeneration() {
+        return false;
+    }
+
+    @Override
     public Vec3 getFogColor(float ticks, float pass) {
         return Vec3.createVectorHelper(0.7, 0.8, 0.9);
     }

@@ -271,3 +271,57 @@ tasks.named("reobfJar") {
         }
     }
 }
+
+// A complete replacement variant, never an addon to the ordinary GTSR jar.
+val testlabSourceSet = sourceSets.create("testlab") {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    runtimeClasspath += output + compileClasspath + sourceSets.main.get().runtimeClasspath
+}
+configurations.named(testlabSourceSet.implementationConfigurationName) { extendsFrom(configurations.implementation.get()) }
+configurations.named(testlabSourceSet.compileOnlyConfigurationName) { extendsFrom(configurations.compileOnly.get()) }
+configurations.named(testlabSourceSet.annotationProcessorConfigurationName) { extendsFrom(configurations.annotationProcessor.get()) }
+sourceSets.test {
+    compileClasspath += testlabSourceSet.output
+    runtimeClasspath += testlabSourceSet.output
+}
+val testlabJar = tasks.register<Jar>("testlabJar") {
+    group = "build"
+    description = "Complete opt-in testlab replacement; do not install alongside the ordinary jar."
+    archiveClassifier.set("testlab-dev")
+    // Reuse every production CopySpec, including convention-added injected tags and mixin source sets.
+    with(tasks.jar.get())
+    from(testlabSourceSet.output)
+    manifest.from(tasks.jar.get().manifest)
+    manifest.attributes("Miaokatze-Testlab-Variant" to "replacement")
+}
+// RFG 2.x creates and fully configures this task through its reobf<JarTaskName> rule.
+tasks.named<com.gtnewhorizons.retrofuturagradle.mcp.ReobfuscatedJar>("reobfTestlabJar") {
+    archiveClassifier.set("testlab")
+    referenceClasspath.from(testlabSourceSet.compileClasspath)
+    val productionReobf = tasks.named<com.gtnewhorizons.retrofuturagradle.mcp.ReobfuscatedJar>("reobfJar")
+    extraSrgFiles.from(productionReobf.map { it.extraSrgFiles })
+    extraSrgEntries.addAll(productionReobf.flatMap { it.extraSrgEntries })
+}
+
+val verifyTestLabContracts = tasks.register<JavaExec>("verifyTestLabContracts") {
+    group = "verification"
+    description = "Verify disabled implementation linkage, catalog selection, and independent report-write retry."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath + sourceSets.main.get().compileClasspath
+    mainClass.set("com.miaokatze.gtsr.common.dimension.testlab.TestLabContracts")
+    args(layout.buildDirectory.file("reports/testlab/cases.json").get().asFile.absolutePath)
+    maxHeapSize = "512m"
+}
+tasks.named("check") { dependsOn(verifyTestLabContracts) }
+
+// Bind reports to the checkout that produced the loaded archive, including intentional local deletions.
+val testlabSourceCommit = providers.exec { commandLine("git", "rev-parse", "HEAD") }
+    .standardOutput.asText.map { it.trim() }
+val testlabSourceDirty = providers.exec { commandLine("git", "status", "--porcelain", "--untracked-files=no") }
+    .standardOutput.asText.map { it.isNotBlank().toString() }
+tasks.withType<Jar>().configureEach {
+    manifest.attributes(
+        "Miaokatze-Source-Commit" to testlabSourceCommit.get(),
+        "Miaokatze-Source-Dirty" to testlabSourceDirty.get(),
+    )
+}

@@ -54,7 +54,7 @@ final class TestLabPerformance {
         plan.put("totalRealServerTickLimit", tickLimit);
         plan.put(
             "scope",
-            "quick: two physical representatives plus one UI; all: two physical representatives plus one per specialized task family and all server UI probes; neither is exhaustive per-machine functional coverage");
+            "quick: two physical representatives plus one UI; all: six explicit physical representatives (no followup/natural) and all UI descriptors; client-only entries remain SKIP; neither is exhaustive per-machine functional coverage");
         plan.put(
             "baselineAndCooldownPolicy",
             "Observed under the current server state; not controlled unloaded/clean-room baselines, no subtraction as strict attribution");

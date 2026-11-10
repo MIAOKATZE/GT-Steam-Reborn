@@ -24,32 +24,48 @@ def process_memory(proc):
 
 def main():
     global OUT, FIXTURE
-    p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path,default=FIXTURE);p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=5);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);p.add_argument('--hidden-desktop',action='store_true',help='Create a private Windows desktop for the owned child; never switch the user desktop');p.add_argument('--allow-low-memory',action='store_true',help='Use only after the user explicitly requests launch below the advisory memory reserve; heap limit still applies');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path);p.add_argument('--owner-host-run');p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=4);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);p.add_argument('--hidden-desktop',action='store_true',default=True,help='Required private Windows desktop; no foreground fallback');p.add_argument('--allow-low-memory',action='store_true',help='Use only after the user explicitly requests launch below the advisory memory reserve; heap limit still applies');a=p.parse_args()
+    if os.name!='nt' or not a.hidden_desktop:raise RuntimeError('Private Windows desktop is mandatory; foreground fallback is forbidden')
     if a.heap_gib>5:raise ValueError('User limit: client Java heap must not exceed 5GiB')
-    OUT=a.workspace.resolve();FIXTURE=a.client_sandbox.resolve()
-    if OUT.parent!=ROOT/'build' or FIXTURE.parent!=ROOT/'build' or not FIXTURE.name.startswith('client-testlab-'):raise ValueError('Use direct owned build children only')
+    import sys
+    sys.path.insert(0,str(ROOT.parent/'tools/testlab'))
+    import host
+    OUT=a.workspace.resolve();FIXTURE=a.client_sandbox.resolve() if a.client_sandbox else host.registered(host.REGISTRY,'gtsr','client')['_path']
+    registered=host.find_registered(FIXTURE,'client')
+    host_lease=FIXTURE/'.testlab-host/lease.json'
+    if not a.owner_host_run or not host_lease.is_file() or host.read(host_lease).get('runId')!=a.owner_host_run:raise RuntimeError('Run the client through shared host; an exact host lease is required')
+    if OUT.parent!=ROOT/'build':raise ValueError('Use direct owned build workspace only')
     if a.mode=='ticket-restart' and a.plan:raise ValueError('ticket-restart is independent of UI plans')
     if a.mode in ('gallery','gallery-batch') and not a.plan:raise ValueError('gallery requires an explicit frozen visual plan')
     if not re.fullmatch(r'[a-z]{2}_[A-Z]{2}',a.language):raise ValueError('Invalid language code')
     if not re.fullmatch(r'[a-zA-Z0-9_-]+',a.run):raise ValueError('Unsafe run name')
-    assert FIXTURE.resolve()==FIXTURE and FIXTURE.parent==ROOT/'build'
+    assert FIXTURE.resolve()==FIXTURE
     result=OUT/'client-runs'/a.run;result.mkdir(parents=True,exist_ok=False)
     spec=json.loads((OUT/'client-launch.json').read_text());compile_receipt=json.loads((OUT/'qa-compile-receipt.json').read_text())
-    helper=FIXTURE/'mods/gtsr-mui2-qa-owned-only.jar';assert sha(helper)==compile_receipt['jarSHA256']
+    helper=OUT/'gtsr-mui2-qa-owned-only.jar';assert sha(helper)==compile_receipt['jarSHA256']
     if a.heap_gib<3 or a.reserve_gib<1 or not 2<=a.render_distance<=16:raise ValueError('Require heap3..5GiB, explicit reserve>=1GiB and render distance2..16')
     available=free_memory();required=(a.heap_gib+a.reserve_gib)*1024**3
     preflight=dict(availableBytes=available,requiredBytes=required,heapGiB=a.heap_gib,reserveGiB=a.reserve_gib,renderDistance=a.render_distance,leaseExists=LEASE.exists(),userAuthorizedLowMemory=a.allow_low_memory,state='PRECHECK')
     (result/'preflight.json').write_text(json.dumps(preflight,indent=2))
     if available<required and not a.allow_low_memory:raise RuntimeError(f'Insufficient memory: {available/1024**3:.2f} GiB available, {required/1024**3:.2f} required; no process started')
     fd=os.open(LEASE,os.O_CREAT|os.O_EXCL|os.O_WRONLY);lease_token=dict(pid=os.getpid(),fixture=str(FIXTURE),run=a.run,created=time.time());os.write(fd,json.dumps(lease_token).encode());os.close(fd)
-    proc=None;desktop=None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
+    owned_world=None;installed_helper=FIXTURE/'mods/gtsr-mui2-qa-owned-only.jar';helper_owned=False
+    proc=None;desktop=None;options=FIXTURE/'options.txt';original_options=options.read_bytes() if options.exists() else None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
     if a.mode=='ticket-restart':receipt['inputType']='Synthetic same-JVM Minecraft launchIntegratedServer/loadWorld(null) and production CriticalChunkLoading ensure/release; UI suite and physical input NOT_RUN'
     try:
-        destination=FIXTURE/'mods/production-gtsr.jar';destination.chmod(0o666);shutil.copy2(a.jar,destination)
+        if installed_helper.exists():raise FileExistsError('Owned helper filename already exists; inspect previous recovery')
+        helper_owned=True;shutil.copy2(helper,installed_helper)
+        import client_qa as common_client_qa
+        owned_world=common_client_qa.create_world(FIXTURE/'saves',a.run)
+        candidates=[Path(entry['path']) for entry in host.inventory(FIXTURE/'mods') if entry['modId']=='gtsr' and entry['sha256']==sha(a.jar)]
+        if len(candidates)!=1:raise RuntimeError('Shared host must install exactly one bundle testlab GTSR candidate')
+        destination=candidates[0]
+        # Shared host owns candidate replacement/restoration; direct legacy replacement is refused.
+        if not destination.is_file() or sha(destination)!=sha(a.jar):raise RuntimeError('Candidate must be installed by shared host with a recovery inventory')
         (FIXTURE/'options.txt').write_text(f'fullscreen:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\nguiScale:{a.scale}\nlang:{a.language}\nrenderDistance:{a.render_distance}\n',encoding='utf-8')
         cmd=[x for x in spec['command'] if not x.startswith('-Xmx')];cmd.insert(1,f'-Xmx{a.heap_gib}G')
         cmd=[x for x in cmd if not x.startswith('-Dgtsr.uiqa.receipt=')]
-        cmd[1:1]=['-Dgtsr.uiqa.mode='+a.mode,'-Dgtsr.uiqa.batch.keepOpen='+str(a.keep_open).lower(),'-Dgtsr.uiqa.launchEpochMillis='+str(int(time.time()*1000)),'-Dgtsr.uiqa.timeoutMillis='+str(max(60,a.deadline-30)*1000),'-Dgtsr.uiqa.language='+a.language,'-Dgtsr.uiqa.receipt='+str(result/'checks.json'),'-Dgtsr.uiqa.world=Mui2Audit-'+a.run]
+        cmd[1:1]=['-Dgtsr.uiqa.mode='+a.mode,'-Dgtsr.uiqa.batch.keepOpen='+str(a.keep_open).lower(),'-Dgtsr.uiqa.launchEpochMillis='+str(int(time.time()*1000)),'-Dgtsr.uiqa.timeoutMillis='+str(max(60,a.deadline-30)*1000),'-Dgtsr.uiqa.language='+a.language,'-Dgtsr.uiqa.receipt='+str(result/'checks.json'),'-Dgtsr.uiqa.world='+owned_world.name, '-Dmiaotest.host.environment=true', '-Dmiaotest.host.worldPath='+str(owned_world), '-Dmiaotest.host.runId='+a.run, '-Dmiaotest.host.receiptDir='+str(result), '-Xlog:class+load=info:file='+os.path.relpath(result/'class-loading.log',FIXTURE).replace(chr(92),'/')]
         if a.plan:cmd.insert(1,'-Dgtsr.uiqa.plan='+str(a.plan.resolve(strict=True)))
         shutil.copy2(helper,result/'helper.jar')
         shutil.copy2(OUT/'qa-compile-receipt.json',result/'helper-compile-receipt.json')
@@ -62,27 +78,22 @@ def main():
                 if frozen['sha256']!=sha(a.plan):raise RuntimeError('Plan manifest SHA mismatch')
                 shutil.copy2(manifest,result/'plan-manifest.json')
         cmd[cmd.index('--width')+1]=str(a.width);cmd[cmd.index('--height')+1]=str(a.height)
+        release=Path(cmd[0]).parent.parent/'release'
+        if not release.is_file() or not re.search(r'JAVA_VERSION="26(?:[.\"+])',release.read_text()):raise ValueError('Actual client runtime must be Java 26')
         receipt.update(command=cmd,workingDirectory=str(FIXTURE),javaVersion=subprocess.run([cmd[0],'-version'],capture_output=True,text=True,encoding='utf-8',errors='replace').stderr,language=a.language,resolution=[a.width,a.height],guiScale=a.scale,heapGiB=a.heap_gib,reserveGiB=a.reserve_gib,renderDistance=a.render_distance)
         (result/'launch.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
         started=time.monotonic()
         with (result/'stdout.log').open('wb') as log:
-            startup=None
-            if a.hidden_desktop:
-                user32=ctypes.WinDLL('user32',use_last_error=True)
-                user32.CreateDesktopW.argtypes=[ctypes.c_wchar_p,ctypes.c_void_p,ctypes.c_void_p,ctypes.c_ulong,ctypes.c_ulong,ctypes.c_void_p]
-                user32.CreateDesktopW.restype=ctypes.c_void_p
-                user32.CloseDesktop.argtypes=[ctypes.c_void_p]
-                desktop_name='GTSR-owned-'+a.run+'-'+str(os.getpid())
-                desktop=user32.CreateDesktopW(desktop_name,None,None,0,0x10000000,None)
-                if not desktop:raise ctypes.WinError(ctypes.get_last_error())
-                startup=subprocess.STARTUPINFO();startup.lpDesktop='WinSta0\\'+desktop_name
-                receipt['hiddenDesktop']=dict(name=desktop_name,switched=False,scope='Owned separate desktop from window creation; real GL, never SwitchDesktop')
+            desktop_name='GTSR-owned-'+a.run+'-'+str(os.getpid())
+            user32,desktop,startup=host.create_private_desktop(desktop_name)
+            receipt['hiddenDesktop']=dict(name=desktop_name,switched=False,scope='Owned separate desktop from window creation; real GL, never SwitchDesktop')
             proc=subprocess.Popen(cmd,cwd=FIXTURE,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW,startupinfo=startup)
-            (result/'pid.json').write_text(json.dumps(dict(pid=proc.pid,ownerRunner=os.getpid())))
+            (result/'pid.json').write_text(json.dumps(dict(pid=proc.pid,identity=host.identity(proc.pid),ownerRunner=os.getpid(),hostRunId=a.owner_host_run)))
             print('OWNED CLIENT',proc.pid,'candidate',receipt['candidateSHA256'],flush=True)
             try:
                 with (result/'memory-samples.jsonl').open('w',encoding='utf-8') as memory:
                     while True:
+                        if (FIXTURE/'.testlab-host'/('stop-'+a.owner_host_run+'.json')).exists():raise RuntimeError('Owned host requested cancellation')
                         sample=dict(elapsedSeconds=time.monotonic()-started,availableBytes=free_memory(),**process_memory(proc))
                         memory.write(json.dumps(sample)+'\n');memory.flush()
                         remaining=a.deadline-(time.monotonic()-started)
@@ -101,9 +112,36 @@ def main():
             receipt['runtimeCrashFindings']=[dict(line=i,text=line) for i,line in enumerate((result/'stdout.log').read_text(encoding='utf-8',errors='replace').splitlines(),1) if any(marker in line for marker in markers)]
         receipt['status']='PASS' if code==0 and payload and payload['status']=='PASS' and not receipt['forcedStop'] and receipt['candidateUnchanged'] else 'FAIL'
         if receipt.get('runtimeCrashFindings'):receipt['status']='FAIL'
+        environment=host.read(result/'environment.json') if (result/'environment.json').is_file() else {}
+        receipt['environment']=environment
+        if environment.get('policyOwnsWorld') is not True or environment.get('serverStopped') is not True or environment.get('registered') is not False:receipt['status']='FAIL'
         receipt['screenshots']=[dict(file=str(p.relative_to(result)),sha256=sha(p),bytes=p.stat().st_size) for p in result.rglob('*.png')]
         print(json.dumps({k:receipt[k] for k in ['status','exitCode','elapsedSeconds','checksStatus','forcedStop']},indent=2),flush=True)
+    except BaseException as error:
+        receipt.update(status='ERROR',error=str(error))
+        raise
     finally:
+        if proc is not None and proc.poll() is None:
+            receipt['forcedStop']=True
+            proc.terminate()
+            try:proc.wait(30)
+            except subprocess.TimeoutExpired:proc.kill();proc.wait(20)
+        if original_options is None:options.unlink(missing_ok=True)
+        else:options.write_bytes(original_options)
+        receipt['optionsRestored']=True
+        if helper_owned and (proc is None or proc.poll() is not None):installed_helper.unlink(missing_ok=True);receipt['helperRemoved']=True
+        if owned_world is not None and (proc is None or proc.poll() is not None):
+            if a.mode=='ticket-restart' and receipt['status']!='PASS':
+                receipt['worldRetainedForRecovery']=str(owned_world)
+                host.write(FIXTURE/'.testlab-host/business-recovery-pending.json',dict(runId=a.run,world=str(owned_world),evidence=str(result)))
+            else:
+                try:
+                    for report in owned_world.glob('*/gtsr-testlab/*.json'):
+                        target=result/'native-world-reports'/report.name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(report,target)
+                    common_client_qa.delete_world(owned_world,owned_world.parent,a.run);receipt['ownedWorldDeleted']=True
+                except BaseException as error:
+                    receipt.update(status='ERROR',worldCleanupError=str(error))
+                    host.write(FIXTURE/'.testlab-host/business-recovery-pending.json',dict(runId=a.run,world=str(owned_world),evidence=str(result)))
         (result/'receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
         if proc is None or proc.poll() is not None:
             if LEASE.exists() and json.loads(LEASE.read_text()).get('pid')==os.getpid():LEASE.unlink()

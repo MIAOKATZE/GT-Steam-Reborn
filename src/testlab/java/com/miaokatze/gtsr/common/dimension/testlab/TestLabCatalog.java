@@ -80,10 +80,9 @@ public final class TestLabCatalog {
     }
 
     public static boolean isExplicitRegression(String id) {
-        return id.startsWith("followup_") || id.equals("cluster_unit_furnace_output_split")
-            || id.equals("cluster_unit_ore_washer_water_bulk")
-            || id.equals("cluster_unit_ore_washer_residual_distilled_bulk")
-            || id.equals("cluster_unit_ore_washer_distilled_bulk");
+        for (TestLabTask task : tasks()) if (task.id()
+            .equals(id)) return !TestLabMetadata.defaultIncluded(task);
+        return false;
     }
 
     public static List<String> machineIds() {

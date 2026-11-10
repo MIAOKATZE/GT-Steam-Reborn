@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Run console-driven testlab scenarios in an isolated copy of an accepted GTNH server.
-
-prepare copies binaries/config/mods/libraries only, never worlds or player data.
-run replaces GTSR only in that copy and executes JSON command/expect steps.
-The original instance and other Java processes are never modified.
-"""
+"""Registered reusable server verification; historical owned sandboxes are opt-in only."""
 
 from __future__ import annotations
 
@@ -20,6 +15,7 @@ import shutil
 import subprocess
 import threading
 import time
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -372,7 +368,12 @@ def run(args) -> None:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["prepare", "run"])
-    parser.add_argument("--sandbox", type=Path, default=ROOT / "build/server-testlab-v12134")
+    parser.add_argument("--sandbox", type=Path, help="Existing historical owned sandbox; never prepared implicitly")
+    parser.add_argument("--legacy-sandbox", action="store_true", help="Explicit compatibility with an existing owned sandbox")
+    parser.add_argument("--registry", type=Path, default=ROOT.parent / 'plan/testlab-instances.json')
+    parser.add_argument("--bundle", type=Path, default=ROOT.parent / '.artifacts/testlab-system-optimization/delivery/bundle.json')
+    parser.add_argument("--case", default="all")
+    parser.add_argument("--execute", action="store_true", help="Without this flag only produce a read-only plan")
     parser.add_argument("--instance", type=Path)
     parser.add_argument("--gt5-version", default="5.09.54.205",
                         help="Exact required GT5 artifact version for preparation")
@@ -389,11 +390,39 @@ def main():
     parser.add_argument("--trace-class-loading", action="store_true",
                         help="Java 9+ only: trace class loading in the owned JVM; disabled mode requires zero testlab classes")
     args = parser.parse_args()
-    if args.action == "prepare" and args.instance is None:
-        parser.error("prepare requires --instance")
-    if args.action == "run" and (args.jar is None or args.scenario is None):
-        parser.error("run requires --jar and --scenario")
-    prepare(args) if args.action == "prepare" else run(args)
+    sys.path.insert(0, str(ROOT.parent / 'tools/testlab'))
+    import host
+    if args.legacy_sandbox:
+        if not args.execute or args.action != 'run' or args.sandbox is None or args.jar is None or args.scenario is None:
+            parser.error('Legacy mode only runs an existing owned sandbox with --execute --sandbox --jar --scenario; new full copies are disabled')
+        legacy = host.find_registered(args.sandbox, registry=args.registry)
+        host.server_world(legacy)
+        if host.recovery_pending(legacy):
+            parser.error('Pending recovery must be inspected before historical scenario execution')
+        selected = host.bundle_artifacts(args.bundle, 'gtsr')
+        if not any(x['modId'] == 'gtsr' and host.sha(args.jar) == x['sha256'] for x in selected):
+            parser.error('Historical execution also requires the exact complete testlab variant')
+        args.java = Path(legacy['server_java'])
+        if not re.search(r'JAVA_VERSION="26(?:[.\"+])', (args.java.parent.parent / 'release').read_text()):
+            parser.error('Actual runtime must be registered Java 26')
+        run(args)
+        return
+    if args.sandbox:
+        parser.error('Use root registry; historical sandboxes require explicit --legacy-sandbox')
+    if args.scenario:
+        parser.error('Historical command/expect scenarios require --legacy-sandbox; unified runs use --case')
+    item = host.registered(args.registry, 'gtsr')
+    if args.instance and args.instance.resolve() != item['_path']:
+        parser.error('--instance must resolve to registered GTSR server')
+    if args.jar:
+        selected = host.bundle_artifacts(args.bundle, 'gtsr')
+        if not any(x['modId'] == 'gtsr' and host.sha(args.jar) == x['sha256'] for x in selected):
+            parser.error('--jar must be the complete testlab variant from bundle')
+    argv = ['doctor' if args.action == 'prepare' else 'run', '--module', 'gtsr', '--registry', str(args.registry),
+            '--bundle', str(args.bundle), '--case', args.case, '--heap-mib', str(args.xmx_gib * 1024), '--timeout', str(args.deadline)]
+    if args.execute and args.action == 'run':
+        argv.append('--execute')
+    raise SystemExit(host.main(argv))
 
 
 if __name__ == "__main__":

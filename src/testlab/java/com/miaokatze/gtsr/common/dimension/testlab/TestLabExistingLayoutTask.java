@@ -69,10 +69,7 @@ final class TestLabExistingLayoutTask implements TestLabTask {
         if (task instanceof TestLabDrillingTask) return "singularity_drilling_node".equals(task.id());
         if (task instanceof TestLabHubTask) return ((TestLabHubTask) task).supportsExisting();
         if (!(task instanceof TestLabMachineTask)) return false;
-        String name = task.id()
-            .replaceFirst("_tier[0-9]+$", "")
-            .toUpperCase(java.util.Locale.ROOT);
-        MetaTileEntityID id = MetaTileEntityID.valueOf(name);
+        MetaTileEntityID id = ((TestLabMachineTask) task).targetId();
         return GregTechAPI.METATILEENTITIES[id.ID] instanceof MTEMultiBlockBase;
     }
 

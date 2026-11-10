@@ -1,9 +1,7 @@
 package com.miaokatze.gtsr.common.dimension.testlab;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 import net.minecraft.world.WorldServer;
 
@@ -17,19 +15,15 @@ final class TestLabPerformanceTasks {
         List<TestLabTask> result = new ArrayList<>();
         result.add(new Window("baseline", all ? 100 : 40));
         List<TestLabTask> machines = TestLabCatalog.tasks();
-        Set<String> families = new LinkedHashSet<>();
         boolean selected = false;
         for (TestLabTask task : machines) {
             boolean choose = "machine".equals(mode) ? task.id()
                 .equals(id)
-                : !"ui".equals(mode) && (task.id()
-                    .equals("steam_input_hatch_generic")
-                    || task.id()
-                        .equals("air_compressor")
-                    || all && !(task instanceof TestLabMachineTask)
-                        && families.add(
-                            task.getClass()
-                                .getName()));
+                : !"ui".equals(mode) && (all ? TestLabMetadata.performanceRepresentative(task)
+                    : task.id()
+                        .equals("steam_input_hatch_generic")
+                        || task.id()
+                            .equals("air_compressor"));
             if (!choose) continue;
             selected = true;
             Reset before = new Reset(task.id(), "before", all ? 300 : 400);

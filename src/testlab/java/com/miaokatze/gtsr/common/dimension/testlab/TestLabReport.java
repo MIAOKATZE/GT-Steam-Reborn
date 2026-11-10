@@ -49,7 +49,16 @@ public final class TestLabReport {
         public int originZ;
     }
 
-    public final int schemaVersion = 1;
+    public final int schemaVersion = 2;
+    public Map<String, String> artifactIdentity;
+    public Map<String, String> coreArtifactIdentity;
+    public boolean requiresClient = false;
+    public boolean requiresRealActor = false;
+    public String cleanupScope = "OWNED_TASK_AND_ANCHOR_RESOURCES; MANUAL_SUPPLY_RETAINED_UNTIL_CLEAR_RESET_OR_UNLOAD; PHYSICAL_STATIONS_AND_JOURNAL_RETAINED; NOT_WORLD_ROLLBACK";
+    public final List<Map<String, Object>> events = new ArrayList<>();
+    public final List<Map<String, Object>> cleanup = new ArrayList<>();
+    public final List<Map<String, Object>> restoration = new ArrayList<>();
+    public final List<Map<String, Object>> selectedCases = new ArrayList<>();
     public String gtsrVersion;
     public String gtVersion;
     public String fmlVersion;
@@ -57,6 +66,8 @@ public final class TestLabReport {
     public String executionScope;
     public String runId;
     public String state;
+    /** Business outcome, separate from the legacy queue lifecycle state. Refreshed before every serialization. */
+    public String outcome;
     public String requested;
     public int dimension;
     public long startedAt;
@@ -70,4 +81,17 @@ public final class TestLabReport {
     public String performanceReceiptPath;
     public final List<String> plannedTasks = new ArrayList<>();
     public final List<Entry> results = new ArrayList<>();
+
+    public String calculateOutcome() {
+        if ("RUNNING".equals(state)) return "IN_PROGRESS";
+        if ("STOPPED".equals(state)) return "CANCELLED";
+        if (!"COMPLETE".equals(state)) return state == null ? "NOT_RUN" : state;
+        String result = "PASS";
+        for (Entry entry : results) {
+            if (entry.status == Status.FAIL) return "FAIL";
+            if (entry.status == Status.BLOCKED) result = "BLOCKED";
+            else if (!"BLOCKED".equals(result) && entry.status != Status.PASS) result = "INCOMPLETE";
+        }
+        return result;
+    }
 }

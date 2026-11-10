@@ -19,6 +19,11 @@ public abstract class GTSRWorldProviderBase extends WorldProvider {
     /** 运行期经 DimensionRegistrar 回查的 def；维度 ID 未在注册表时为 null（防御性降级运行）。 */
     protected GTSRDimensionDef def;
 
+    /** Whether registered GTSR generators may populate this world. */
+    public boolean allowsOwnedGeneration() {
+        return true;
+    }
+
     @Override
     protected final void registerWorldChunkManager() {
         this.def = DimensionRegistrar.defForDimension(this.dimensionId);

@@ -21,6 +21,10 @@ import net.minecraftforge.event.world.WorldEvent;
 
 import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.main.GTSteamReborn;
+import com.miaokatze.miaokatzecore.api.testlab.ArtifactIdentity;
+import com.miaokatze.miaokatzecore.api.testlab.LabCase;
+import com.miaokatze.miaokatzecore.api.testlab.LabEvents;
+import com.miaokatze.miaokatzecore.api.testlab.LabResult;
 import com.miaokatze.miaokatzecore.testkit.Deadline;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -39,6 +43,7 @@ public final class TestLabRuntime {
     /** Keeps the world ticking across task ticket hand-offs and bounded regeneration. */
     private ForgeChunkManager.Ticket anchorTicket;
     private TestLabTask active;
+    private String lastTaskPhase;
     private TestLabReport report;
     private TestLabState state;
     private WorldServer world;
@@ -143,7 +148,7 @@ public final class TestLabRuntime {
     private void startRun(String requested, ICommandSender sender) {
         List<TestLabTask> selected = new ArrayList<>();
         for (TestLabTask task : TestLabCatalog.tasks())
-            if ("all".equals(requested) && !TestLabCatalog.isExplicitRegression(task.id()) || task.id()
+            if ("all".equals(requested) && TestLabMetadata.defaultIncluded(task) || task.id()
                 .equals(requested)) selected.add(task);
         if (selected.isEmpty()) throw new IllegalArgumentException("未知测试项：" + requested + "；使用 list");
         begin(selected, requested, "MACHINE", sender);
@@ -207,6 +212,10 @@ public final class TestLabRuntime {
         }
         persistenceError = false;
         report = new TestLabReport();
+        report.artifactIdentity = ArtifactIdentity.capture(GTSteamReborn.class)
+            .asMap();
+        report.coreArtifactIdentity = ArtifactIdentity.capture(LabEvents.class)
+            .asMap();
         report.gtsrVersion = Tags.VERSION;
         report.gtVersion = Loader.instance()
             .getIndexedModList()
@@ -236,20 +245,59 @@ public final class TestLabRuntime {
         report.startedAt = System.currentTimeMillis();
         if (TestLabPerformance.current != null)
             report.performanceReceiptPath = state.performanceReceiptPath(report.runId);
-        for (TestLabTask task : selected) report.plannedTasks.add(task.id());
+        for (TestLabTask task : selected) {
+            report.plannedTasks.add(task.id());
+            LabCase descriptor = TestLabMetadata.describe(task);
+            Map<String, Object> selection = new java.util.LinkedHashMap<>();
+            selection.put("id", descriptor.id());
+            selection.put("lane", descriptor.lane());
+            java.util.Set<String> selectedTags = new java.util.LinkedHashSet<>(descriptor.tags());
+            if ("PERFORMANCE".equals(category)) selectedTags.add("stress");
+            selection.put("tags", selectedTags);
+            selection.put("defaultSuite", descriptor.defaultSuite());
+            selection.put("requiresRealActor", descriptor.requiresRealActor());
+            report.selectedCases.add(selection);
+        }
+        LabEvents.clear("gtsr");
+        event(null, "run.started", "START", null, null);
         listener = sender;
         ticks = 0;
         try {
             ensureAnchor();
             persist();
         } catch (RuntimeException failure) {
+            event(null, "run.finished", failure.toString(), LabResult.BLOCKED, null);
             report.state = "ERROR";
+            report.finishedAt = System.currentTimeMillis();
             releaseAnchor();
+            persist();
             throw failure;
         }
         if (persistenceError) throw new IllegalStateException("报告基础设施失败；检查日志");
         pending.addAll(selected);
         announce("runId=" + report.runId + " state=RUNNING tasks=" + selected.size() + " report=" + report.reportPath);
+    }
+
+    public Map<String, Object> snapshot() {
+        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        result.put(
+            "state",
+            pendingWrite != null ? "REPORT_RETRY" : resetting ? "RESETTING" : report == null ? "IDLE" : report.state);
+        result.put("runId", report == null ? null : report.runId);
+        result.put("reportPath", report == null ? null : report.reportPath);
+        result.put(
+            "reportWritten",
+            report != null && report.reportPath != null
+                && pendingWrite == null
+                && !persistenceError
+                && new java.io.File(report.reportPath).isFile());
+        result.put("cleanupPending", active != null || resetting || anchorTicket != null || !tickets.isEmpty());
+        result.put("actor", "FORGE_FAKE_PLAYER; NO_CONNECTED_PLAYER_REQUIRED");
+        result.put("transport", "SERVER_CONSOLE; NO_OS_INPUT");
+        result.put("manualSupplyTicketsRetained", manualSupplyTickets.size());
+        result.put("outcome", busy() ? "IN_PROGRESS" : "NOT_RUN");
+        if (!busy() && report != null) result.put("outcome", report.calculateOutcome());
+        return result;
     }
 
     public boolean busy() {
@@ -370,6 +418,7 @@ public final class TestLabRuntime {
     }
 
     public void stop(String reason) {
+        event(active == null ? null : active.id(), "run.cancelled", reason, LabResult.CANCELLED, null);
         if (pendingWrite != null) {
             deferredStopReason = reason;
             return;
@@ -382,6 +431,7 @@ public final class TestLabRuntime {
             TestLabFixtures.cancelReset();
             while (!pending.isEmpty()) {
                 TestLabTask task = pending.removeFirst();
+                event(task.id(), "task.finished", reason, LabResult.SKIP, "NOT_STARTED");
                 append(task.id(), task.displayName(), new TestLabReport.Result(TestLabReport.Status.SKIP, reason), 0);
             }
             resetting = false;
@@ -490,6 +540,8 @@ public final class TestLabRuntime {
             }
             if (active == null && !pending.isEmpty()) {
                 active = pending.removeFirst();
+                lastTaskPhase = null;
+                event(active.id(), "phase", "QUEUED", null, null);
                 activePrepared = false;
                 ticks = 0;
                 loadIndex = 0;
@@ -550,6 +602,11 @@ public final class TestLabRuntime {
                     announce("task=" + active.id() + " phase=RUNNING");
                 }
                 return;
+            }
+            String observedPhase = active.performancePhase();
+            if (!observedPhase.equals(lastTaskPhase)) {
+                lastTaskPhase = observedPhase;
+                event(active.id(), "phase", observedPhase, null, null);
             }
             ticks++;
             report.activeTicks = ticks;
@@ -630,6 +687,7 @@ public final class TestLabRuntime {
     }
 
     private void startActive(int x, int z) throws Exception {
+        event(active.id(), "task.started", "START", null, null);
         long timing = TestLabPerformance.begin();
         try {
             active.start(world, x, 65, z);
@@ -696,8 +754,10 @@ public final class TestLabRuntime {
     private void releaseAnchor() {
         long timing = TestLabPerformance.begin();
         try {
+            boolean held = anchorTicket != null;
             releaseOwnedTicket(anchorTicket);
             anchorTicket = null;
+            if (held) cleanupRecord(null, "anchor.ticket", "PASS", "owned anchor released");
         } finally {
             TestLabPerformance.end("cleanup.anchorRelease", timing);
         }
@@ -743,9 +803,13 @@ public final class TestLabRuntime {
         TestLabTask task = active;
         if (task == null) return;
         long cleanupTiming = TestLabPerformance.begin();
+        String cleanupResult = "PASS";
+        String cleanupDetail = "task.stop completed; physical fixture evidence retained";
         try {
             task.stop(world);
         } catch (Exception | LinkageError e) {
+            cleanupResult = "FAIL";
+            cleanupDetail = e.toString();
             result = new TestLabReport.Result(
                 TestLabReport.Status.FAIL,
                 result.detail + "; cleanup=" + e,
@@ -753,6 +817,9 @@ public final class TestLabRuntime {
         } finally {
             TestLabPerformance.end("cleanup.taskStop", cleanupTiming);
         }
+        cleanupRecord(task.id(), "task.stop", cleanupResult, cleanupDetail);
+        event(task.id(), "check", result.detail, LabResult.valueOf(result.status.name()), null);
+        event(task.id(), "task.finished", result.detail, LabResult.valueOf(result.status.name()), null);
         append(task.id(), task.displayName(), result, ticks);
         String brief = result.detail.replace('\n', ' ')
             .replace('\r', ' ');
@@ -779,6 +846,17 @@ public final class TestLabRuntime {
             entry.details.put("clientGlExecuted", false);
             entry.details.put("fontRenderingExecuted", false);
         }
+        if ("EXISTING_LAYOUT".equals(entry.category)) {
+            Map<String, Object> restoration = new java.util.LinkedHashMap<>();
+            restoration.put("task", id);
+            restoration
+                .put("scope", "SAVED_LAYOUT_RESUMED_WITHOUT_REBUILD; FIXTURE_RESUPPLY_AND_OUTPUT_MUTATION_RETAINED");
+            restoration.put("result", "OBSERVED_ONLY; NO_FULL_WORLD_ROLLBACK");
+            restoration.put("evidenceEntryId", id);
+            restoration.put("evidenceStatus", result.status.name());
+            restoration.put("evidenceKeys", new ArrayList<>(entry.details.keySet()));
+            report.restoration.add(restoration);
+        }
         entry.elapsedTicks = elapsed;
         entry.originY = 65;
         try {
@@ -793,6 +871,18 @@ public final class TestLabRuntime {
     }
 
     private void finish(String terminalState) {
+        LabResult terminalResult = "STOPPED".equals(terminalState) ? LabResult.CANCELLED
+            : "COMPLETE".equals(terminalState) ? LabResult.PASS : LabResult.FAIL;
+        if (terminalResult == LabResult.PASS) for (TestLabReport.Entry entry : report.results) {
+            if (entry.status == TestLabReport.Status.FAIL) {
+                terminalResult = LabResult.FAIL;
+                break;
+            }
+            if (entry.status == TestLabReport.Status.BLOCKED) terminalResult = LabResult.BLOCKED;
+            else if (terminalResult != LabResult.BLOCKED && entry.status != TestLabReport.Status.PASS)
+                terminalResult = LabResult.valueOf(entry.status.name());
+        }
+        event(null, "run.finished", terminalState, terminalResult, null);
         report.state = terminalState;
         report.finishedAt = System.currentTimeMillis();
         report.activeTask = null;
@@ -803,8 +893,11 @@ public final class TestLabRuntime {
     private void releaseTickets() {
         long timing = TestLabPerformance.begin();
         try {
+            int held = tickets.size();
             for (ForgeChunkManager.Ticket ticket : tickets) releaseOwnedTicket(ticket);
             tickets.clear();
+            if (held > 0)
+                cleanupRecord(active == null ? null : active.id(), "task.tickets", "PASS", "released=" + held);
         } finally {
             TestLabPerformance.end("cleanup.taskTicketRelease", timing);
         }
@@ -825,6 +918,7 @@ public final class TestLabRuntime {
             persistenceAttempts = 1;
             state.save(pendingWrite);
             pendingWrite = null;
+            event(report.activeTask, "report.written", report.reportPath, null, null);
             return true;
         } catch (IOException failure) {
             GTSteamReborn.LOG.warn(PREFIX + "state=REPORT_RETRY runId=" + report.runId + " detail=" + failure);
@@ -843,6 +937,7 @@ public final class TestLabRuntime {
             persistenceAttempts++;
             state.save(pendingWrite);
             pendingWrite = null;
+            event(report.activeTask, "report.written", report.reportPath, null, null);
             announce("state=REPORT_RECOVERED runId=" + report.runId + " attempts=" + persistenceAttempts);
             if (terminalAnnouncement != null) announceTerminal();
         } catch (IOException failure) {
@@ -855,7 +950,13 @@ public final class TestLabRuntime {
     private void announceTerminal() {
         String message = terminalAnnouncement;
         terminalAnnouncement = null;
+        boolean cleanupChanged = anchorTicket != null;
         releaseAnchor();
+        // Retain the anchor through report retries, then independently persist its actual release result.
+        if (cleanupChanged && !persist()) {
+            if (!persistenceError) terminalAnnouncement = message;
+            return;
+        }
         if (TestLabPerformance.current == null) announce(message);
         else {
             performanceTerminal = message;
@@ -905,6 +1006,7 @@ public final class TestLabRuntime {
     }
 
     private void failPersistence(Throwable failure) {
+        event(active == null ? null : active.id(), "report.failed", failure.toString(), LabResult.FAIL, null);
         // This is an infrastructure failure, never a synthetic machine FAIL or a second result append.
         GTSteamReborn.LOG.error(PREFIX + "报告基础设施失败，停止本轮测试", failure);
         pendingWrite = null;
@@ -914,7 +1016,9 @@ public final class TestLabRuntime {
         if (active != null) {
             try {
                 active.stop(world);
+                cleanupRecord(active.id(), "report-error.task.stop", "PASS", "owned task cleanup completed");
             } catch (Exception | LinkageError cleanupFailure) {
+                cleanupRecord(active.id(), "report-error.task.stop", "FAIL", cleanupFailure.toString());
                 GTSteamReborn.LOG.error(PREFIX + "报告失败后清理异常", cleanupFailure);
             }
         }
@@ -950,6 +1054,33 @@ public final class TestLabRuntime {
                     + " detail="
                     + failure);
         }
+    }
+
+    private void event(String task, String phase, String check, LabResult result, String cleanup) {
+        if (report == null || (!"RUNNING".equals(report.state) && !"report.failed".equals(phase)
+            && !"cleanup.finished".equals(phase)
+            && !"report.written".equals(phase))) return;
+        LabEvents.publish("gtsr", report.runId, task, phase, check, result, cleanup);
+        Map<String, Object> entry = new java.util.LinkedHashMap<>();
+        entry.put("at", System.currentTimeMillis());
+        entry.put("task", task);
+        entry.put("phase", phase);
+        entry.put("check", check);
+        entry.put("result", result == null ? null : result.name());
+        entry.put("cleanup", cleanup);
+        report.events.add(entry);
+    }
+
+    private void cleanupRecord(String task, String scope, String result, String detail) {
+        if (report == null) return;
+        Map<String, Object> record = new java.util.LinkedHashMap<>();
+        record.put("task", task);
+        record.put("scope", scope);
+        record.put("result", result);
+        record.put("detail", detail);
+        record.put("at", System.currentTimeMillis());
+        report.cleanup.add(record);
+        event(task, "cleanup.finished", scope, LabResult.valueOf(result), detail);
     }
 
     private void announce(String text) {

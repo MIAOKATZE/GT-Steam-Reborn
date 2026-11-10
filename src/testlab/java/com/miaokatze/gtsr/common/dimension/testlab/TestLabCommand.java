@@ -77,7 +77,15 @@ public final class TestLabCommand extends CommandBase {
                         "id=" + task.id()
                             + " name="
                             + task.displayName()
-                            + " timeoutTicks="
+                            + " lane="
+                            + TestLabMetadata.describe(task)
+                                .lane()
+                            + " tags="
+                            + TestLabMetadata.describe(task)
+                                .tags()
+                            + " defaultSuite="
+                            + TestLabMetadata.defaultIncluded(task)
+                            + " requiresClient=false requiresRealActor=false timeoutTicks="
                             + task.timeoutTicks()
                             + " origin="
                             + TestLabRuntime.originX(task.id())
