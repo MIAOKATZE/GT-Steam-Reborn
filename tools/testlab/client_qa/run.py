@@ -8,6 +8,12 @@ FIXTURE=ROOT/'build/client-testlab-mui2'
 LEASE=ROOT.parent/'.gtsr-native-server.lease'
 
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def ui_shutdown_complete(payload,environment):
+    if not payload:return False
+    import client_qa
+    if not client_qa.integrated_shutdown_complete(payload):return False
+    if payload.get('integratedLifecycle',{}).get('noServerCreated') is True:return True
+    return environment.get('policyOwnsWorld') is True and environment.get('serverStopped') is True and environment.get('registered') is False
 def free_memory():
     class Status(ctypes.Structure):
         _fields_=[('length',ctypes.c_ulong),('load',ctypes.c_ulong),('total',ctypes.c_ulonglong),('available',ctypes.c_ulonglong),('pageTotal',ctypes.c_ulonglong),('pageAvailable',ctypes.c_ulonglong),('virtualTotal',ctypes.c_ulonglong),('virtualAvailable',ctypes.c_ulonglong),('extended',ctypes.c_ulonglong)]
@@ -50,7 +56,7 @@ def main():
     if available<required and not a.allow_low_memory:raise RuntimeError(f'Insufficient memory: {available/1024**3:.2f} GiB available, {required/1024**3:.2f} required; no process started')
     fd=os.open(LEASE,os.O_CREAT|os.O_EXCL|os.O_WRONLY);lease_token=dict(pid=os.getpid(),fixture=str(FIXTURE),run=a.run,created=time.time());os.write(fd,json.dumps(lease_token).encode());os.close(fd)
     owned_world=None;installed_helper=FIXTURE/'mods/gtsr-mui2-qa-owned-only.jar';helper_owned=False
-    proc=None;desktop=None;options=FIXTURE/'options.txt';original_options=options.read_bytes() if options.exists() else None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
+    proc=None;desktop=None;payload=None;options=FIXTURE/'options.txt';original_options=options.read_bytes() if options.exists() else None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
     if a.mode=='ticket-restart':receipt['inputType']='Synthetic same-JVM Minecraft launchIntegratedServer/loadWorld(null) and production CriticalChunkLoading ensure/release; UI suite and physical input NOT_RUN'
     try:
         if installed_helper.exists():raise FileExistsError('Owned helper filename already exists; inspect previous recovery')
@@ -88,12 +94,15 @@ def main():
             user32,desktop,startup=host.create_private_desktop(desktop_name)
             receipt['hiddenDesktop']=dict(name=desktop_name,switched=False,scope='Owned separate desktop from window creation; real GL, never SwitchDesktop')
             proc=subprocess.Popen(cmd,cwd=FIXTURE,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW,startupinfo=startup)
-            (result/'pid.json').write_text(json.dumps(dict(pid=proc.pid,identity=host.identity(proc.pid),ownerRunner=os.getpid(),hostRunId=a.owner_host_run)))
+            client_identity=host.identity(proc.pid)
+            (result/'pid.json').write_text(json.dumps(dict(pid=proc.pid,identity=client_identity,ownerRunner=os.getpid(),hostRunId=a.owner_host_run)))
             print('OWNED CLIENT',proc.pid,'candidate',receipt['candidateSHA256'],flush=True)
             try:
                 with (result/'memory-samples.jsonl').open('w',encoding='utf-8') as memory:
                     while True:
-                        if (FIXTURE/'.testlab-host'/('stop-'+a.owner_host_run+'.json')).exists():raise RuntimeError('Owned host requested cancellation')
+                        if (FIXTURE/'.testlab-host'/('stop-'+a.owner_host_run+'.json')).exists():
+                            if a.mode=='ui':receipt['forcedStop']|=common_client_qa.cancel_owned_client(proc,client_identity,result,grace=30)
+                            raise RuntimeError('Owned host requested cancellation')
                         sample=dict(elapsedSeconds=time.monotonic()-started,availableBytes=free_memory(),**process_memory(proc))
                         memory.write(json.dumps(sample)+'\n');memory.flush()
                         remaining=a.deadline-(time.monotonic()-started)
@@ -103,7 +112,9 @@ def main():
                             if time.monotonic()-started>=a.deadline:raise
             except subprocess.TimeoutExpired:
                 # Only this exact owned child may be stopped. User/launcher processes are never touched.
-                receipt['forcedStop']=True;proc.terminate();code=proc.wait(30)
+                if a.mode=='ui':
+                    receipt['forcedStop']|=host.stop_owned_process(proc,lambda:host.write(result/'stop.json',dict(reason='UI process deadline; normal owned shutdown required')),timeout=120);code=proc.poll()
+                else:receipt['forcedStop']=True;proc.terminate();code=proc.wait(30)
         checks=result/'checks.json';payload=json.loads(checks.read_text(encoding='utf-8')) if checks.exists() else None
         receipt.update(exitCode=code,elapsedSeconds=time.monotonic()-started,checksStatus=payload.get('status') if payload else 'NO_RECEIPT',candidateUnchanged=sha(destination)==receipt['candidateSHA256'])
         if True:
@@ -112,9 +123,16 @@ def main():
             receipt['runtimeCrashFindings']=[dict(line=i,text=line) for i,line in enumerate((result/'stdout.log').read_text(encoding='utf-8',errors='replace').splitlines(),1) if any(marker in line for marker in markers)]
         receipt['status']='PASS' if code==0 and payload and payload['status']=='PASS' and not receipt['forcedStop'] and receipt['candidateUnchanged'] else 'FAIL'
         if receipt.get('runtimeCrashFindings'):receipt['status']='FAIL'
-        environment=host.read(result/'environment.json') if (result/'environment.json').is_file() else {}
+        try:environment=host.read(result/'environment.json') if (result/'environment.json').is_file() else {}
+        except (OSError,ValueError) as error:
+            if a.mode!='ui':raise
+            environment={};receipt['environmentReadError']=str(error)
         receipt['environment']=environment
         if environment.get('policyOwnsWorld') is not True or environment.get('serverStopped') is not True or environment.get('registered') is not False:receipt['status']='FAIL'
+        if a.mode=='ui':
+            receipt['guiChecksStatus']=payload.get('guiChecksStatus',payload.get('status')) if payload else 'NO_RECEIPT'
+            receipt['integratedShutdownComplete']=ui_shutdown_complete(payload,environment)
+            if not receipt['integratedShutdownComplete']:receipt['status']='FAIL'
         receipt['screenshots']=[dict(file=str(p.relative_to(result)),sha256=sha(p),bytes=p.stat().st_size) for p in result.rglob('*.png')]
         print(json.dumps({k:receipt[k] for k in ['status','exitCode','elapsedSeconds','checksStatus','forcedStop']},indent=2),flush=True)
     except BaseException as error:
@@ -122,16 +140,25 @@ def main():
         raise
     finally:
         if proc is not None and proc.poll() is None:
-            receipt['forcedStop']=True
-            proc.terminate()
-            try:proc.wait(30)
-            except subprocess.TimeoutExpired:proc.kill();proc.wait(20)
+            if a.mode=='ui':receipt['forcedStop']|=host.stop_owned_process(proc,lambda:host.write(result/'stop.json',dict(reason='Runner failure; normal owned UI shutdown required')),timeout=120)
+            else:
+                receipt['forcedStop']=True
+                proc.terminate()
+                try:proc.wait(30)
+                except subprocess.TimeoutExpired:proc.kill();proc.wait(20)
         if original_options is None:options.unlink(missing_ok=True)
         else:options.write_bytes(original_options)
         receipt['optionsRestored']=True
         if helper_owned and (proc is None or proc.poll() is not None):installed_helper.unlink(missing_ok=True);receipt['helperRemoved']=True
         if owned_world is not None and (proc is None or proc.poll() is not None):
-            if a.mode=='ticket-restart' and receipt['status']!='PASS':
+            if a.mode=='ui' and (result/'checks.json').is_file():
+                try:payload=host.read(result/'checks.json')
+                except (OSError,ValueError) as error:receipt['lifecycleReadError']=str(error)
+            try:environment=host.read(result/'environment.json') if (result/'environment.json').is_file() else {}
+            except (OSError,ValueError) as error:
+                if a.mode!='ui':raise
+                environment={};receipt['environmentReadError']=str(error)
+            if (a.mode=='ticket-restart' and receipt['status']!='PASS') or (a.mode=='ui' and proc is not None and not ui_shutdown_complete(payload,environment)):
                 receipt['worldRetainedForRecovery']=str(owned_world)
                 host.write(FIXTURE/'.testlab-host/business-recovery-pending.json',dict(runId=a.run,world=str(owned_world),evidence=str(result)))
             else:

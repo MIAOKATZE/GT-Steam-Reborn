@@ -20,6 +20,24 @@ public final class Mui2ClientQa {
     Object mc,screen,gui,panel,input,apply,session; int ticks,phase,wait,stable; boolean done,gate,lifecycleSeeded; volatile int stopRunnableExecutions; int hoverFrames,tooltipPostDraws; String pendingShot;
     UiQaScript script; UiQaWireCounter wire; long closedPackets; int actionBefore,flowBefore; Object initialPanel,pendingTooltip; long renderStart; final Map<Integer,List<Long>> frameTimes=new TreeMap<Integer,List<Long>>(); long started=System.currentTimeMillis();
     volatile boolean scriptServerStopped;
+    volatile Object uiServer; volatile Thread uiServerThread;
+    boolean closingUi, uiUnloadRequested; long uiCloseStarted, uiLastCloseWrite;
+    static boolean uiMode(){return "ui".equals(System.getProperty("gtsr.uiqa.mode","ui"));}
+    static void enableUiCommands(Object config)throws Exception {
+        call(config,"enableCommands|func_77166_b");
+        if(!Boolean.TRUE.equals(call(config,"areCommandsAllowed|func_77163_i"))||Boolean.TRUE.equals(call(config,"isBonusChestEnabled|func_77167_c")))throw new IllegalStateException("Native WorldSettings commands=true/bonusChest=false readback required");
+    }
+    static boolean uiStopProof(boolean worldLoaded,boolean threadAlive,boolean stopped,boolean registered)throws Exception {
+        return Boolean.TRUE.equals(call(type("miaotest.host.OwnedClientScope"),"stopped",worldLoaded,threadAlive,stopped,registered));
+    }
+    void uiSaveScope(Object actualWorld)throws Exception {
+        Path expected=Paths.get(System.getProperty("miaotest.host.worldPath"));
+        Path actual=actualWorld==null?expected:((java.io.File)call(call(actualWorld,"getSaveHandler|func_72860_G"),"getWorldDirectory|func_75765_b")).toPath();
+        call(type("miaotest.host.OwnedClientScope"),"save",expected,actual,System.getProperty("miaotest.host.runId"));
+    }
+    @Mod.EventHandler public void uiStarting(FMLServerAboutToStartEvent event)throws Exception {
+        if(!gate||!uiMode())return;uiSaveScope(null);uiServer=call(event,"getServer");uiServerThread=Thread.currentThread();scriptServerStopped=false;
+    }
     static Class<?> type(String s)throws Exception{return Class.forName(s);}
     static Object field(Object t,String names)throws Exception {
         for(String n:names.split("\\|"))for(Class<?> c=t instanceof Class?(Class<?>)t:t.getClass();c!=null;c=c.getSuperclass())try{Field f=c.getDeclaredField(n);f.setAccessible(true);return f.get(t instanceof Class?null:t);}catch(NoSuchFieldException ignored){}
@@ -66,11 +84,11 @@ public final class Mui2ClientQa {
     }
     @SubscribeEvent(priority=EventPriority.HIGHEST)
     public void syntheticHover(net.minecraftforge.client.event.GuiScreenEvent.DrawScreenEvent.Pre event) {
-        if(done||pendingTooltip==null)return;
+        if(done||closingUi||pendingTooltip==null)return;
         try{int[] point=screenPoint(pendingTooltip);set(event,"mouseX",point[0]);set(event,"mouseY",point[1]);call(call(screen,"getContext"),"updateState",point[0],point[1],0f);call(screen,"onFrameUpdate");}catch(Throwable failure){finish(failure);}
     }
     @SubscribeEvent public void tooltipPainted(com.cleanroommc.modularui.screen.RichTooltipEvent.PostText event) {
-        if(done||pendingTooltip==null)return;tooltipPostDraws++;
+        if(done||closingUi||pendingTooltip==null)return;tooltipPostDraws++;
         try{JsonObject paint=new JsonObject();paint.addProperty("x",event.getX());paint.addProperty("y",event.getY());paint.addProperty("text",String.valueOf(call(event.getTooltip(),"getAsStrings")));receipt.add("actualTooltipPostText",paint);}catch(Throwable failure){receipt.addProperty("tooltipPaintMetadataFailure",failure.toString());}
     }
     @Mod.EventHandler public void stopping(FMLServerStoppingEvent event) {
@@ -99,13 +117,15 @@ public final class Mui2ClientQa {
         try{Files.write(Paths.get(System.getProperty("gtsr.uiqa.receipt")),new GsonBuilder().setPrettyPrinting().create().toJson(receipt).getBytes(StandardCharsets.UTF_8));}catch(Exception e){e.printStackTrace();}
     }
     @SubscribeEvent public void server(TickEvent.ServerTickEvent e){
-        if(done||e.phase!=TickEvent.Phase.END||request==0)return;
+        if(done||closingUi||e.phase!=TickEvent.Phase.END||request==0)return;
         try{
             Object server=FMLCommonHandler.instance().getMinecraftServerInstance(),world=call(server,"worldServerForDimension|func_71218_a",0);
+            if(uiMode()){uiSaveScope(world);if(uiServer!=null&&uiServer!=server)throw new IllegalStateException("Owned UI server changed");uiServer=server;uiServerThread=Thread.currentThread();}
             List<?> ps=(List<?>)field(call(server,"getConfigurationManager|func_71203_ab"),"playerEntityList|field_72404_b");if(ps.isEmpty())return;serverPlayer=ps.get(0);
             if(request==100&&script!=null){script.server();request=0;return;}
             if(request==1){
-                Object rules=call(world,"getGameRules|func_82736_K");call(rules,"setOrCreateGameRule|func_82764_b","doMobSpawning","false");call(rules,"setOrCreateGameRule|func_82764_b","doDaylightCycle","false");
+                if(uiMode()){check("environment.Core-sterile-no-gamerule-writes",Boolean.TRUE.equals(call(type("com.miaokatze.miaokatzecore.testlab.LabWorldPolicy"),"owns",world)),"Exact owned save policy; difficulty/gamerules/player health unchanged");check("environment.loaded-world-commands",Boolean.TRUE.equals(call(call(world,"getWorldInfo|func_72912_H"),"areCommandsAllowed|func_76086_u")),"Native owned WorldInfo commands flag, independent of ops.json");}
+                else {Object rules=call(world,"getGameRules|func_82736_K");call(rules,"setOrCreateGameRule|func_82764_b","doMobSpawning","false");call(rules,"setOrCreateGameRule|func_82764_b","doDaylightCycle","false");}
                 receipt.addProperty("actualClientRenderDistance",String.valueOf(field(field(mc,"gameSettings|field_71474_y"),"renderDistanceChunks|field_151451_c")));
                 try{Object configuration=call(server,"getConfigurationManager|func_71203_ab");call(configuration,"setViewDistance|func_152611_a",3);receipt.addProperty("actualIntegratedViewDistance",String.valueOf(call(configuration,"getViewDistance|func_72395_o")));}catch(Exception unavailable){receipt.addProperty("integratedViewDistanceReadbackFailure",unavailable.toString());}
 
@@ -118,7 +138,7 @@ public final class Mui2ClientQa {
                 host=call(world,"getTileEntity|func_147438_o",8,70,8);machine=call(host,"getMetaTileEntity");
                 Object terminal=call(field(type("com.miaokatze.gtsr.common.api.enums.GTSRItemList"),"HubTerminal"),"get",1);
                 Object inv=field(serverPlayer,"inventory|field_71071_by");call(inv,"setInventorySlotContents|func_70299_a",0,terminal);set(inv,"currentItem|field_70461_c",0);
-                call(call(server,"getConfigurationManager|func_71203_ab"),"func_152605_a|addOp",call(serverPlayer,"getGameProfile|func_146103_bH"));check("fixture.owned-profile-OP2",(Boolean)call(serverPlayer,"canCommandSenderUseCommand|func_70003_b",2,"gtsrtest"),"Only owned offline Mui2Audit profile; actual command permission readback");
+                if(!uiMode())call(call(server,"getConfigurationManager|func_71203_ab"),"func_152605_a|addOp",call(serverPlayer,"getGameProfile|func_146103_bH"));check("fixture.owned-profile-OP2",(Boolean)call(serverPlayer,"canCommandSenderUseCommand|func_70003_b",2,"gtsrtest"),"Only owned offline Mui2Audit profile; actual command permission readback");
                 check("fixture.actual-player",serverPlayer.getClass().getName().equals("net.minecraft.entity.player.EntityPlayerMP"),serverPlayer.getClass().getName());
                 receipt.addProperty("initialFlow",number(call(machine,"getFlow")));
             }else if(request==2){
@@ -132,7 +152,9 @@ public final class Mui2ClientQa {
         if(done||e.phase!=TickEvent.Phase.END||++ticks<40)return;
         try{
             if(ticks%100==0){Runtime runtime=Runtime.getRuntime();JsonObject memory=new JsonObject();memory.addProperty("elapsedMillis",System.currentTimeMillis()-started);memory.addProperty("phase",phase);memory.addProperty("maxBytes",runtime.maxMemory());memory.addProperty("committedBytes",runtime.totalMemory());memory.addProperty("usedBytes",runtime.totalMemory()-runtime.freeMemory());heapSamples.add(memory);receipt.add("heapSamples",heapSamples);}
-            mc=call(type("net.minecraft.client.Minecraft"),"getMinecraft|func_71410_x");if(pendingShot!=null)return;
+            mc=call(type("net.minecraft.client.Minecraft"),"getMinecraft|func_71410_x");if(closingUi){closeUiIntegrated();return;}
+            if(uiMode()&&Files.exists(Paths.get(System.getProperty("gtsr.uiqa.receipt")).getParent().resolve("stop.json")))throw new AssertionError("Owned host requested UI stop");
+            if(pendingShot!=null)return;
             if(serverFailure!=null)throw new RuntimeException("Server fixture",serverFailure);
             if(System.currentTimeMillis()-started>Long.getLong("gtsr.uiqa.timeoutMillis",600000L))throw new AssertionError("Timed out phase="+phase);
             Object player=field(mc,"thePlayer|field_71439_g");
@@ -145,7 +167,9 @@ public final class Mui2ClientQa {
                 Object settings=field(mc,"gameSettings|field_71474_y");set(settings,"pauseOnLostFocus|field_82881_y",false);String actualLanguage=String.valueOf(field(settings,"language|field_74363_ab"));receipt.addProperty("actualLanguage",actualLanguage);String expectedLanguage=System.getProperty("gtsr.uiqa.language");if(expectedLanguage!=null)check("environment.actual-language",expectedLanguage.equals(actualLanguage),"Actual GameSettings.language="+actualLanguage);
                 Class<?> ws=type("net.minecraft.world.WorldSettings"),gt=type("net.minecraft.world.WorldSettings$GameType");
                 Object config=ws.getConstructor(long.class,gt,boolean.class,boolean.class,type("net.minecraft.world.WorldType")).newInstance(61312138L,Enum.valueOf((Class)gt,"CREATIVE"),false,false,field(type("net.minecraft.world.WorldType"),"FLAT|field_77138_c"));
-                call(config,"enableCommands|func_77159_a");call(mc,"launchIntegratedServer|func_71371_a",System.getProperty("gtsr.uiqa.world","Mui2AuditFresh"),"Owned MUI2 QA",config);next(1);return;
+                if(uiMode()){uiSaveScope(null);check("environment.no-existing-world",field(mc,"theWorld|field_71441_e")==null,"Never replace an existing world");enableUiCommands(config);check("environment.native-commands-only",true,"Actual commands=true, bonusChest=false");}
+                else call(config,"enableCommands|func_77159_a");
+                call(mc,"launchIntegratedServer|func_71371_a",System.getProperty("gtsr.uiqa.world","Mui2AuditFresh"),"Owned MUI2 QA",config);next(1);return;
             }
             if(phase==1){if(player==null||number(field(player,"ticksExisted|field_70173_aa"))<60)return;request=1;next(2);return;}
             if(player==null)throw new AssertionError("Client disconnected phase="+phase);
@@ -190,6 +214,38 @@ public final class Mui2ClientQa {
     void key(char c,int code)throws Exception {if(!(Boolean)call(screen,"onKeyPressed",c,code))call(type("com.cleanroommc.modularui.screen.ClientScreenHandler"),"keyTyped",gui,c,code);}
     void edit(String value)throws Exception {click(input);key((char)0,207);int erase=Math.max(15,String.valueOf(call(input,"getText")).length()+1);for(int i=0;i<erase;i++)key('\b',14);Object textEvent=type("me.eigenraven.lwjgl3ify.api.InputEvents$TextEvent").getConstructor(String.class).newInstance(value);call(type("me.eigenraven.lwjgl3ify.api.InputEvents"),"injectTextEvent",textEvent);check("input.actual-keyboard-draft-"+value,value.equals(String.valueOf(call(input,"getText"))),"Actual ModularScreen key dispatch + lwjgl3ify injectTextEvent; text="+call(input,"getText")+" focused="+call(input,"isFocused"));}
     void shot(String name){pendingShot=name;hoverFrames=0;tooltipPostDraws=0;}
-    @SubscribeEvent public void render(TickEvent.RenderTickEvent e){if(done)return;if(e.phase==TickEvent.Phase.START){renderStart=System.nanoTime();return;}if(screen!=null&&renderStart!=0){List<Long> samples=frameTimes.get(phase);if(samples==null){samples=new ArrayList<Long>();frameTimes.put(phase,samples);}if(samples.size()<1000)samples.add(System.nanoTime()-renderStart);}if(pendingShot==null)return;try{if(pendingTooltip!=null){Object tooltip=call(pendingTooltip,"getTooltip");int dwell=number(call(pendingTooltip,"getTicksHovered"));if((dwell<number(call(tooltip,"getShowUpTimer"))+2||tooltipPostDraws<1)&&++hoverFrames<600)return;record("tooltip.actual-hit-test",Boolean.TRUE.equals(call(pendingTooltip,"isHovering")),"Synthetic Forge DrawScreenEvent pointer through actual hover lookup");record("tooltip.actual-rendered-post-text",tooltipPostDraws>0,"Actual normal-frame RichTooltipEvent.PostText draws="+tooltipPostDraws+" natural GUI dwell ticks="+dwell+"; physical pointer NOT_RUN");pendingTooltip=null;}int error=org.lwjgl.opengl.GL11.glGetError();check("GL."+pendingShot,error==0,"Actual client GL error="+error);Object frame=call(mc,"getFramebuffer|func_147110_a");Object message=call(type("net.minecraft.util.ScreenShotHelper"),"saveScreenshot|func_148259_a",Paths.get(System.getProperty("gtsr.uiqa.receipt")).getParent().toFile(),pendingShot+".png",number(field(mc,"displayWidth|field_71443_c")),number(field(mc,"displayHeight|field_71440_d")),frame);System.out.println("MUI2_QA_SCREENSHOT "+message);call(frame,"unbindFramebuffer|func_147609_e");pendingShot=null;}catch(Throwable t){finish(t);}}
-    void finish(Throwable failure){if(done)return;done=true;receipt.add("checks",checks);if(wire!=null)receipt.add("nativeCustomPayloadMeasurements",wire.snapshot());boolean allChecksPass=failure==null;for(JsonElement c:checks)allChecksPass&=c.getAsJsonObject().get("pass").getAsBoolean();receipt.addProperty("status",allChecksPass?"PASS":"FAIL");JsonObject frames=new JsonObject();for(Map.Entry<Integer,List<Long>> entry:frameTimes.entrySet()){List<Long> values=entry.getValue();Collections.sort(values);if(values.isEmpty())continue;JsonObject q=new JsonObject();q.addProperty("n",values.size());q.addProperty("p50Millis",values.get((values.size()-1)/2)/1e6);q.addProperty("p95Millis",values.get((int)Math.floor((values.size()-1)*.95))/1e6);q.addProperty("maxMillis",values.get(values.size()-1)/1e6);frames.add("phase"+entry.getKey(),q);}receipt.add("actualRenderEventDurations",frames);receipt.addProperty("renderMeasurementScope","FML RenderTick START-to-END wall time by bounded phase; full client/background mods included; not exclusive widget CPU, not benchmark attribution");receipt.addProperty("elapsedMillis",System.currentTimeMillis()-started);receipt.addProperty("phase",phase);receipt.addProperty("physicalInputAndIME","NOT_RUN");receipt.addProperty("dedicatedServer","NOT_RUN");receipt.addProperty("pilotSlotConservation","NOT_RUN: initial TCDS pilot has no business slots; scripted production slot results are individual checks/scriptEvents");if(failure!=null){receipt.addProperty("failure",failure.toString());JsonArray stack=new JsonArray();for(Throwable c=failure;c!=null;c=c.getCause()){stack.add(new JsonPrimitive(c.toString()));for(StackTraceElement s:c.getStackTrace())stack.add(new JsonPrimitive(s.toString()));}receipt.add("stack",stack);}try{Files.write(Paths.get(System.getProperty("gtsr.uiqa.receipt")),new GsonBuilder().setPrettyPrinting().create().toJson(receipt).getBytes(StandardCharsets.UTF_8));if(mc!=null){call(mc,"shutdown|func_71400_g");}}catch(Exception e){e.printStackTrace();}}
+    @SubscribeEvent public void render(TickEvent.RenderTickEvent e){if(done||closingUi)return;if(e.phase==TickEvent.Phase.START){renderStart=System.nanoTime();return;}if(screen!=null&&renderStart!=0){List<Long> samples=frameTimes.get(phase);if(samples==null){samples=new ArrayList<Long>();frameTimes.put(phase,samples);}if(samples.size()<1000)samples.add(System.nanoTime()-renderStart);}if(pendingShot==null)return;try{if(pendingTooltip!=null){Object tooltip=call(pendingTooltip,"getTooltip");int dwell=number(call(pendingTooltip,"getTicksHovered"));if((dwell<number(call(tooltip,"getShowUpTimer"))+2||tooltipPostDraws<1)&&++hoverFrames<600)return;record("tooltip.actual-hit-test",Boolean.TRUE.equals(call(pendingTooltip,"isHovering")),"Synthetic Forge DrawScreenEvent pointer through actual hover lookup");record("tooltip.actual-rendered-post-text",tooltipPostDraws>0,"Actual normal-frame RichTooltipEvent.PostText draws="+tooltipPostDraws+" natural GUI dwell ticks="+dwell+"; physical pointer NOT_RUN");pendingTooltip=null;}int error=org.lwjgl.opengl.GL11.glGetError();check("GL."+pendingShot,error==0,"Actual client GL error="+error);Object frame=call(mc,"getFramebuffer|func_147110_a");Object message=call(type("net.minecraft.util.ScreenShotHelper"),"saveScreenshot|func_148259_a",Paths.get(System.getProperty("gtsr.uiqa.receipt")).getParent().toFile(),pendingShot+".png",number(field(mc,"displayWidth|field_71443_c")),number(field(mc,"displayHeight|field_71440_d")),frame);System.out.println("MUI2_QA_SCREENSHOT "+message);call(frame,"unbindFramebuffer|func_147609_e");pendingShot=null;}catch(Throwable t){finish(t);}}
+    void finish(Throwable failure){if(done||closingUi)return;if(uiMode()){closingUi=true;uiCloseStarted=System.currentTimeMillis();}else done=true;receipt.add("checks",checks);if(wire!=null)receipt.add("nativeCustomPayloadMeasurements",wire.snapshot());boolean allChecksPass=failure==null;for(JsonElement c:checks)allChecksPass&=c.getAsJsonObject().get("pass").getAsBoolean();receipt.addProperty("status",allChecksPass?"PASS":"FAIL");if(uiMode())receipt.addProperty("guiChecksStatus",allChecksPass?"PASS":"FAIL");JsonObject frames=new JsonObject();for(Map.Entry<Integer,List<Long>> entry:frameTimes.entrySet()){List<Long> values=entry.getValue();Collections.sort(values);if(values.isEmpty())continue;JsonObject q=new JsonObject();q.addProperty("n",values.size());q.addProperty("p50Millis",values.get((values.size()-1)/2)/1e6);q.addProperty("p95Millis",values.get((int)Math.floor((values.size()-1)*.95))/1e6);q.addProperty("maxMillis",values.get(values.size()-1)/1e6);frames.add("phase"+entry.getKey(),q);}receipt.add("actualRenderEventDurations",frames);receipt.addProperty("renderMeasurementScope","FML RenderTick START-to-END wall time by bounded phase; full client/background mods included; not exclusive widget CPU, not benchmark attribution");receipt.addProperty("elapsedMillis",System.currentTimeMillis()-started);receipt.addProperty("phase",phase);receipt.addProperty("physicalInputAndIME","NOT_RUN");receipt.addProperty("dedicatedServer","NOT_RUN");receipt.addProperty("pilotSlotConservation","NOT_RUN: initial TCDS pilot has no business slots; scripted production slot results are individual checks/scriptEvents");if(failure!=null){receipt.addProperty("failure",failure.toString());JsonArray stack=new JsonArray();for(Throwable c=failure;c!=null;c=c.getCause()){stack.add(new JsonPrimitive(c.toString()));for(StackTraceElement s:c.getStackTrace())stack.add(new JsonPrimitive(s.toString()));}receipt.add("stack",stack);}try{Files.write(Paths.get(System.getProperty("gtsr.uiqa.receipt")),new GsonBuilder().setPrettyPrinting().create().toJson(receipt).getBytes(StandardCharsets.UTF_8));if(mc!=null&&!closingUi){call(mc,"shutdown|func_71400_g");}}catch(Exception e){e.printStackTrace();}}
+    void writeUiReceipt(){try{
+        Path target=Paths.get(System.getProperty("gtsr.uiqa.receipt")),temporary=target.resolveSibling(target.getFileName()+".tmp");
+        receipt.addProperty("elapsedMillis",System.currentTimeMillis()-started);
+        Files.write(temporary,new GsonBuilder().setPrettyPrinting().create().toJson(receipt).getBytes(StandardCharsets.UTF_8));
+        Files.move(temporary,target,StandardCopyOption.REPLACE_EXISTING,StandardCopyOption.ATOMIC_MOVE);
+    }catch(Exception failure){failure.printStackTrace();}}
+    void uiCloseFailure(String detail){receipt.addProperty("status","FAIL");receipt.addProperty("uiShutdownFailure",detail);
+        long now=System.currentTimeMillis();if(now-uiLastCloseWrite>=2000L){uiLastCloseWrite=now;writeUiReceipt();}}
+    void closeUiIntegrated(){try{
+        uiSaveScope(null);
+        if(!uiUnloadRequested){
+            Object current=call(mc,"getIntegratedServer|func_71401_C");if(uiServer==null)uiServer=current;
+            if(current!=null&&current!=uiServer)throw new IllegalStateException("Refusing a different integrated server");
+            if(uiServer!=null){Object actual=call(uiServer,"worldServerForDimension|func_71218_a",0);if(actual!=null)uiSaveScope(actual);}
+            Object clientWorld=field(mc,"theWorld|field_71441_e");
+            if(clientWorld!=null&&uiServer==null)throw new IllegalStateException("Refusing a non-owned client world");
+            uiUnloadRequested=true;
+            if(clientWorld!=null){call(clientWorld,"sendQuittingDisconnectingPacket|func_72882_A");call(mc,"loadWorld|func_71403_a",(Object)null);}
+        }
+        if(uiServer!=null&&!scriptServerStopped)call(uiServer,"initiateShutdown|func_71263_m");
+        boolean loaded=field(mc,"theWorld|field_71441_e")!=null,alive=uiServerThread!=null&&uiServerThread.isAlive();
+        Path path=Paths.get(System.getProperty("gtsr.uiqa.receipt")).getParent().resolve("environment.json");JsonObject environment=null;
+        if(Files.isRegularFile(path)){try{environment=new JsonParser().parse(new String(Files.readAllBytes(path),StandardCharsets.UTF_8)).getAsJsonObject();}catch(RuntimeException publishing){return;}}
+        boolean registered=environment==null||!environment.has("registered")||environment.get("registered").getAsBoolean();
+        boolean stopped=scriptServerStopped&&environment!=null&&environment.has("runId")&&System.getProperty("miaotest.host.runId").equals(environment.get("runId").getAsString())&&environment.has("serverStopped")&&environment.get("serverStopped").getAsBoolean();
+        boolean noServer=uiServer==null&&uiServerThread==null&&!loaded&&environment==null;
+        boolean complete=noServer||(uiServerThread!=null&&uiStopProof(loaded,alive,stopped,registered));
+        JsonObject facts=new JsonObject();facts.addProperty("worldLoaded",loaded);facts.addProperty("threadAlive",alive);facts.addProperty("serverStoppedEvent",stopped);facts.addProperty("environmentRegistered",registered);facts.addProperty("noServerCreated",noServer);facts.addProperty("completed",complete);receipt.add("integratedLifecycle",facts);
+        if(complete){done=true;writeUiReceipt();call(mc,"shutdown|func_71400_g");return;}
+        if(System.currentTimeMillis()-uiCloseStarted>120000L)uiCloseFailure("Owned UI server has not stopped/unregistered; keep world for recovery");
+    }catch(Throwable failure){uiCloseFailure(failure.toString());}}
+
 }

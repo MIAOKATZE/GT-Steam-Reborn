@@ -34,9 +34,10 @@ def main():
     classes.mkdir(parents=True, exist_ok=True)
     source = Path(__file__).with_name("Mui2ClientQa.java")
     environment_source = ROOT.parent / 'tools/testlab/client_qa/HostEnvironment.java'
+    scope_source = ROOT.parent / 'tools/testlab/client_qa/OwnedClientScope.java'
     launch = json.loads((out / 'client-launch.json').read_text(encoding='utf-8'))['command']
     classpath = launch[launch.index('-cp') + 1] + ';' + ';'.join(str(p) for p in sorted((fixture / 'mods').rglob('*.jar')))
-    options = ["-encoding", "UTF-8", "-proc:none", "--release", "8", "-cp", classpath, "-d", str(classes), *[str(p) for p in sorted(source.parent.glob("*.java"))], str(environment_source)]
+    options = ["-encoding", "UTF-8", "-proc:none", "--release", "8", "-cp", classpath, "-d", str(classes), *[str(p) for p in sorted(source.parent.glob("*.java"))], str(environment_source), str(scope_source)]
     argfile = out / "qa-compile.args"
     argfile.write_text("\n".join('"' + s.replace("\\", "/") + '"' for s in options), encoding="utf-8")
     result = subprocess.run([str(args.javac.resolve(strict=True)), "-J-Duser.language=en", "@" + str(argfile)], capture_output=True, text=True, encoding="utf-8", errors="replace")
@@ -46,7 +47,7 @@ def main():
     jar = out / "gtsr-mui2-qa-owned-only.jar"
     artifacts = sorted(classes.rglob("*.class"))
     # Only this helper's output is packaged; stale unrelated classes are not included.
-    artifacts = [p for p in artifacts if p.relative_to(classes).as_posix().startswith(("audit/Mui2ClientQa", "audit/UiQaWireCounter", "audit/UiQaScript", "audit/UiQaGallery", "audit/UiGalleryBatch", "audit/TicketRestartQa", "miaotest/host/HostEnvironment"))]
+    artifacts = [p for p in artifacts if p.relative_to(classes).as_posix().startswith(("audit/Mui2ClientQa", "audit/UiQaWireCounter", "audit/UiQaScript", "audit/UiQaGallery", "audit/UiGalleryBatch", "audit/TicketRestartQa", "miaotest/host/HostEnvironment", "miaotest/host/OwnedClientScope"))]
     with zipfile.ZipFile(jar, "w") as archive:
         for path in artifacts:
             info = zipfile.ZipInfo(path.relative_to(classes).as_posix(), date_time=(1980, 1, 1, 0, 0, 0))
@@ -56,6 +57,7 @@ def main():
         "sourceSHA256": hashlib.sha256(source.read_bytes()).hexdigest(),
         "sources": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(source.parent.glob("*.java"))},
         "environmentSourceSHA256": hashlib.sha256(environment_source.read_bytes()).hexdigest(),
+        "ownedScopeSourceSHA256": hashlib.sha256(scope_source.read_bytes()).hexdigest(),
         "jarSHA256": hashlib.sha256(jar.read_bytes()).hexdigest(),
         "classCount": len(artifacts),
         "classMajors": sorted({int.from_bytes(p.read_bytes()[6:8], "big") for p in artifacts}),
