@@ -30,6 +30,8 @@ public class EntitySilentKing extends EntityEncounterBase {
     public static final int DORMANT = 0, AWAKENING = 1, ACTIVE = 2, RECOVERING = 3, DEFEATED = 4;
     public static final int ALERT_RADIUS = 55, AWAKENING_TICKS = 200;
     public static final float MAX_HEALTH = 3000F;
+    public static final int GRAVITY_WINDUP_TICKS = 14, METEOR_WARNING_TICKS = 14, METEOR_TRACKING_TICKS = 28,
+        METEOR_IMPACT_TICKS = 84;
     public static final int SKILL_NONE = 0, SKILL_ECHO = 1, SKILL_PULSE = 2, SKILL_CROWN = 3, SKILL_SHOCK = 4,
         SKILL_SWEEP = 5, SKILL_CROWN_FALL = 6, SKILL_DOUBLE_PULSE = 7;
     private final Set<UUID> condemned = new HashSet<>(), participants = new HashSet<>(),
@@ -621,7 +623,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         cooldowns[id] = 120;
         sound(id == 1 ? "crush" : "pull");
         if (getCombatPhase() == 4) resolveGravitySkill(ps);
-        else effect(0, 20, geometry());
+        else effect(0, GRAVITY_WINDUP_TICKS, geometry());
         return true;
     }
 
@@ -652,7 +654,7 @@ public class EntitySilentKing extends EntityEncounterBase {
     private void damage(EntityPlayer p, DamageSource type, float amount) {
         if (valid(p)) {
             p.hurtResistantTime = 0;
-            if (p.attackEntityFrom(type, amount)) participants.add(p.getUniqueID());
+            if (BossCombatEffects.hit(this, p, type, amount)) participants.add(p.getUniqueID());
         }
     }
 
@@ -683,7 +685,7 @@ public class EntitySilentKing extends EntityEncounterBase {
     private void advanceSkill(List<EntityPlayer> ps) {
         int t = getSkillTicks() + 1;
         skill(getSkillId(), t);
-        if (t >= 20) resolveGravitySkill(ps);
+        if (t >= GRAVITY_WINDUP_TICKS) resolveGravitySkill(ps);
     }
 
     private void resolveGravitySkill(List<EntityPlayer> ps) {
@@ -737,7 +739,7 @@ public class EntitySilentKing extends EntityEncounterBase {
         cooldowns[3] = 2400;
         sound("meteor");
         dataWatcher.updateObject(30, 0);
-        sendMeteor(0, 120);
+        sendMeteor(0, METEOR_IMPACT_TICKS);
     }
 
     private void sendMeteor(int stage, int duration) {
@@ -756,16 +758,16 @@ public class EntitySilentKing extends EntityEncounterBase {
         if (meteorTicks < 0) return;
         meteorTicks++;
         dataWatcher.updateObject(30, meteorTicks);
-        if (meteorTicks <= 40) for (EntityPlayer p : ps) if (p.getUniqueID()
+        if (meteorTicks <= METEOR_TRACKING_TICKS) for (EntityPlayer p : ps) if (p.getUniqueID()
             .equals(meteorTarget)) {
                 meteorX = p.posX;
                 meteorZ = p.posZ;
                 double ground = surface(p.posX, p.posY, p.posZ);
                 if (ground >= 0) meteorY = ground;
-                if (meteorTicks % 5 == 0) sendMeteor(0, 140 - meteorTicks);
+                if (meteorTicks % 5 == 0) sendMeteor(0, METEOR_IMPACT_TICKS + 20 - meteorTicks);
             }
-        // One-second warning, then five seconds of descent (impact six seconds after casting).
-        if (meteorTicks == 120) {
+        // Keep the visual warning/descent on the same shortened server timeline.
+        if (meteorTicks >= METEOR_IMPACT_TICKS) {
             sendMeteor(1, 20);
             sound("impact");
             DamageSource explosion = new DamageSource("explosion").setExplosion();

@@ -313,6 +313,9 @@ public class CommonProxy {
      */
     @SuppressWarnings({ "unused" })
     public void postInit(FMLPostInitializationEvent event) {
+        com.miaokatze.gtsr.common.dimension.prosperity.encounter.LifeDisintegrationPotion
+            .register(Config.lifeDisintegrationPotionId);
+        com.miaokatze.gtsr.common.dimension.prosperity.encounter.LifeDisintegrationPotion.registerEvents();
         com.miaokatze.gtsr.common.weapons.PortableWeapons.init();
         CriticalFoundationMaterials.registerFluid();
         RecipeRegistration.register("gtsr", () -> {

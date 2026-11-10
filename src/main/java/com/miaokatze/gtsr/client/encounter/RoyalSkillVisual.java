@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.client.encounter;
 import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.CombatGeometry;
+import com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntitySilentKing;
 
 /** World-space, server-authored gravity paths; callers retain the exact damage footprint underneath. */
 public final class RoyalSkillVisual {
@@ -37,7 +38,7 @@ public final class RoyalSkillVisual {
                     FineRuneRenderer.voxel(0, .3 + age * .14, 0, 1.3 * fade, .8F, .5F, 1F, (float) (fade * .65), true);
                 }
             } else if (skill == 1) {
-                double progress = stage == 0 ? Math.min(1, age / 20) : 1;
+                double progress = stage == 0 ? Math.min(1, age / Math.max(1, duration)) : 1;
                 double top = stage == 0 ? 4.5 * (1 - progress) + .55 : .55 * Math.max(0, 1 - age / 8);
                 for (int level = 0; level < 3; level++) {
                     GL11.glColor4f(.77F, .4F, 1F, (float) (fade * (.4 - level * .08)));
@@ -145,7 +146,12 @@ public final class RoyalSkillVisual {
     }
 
     public static double meteorHeight(double tick) {
-        double progress = Math.max(0, Math.min(1, (tick - 20) / 100D));
+        double progress = Math.max(
+            0,
+            Math.min(
+                1,
+                (tick - EntitySilentKing.METEOR_WARNING_TICKS)
+                    / (double) (EntitySilentKing.METEOR_IMPACT_TICKS - EntitySilentKing.METEOR_WARNING_TICKS)));
         return 32 * (1 - progress * progress);
     }
 

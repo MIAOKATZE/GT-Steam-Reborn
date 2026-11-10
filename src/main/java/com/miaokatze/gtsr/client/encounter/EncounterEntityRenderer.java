@@ -47,11 +47,14 @@ public final class EncounterEntityRenderer extends Render {
                 int recent = BossSkillVisuals.recentMask(king);
                 if (skill == 0 && king.getMeteorTicks() >= 0) {
                     clip = "crown_gaze";
-                    time = Math.min(88, king.getMeteorTicks() + partial);
+                    time = Math
+                        .min(88, (king.getMeteorTicks() + partial) * 120D / EntitySilentKing.METEOR_IMPACT_TICKS);
                 } else if (skill != 0) {
                     clip = skill == 2 || skill == 4 ? "sound_vacuum" : "silent_edict";
                     double attack = king.getSkillTicks() + partial;
-                    time = attack < 20 ? attack * 1.2 : Math.min(72, 24 + (attack - 20) * 2.4);
+                    time = attack < EntitySilentKing.GRAVITY_WINDUP_TICKS
+                        ? attack * 24 / EntitySilentKing.GRAVITY_WINDUP_TICKS
+                        : Math.min(72, 24 + (attack - EntitySilentKing.GRAVITY_WINDUP_TICKS) * 2.4);
                 } else if ((recent & 10) != 0) {
                     clip = "sound_vacuum";
                     time = (entity.ticksExisted + partial) % 80;

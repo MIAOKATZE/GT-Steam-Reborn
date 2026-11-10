@@ -86,6 +86,7 @@ public class ClientProxy extends CommonProxy {
             .bus()
             .register(fictionSky);
         com.miaokatze.gtsr.client.encounter.EncounterClient.register();
+        com.miaokatze.gtsr.client.encounter.LifeDisintegrationHud.register();
         com.miaokatze.gtsr.client.echo.CombatEffectsClient.register();
 
         FMLCommonHandler.instance()

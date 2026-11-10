@@ -6,6 +6,8 @@ import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 
+import com.miaokatze.gtsr.common.dimension.prosperity.encounter.BossCombatEffects;
+
 /** Server-owned industrial skill timelines; cooldowns persist independently of canceled casts. */
 final class EchoIndustrialCombat {
 
@@ -91,7 +93,7 @@ final class EchoIndustrialCombat {
             for (Object object : owner.worldObj.playerEntities) {
                 EntityPlayer p = (EntityPlayer) object;
                 if (!valid(p) || owner.getDistanceSqToEntity(p) > 25 || !owner.canEntityBeSeen(p)) continue;
-                p.attackEntityFrom(DamageSource.causeIndirectMagicDamage(owner, owner), 3);
+                BossCombatEffects.hit(owner, p, DamageSource.causeIndirectMagicDamage(owner, owner), 3);
                 push(p, 1.45, .25);
             }
         }
@@ -121,7 +123,7 @@ final class EchoIndustrialCombat {
             for (Object object : owner.worldObj.playerEntities) {
                 EntityPlayer p = (EntityPlayer) object;
                 if (!valid(p) || !area.contains(p.posX, p.posY, p.posZ) || !owner.canEntityBeSeen(p)) continue;
-                p.attackEntityFrom(DamageSource.causeMobDamage(owner), 8);
+                BossCombatEffects.hit(owner, p, DamageSource.causeMobDamage(owner), 8);
                 push(p, .5 * multiplier, .9 * Math.sqrt(multiplier));
             }
             CombatEffects.send(owner, ++serial * 32, 1, 20, palette(), area, 7, 0);
@@ -286,7 +288,7 @@ final class EchoIndustrialCombat {
         for (Object object : owner.worldObj.playerEntities) {
             EntityPlayer p = (EntityPlayer) object;
             if (!valid(p) || !geometry.contains(p.posX, p.posY, p.posZ) || !owner.canEntityBeSeen(p)) continue;
-            if (p.attackEntityFrom(DamageSource.causeMobDamage(owner), damage)) push(p, knock, .25);
+            if (BossCombatEffects.hit(owner, p, DamageSource.causeMobDamage(owner), damage)) push(p, knock, .25);
         }
     }
 

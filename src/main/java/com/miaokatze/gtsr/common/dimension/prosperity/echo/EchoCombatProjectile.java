@@ -8,6 +8,8 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 
+import com.miaokatze.gtsr.common.dimension.prosperity.encounter.BossCombatEffects;
+
 /** A tracked, swept projectile. Detonation never edits blocks or damages friendly echoes. */
 public final class EchoCombatProjectile extends Entity
     implements cpw.mods.fml.common.registry.IEntityAdditionalSpawnData {
@@ -139,13 +141,16 @@ public final class EchoCombatProjectile extends Entity
             // Nudge the blast point out of its impact surface before testing line of sight.
             Vec3 origin = Vec3.createVectorHelper(posX - motionX * .1, posY - motionY * .1, posZ - motionZ * .1);
             if (worldObj.rayTraceBlocks(origin, head) != null) continue;
-            boolean accepted = p.attackEntityFrom(DamageSource.causeIndirectMagicDamage(this, owner), damage);
+            boolean accepted = BossCombatEffects
+                .hit(owner, p, DamageSource.causeIndirectMagicDamage(this, owner), damage);
             if (accepted && owner.getKind() == EchoKind.DC08 && getPalette() == 3) {
                 // The second typed hit must pass the vanilla hurt-resistance gate independently.
                 int resistance = p.hurtResistantTime;
                 p.hurtResistantTime = 0;
                 try {
-                    p.attackEntityFrom(
+                    BossCombatEffects.hit(
+                        owner,
+                        p,
                         new net.minecraft.util.EntityDamageSourceIndirect("mob", this, owner).setProjectile(),
                         6);
                 } finally {

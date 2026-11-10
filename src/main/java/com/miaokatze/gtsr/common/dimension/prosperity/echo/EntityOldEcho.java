@@ -14,6 +14,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 
 import com.miaokatze.gtsr.common.dimension.prosperity.echo.EchoKind.BattleStyle;
+import com.miaokatze.gtsr.common.dimension.prosperity.encounter.BossCombatEffects;
 import com.miaokatze.gtsr.common.dimension.prosperity.encounter.EntityEncounterBase;
 
 /** Weak echoes: server owns all combat; clients only consume watched animation phases. */
@@ -846,7 +847,7 @@ public class EntityOldEcho extends EntityEncounterBase
 
     private boolean hurt(EntityPlayer player, float damage, double knock) {
         if (!valid(player) || !canEntityBeSeen(player)) return false;
-        boolean accepted = player.attackEntityFrom(DamageSource.causeMobDamage(this), damage);
+        boolean accepted = BossCombatEffects.hit(this, player, DamageSource.causeMobDamage(this), damage);
         if (accepted && knock > 0) {
             double dx = player.posX - posX, dz = player.posZ - posZ;
             double len = Math.max(.01, Math.sqrt(dx * dx + dz * dz));

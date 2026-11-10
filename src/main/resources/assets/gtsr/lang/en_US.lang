@@ -5029,3 +5029,4 @@ gtsr.tooltip.kinetic_array.structure_channels=casing 1..12 selects LV..UMV stand
 gtsr.ammonia.payment.waiting=Waiting for both refinery gas and steam; paid reserves retained
 gtsr.ammonia.payment.uncertain=Payment result requires review; records retained and progress paused
 gtsr.ammonia.payment.escrow=Reserved: %s L refinery gas / %s L steam
+potion.gtsr.lifeDisintegration=Life Disintegration

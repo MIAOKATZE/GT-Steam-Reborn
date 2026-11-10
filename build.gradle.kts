@@ -216,7 +216,17 @@ val verifyWeaponModelContracts = tasks.register<JavaExec>("verifyWeaponModelCont
     args(file("src/main/resources").absolutePath)
 }
 
+val verifyBossCombatContracts = tasks.register<JavaExec>("verifyBossCombatContracts") {
+    group = "verification"
+    description = "Verify boss damage scope, real health attributes, potion lifecycle and shared cast timing."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath
+    mainClass.set("com.miaokatze.gtsr.common.dimension.prosperity.encounter.BossCombatContracts")
+    maxHeapSize = "256m"
+}
+
 tasks.named("check") {
+    dependsOn(verifyBossCombatContracts)
     dependsOn(verifyRigMeshContracts)
     dependsOn(verifyEchoRosterContracts)
     dependsOn(verifyCriticalJsonContracts)

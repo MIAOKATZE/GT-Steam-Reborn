@@ -5025,3 +5025,4 @@ gtsr.tooltip.kinetic_array.structure_channels=casing 1..12选择LV..UMV标准机
 gtsr.ammonia.payment.waiting=等待炼油气与蒸汽共同付足，已付资源保留
 gtsr.ammonia.payment.uncertain=付款结果待核验，已保留凭据并暂停
 gtsr.ammonia.payment.escrow=已托管：炼油气 %s L / 蒸汽 %s L
+potion.gtsr.lifeDisintegration=生命崩解

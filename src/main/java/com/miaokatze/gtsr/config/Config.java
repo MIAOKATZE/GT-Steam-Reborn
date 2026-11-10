@@ -12,6 +12,9 @@ import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeBase;
  */
 public class Config {
 
+    /** Stable potion slot; server and client must use the same value. */
+    public static int lifeDisintegrationPotionId = 240;
+
     /** Reduce decorative 2D UI animation; authoritative construction and recipe information remain visible. */
     public static boolean criticalUiReducedMotion = false;
 
@@ -324,6 +327,13 @@ public class Config {
      */
     public static void synchronizeConfiguration(File configFile) {
         Configuration configuration = new Configuration(configFile);
+
+        lifeDisintegrationPotionId = configuration.get(
+            "potion",
+            "lifeDisintegrationId",
+            lifeDisintegrationPotionId,
+            "Life disintegration potion ID (0..255). Must be unused and identical on server and client; restart required.")
+            .getInt(lifeDisintegrationPotionId);
 
         machineVisualQuality = configuration.getString(
             "machineVisualQuality",
