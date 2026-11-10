@@ -28,7 +28,7 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Thirty visible ruins choices; seven additional saved registry identities remain as compatible visual aliases. */
+/** Twenty-seven visible ruins choices; ten saved registry identities remain as compatible visual aliases. */
 public final class RuinsArchitecture {
 
     private static final Map<String, Block> REGISTRY = new LinkedHashMap<>();
@@ -72,6 +72,9 @@ public final class RuinsArchitecture {
         aliases.put("patina_trim", "cast_iron_pillar");
         aliases.put("silent_bell_base", "slag_masonry");
         aliases.put("sootstone_tiles", "slag_masonry");
+        aliases.put("sootstone_tiles_stairs", "slag_masonry_stairs");
+        aliases.put("verdigris_pressed_brick", "slag_masonry");
+        aliases.put("verdigris_pressed_brick_stairs", "slag_masonry_stairs");
         aliases.put("salvage_workbench", "rootwood_archive");
         return Collections.unmodifiableMap(aliases);
     }

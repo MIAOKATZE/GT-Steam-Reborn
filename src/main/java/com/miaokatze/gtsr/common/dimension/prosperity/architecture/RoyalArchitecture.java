@@ -1,5 +1,8 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.architecture;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -18,15 +21,43 @@ import com.miaokatze.gtsr.register.CreativeTabManager;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
-/** Reusable royal timber and living-root palette; every entry has an independent block ID. */
+/** Sixteen visible royal choices; all nineteen saved block identities remain registered. */
 public final class RoyalArchitecture {
 
     public static final Map<String, Block> BLOCKS = new LinkedHashMap<>();
+    private static final Map<String, String> VISUAL_ALIASES = visualAliases();
 
     private RoyalArchitecture() {}
 
     public static Block get(String id) {
-        return BLOCKS.get(id);
+        return BLOCKS.get(canonicalId(id));
+    }
+
+    public static String canonicalId(String id) {
+        String canonical = VISUAL_ALIASES.get(id);
+        return canonical == null ? id : canonical;
+    }
+
+    public static Map<String, String> legacyVisualAliases() {
+        return VISUAL_ALIASES;
+    }
+
+    /** Exact saved instances for client-only hiding; get() deliberately returns the active choice. */
+    public static Collection<Block> legacyVisualBlocks() {
+        Collection<Block> blocks = new ArrayList<>();
+        for (String id : VISUAL_ALIASES.keySet()) {
+            Block block = BLOCKS.get(id);
+            if (block != null) blocks.add(block);
+        }
+        return Collections.unmodifiableCollection(blocks);
+    }
+
+    private static Map<String, String> visualAliases() {
+        Map<String, String> aliases = new LinkedHashMap<>();
+        aliases.put("oathwood_slab", "heartwood_slab");
+        aliases.put("oathwood_stairs", "heartwood_stairs");
+        aliases.put("crownwood_stairs", "heartwood_stairs");
+        return Collections.unmodifiableMap(aliases);
     }
 
     private static Block cube(String id, Material material) {
@@ -38,7 +69,7 @@ public final class RoyalArchitecture {
         block.setBlockName("Royal_" + id);
         GameRegistry.registerBlock(block, "Royal_" + id);
         BLOCKS.put(id, block);
-        CreativeTabManager.addItemToTab(new ItemStack(block));
+        if (!VISUAL_ALIASES.containsKey(id)) CreativeTabManager.addItemToTab(new ItemStack(block));
     }
 
     public static void registerBlocks() {
@@ -50,11 +81,11 @@ public final class RoyalArchitecture {
         register("patina_mosaic", cube("patina_mosaic", Material.rock));
         register("amber_lattice", cube("amber_lattice", Material.wood).setLightLevel(.35F));
         register("heartwood_slab", new Half("heartwood"));
-        register("oathwood_slab", new Half("oathwood"));
+        register("oathwood_slab", new Half("heartwood"));
         register("heartwood_stairs", new Stairs(get("heartwood")));
         register("rootstone_stairs", new Stairs(get("rootstone")));
-        register("oathwood_stairs", new Stairs(get("oathwood")));
-        register("crownwood_stairs", new Stairs(get("crownwood")));
+        register("oathwood_stairs", new Stairs(get("heartwood")));
+        register("crownwood_stairs", new Stairs(get("heartwood")));
         register("zenith_log_stairs", new Stairs(BlocksGTSR.prosperityZenithLog));
         register("root_fence", new BlockFence("gtsr:royal_heartwood", Material.wood));
         register("oath_fence", new BlockFence("gtsr:royal_oathwood", Material.wood));

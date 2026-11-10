@@ -2297,7 +2297,7 @@ tile.Royal_rootstone.name=抱根石
 tile.Royal_patina_mosaic.name=铜绿嵌木
 tile.Royal_amber_lattice.name=琥珀王格
 tile.Royal_heartwood_slab.name=古树心木半砖
-tile.Royal_oathwood_slab.name=残誓纹木半砖
+tile.Royal_oathwood_slab.name=古树心木半砖
 tile.Royal_heartwood_stairs.name=古树心木阶梯
 tile.Royal_rootstone_stairs.name=抱根石阶梯
 tile.Royal_root_fence.name=盘根栏杆
@@ -2317,7 +2317,7 @@ encounter.guidance.cleared=残誓已尽，来到王座之前。
 
 # P37 reusable ruins architecture
 tile.Ruins_rust_riveted_plate.name=锈铜铆接板
-tile.Ruins_verdigris_pressed_brick.name=铜绿压纹砖
+tile.Ruins_verdigris_pressed_brick.name=炉渣砌石
 tile.Ruins_furnace_firebrick.name=焦炉耐火砖
 tile.Ruins_slag_masonry.name=炉渣砌石
 tile.Ruins_cast_iron_pillar.name=铸铁筋柱
@@ -2962,14 +2962,14 @@ echo.warning.di-14=酸种将发射，避开弹道
 echo.warning.di-15=引线将绷紧，离开锁定点
 
 tile.Ruins_slag_masonry_stairs.name=渣岩砌块楼梯
-tile.Ruins_sootstone_tiles_stairs.name=烟石砖楼梯
-tile.Ruins_verdigris_pressed_brick_stairs.name=铜绿压砖楼梯
+tile.Ruins_sootstone_tiles_stairs.name=渣岩砌块楼梯
+tile.Ruins_verdigris_pressed_brick_stairs.name=渣岩砌块楼梯
 tile.Ruins_mossroot_paving_stairs.name=苔根铺石楼梯
 tile.Ruins_rootbound_brick_stairs.name=根缠砖楼梯
 tile.Ruins_cast_iron_pillar_stairs.name=铸铁楼梯
 tile.Ruins_oath_inscription_stairs.name=誓文石楼梯
-tile.Royal_oathwood_stairs.name=誓木楼梯
-tile.Royal_crownwood_stairs.name=冠木楼梯
+tile.Royal_oathwood_stairs.name=古树心木阶梯
+tile.Royal_crownwood_stairs.name=古树心木阶梯
 tile.Royal_zenith_log_stairs.name=天顶木楼梯
 gtsr.scene.story_unlocked=已解锁剧情：%s
 gtsr.scene.story_locked=进入该结构后解锁剧情。

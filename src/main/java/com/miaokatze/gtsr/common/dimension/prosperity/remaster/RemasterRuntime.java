@@ -449,6 +449,9 @@ public final class RemasterRuntime {
 
     public static Block resolve(String key) {
         String id = key.indexOf('#') >= 0 ? key.substring(0, key.indexOf('#')) : key;
+        // Authored lowercase keys and published registry names share the active construction palette.
+        if (id.startsWith("gtsr:Ruins_")) id = "gtsr:ruins_" + id.substring("gtsr:Ruins_".length());
+        if (id.startsWith("gtsr:Royal_")) id = "gtsr:royal_" + id.substring("gtsr:Royal_".length());
         Block block = RemasterBlocks.get(id);
         if (id.equals("minecraft:air")) block = Blocks.air;
         if (block == null && id.startsWith("gtsr:ruins_"))

@@ -34,9 +34,20 @@ public final class CriticalGeometry {
     public static JsonObject readJson(String relative) {
         String path = "/assets/gtsr/critical/" + relative;
         try (InputStream stream = CriticalGeometry.class.getResourceAsStream(path)) {
-            if (stream == null) throw new IllegalStateException("Missing critical asset " + path);
-            JsonObject parsed = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8))
-                .getAsJsonObject();
+            JsonObject parsed;
+            if (stream != null) {
+                parsed = new JsonParser().parse(new InputStreamReader(stream, StandardCharsets.UTF_8))
+                    .getAsJsonObject();
+            } else if (relative.startsWith("models/") && relative.endsWith(".geometry.json")) {
+                String compiled = path.substring(0, path.length() - ".json".length()) + ".gcjb";
+                try (InputStream binary = CriticalGeometry.class.getResourceAsStream(compiled)) {
+                    if (binary == null) throw new IllegalStateException("Missing critical asset " + path);
+                    parsed = new JsonParser().parse(CriticalJsonData.read(binary))
+                        .getAsJsonObject();
+                }
+            } else {
+                throw new IllegalStateException("Missing critical asset " + path);
+            }
             return "materials.json".equals(relative) ? CriticalMaterialDefinitions.expandLegacyPalette(parsed) : parsed;
         } catch (java.io.IOException ex) {
             throw new IllegalStateException("Cannot read critical asset " + path, ex);

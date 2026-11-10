@@ -2302,7 +2302,7 @@ tile.Royal_rootstone.name=Rootstone
 tile.Royal_patina_mosaic.name=Patina Mosaic
 tile.Royal_amber_lattice.name=Amber Lattice
 tile.Royal_heartwood_slab.name=Heartwood Slab
-tile.Royal_oathwood_slab.name=Oathwood Slab
+tile.Royal_oathwood_slab.name=Heartwood Slab
 tile.Royal_heartwood_stairs.name=Heartwood Stairs
 tile.Royal_rootstone_stairs.name=Rootstone Stairs
 tile.Royal_root_fence.name=Root Fence
@@ -2322,7 +2322,7 @@ encounter.guidance.cleared=The remaining oaths have fallen. Come before the thro
 
 # P37 reusable ruins architecture
 tile.Ruins_rust_riveted_plate.name=Rust Riveted Plate
-tile.Ruins_verdigris_pressed_brick.name=Verdigris Pressed Brick
+tile.Ruins_verdigris_pressed_brick.name=Slag Masonry
 tile.Ruins_furnace_firebrick.name=Furnace Firebrick
 tile.Ruins_slag_masonry.name=Slag Masonry
 tile.Ruins_cast_iron_pillar.name=Cast Iron Pillar
@@ -2967,14 +2967,14 @@ echo.warning.di-14=Acid seed launching: evade the projectile
 echo.warning.di-15=Threads tightening: leave the locked point
 
 tile.Ruins_slag_masonry_stairs.name=Slag Masonry Stairs
-tile.Ruins_sootstone_tiles_stairs.name=Sootstone Tiles Stairs
-tile.Ruins_verdigris_pressed_brick_stairs.name=Verdigris Pressed Brick Stairs
+tile.Ruins_sootstone_tiles_stairs.name=Slag Masonry Stairs
+tile.Ruins_verdigris_pressed_brick_stairs.name=Slag Masonry Stairs
 tile.Ruins_mossroot_paving_stairs.name=Mossroot Paving Stairs
 tile.Ruins_rootbound_brick_stairs.name=Rootbound Brick Stairs
 tile.Ruins_cast_iron_pillar_stairs.name=Cast Iron Pillar Stairs
 tile.Ruins_oath_inscription_stairs.name=Oath Inscription Stairs
-tile.Royal_oathwood_stairs.name=Oathwood Stairs
-tile.Royal_crownwood_stairs.name=Crownwood Stairs
+tile.Royal_oathwood_stairs.name=Heartwood Stairs
+tile.Royal_crownwood_stairs.name=Heartwood Stairs
 tile.Royal_zenith_log_stairs.name=Zenith Log Stairs
 gtsr.scene.story_unlocked=Story unlocked: %s
 gtsr.scene.story_locked=Enter this structure to unlock its story.

@@ -821,7 +821,8 @@ public final class RuinsBlueprint {
                 boolean up = b.isNormalCube() || b == RuinsArchitecture.get("rust_floor_grate") && (meta & 1) == 1
                     || (b == RuinsArchitecture.get("firebrick_slab") || b == RuinsArchitecture.get("riveted_plate_slab")
                         || b == RoyalArchitecture.get("heartwood_slab")
-                        || b == RoyalArchitecture.get("oathwood_slab")) && (meta & 1) == 1
+                        // Saved oathwood halves keep their own instance even though get() now aliases it.
+                        || b == RoyalArchitecture.BLOCKS.get("oathwood_slab")) && (meta & 1) == 1
                     || b instanceof net.minecraft.block.BlockStairs && (meta & 4) != 0
                     || b instanceof net.minecraft.block.BlockSlab && (meta & 8) != 0;
                 if (up) topSupport.add(key);

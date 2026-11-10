@@ -13,6 +13,8 @@ val assetCompiler = sourceSets.create("assetCompiler") {
     java.setSrcDirs(listOf("src/main/java", "tools/model-compiler/java"))
     java.include("com/miaokatze/gtsr/client/encounter/RigMeshData.java")
     java.include("com/miaokatze/gtsr/tools/RigMeshCompiler.java")
+    java.include("com/miaokatze/gtsr/common/critical/CriticalJsonData.java")
+    java.include("com/miaokatze/gtsr/tools/CriticalJsonCompiler.java")
 }
 
 tasks.named<JavaCompile>(assetCompiler.compileJavaTaskName) {
@@ -56,20 +58,39 @@ val compileRigMeshes = tasks.register<JavaExec>("compileRigMeshes") {
     args(file("src/main/resources").absolutePath, compiledRigMeshes.get().asFile.absolutePath)
 }
 
+val criticalModels = fileTree("src/main/resources") {
+    include("assets/gtsr/critical/models/*.geometry.json")
+}
+val compiledCriticalModels = layout.buildDirectory.dir("generated/critical-json")
+val compileCriticalModels = tasks.register<JavaExec>("compileCriticalModels") {
+    group = "build"
+    description = "Compile canonical and compatibility critical models with exact JSON token/order roundtrips."
+    dependsOn(assetCompiler.classesTaskName)
+    classpath = assetCompiler.runtimeClasspath
+    mainClass.set("com.miaokatze.gtsr.tools.CriticalJsonCompiler")
+    maxHeapSize = "512m"
+    inputs.files(criticalModels).withPathSensitivity(PathSensitivity.RELATIVE)
+    outputs.dir(compiledCriticalModels)
+    args(file("src/main/resources").absolutePath, compiledCriticalModels.get().asFile.absolutePath)
+}
+
 tasks.named<ProcessResources>("processResources") {
-    dependsOn(compileRigMeshes)
+    dependsOn(compileRigMeshes, compileCriticalModels)
     exclude("assets/gtsr/liminal/*/models/*.obj")
+    exclude("assets/gtsr/critical/models/*.geometry.json")
     exclude(retiredModelPaths)
     exclude(inactiveSoundPaths)
     exclude("assets/gtsr/sounds/inactive-sounds.txt")
     from(compiledRigMeshes)
+    from(compiledCriticalModels)
 }
 
-// Source resources remain original OBJ files; only processed runtime resources substitute .rigmesh files.
+// Author resources remain original OBJ/JSON files; only runtime resources use compiled representations.
 // Keep them explicitly available in sources archives even when the convention plugin uses processed resources.
 tasks.matching { it.name == "sourcesJar" }.configureEach {
     (this as Jar).from("src/main/resources") {
         include("assets/gtsr/liminal/*/models/*.obj")
+        include("assets/gtsr/critical/models/*.geometry.json")
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 }
@@ -100,7 +121,19 @@ val verifyEchoRosterContracts = tasks.register<JavaExec>("verifyEchoRosterContra
     args(file("src/main/resources").absolutePath)
 }
 
+val verifyCriticalJsonContracts = tasks.register<JavaExec>("verifyCriticalJsonContracts") {
+    group = "verification"
+    description = "Verify strict lossless decoding and the actual binary-only critical resource loader."
+    dependsOn(tasks.named("testClasses"), compileCriticalModels)
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.miaokatze.gtsr.common.critical.CriticalJsonDataContracts")
+    maxHeapSize = "256m"
+    args(file("src/main/resources").absolutePath, compiledCriticalModels.get().asFile.absolutePath)
+    inputs.files(criticalModels).withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 tasks.named("check") {
     dependsOn(verifyRigMeshContracts)
     dependsOn(verifyEchoRosterContracts)
+    dependsOn(verifyCriticalJsonContracts)
 }

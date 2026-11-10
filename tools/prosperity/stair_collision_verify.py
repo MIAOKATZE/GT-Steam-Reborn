@@ -2,7 +2,7 @@ from native_terrain_fixture import native_sources, isolated_sourcepath
 """Compile latest stair-owning production classes and run real MC collision fixture."""
 import re, subprocess, tempfile, sys, json, hashlib
 from pathlib import Path
-from remaster_convert import ROOT
+ROOT = Path(__file__).resolve().parents[2]
 
 def main():
     if "--natural-capture" in sys.argv:
@@ -16,12 +16,12 @@ def main():
         tmp=Path(folder);sources=[]
         for n in ('RuinsArchitecture','RoyalArchitecture'):
             p=ROOT/f'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/architecture/{n}.java'
-            s=re.sub(r'^\s*(GameRegistry\.registerBlock|CreativeTabManager\.addItemToTab)\([^\n]+\);\s*$','',p.read_text('utf8'),flags=re.M)
+            s=re.sub(r'^\s*(?:if \(!VISUAL_ALIASES\.containsKey\(id\)\) )?(GameRegistry\.registerBlock|CreativeTabManager\.addItemToTab)\([^\n]+\);\s*$','',p.read_text('utf8'),flags=re.M)
             q=tmp/f'{n}.java';q.write_text(s,'utf8');sources.append(q)
         fixture=(ROOT/'tools/prosperity/RemasterRuntimeCheck.java').read_text('utf8').split(' static class P extends')[0]+'}\n'
-        fixture=fixture.replace('P player;', 'EntityPlayerMP player;')
+        fixture=re.sub(r'\bP player;', 'EntityPlayerMP player;', fixture)
         adapter=tmp/'RemasterRuntimeCheck.java';adapter.write_text(fixture,'utf8');sources += [adapter,ROOT/'tools/prosperity/StairCollisionCheck.java',ROOT/'tools/prosperity/RoyalStairGeometryCheck.java']
-        sources += [ROOT/f'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/{p}.java' for p in ('remaster/RemasterBlock','echo/RuinsBlueprint','encounter/ForgottenLakeEncounterStructure','architecture/BlockZenithLog')]
+        sources += [ROOT/f'src/main/java/com/miaokatze/gtsr/common/dimension/prosperity/{p}.java' for p in ('remaster/RemasterBlock','remaster/RemasterRuntime','echo/RuinsBlueprint','encounter/ForgottenLakeEncounterStructure','architecture/BlockZenithLog')]
         sources += native_sources(ROOT)
         args=tmp/'javac.args';classpath=';'.join(cp).replace('\\','/')
         args.write_text('-encoding UTF-8\n-sourcepath "' + isolated_sourcepath(tmp) + '"\n-cp "'+classpath+'"\n-d "'+str(tmp).replace('\\','/')+'"\n'+'\n'.join('"'+str(p).replace('\\','/')+'"' for p in sources),'utf8')
@@ -29,6 +29,8 @@ def main():
         args.write_text('-cp "'+str(tmp).replace('\\','/')+';'+classpath+'"\n'+('RoyalStairGeometryCheck '+(sys.argv[sys.argv.index('--height')+1] if '--height' in sys.argv else '139')+' '+(sys.argv[sys.argv.index('--layout')+1] if '--layout' in sys.argv else '3') if '--royal' in sys.argv else 'StairCollisionCheck')+(' '+str(ROOT/(sys.argv[sys.argv.index('--fixture')+1] if '--fixture' in sys.argv else 'temp/stair-walk-fixtures.json')).replace('\\','/')+(' '+str(ROOT/sys.argv[sys.argv.index('--report')+1]).replace('\\','/') if '--report' in sys.argv else '') if '--matrix' in sys.argv else ''),'utf8')
         fixture_path=ROOT/(sys.argv[sys.argv.index('--fixture')+1] if '--fixture' in sys.argv else 'temp/stair-walk-fixtures.json')
         matrix_hash=hashlib.sha256(fixture_path.read_bytes()).hexdigest() if '--matrix' in sys.argv else None
+        if '--palette-only' in sys.argv:
+            args.write_text(args.read_text('utf8')+' --palette-only','utf8')
         execution=subprocess.run(['java','@'+str(args)])
         if matrix_hash:
             report=ROOT/(sys.argv[sys.argv.index('--report')+1] if '--report' in sys.argv else 'temp/stair-walk-collision.json'); data=json.loads(report.read_text('utf8')); data['fixtureSHA256']=matrix_hash; report.write_text(json.dumps(data,indent=2),'utf8')
