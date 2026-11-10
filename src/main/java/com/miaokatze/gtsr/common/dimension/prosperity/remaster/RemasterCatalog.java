@@ -1,8 +1,10 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.remaster;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,6 +17,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
+import com.miaokatze.gtsr.common.critical.CriticalJsonData;
 
 /** Small immutable catalog; large metadata and voxel slices are loaded on demand. */
 public final class RemasterCatalog {
@@ -104,13 +107,10 @@ public final class RemasterCatalog {
     public static synchronized JsonObject entrance(String id, int variant) {
         String key = key(id, variant);
         if (ENTRANCES.containsKey(key)) return ENTRANCES.get(key);
-        String resource = "/assets/gtsr/remaster/" + descriptor(id, variant).get("file")
+        String path = descriptor(id, variant).get("file")
             .getAsString();
-        InputStream stream = RemasterCatalog.class.getResourceAsStream(resource);
-        if (stream == null) throw new IllegalStateException("Missing remaster asset " + resource);
         JsonObject entry = null;
-        try (JsonReader reader = new JsonReader(
-            new InputStreamReader(new GZIPInputStream(stream), StandardCharsets.UTF_8))) {
+        try (JsonReader reader = new JsonReader(openReader(path, true))) {
             reader.beginObject();
             while (reader.hasNext()) {
                 if ("metadata".equals(reader.nextName())) {
@@ -123,22 +123,47 @@ public final class RemasterCatalog {
                 reader.skipValue();
             }
         } catch (Exception e) {
-            throw new IllegalStateException("Invalid remaster entrance " + resource, e);
+            throw new IllegalStateException("Invalid remaster entrance " + path, e);
         }
         ENTRANCES.put(key, entry);
         return entry;
     }
 
     static JsonElement read(String path, boolean compressed) {
-        String resource = "/assets/gtsr/remaster/" + path;
-        InputStream stream = RemasterCatalog.class.getResourceAsStream(resource);
-        if (stream == null) throw new IllegalStateException("Missing remaster asset " + resource);
-        try (Reader reader = new InputStreamReader(
-            compressed ? new GZIPInputStream(stream) : stream,
-            StandardCharsets.UTF_8)) {
+        try (Reader reader = openReader(path, compressed)) {
             return new JsonParser().parse(reader);
         } catch (Exception e) {
-            throw new IllegalStateException("Invalid remaster asset " + resource, e);
+            throw new IllegalStateException("Invalid remaster asset " + path, e);
         }
+    }
+
+    /** Originals win; a malformed original must never be hidden by a compiled fallback. */
+    private static Reader openReader(String path, boolean compressed) throws IOException {
+        String resource = "/assets/gtsr/remaster/" + path;
+        InputStream stream = RemasterCatalog.class.getResourceAsStream(resource);
+        if (stream != null) {
+            try {
+                return new InputStreamReader(compressed ? new GZIPInputStream(stream) : stream, StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                try {
+                    stream.close();
+                } catch (IOException cleanup) {
+                    e.addSuppressed(cleanup);
+                }
+                throw e;
+            }
+        }
+        if (compressed && path.endsWith(".json.gz")) {
+            String binary = resource.substring(0, resource.length() - ".json.gz".length()) + ".gcjb";
+            InputStream compiled = RemasterCatalog.class.getResourceAsStream(binary);
+            if (compiled != null) {
+                try (InputStream input = compiled) {
+                    return new StringReader(CriticalJsonData.read(input));
+                } catch (IOException e) {
+                    throw new IOException("Invalid compiled remaster asset " + binary, e);
+                }
+            }
+        }
+        throw new IOException("Missing remaster asset " + resource);
     }
 }

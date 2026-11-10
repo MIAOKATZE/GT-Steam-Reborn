@@ -8,12 +8,12 @@ import net.minecraft.client.renderer.entity.Render;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.model.AdvancedModelLoader;
 import net.minecraftforge.client.model.IModelCustom;
 
 import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.client.encounter.GlScope;
+import com.miaokatze.gtsr.client.weapons.WeaponModelLoader;
 
 public final class RenderVisualCasing extends Render {
 
@@ -25,7 +25,7 @@ public final class RenderVisualCasing extends Render {
         if (!attempted) {
             attempted = true;
             try {
-                model = AdvancedModelLoader.loadModel(new ResourceLocation("gtsr:models/weapons/casing.obj"));
+                model = WeaponModelLoader.load(new ResourceLocation("gtsr:models/weapons/casing.obj"));
             } catch (RuntimeException missing) {
                 return;
             }

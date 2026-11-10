@@ -16,7 +16,6 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.client.IItemRenderer;
 import net.minecraftforge.client.MinecraftForgeClient;
-import net.minecraftforge.client.model.AdvancedModelLoader;
 import net.minecraftforge.client.model.IModelCustom;
 
 import org.lwjgl.BufferUtils;
@@ -277,7 +276,7 @@ public final class PortableWeaponRenderer implements IItemRenderer, IResourceMan
         if (list == null) {
             IModelCustom model = MODELS.get(key);
             if (model == null) {
-                model = AdvancedModelLoader.loadModel(new ResourceLocation("gtsr", "models/weapons/" + key + ".obj"));
+                model = WeaponModelLoader.load(new ResourceLocation("gtsr", "models/weapons/" + key + ".obj"));
                 MODELS.put(key, model);
             }
             IModelCustom compiledModel = model;
