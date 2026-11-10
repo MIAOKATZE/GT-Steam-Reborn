@@ -108,12 +108,84 @@ public enum EchoKind {
         return this == DI06 || this == DI11 || this == DI14 || this == DR17;
     }
 
+    /** Released wire slots remain in place; retired species resolve to an active replacement at every admission. */
+    public EchoKind canonical() {
+        switch (this) {
+            case DR02:
+            case DR05:
+            case DR06:
+            case DR07:
+            case DR08:
+            case DR16:
+                return DR04;
+            case DR10:
+                return DR09;
+            case DR13:
+                return DR14;
+            case DR19:
+                return DR20;
+            case DI03:
+                return DI12;
+            case DI06:
+            case DI14:
+                return DI11;
+            case DI09:
+            case DI15:
+                return DI04;
+            default:
+                return this;
+        }
+    }
+
+    public boolean isRetired() {
+        return canonical() != this;
+    }
+
     public static EchoKind byCode(String code) {
-        for (EchoKind kind : values()) if (kind.code.equalsIgnoreCase(code)) return kind;
+        for (EchoKind kind : values()) if (kind.code.equalsIgnoreCase(code)) return kind.canonical();
+        // Earlier DI16-DI25 save aliases also pass through the current retirement map.
+        if (code != null) {
+            EchoKind legacy;
+            switch (code.toLowerCase(java.util.Locale.ROOT)) {
+                case "di-16":
+                    legacy = DI15;
+                    break;
+                case "di-17":
+                    legacy = DI09;
+                    break;
+                case "di-18":
+                    legacy = DI05;
+                    break;
+                case "di-19":
+                    legacy = DI12;
+                    break;
+                case "di-20":
+                    legacy = DI08;
+                    break;
+                case "di-21":
+                    legacy = DI10;
+                    break;
+                case "di-22":
+                    legacy = DI06;
+                    break;
+                case "di-23":
+                    legacy = DI13;
+                    break;
+                case "di-24":
+                    legacy = DI04;
+                    break;
+                case "di-25":
+                    legacy = DI03;
+                    break;
+                default:
+                    legacy = null;
+            }
+            if (legacy != null) return legacy.canonical();
+        }
         throw new IllegalArgumentException("Unknown old echo code: " + code);
     }
 
     public static EchoKind byWireId(int id) {
-        return id >= 0 && id < values().length ? values()[id] : DR01;
+        return id >= 0 && id < values().length ? values()[id].canonical() : DR01;
     }
 }

@@ -111,6 +111,15 @@ public class ClientProxy extends CommonProxy {
             .hideItem(new net.minecraft.item.ItemStack(com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.BLOCK));
 
         hideCriticalMaterialItems();
+        // Saved legacy blocks remain resolvable but no longer advertise retired/redundant building choices.
+        for (net.minecraft.block.Block block : com.miaokatze.gtsr.common.blocks.BlocksGTSR
+            .shatteredCompatibilityBlocks()) {
+            if (block != null) codechicken.nei.api.API.hideItem(new net.minecraft.item.ItemStack(block));
+        }
+        for (net.minecraft.block.Block block : com.miaokatze.gtsr.common.dimension.prosperity.architecture.RuinsArchitecture
+            .legacyVisualBlocks()) {
+            codechicken.nei.api.API.hideItem(new net.minecraft.item.ItemStack(block));
+        }
 
         // Keep all legacy MTE IDs registered, while hiding the five frozen controllers from NEI.
         for (GTSRItemList frozen : new GTSRItemList[] { GTSRItemList.CriticalProcessing, GTSRItemList.CriticalEntangler,

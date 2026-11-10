@@ -191,5 +191,12 @@ public final class BlocksGTSR {
      */
     public static Block prosperityRoostGlow;
 
+    /** Retired dimension's exact legacy registry instances; never replace these with softer terrain blocks. */
+    public static Block[] shatteredCompatibilityBlocks() {
+        return new Block[] { shatteredCorestone, shatteredMonolith, shatteredAshTop, shatteredAshBase, shatteredSlagTop,
+            shatteredSlagBase, shatteredGlassTop, shatteredGlassBase, shatteredTarTop, shatteredTarBase,
+            shatteredSpikeCluster, shatteredAshLog, shatteredAshThorn };
+    }
+
     private BlocksGTSR() {}
 }

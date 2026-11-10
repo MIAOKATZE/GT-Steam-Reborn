@@ -17,7 +17,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * hardness 1000F、blast 1200、harvest pickaxe 3（下界合金镐级）。旧 shatteredGrass/Dirt/
  * riftStone/shatteredBlackstone 四方块删除，注册名不保留（无 retrogen，存量 chunk≈0）。
  * <p>
- * 单 icon；贴图占位（gtsr:shattered_corestone，后续 artgen 轮次换像素不改注册名/lang 键）。
+ * 退役维度兼容壳复用繁荣废岩图标；旧注册名、物理参数和掉落行为保留。
  * 专用服字段剥离纪律：@SideOnly 字段不带字段级初始化器，registerBlockIcons 内赋值。
  */
 public class BlockShatteredCorestone extends Block {
@@ -38,7 +38,7 @@ public class BlockShatteredCorestone extends Block {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister register) {
-        this.coreIcon = register.registerIcon("gtsr:shattered_corestone");
+        this.coreIcon = register.registerIcon("gtsr:prosperity_stone");
     }
 
     @Override

@@ -1,15 +1,13 @@
 package com.miaokatze.gtsr.client.encounter;
 
-import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,15 +26,15 @@ import com.google.gson.JsonParser;
 import com.miaokatze.gtsr.client.render.ClientDisplayList;
 
 /**
- * 完整资源读取器。直接读取装配后的OBJ/rig/PNG，不依赖宿主GTO的私有ObjModelLoader。
- * OBJ支持v/vt、负索引、g和多边形扇形三角化；MTL贴图路由由固定PNG覆盖。
+ * 完整资源读取器。发行包使用无损编译网格，资源包仍可用OBJ覆盖；rig和PNG保持原路径。
+ * 坐标和UV使用共享double数组，三角形只保存索引；不按每个角点展开八个double。
  * 世界单位为格，绝不可再乘1/16；parent delta先于子轨道，pivot是静止绝对坐标。
  */
 public final class RigAsset {
 
     final JsonObject rig;
     final Map<String, JsonObject> groups = new LinkedHashMap<String, JsonObject>();
-    final Map<String, List<double[]>> meshes = new LinkedHashMap<String, List<double[]>>();
+    private final RigMeshData mesh;
     public final ResourceLocation texture;
     public final String code;
     public final int triangles;
@@ -48,8 +46,9 @@ public final class RigAsset {
     }
 
     /**
-     * resources根为assets/<modid>/liminal/<code>/；实际读取models/<code>.obj、
-     * models/rig_animation.json，并绑定textures/model/<code>.png。
+     * resources根为assets/<modid>/liminal/<code>/。优先使用资源包中的models/<code>.obj，
+     * 仅在该路径不存在时读取发行包models/<code>.rigmesh；格式错误不能静默退回默认模型。
+     * models/rig_animation.json及textures/model/<code>.png继续由资源管理器独立覆盖。
      */
     public RigAsset(String modid, String code) throws IOException {
         if (!code.matches("[a-z0-9_-]+")) throw new IOException("Invalid code " + code);
@@ -68,57 +67,24 @@ public final class RigAsset {
             if (groups.put(name, g) != null) throw new IOException("Duplicate group " + name);
         }
         for (String name : groups.keySet()) validateChain(name, new HashSet<String>());
-        List<double[]> vs = new ArrayList<double[]>(), uvs = new ArrayList<double[]>();
-        String group = "root";
-        int count = 0;
-        try (BufferedReader reader = new BufferedReader(
-            new InputStreamReader(open(new ResourceLocation(modid, root + "models/" + code + ".obj")), "UTF-8"))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.split("#", 2)[0].trim();
-                if (line.isEmpty()) continue;
-                String[] w = line.split("\\s+");
-                if (w[0].equals("v")) vs
-                    .add(new double[] { Double.parseDouble(w[1]), Double.parseDouble(w[2]), Double.parseDouble(w[3]) });
-                else if (w[0].equals("vt"))
-                    uvs.add(new double[] { Double.parseDouble(w[1]), 1 - Double.parseDouble(w[2]) });
-                else if (w[0].equals("g")) group = w[1];
-                else if (w[0].equals("f")) {
-                    if (!groups.containsKey(group)) throw new IOException("Missing rig group " + group);
-                    List<double[]> out = meshes.get(group);
-                    if (out == null) {
-                        out = new ArrayList<double[]>();
-                        meshes.put(group, out);
-                    }
-                    for (int i = 2; i < w.length - 1; i++) {
-                        double[][] tri = new double[3][];
-                        String[] f = { w[1], w[i], w[i + 1] };
-                        for (int j = 0; j < 3; j++) {
-                            String[] parts = f[j].split("/", -1);
-                            if (parts.length < 2 || parts[1].isEmpty()) throw new IOException("Face without UV");
-                            double[] v = vs.get(index(parts[0], vs.size())), uv = uvs.get(index(parts[1], uvs.size()));
-                            tri[j] = new double[] { v[0], v[1], v[2], uv[0], uv[1], 0, 0, 0 };
-                        }
-                        double ax = tri[1][0] - tri[0][0], ay = tri[1][1] - tri[0][1], az = tri[1][2] - tri[0][2],
-                            bx = tri[2][0] - tri[0][0], by = tri[2][1] - tri[0][1], bz = tri[2][2] - tri[0][2];
-                        double nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx,
-                            n = Math.sqrt(nx * nx + ny * ny + nz * nz);
-                        if (n < 1e-12) throw new IOException("Degenerate triangle");
-                        for (double[] v : tri) {
-                            v[5] = nx / n;
-                            v[6] = ny / n;
-                            v[7] = nz / n;
-                            out.add(v);
-                        }
-                        count++;
-                    }
-                }
+        mesh = loadMesh(modid, root, code);
+        for (String group : mesh.groups()
+            .keySet()) if (!groups.containsKey(group)) throw new IOException("Missing rig group " + group);
+        triangles = mesh.triangles();
+    }
+
+    private static RigMeshData loadMesh(String modid, String root, String code) throws IOException {
+        InputStream obj;
+        try {
+            obj = open(new ResourceLocation(modid, root + "models/" + code + ".obj"));
+        } catch (FileNotFoundException missingObj) {
+            try (InputStream compiled = open(new ResourceLocation(modid, root + "models/" + code + ".rigmesh"))) {
+                return RigMeshData.readCompiled(compiled);
             }
-        } catch (RuntimeException ex) {
-            throw new IOException("Invalid OBJ " + code, ex);
         }
-        triangles = count;
-        if (count == 0) throw new IOException("Empty OBJ " + code);
+        try (InputStream source = obj) {
+            return RigMeshData.readObj(source);
+        }
     }
 
     private static InputStream open(ResourceLocation path) throws IOException {
@@ -126,12 +92,6 @@ public final class RigAsset {
             .getResourceManager()
             .getResource(path)
             .getInputStream();
-    }
-
-    private static int index(String s, int size) {
-        int i = Integer.parseInt(s);
-        if (i == 0) throw new IllegalArgumentException("zero index");
-        return i > 0 ? i - 1 : size + i;
     }
 
     private void validateChain(String name, Set<String> seen) throws IOException {
@@ -294,7 +254,8 @@ public final class RigAsset {
                 GL11.glDepthMask(false);
             } else GL11.glDisable(GL11.GL_BLEND);
             GL11.glColor4f(1, 1, 1, alpha);
-            for (Map.Entry<String, List<double[]>> part : meshes.entrySet()) {
+            for (Map.Entry<String, int[]> part : mesh.groups()
+                .entrySet()) {
                 String group = part.getKey();
                 if (!visible(group, tracks, t)) continue;
                 boolean glow = group.endsWith("__glow");
@@ -318,16 +279,39 @@ public final class RigAsset {
                         list = ClientDisplayList.compile(() -> {
                             Tessellator tess = Tessellator.instance;
                             tess.startDrawing(GL11.GL_TRIANGLES);
-                            for (double[] v : part.getValue()) {
-                                tess.setNormal((float) v[5], (float) v[6], (float) v[7]);
-                                tess.addVertexWithUV(v[0], v[1], v[2], v[3], v[4]);
-                            }
+                            drawMesh(tess, part.getValue());
                             tess.draw();
                         });
                         lists.put(group, list);
                     }
                     GL11.glCallList(list);
                 }
+            }
+        }
+    }
+
+    /**
+     * 与旧OBJ扇形三角化后的角点顺序及法线运算顺序一致。只在编译display list时执行，
+     * 后续动画仍通过原有分组矩阵和缓存列表绘制，不每帧展开网格或创建角点数组。
+     */
+    private void drawMesh(Tessellator tess, int[] indices) {
+        double[] positions = mesh.positions(), texCoords = mesh.texCoords();
+        for (int i = 0; i < indices.length; i += 6) {
+            int p0 = indices[i] * 3, p1 = indices[i + 2] * 3, p2 = indices[i + 4] * 3;
+            double ax = positions[p1] - positions[p0], ay = positions[p1 + 1] - positions[p0 + 1],
+                az = positions[p1 + 2] - positions[p0 + 2], bx = positions[p2] - positions[p0],
+                by = positions[p2 + 1] - positions[p0 + 1], bz = positions[p2 + 2] - positions[p0 + 2];
+            double nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx,
+                n = Math.sqrt(nx * nx + ny * ny + nz * nz);
+            for (int corner = 0; corner < 6; corner += 2) {
+                int p = indices[i + corner] * 3, uv = indices[i + corner + 1] * 2;
+                tess.setNormal((float) (nx / n), (float) (ny / n), (float) (nz / n));
+                tess.addVertexWithUV(
+                    positions[p],
+                    positions[p + 1],
+                    positions[p + 2],
+                    texCoords[uv],
+                    texCoords[uv + 1]);
             }
         }
     }

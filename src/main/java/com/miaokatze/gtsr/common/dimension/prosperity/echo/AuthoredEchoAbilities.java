@@ -29,6 +29,7 @@ final class AuthoredEchoAbilities {
     }
 
     static JsonObject profile(EchoKind kind) {
+        kind = kind.canonical();
         if (kind.style != EchoKind.BattleStyle.AUTHORED && kind.style != EchoKind.BattleStyle.CONTROLLED) return null;
         synchronized (PROFILES) {
             JsonObject p = PROFILES.get(kind.code);

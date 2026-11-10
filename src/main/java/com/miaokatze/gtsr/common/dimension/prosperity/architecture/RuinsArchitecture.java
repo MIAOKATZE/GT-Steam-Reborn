@@ -1,5 +1,7 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.architecture;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,11 +28,12 @@ import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Thirty independently registered ruins materials, shared by industrial and living-root ruins. */
+/** Thirty visible ruins choices; seven additional saved registry identities remain as compatible visual aliases. */
 public final class RuinsArchitecture {
 
     private static final Map<String, Block> REGISTRY = new LinkedHashMap<>();
     public static final Map<String, Block> BLOCKS = Collections.unmodifiableMap(REGISTRY);
+    private static final Map<String, String> VISUAL_ALIASES = visualAliases();
 
     /** Client assigns this without loading any client class on a dedicated server. */
     public static int detailRenderId;
@@ -38,11 +41,43 @@ public final class RuinsArchitecture {
     private RuinsArchitecture() {}
 
     public static Block get(String id) {
-        return REGISTRY.get(id);
+        return REGISTRY.get(canonicalId(id));
+    }
+
+    /** New construction uses a smaller visual palette; saved registry identities remain independent. */
+    public static String canonicalId(String id) {
+        String canonical = VISUAL_ALIASES.get(id);
+        return canonical == null ? id : canonical;
+    }
+
+    public static Map<String, String> legacyVisualAliases() {
+        return VISUAL_ALIASES;
+    }
+
+    /** Exact old block instances, for client-only NEI hiding without changing their save identities. */
+    public static Collection<Block> legacyVisualBlocks() {
+        Collection<Block> blocks = new ArrayList<>();
+        for (String id : VISUAL_ALIASES.keySet()) {
+            Block block = REGISTRY.get(id);
+            if (block != null) blocks.add(block);
+        }
+        return Collections.unmodifiableCollection(blocks);
+    }
+
+    private static Map<String, String> visualAliases() {
+        Map<String, String> aliases = new LinkedHashMap<>();
+        aliases.put("riveted_hatch", "rust_riveted_plate");
+        aliases.put("boiler_casing", "rust_riveted_plate");
+        aliases.put("pressure_reservoir", "rust_riveted_plate");
+        aliases.put("patina_trim", "cast_iron_pillar");
+        aliases.put("silent_bell_base", "slag_masonry");
+        aliases.put("sootstone_tiles", "slag_masonry");
+        aliases.put("salvage_workbench", "rootwood_archive");
+        return Collections.unmodifiableMap(aliases);
     }
 
     private static String texture(String id) {
-        return "gtsr:ruins_" + id;
+        return "gtsr:ruins_" + canonicalId(id);
     }
 
     private static void register(String id, Block block) {
@@ -52,7 +87,7 @@ public final class RuinsArchitecture {
         block.setBlockTextureName(texture(id));
         GameRegistry.registerBlock(block, "Ruins_" + id);
         REGISTRY.put(id, block);
-        CreativeTabManager.addItemToTab(new ItemStack(block));
+        if (!VISUAL_ALIASES.containsKey(id)) CreativeTabManager.addItemToTab(new ItemStack(block));
     }
 
     public static void registerBlocks() {

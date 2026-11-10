@@ -301,6 +301,7 @@ public class EntityOldEcho extends EntityEncounterBase
     }
 
     public void initializeEcho(EchoKind kind, String structureId, double x, double y, double z, boolean night) {
+        kind = kind.canonical();
         configure(kind, true);
         initialize(structureId == null ? "" : structureId, -1, x, y, z);
         initialized = true;
@@ -316,6 +317,7 @@ public class EntityOldEcho extends EntityEncounterBase
     }
 
     private void configure(EchoKind kind, boolean fill) {
+        kind = kind.canonical();
         dataWatcher.updateObject(25, kind.ordinal());
         setSize(kind.width, kind.height);
         experienceValue = kind.isRitual() || kind == EchoKind.DO02 ? 0
@@ -1205,16 +1207,6 @@ public class EntityOldEcho extends EntityEncounterBase
 
     /** Retired rollout identities migrate only while reading saved entities. */
     private static EchoKind savedEchoKind(String code) {
-        if ("di-16".equalsIgnoreCase(code)) return EchoKind.DI15;
-        if ("di-17".equalsIgnoreCase(code)) return EchoKind.DI09;
-        if ("di-18".equalsIgnoreCase(code)) return EchoKind.DI05;
-        if ("di-19".equalsIgnoreCase(code)) return EchoKind.DI12;
-        if ("di-20".equalsIgnoreCase(code)) return EchoKind.DI08;
-        if ("di-21".equalsIgnoreCase(code)) return EchoKind.DI10;
-        if ("di-22".equalsIgnoreCase(code)) return EchoKind.DI06;
-        if ("di-23".equalsIgnoreCase(code)) return EchoKind.DI13;
-        if ("di-24".equalsIgnoreCase(code)) return EchoKind.DI04;
-        if ("di-25".equalsIgnoreCase(code)) return EchoKind.DI03;
         return EchoKind.byCode(code);
     }
 
@@ -1224,10 +1216,13 @@ public class EntityOldEcho extends EntityEncounterBase
         objectiveZone = n.hasKey("objectiveZone") ? n.getInteger("objectiveZone") : -1;
         objectiveBoss = n.getBoolean("objectiveBoss");
         EchoKind kind;
+        boolean retiredAlias;
         try {
             kind = savedEchoKind(n.getString("echoKind"));
+            retiredAlias = !kind.code.equalsIgnoreCase(n.getString("echoKind"));
         } catch (IllegalArgumentException e) {
             kind = EchoKind.DR01;
+            retiredAlias = false;
         }
         configure(kind, false);
         NBTTagCompound body = n;
@@ -1245,7 +1240,13 @@ public class EntityOldEcho extends EntityEncounterBase
         }
         float loadedMax = getMaxHealth(), loadedHealth = getHealth();
         configure(kind, false);
-        if (kind.isHeavy() && loadedMax > 0 && loadedMax != kind.maxHealth) {
+        if (retiredAlias) {
+            // Keep injury/death progress when an old body's maximum changes; never heal or keep an over-max body.
+            float fraction = Float.isFinite(loadedMax) && loadedMax > 0 && Float.isFinite(loadedHealth)
+                ? Math.max(0, Math.min(1, loadedHealth / loadedMax))
+                : 0;
+            restoreHealth(getMaxHealth() * fraction);
+        } else if (kind.isHeavy() && loadedMax > 0 && loadedMax != kind.maxHealth) {
             // Preserve the old phase and its progress, including exact transition floors.
             float oldUpper = loadedMax * 2F / 3F, oldLower = loadedMax / 3F;
             float migrated = loadedHealth <= oldLower ? loadedHealth / oldLower * lowerPhaseHealth()
@@ -1324,10 +1325,15 @@ public class EntityOldEcho extends EntityEncounterBase
             } else state(IDLE);
         }
         // Cancel a partial authored cast on reload: old events and transient projectiles never replay.
-        if (authoredKind()) {
+        if (retiredAlias || authoredKind()) {
             authored.cancel();
             skill(0, 0);
             cooldown = Math.max(40, cooldown);
+            if (retiredAlias) {
+                dataWatcher.updateObject(14, 0);
+                dataWatcher.updateObject(17, 0);
+                if (getHealth() > 0 && getEncounterState() != DYING) state(IDLE);
+            }
         }
     }
 

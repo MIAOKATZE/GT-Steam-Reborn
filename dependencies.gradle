@@ -84,7 +84,7 @@ dependencies {
 
 // Shared library API; immutable candidate versions may be supplied for isolated integration builds.
 dependencies {
-    // Core 0.2.7 adds shared BetterQuesting definition and pack preflight.
-    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.7"
+    // Keep the compile and runtime minimum aligned with the shared Core 0.2.8 baseline.
+    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.8"
     api("com.miaokatze.miaokatzecore:miaokatzecore:${coreVersion}:dev") { transitive = false }
 }

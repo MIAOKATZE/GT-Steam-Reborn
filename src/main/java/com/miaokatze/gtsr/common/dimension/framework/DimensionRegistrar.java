@@ -50,7 +50,7 @@ public final class DimensionRegistrar {
                 "[GTSR] dimension " + def.getKey()
                     + " disabled: dimId="
                     + def.getRequestedDimId()
-                    + " is already registered by another provider (check config prosperity/shatteredDimId)");
+                    + " is already registered by another provider (check config prosperityDimId)");
             return;
         }
         // 3) providerId 占用探测：registerProviderType 对已占用 ID 返回 false
@@ -59,7 +59,7 @@ public final class DimensionRegistrar {
                 "[GTSR] dimension " + def.getKey()
                     + " disabled: providerId="
                     + def.getRequestedProviderId()
-                    + " is already occupied (check config prosperity/shatteredProviderId)");
+                    + " is already occupied (check config prosperityProviderId)");
             return;
         }
         // 4) 维度注册 + 失败回滚：任何异常都回滚 providerType 并记 -1，维度不存在

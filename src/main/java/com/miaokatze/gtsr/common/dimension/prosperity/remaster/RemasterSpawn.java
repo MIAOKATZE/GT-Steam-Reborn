@@ -18,6 +18,7 @@ public final class RemasterSpawn {
     public static EntityOldEcho spawn(World world, EchoKind kind, String owner, double x, double y, double z, int index,
         boolean objectiveGate) {
         if (world == null || world.isRemote || kind == null) return null;
+        kind = kind.canonical();
         EntityOldEcho entity = new EntityOldEcho(world);
         // Keep authored floor ownership: a missing support never relocates an industrial guard to another level.
         entity.initializeEcho(kind, owner, x, kind.flies() ? y : Math.floor(y), z, false);

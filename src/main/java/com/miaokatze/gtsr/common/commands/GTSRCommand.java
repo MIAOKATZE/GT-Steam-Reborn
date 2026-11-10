@@ -11,6 +11,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MathHelper;
+import net.minecraft.util.StatCollector;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
 
@@ -27,56 +28,10 @@ import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry
 import com.miaokatze.gtsr.common.dimension.prosperity.ProsperityTerrainProfile;
 import com.miaokatze.gtsr.common.dimension.prosperity.river.GTSRVoronoiRiverField;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.city.CityBlockResolver;
-import com.miaokatze.gtsr.common.dimension.shattered.ShatteredTerrainProfile;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.CommonProxy;
 
-/**
- * /gtsr 调试指令集（dim1 S5 扩展为三子命令，processCommand 按 args[0] 分派）：
- * <ul>
- * <li>/gtsr singularity &lt;range&gt; &lt;speed/20tick&gt; &lt;damage/20tick&gt; &lt;durationTicks|NA&gt;
- * &lt;special|null|onlypull|nullplus|nature&gt; [color] [fxRadius]——在命令发送者位置生成失控奇点
- * （S5 前原逻辑逐字节保持：args[0] 本就是子命令名，参数索引 1..7 不含平移）。</li>
- * <li>/gtsr structure &lt;name&gt;——以发送者脚下 (floor(x),floor(y),floor(z)) 为原点，经
- * {@link CityBlockResolver}（String 逻辑键→Block，含 X/Z GT5U 两键）+ {@link DirectWorldSink}
- * （写前强制 chunk load，跨 chunk 全量放置）执行 {@link StructureRegistry}
- * 对应 placer；回执实测 footprint（w×h×l）与放置方块计数；未知名报 WrongUsageException 并提示用 Tab。</li>
- * <li>/gtsr tpdim &lt;A|B&gt; [群系名]——A=解析 {@link Config#prosperityDimId}、B=解析 {@link Config#shatteredDimId}；
- * 禁用/未注册（id&lt;0 或 {@link DimensionRegistrar#defForDimension} 无 def，冲突/总开关关闭场景）报错回执且玩家
- * 原地不动（事务顺序：先解析后移动）；目标世界未加载先 {@link DimensionManager#initDimension}；
- * <b>不填群系名 = P14 前行为逐字保持</b>：传送 = transferPlayerToDimension + {@link GTSRDimTeleporter}
- * （落点 (0.5, (0,0) 地表 y+1, 0.5) 由 teleporter.placeInPortal 负责，地表求法即 WorldGenRunawaySingularity
- * .findSurfaceY 同款下扫）。
- * <b>填群系名（P14，plan §5「tpdim 群系定位传送」）</b>：名字经 {@link GTSRBiomeAuthority#findRosterByName}
- * 按 roster 账本解析（大小写不敏感；接受 {@code Rusted_Steppe} / {@code Rusted Steppe} / 引号形态——
- * 1.7.10 服务端命令切分是无引号感知的 {@code String.split(" ")}（CommandHandler.executeCommand 字节码实证），
- * 故第 2 参起的全部尾随 token 以空格重 join 后再匹配，tab 补全因此给出<b>单 token 下划线形态</b>）；
- * 定位走 {@link GTSRBiomeAuthority#nearestBiomeChunk} 环带步进（身份只经 L1 账本，禁读 Chunk byte /
- * 禁 getBiomeGenForCoords 逐格试探；半径与步数上界见 Config 两键），命中 chunk 中心列
- * (cx*16+8, cz*16+8)，y = 对应 {@code *TerrainProfile.heightAt}+1（确定性纯函数列顶，不强制加载 chunk；
- * 基岩以上实心填充至 heightAt（含）⇒ 站立位恒为 heightAt+1，与 teleporter 地表 y+1 同约定）。
- * 搜索失败/权威未绑定/降级态一律<b>不动玩家</b>并回可读错误（含已搜半径）。
- * <b>S5（P23 plan §2）</b>：搜索原点 = 玩家当前 chunk；中文显示名经权威的 zh_CN 别名表解析
- * （英文 biomeName 失配后查）；SANZU_RIVER（roster-only，链身份面结构性不可见）走 RVF 湖格
- * 几何的<b>指令层定位通道</b>（{@code nearestSanzuArrival} 单出口：7×7 站窗内取<b>带安全干滩</b>的
- * 最近活湖，P25 D2 侵蚀门后无干滩湖被跳过）——
- * <b>不动 L1 身份面</b>（ordinalAt 单出口约束原样）、<b>不读 Chunk byte 平面</b>（类头硬约束保持）；
- * 落点高度对 populate 同源水列（巨湖/沼泽残潭）做螺旋 ≤16 列避让，找不到非水列时站水面（湖=68）。</li>
- * <li>/gtsr diag [A|B]（P14 顺手项）——把 P12 进维 {@code [GTSR][diag]} 诊断行直接打给发送者：
- * 调 {@link GTSRChunkProviderBase#buildEntryDiagLine}（生产同一实现体，内容段经 DiagAssembly 注入的
- * 供给器拼入）+ {@link CommonProxy.DiagAssembly#bootSummaryLine()}（LoadComplete 同款组装）。
- * 纯观测：不 initDimension、不强载维度，世界未加载时按 buildEntryDiagLine 的 mgr=null 降级口径出列。</li>
- * </ul>
- * singularity 语义（保持原文）：speed=每20tick吸收方块数，damage=每20tick伤害值，durationTicks=tick 数；
- * duration 为 NA 表示无限。special=特殊状态（0-999），null=纯动画（不吸引/不破坏/不吸收任何方块与实体），
- * onlypull=只牵引不吸收（不吸收方块、不处理掉落物、牵引力度减半、伤害照常），
- * nullplus=null 基础上无电弧无粒子（吸积盘/电弧跳过），光片/辉光保留，
- * nature=自然生成专用（不吸引/伤害实体，只牵引破坏掉落物+吸收方块，挖后爆炸）。
- * color=16 原版染料色之一，省略默认 white；fxRadius=光效半径 [0.5,128]，省略默认 10。
- * 分型：命令生成的奇点固定 type=RUNAWAY（失控，机器自愈/回收/onRemoval 逻辑零触碰，独立存活至 duration 自毁）。
- * 调试默认：10 1 1 600 0 white（范围 10、每20tick吸1块、每20tick 1点伤害、600 tick=30秒、事件 0、白色）。
- * 需要 OP 权限等级 4。
- */
+/** OP4 tools. The retained Prosperity dimension is implicit; retired dimension letters are rejected. */
 public class GTSRCommand extends CommandBase {
 
     /** 第 7 参合法色名（与 TileRunawaySingularity 16 原版染料色表、Tab 补全同源）。 */
@@ -99,11 +54,7 @@ public class GTSRCommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "/gtsr singularity <range> <speed/20tick> <damage/20tick> <durationTicks|NA> <special|null|onlypull|nullplus|nature> [color] [fxRadius]"
-            + " | /gtsr structure <name>"
-            + " | /gtsr locate A <structure> | /gtsr tplocate A <structure>"
-            + " | /gtsr tpdim <A|B> [biome]"
-            + " | /gtsr diag [A|B] | /gtsr mission";
+        return StatCollector.translateToLocal("gtsr.command.usage");
     }
 
     @Override
@@ -210,6 +161,11 @@ public class GTSRCommand extends CommandBase {
             throw new WrongUsageException(
                 getCommandUsage(sender) + "  unknown structure: " + name + " (use Tab completion to list valid names)");
         }
+        if (entry.dimension == StructureRegistry.Dimension.SHATTERED) {
+            sender
+                .addChatMessage(new net.minecraft.util.ChatComponentTranslation("gtsr.dimension.shattered.structure"));
+            return;
+        }
         if (entry.dimension == StructureRegistry.Dimension.PROSPERITY) {
             sender.addChatMessage(new ChatComponentText("旧繁荣结构手动放置已暂停；当前仅开放三类 Boss 标准场景，请使用 locate / tplocate。"));
             return;
@@ -248,27 +204,12 @@ public class GTSRCommand extends CommandBase {
                     + sink.count));
     }
 
-    /**
-     * /gtsr tpdim &lt;A|B&gt; [群系名]：A=prosperityDimId、B=shatteredDimId。
-     * 事务顺序：解析 id → 禁用/未注册守卫（不动玩家）→ 取玩家 → 目标世界未加载先 initDimension → 传送。
-     * <b>P14 判据 1 的路径钉</b>：{@code args.length == 2}（不填群系名）时，自守卫起到本方法结束的全部
-     * 语句与基线 9735cef 逐字同序（解析→守卫→取玩家→世界→transferPlayerToDimension+GTSRDimTeleporter
-     * 原类→同款回执文案）；群系分支只在 {@code args.length > 2} 时可达。
-     */
+    /** Teleport only to the retained configured dimension; an optional biome starts at argument 1. */
     private void processTpdim(ICommandSender sender, String[] args) {
-        if (args.length < 2) {
-            throw new WrongUsageException(getCommandUsage(sender));
-        }
-        final String which = args[1].toUpperCase();
-        final int dimId;
-        if ("A".equalsIgnoreCase(args[1])) {
-            dimId = Config.prosperityDimId;
-        } else if ("B".equalsIgnoreCase(args[1])) {
-            dimId = Config.shatteredDimId;
-        } else {
-            throw new WrongUsageException(
-                getCommandUsage(sender) + "  [tpdim] must be A (prosperity) or B (shattered)");
-        }
+        if (args.length > 1 && ("A".equalsIgnoreCase(args[1]) || "B".equalsIgnoreCase(args[1])))
+            throw new WrongUsageException("gtsr.command.dimension_removed");
+        final String which = "prosperity";
+        final int dimId = Config.prosperityDimId;
         // 禁用/未注册（id<0，或 DimensionRegistrar 冲突/总开关场景记 -1 不注册）→ 报错回执且玩家原地不动
         if (dimId < 0 || DimensionRegistrar.defForDimension(dimId) == null) {
             sender.addChatMessage(
@@ -290,7 +231,7 @@ public class GTSRCommand extends CommandBase {
             sender.addChatMessage(new ChatComponentText("tpdim failed: dimension " + dimId + " world init failed"));
             return;
         }
-        if (args.length == 2) {
+        if (args.length == 1) {
             // —— 基线（9735cef）逐字路径：落点 (0.5, (0,0) 地表 y+1, 0.5) 由 GTSRDimTeleporter.placeInPortal 负责 ——
             player.mcServer.getConfigurationManager()
                 .transferPlayerToDimension(player, dimId, new GTSRDimTeleporter(target));
@@ -301,19 +242,10 @@ public class GTSRCommand extends CommandBase {
         processTpdimBiome(sender, args, player, dimId, which, target);
     }
 
-    /**
-     * P14 群系定位分支（仅 args.length &gt; 2 可达）。失败语义一律<b>不动玩家</b>：
-     * 未知名 → WrongUsageException（带该维可解析名单与 Tab 提示）；权威未绑定 / 降级态解析不出 →
-     * 可读错误回执；环带搜索未命中 → 「该维度内未找到该群系（已搜半径 R chunk）」。
-     * 命中后传送复用 {@link GTSRDimTeleporter}（无门体系不变），仅以匿名子类覆写 placeInPortal
-     * 把落点改为「命中 chunk 中心列 + heightAt+1」——不改 GTSRDimTeleporter 本体（基线 (0,0)
-     * 列扫路径原样保留给无群系名分支）。
-     * <b>S5</b>：SANZU_RIVER 目标先于此分派到 {@link #processTpdimSanzuLake}（RVF 湖格定位，
-     * 环带搜索对其结构性恒空）；环带搜索原点 = 玩家当前 chunk；columnTopSafeY 带水柱感知。
-     */
+    /** Bounded biome lookup in Prosperity. Failed lookup leaves the player in place. */
     private void processTpdimBiome(ICommandSender sender, String[] args, EntityPlayerMP player, int dimId, String which,
         WorldServer targetWorld) {
-        final String rawName = joinTrailingArgs(args, 2);
+        final String rawName = joinTrailingArgs(args, 1);
         final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forWorld(targetWorld);
         final GTSRBiomeAuthority.BiomeId target = authority.findRosterByName(rawName);
         if (target == null) {
@@ -487,25 +419,9 @@ public class GTSRCommand extends CommandBase {
                     + "（populate 谓词；滩带落点，湖心树干/岛底柱避让）"));
     }
 
-    /**
-     * 命中列的可站立顶高（纯函数，零 chunk 读取）：dim78={@link ProsperityTerrainProfile#heightAt}、
-     * dim79={@link ShatteredTerrainProfile#heightAt}，种子口径与 provider 一致（{@code world.getSeed()}，
-     * seedSalt 只进 ChunkProvider 掷骰不进高度场）。def 缺失（理论不可达，上游已守卫）按繁荣侧兜底。
-     * <p>
-     * <b>S5 水柱感知</b>（dim78）：命中列若是 populate 同源水列（{@link #populateWaterColumnAt}——
-     * 巨湖；P25 D7 残潭退役后该谓词只剩巨湖一支），heightAt 是湖床底，+1 会把玩家放进深水；改为
-     * 螺旋 ≤16 列（环 1 全 8 列 +
-     * 环 2 最近 8 列，欧氏近→远）找最近非水列取其 heightAt（调用方 +1 = 站该列顶），找不到 →
-     * 湖面 {@code SEA_LEVEL−1}（+1 = 68 = 站水面）。谓词全部复用 RVF 公开出口，不抄第二份判定。
-     */
+    /** Prosperity terrain height with the existing water-column avoidance; no retired dimension fallback. */
     private static int columnTopSafeY(WorldServer world, int dimId, int x, int z) {
-        final String dimKey = DimensionRegistrar.defForDimension(dimId) == null ? null
-            : DimensionRegistrar.defForDimension(dimId)
-                .getKey();
         final long seed = world.getSeed();
-        if (GTSRBiomeAuthority.DIM_KEY_SHATTERED.equals(dimKey)) {
-            return ShatteredTerrainProfile.heightAt(seed, x, z);
-        }
         if (!populateWaterColumnAt(seed, x, z)) {
             return ProsperityTerrainProfile.heightAt(seed, x, z);
         }
@@ -549,8 +465,7 @@ public class GTSRCommand extends CommandBase {
 
     /** 该维当前可解析的补全名单（下划线单 token 形态，逗号连接；错误回执与 tab 同源，取 dimKey 账本）。 */
     private static String completionNamesFor(String which) {
-        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(
-            "A".equalsIgnoreCase(which) ? GTSRBiomeAuthority.DIM_KEY_PROSPERITY : GTSRBiomeAuthority.DIM_KEY_SHATTERED);
+        final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
         final List<String> names = authority.rosterBiomeNames();
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < names.size(); i++) {
@@ -562,28 +477,13 @@ public class GTSRCommand extends CommandBase {
         return sb.length() == 0 ? "none (degraded)" : sb.toString();
     }
 
-    /**
-     * /gtsr diag [A|B]（P14 顺手项）：把 P12 的 {@code [GTSR][diag]} 内容段直接打到聊天。
-     * 组装零复制——诊断行走 {@link GTSRChunkProviderBase#buildEntryDiagLine}（进维同款唯一实现体，
-     * 内容段经 DiagAssembly.install 注入的供给器拼入），boot 行走
-     * {@link CommonProxy.DiagAssembly#bootSummaryLine()}。纯观测：不 initDimension、不强载维度。
-     */
+    /** Observe the retained dimension without initializing it. Dimension letters are no longer accepted. */
     private void processDiag(ICommandSender sender, String[] args) {
-        if (args.length > 2) {
+        if (args.length != 1) {
             throw new WrongUsageException(getCommandUsage(sender));
         }
-        final String only = args.length == 2 ? args[1] : null;
-        if (only != null && !"A".equalsIgnoreCase(only) && !"B".equalsIgnoreCase(only)) {
-            throw new WrongUsageException(
-                getCommandUsage(sender) + "  [diag] must be A (prosperity) or B (shattered) or omitted");
-        }
         final List<String> lines = new ArrayList<>();
-        if (only == null || "A".equalsIgnoreCase(only)) {
-            lines.add(diagLineFor(Config.prosperityDimId, GTSRBiomeAuthority.DIM_KEY_PROSPERITY));
-        }
-        if (only == null || "B".equalsIgnoreCase(only)) {
-            lines.add(diagLineFor(Config.shatteredDimId, GTSRBiomeAuthority.DIM_KEY_SHATTERED));
-        }
+        lines.add(diagLineFor(Config.prosperityDimId, GTSRBiomeAuthority.DIM_KEY_PROSPERITY));
         for (final String line : lines) {
             sender.addChatMessage(new ChatComponentText(line));
         }
@@ -615,33 +515,25 @@ public class GTSRCommand extends CommandBase {
                 "tplocate",
                 "mission");
         }
-        if (args.length == 2 && RuinLocateCommand.handles(args[0])) return getListOfStringsMatchingLastWord(args, "A");
-        if (args.length == 3 && RuinLocateCommand.handles(args[0]) && "A".equalsIgnoreCase(args[1]))
-            return getListOfStringsMatchingLastWord(
-                args,
-                RuinLocateCommand.names()
-                    .toArray(new String[0]));
+        if (args.length == 2 && RuinLocateCommand.handles(args[0])) return getListOfStringsMatchingLastWord(
+            args,
+            RuinLocateCommand.names()
+                .toArray(new String[0]));
         if (args.length == 2 && "structure".equalsIgnoreCase(args[0])) {
             List<String> names = new ArrayList<>();
             for (StructureRegistry.Entry entry : StructureRegistry.all()) {
-                if (entry.dimension != StructureRegistry.Dimension.PROSPERITY) names.add(entry.name);
+                if (entry.dimension == StructureRegistry.Dimension.ANY) names.add(entry.name);
             }
             return getListOfStringsMatchingLastWord(args, names.toArray(new String[0]));
         }
-        if (args.length == 2 && (isDimensionTeleport(args[0]) || "diag".equalsIgnoreCase(args[0]))) {
-            return getListOfStringsMatchingLastWord(args, "A", "B");
-        }
-        if (args.length == 3 && isDimensionTeleport(args[0])
-            && ("A".equalsIgnoreCase(args[1]) || "B".equalsIgnoreCase(args[1]))) {
+        if (args.length == 2 && isDimensionTeleport(args[0])) {
             // P14：第 2 参补全该维 roster 群系名。1.7.10 服务端切分是指令级的 String.split(" ")
             // （无引号感知，CommandHandler.executeCommand 字节码实证），补全词必须是单 token，
             // 故给出下划线形态（Rusted_Steppe）；解析层（findRosterByName）同时接受
             // 下划线/空格/引号重 join 三种输入，见类注释。名单来自 L1 账本 rosterBiomeNames()
             // 单一真值（与错误回执同源）；取 forDimKey 而非 forDimension——配槽发生在 preInit，
             // 维度世界尚未首载时 BY_DIM_ID 还没有索引，账本本身已经可读。
-            final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(
-                "A".equalsIgnoreCase(args[1]) ? GTSRBiomeAuthority.DIM_KEY_PROSPERITY
-                    : GTSRBiomeAuthority.DIM_KEY_SHATTERED);
+            final GTSRBiomeAuthority authority = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
             final List<String> names = authority.rosterBiomeNames();
             final String[] tokens = new String[names.size()];
             for (int i = 0; i < names.size(); i++) {

@@ -65,10 +65,10 @@ public final class RuinLocateCommand {
     }
 
     public static void execute(ICommandSender sender, String[] args) {
-        if (args.length < 3 || !"A".equalsIgnoreCase(args[1]))
-            throw new WrongUsageException("/gtsr " + args[0] + " A <structure> (Tab)");
-        StringBuilder requested = new StringBuilder(args[2]);
-        for (int i = 3; i < args.length; i++) requested.append(' ')
+        if (args.length < 2 || "A".equalsIgnoreCase(args[1]) || "B".equalsIgnoreCase(args[1]))
+            throw new WrongUsageException("gtsr.command.locate_usage", args[0]);
+        StringBuilder requested = new StringBuilder(args[1]);
+        for (int i = 2; i < args.length; i++) requested.append(' ')
             .append(args[i]);
         int kind = kindFor(requested.toString());
         String requestedId = kind >= 0 && kind < 27 ? RuinSite.NAMES[kind]

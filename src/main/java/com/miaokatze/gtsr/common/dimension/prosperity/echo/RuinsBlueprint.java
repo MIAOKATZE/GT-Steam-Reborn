@@ -32,7 +32,7 @@ public final class RuinsBlueprint {
             this.y = y;
             this.z = z;
             this.tier = tier;
-            this.mob = mob;
+            this.mob = mob.isEmpty() ? mob : EchoKind.byCode(mob).code;
             this.role = role;
             this.zone = zone;
             this.objectiveIndex = objectiveIndex;

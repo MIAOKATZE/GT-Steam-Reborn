@@ -39,9 +39,6 @@ public class Config {
     // 自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）。
     public static boolean singularityDestroyBlocks = true;
 
-    // 破碎维度奇点频率倍增分母（破碎分支频率 = singularitySpawnFrequency/N，默认 8 = 等效 8 倍密度；S6b 消费）。
-    public static int shatteredSingularityMultiplier = 8;
-
     // 繁荣维度（prosperity-ruins）维度 ID（默认 78）。
     // 与其他 mod 冲突时该维度自动禁用（解析记 -1），不回退到空闲 ID。
     public static int prosperityDimId = 78;
@@ -49,19 +46,12 @@ public class Config {
     // 繁荣维度 ProviderType ID（默认 178）。被占用时维度自动禁用（解析记 -1）。
     public static int prosperityProviderId = 178;
 
-    // 破碎维度（shattered-lands）维度 ID（默认 79）。
-    // 与其他 mod 冲突时该维度自动禁用（解析记 -1），不回退到空闲 ID。
+    // 已退役破碎之地的旧实际 ID：只供旧玩家撤离及旧锚点拒绝，须保留旧配置且不要复用于新维度。
     public static int shatteredDimId = 79;
-
-    // 破碎维度 ProviderType ID（默认 179）。被占用时维度自动禁用（解析记 -1）。
-    public static int shatteredProviderId = 179;
 
     // 繁荣维度群系 ID 段起始（默认 180 = 四名群系的**首选** id 起点；P1 起逐群系独立配槽，
     // 首选槽被外部 mod 占用时向后顺延，允许非连续结果，硬上界见 GTSRBiomeBase.HARD_ID_MAX）。
     public static int prosperityBiomeIdStart = 180;
-
-    // 破碎维度群系 ID 段起始（默认 190，口径同 prosperityBiomeIdStart：首选起点 + 逐群系顺延）。
-    public static int shatteredBiomeIdStart = 190;
 
     // 群系配槽扫描上界（P1 新增；默认 254 = byte 平面硬上界，见 GTSRBiomeBase.HARD_ID_MAX）。
     // 只能**收紧**不能放宽：实际扫描上界 = min(本值, HARD_ID_MAX, biomeList 实际表长 - 1)。
@@ -117,7 +107,7 @@ public class Config {
 
     // ═════════ P14 tpdim 群系定位传送（plan §5 P14「环带步进 + 代价有上界」）═════════
     //
-    // 只在 `/gtsr tpdim <A|B> 群系名` 填了群系名时生效（不填 = 0,0 现行为，两键不参与）。
+    // 只在 `/gtsr tpdim 群系名` 填了群系名时生效（不填 = 0,0 现行为，两键不参与）。
     // 搜索是 L1 权威（GTSRBiomeAuthority.nearestBiomeChunk）上的由内向外环带步进，逐 chunk
     // 身份判定走账本同一份采样源（禁读 Chunk byte 平面、禁 getBiomeGenForCoords）；本两键是
     // 命令线程上扫描代价的唯一上界来源：半径上限决定搜多远，步数保险丝决定单跑最多评估多少
@@ -145,9 +135,6 @@ public class Config {
 
     // dim78 macro 群系带尺度（chunk；默认 64 = U2 锁定档；16 = 回退到改造前单层分区）。
     public static int prosperityBiomeMacroBandChunks = 64;
-
-    // dim79 macro 群系带尺度（chunk；默认 16 = 与改造前逐位相同，非本片刻意调整项）。
-    public static int shatteredBiomeMacroBandChunks = 16;
 
     // L6 城门条件档（古代城只允许出现在锈蚀草原带；plan §2.1 L6 + §7.1 U2「门=锚点带」）：
     // 0 = 关（改造前行为：城与群系无关，四带均可出现）
@@ -330,8 +317,6 @@ public class Config {
         // 繁荣蒸汽时代遗迹维度总开关。默认开。关闭后维度不注册，相关生成与指令一并禁用。
         public boolean prosperityDimension = true;
 
-        // 维度破碎之地维度总开关。默认开。关闭后维度不注册，相关生成与指令一并禁用。
-        public boolean shatteredDimension = true;
     }
 
     /**
@@ -381,13 +366,11 @@ public class Config {
             true,
             "自然生成的奇点是否具有破坏方块的能力（默认开；关闭后自然奇点不吸收/破坏方块）");
 
-        shatteredSingularityMultiplier = configuration.getInt(
-            "shatteredSingularityMultiplier",
-            Configuration.CATEGORY_GENERAL,
-            shatteredSingularityMultiplier,
-            1,
-            64,
-            "破碎维度奇点频率倍增分母（破碎分支频率 = singularitySpawnFrequency/N，默认 8 = 等效 8 倍密度；范围 1-64）");
+        // Retired switches cannot reactivate generation. Keep the actual old dimension ID below.
+        for (String key : new String[] { "shatteredSingularityMultiplier", "planDimension.shatteredDimension",
+            "shatteredProviderId", "shatteredBiomeIdStart", "shatteredBiomeMacroBandChunks" })
+            configuration.getCategory(Configuration.CATEGORY_GENERAL)
+                .remove(key);
 
         testLabEnabled = configuration
             .getBoolean("enabled", "testlab", false, "启用独立 OP 机器测试维度（/gtsrtest），默认 false；修改后须重启。ID 冲突自动禁用，不抢占。");
@@ -406,12 +389,6 @@ public class Config {
             Configuration.CATEGORY_GENERAL,
             true,
             "繁荣蒸汽时代遗迹维度（prosperity-ruins）总开关。默认开。关闭后维度不注册，相关生成与指令一并禁用。");
-
-        planDimension.shatteredDimension = configuration.getBoolean(
-            "planDimension.shatteredDimension",
-            Configuration.CATEGORY_GENERAL,
-            true,
-            "维度破碎之地（shattered-lands）总开关。默认开。关闭后维度不注册，相关生成与指令一并禁用。");
 
         prosperityDimId = configuration.getInt(
             "prosperityDimId",
@@ -435,15 +412,7 @@ public class Config {
             shatteredDimId,
             0,
             1000,
-            "破碎维度 ID（默认 79）。与其他 mod 冲突时维度自动禁用（记 -1），不回退到空闲 ID");
-
-        shatteredProviderId = configuration.getInt(
-            "shatteredProviderId",
-            Configuration.CATEGORY_GENERAL,
-            shatteredProviderId,
-            0,
-            1000,
-            "破碎维度 ProviderType ID（默认 179）。被占用时维度自动禁用（记 -1）");
+            "已退役破碎之地的旧实际维度 ID（原默认 79）。仅用于玩家登录迁出与拒绝旧传送锚；保留旧值，不要复用于新维度。不会注册维度或生成地形。");
 
         prosperityBiomeIdStart = configuration.getInt(
             "prosperityBiomeIdStart",
@@ -454,15 +423,6 @@ public class Config {
             "繁荣维度群系 ID 首选起点（默认 180）。P1 起逐群系独立配槽：首选槽被占则向后顺延，允许非连续；" + "可用上界 "
                 + GTSRBiomeBase.HARD_ID_MAX
                 + "（byte 平面 + 255 懒回填哨兵，见 GTSRBiomeBase.HARD_ID_MAX）");
-
-        shatteredBiomeIdStart = configuration.getInt(
-            "shatteredBiomeIdStart",
-            Configuration.CATEGORY_GENERAL,
-            shatteredBiomeIdStart,
-            0,
-            GTSRBiomeBase.HARD_ID_MAX,
-            "破碎维度群系 ID 首选起点（默认 190）。配槽口径同 prosperityBiomeIdStart（首选 + 顺延，允许非连续）；" + "可用上界 "
-                + GTSRBiomeBase.HARD_ID_MAX);
 
         biomeIdScanLimit = configuration.getInt(
             "biomeIdScanLimit",
@@ -529,14 +489,6 @@ public class Config {
             16,
             1024,
             "dim78 macro 群系带尺度（区块，默认 64 = U2 锁定档；须为 micro cell 16 的正整数倍，" + "非整数倍向下取整。16 = 回退改造前单层分区，群系身份逐位不变）");
-
-        shatteredBiomeMacroBandChunks = configuration.getInt(
-            "shatteredBiomeMacroBandChunks",
-            Configuration.CATEGORY_GENERAL,
-            shatteredBiomeMacroBandChunks,
-            16,
-            1024,
-            "dim79 macro 群系带尺度（区块，默认 16 = 与改造前逐位相同；口径同上，仅整合包可调）");
 
         prosperityCityBiomeGate = configuration.getInt(
             "prosperityCityBiomeGate",

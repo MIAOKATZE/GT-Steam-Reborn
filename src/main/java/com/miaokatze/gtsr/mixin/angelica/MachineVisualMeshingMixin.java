@@ -55,12 +55,17 @@ public abstract class MachineVisualMeshingMixin {
         method = "execute(Lorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildContext;Lorg/embeddedt/embeddium/impl/util/task/CancellationToken;)Lorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildOutput;")
     private ChunkBuildOutput gtsr$releaseFailedSection(ChunkBuildContext context, CancellationToken cancellation,
         Operation<ChunkBuildOutput> original) {
+        boolean completed = false;
         try {
-            return original.call(context, cancellation);
+            ChunkBuildOutput output = original.call(context, cancellation);
+            completed = true;
+            return output;
         } finally {
             MachineVisualVisibility.endBuild();
-            // finalizeSection already transferred a successful receipt to its actual output.
-            MachineVisualVisibility.finishBuild(this, null);
+            // A normal null result can be a successful deferred handoff. Its worker decisions must
+            // survive until deferred capture/finish reaches finalizeSection on the same task.
+            // Synchronous success has already transferred its receipt to the actual output.
+            if (!completed || cancellation.isCancelled()) MachineVisualVisibility.finishBuild(this, null);
         }
     }
 

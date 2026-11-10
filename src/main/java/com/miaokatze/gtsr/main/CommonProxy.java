@@ -19,6 +19,7 @@ import com.miaokatze.gtsr.common.dimension.framework.DimensionRegistrar;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRBiomeAuthority;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRChunkProviderBase;
 import com.miaokatze.gtsr.common.dimension.framework.GTSRDimensionDef;
+import com.miaokatze.gtsr.common.dimension.framework.RetiredShatteredDimension;
 import com.miaokatze.gtsr.common.dimension.framework.genlayer.GTSRGenLayerChain;
 import com.miaokatze.gtsr.common.dimension.framework.structure.PlacementGate;
 import com.miaokatze.gtsr.common.dimension.framework.structure.StructureRegistry;
@@ -34,10 +35,6 @@ import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndus
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperitySurfaceScatter;
 import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ProsperityWorldGenerator;
 import com.miaokatze.gtsr.common.dimension.prosperity.travel.SpacetimeTravel;
-import com.miaokatze.gtsr.common.dimension.shattered.ChunkProviderShatteredGrounds;
-import com.miaokatze.gtsr.common.dimension.shattered.WorldGenShatteredRuins;
-import com.miaokatze.gtsr.common.dimension.shattered.WorldProviderShatteredLands;
-import com.miaokatze.gtsr.common.dimension.shattered.biome.ShatteredBiomes;
 import com.miaokatze.gtsr.common.loot.LootInjectionRunawaySingularity;
 import com.miaokatze.gtsr.common.network.GTSRFXNet;
 import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchLimitError;
@@ -190,25 +187,11 @@ public class CommonProxy {
             // 当前 5 档 + Smooth），def 不再挂
             // 任何选择策略； prosperityBiomes.init 的权重挂接仅剩元数据意义。
             ProsperityBiomes.init(prosperityDef);
-            final GTSRDimensionDef shatteredDef = new GTSRDimensionDef(
-                "shattered-lands",
-                "Shattered Lands",
-                0x53484C53L,
-                Config.shatteredDimId,
-                Config.shatteredProviderId,
-                () -> Config.planDimension.shatteredDimension,
-                // dim79 重做 S-B1：完整正常地形 ChunkProvider 替换浮岛 ChunkProviderShatteredLands
-                // （ShatteredTerrainProfile.heightAt 高度场，基准 64 / 钳制 36..96，零 MC 纯函数）
-                WorldProviderShatteredLands.class,
-                ChunkProviderShatteredGrounds::new);
-            // dim79 重做 S-B3 的 selector 挂接（盐 0x5A4F4E46）同随 B2 退役（见上段 dim78 注释）；
-            // dim79 群系身份同样走 GenLayer 链（seed 已由 def.seedSalt 分维域分离）。
-            // dim1 S6a → S-B3：四群系（190..193 权重 40/30/20/10）在 def 注册前挂接（BlockLoader 已注册 shattered* 方块）
-            ShatteredBiomes.init(shatteredDef);
-            DimensionRegistrar.preInitDimensions(prosperityDef, shatteredDef);
+            DimensionRegistrar.preInitDimensions(prosperityDef);
         } catch (Throwable t) {
             GTSteamReborn.LOG.error("[GTSR] 维度框架注册过程中发生严重错误", t);
         }
+        RetiredShatteredDimension.register();
 
         Runnable registerRunnable = () -> {
             GTSteamReborn.LOG.info("[1/3] 开始执行机器注册流程...");
@@ -311,7 +294,6 @@ public class CommonProxy {
 
         // dim1 S6b → S-B4：破碎遗迹散布（1/48 chunk，3×3 独碑岩缺角平台 + husk_small/husk_tall 骨架，无 TE 无箱子）。
         // 构造时向 StructureRegistry 登记 2 骨架变体并输出注册证据日志（plan S6b 验收 grep 锚点）。
-        GameRegistry.registerWorldGenerator(new WorldGenShatteredRuins(), 1);
 
         // R1（维度干涉收口）：事件守卫双 bus 注册（TerrainGen Populate DENY + PotentialSpawns
         // 声明白名单），dim78/79 之外的维度零触碰。防线的其余三层：GameRegistryMixin（防线 1）、
@@ -446,8 +428,7 @@ public class CommonProxy {
         /** LoadComplete 一次性汇总行：两维降级态 + owner 快照 + 关键开关 + roster/贴图基线。 */
         public static String bootSummaryLine() {
             final GTSRBiomeAuthority prosperity = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_PROSPERITY);
-            final GTSRBiomeAuthority shattered = GTSRBiomeAuthority.forDimKey(GTSRBiomeAuthority.DIM_KEY_SHATTERED);
-            return "[GTSR][diag] boot" + " dim78="
+            return "[GTSR][diag] boot" + " prosperity="
                 + prosperity.degraded()
                 + "("
                 + prosperity.allocatedCount()
@@ -456,15 +437,8 @@ public class CommonProxy {
                 + ", occupant="
                 + occupantOrDash(prosperity)
                 + ")"
-                + " dim79="
-                + shattered.degraded()
-                + "("
-                + shattered.allocatedCount()
-                + "/"
-                + shattered.rosterSize()
-                + ", occupant="
-                + occupantOrDash(shattered)
-                + ")"
+                + " retiredShatteredId="
+                + Config.shatteredDimId
                 + " creatures="
                 + Config.prosperityCreaturesEnabled
                 + " ruins="
@@ -483,9 +457,6 @@ public class CommonProxy {
             if (GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(dimKey)) {
                 return String.valueOf(Config.prosperityBiomeMacroBandChunks);
             }
-            if (GTSRBiomeAuthority.DIM_KEY_SHATTERED.equals(dimKey)) {
-                return String.valueOf(Config.shatteredBiomeMacroBandChunks);
-            }
             return "NA";
         }
 
@@ -495,8 +466,7 @@ public class CommonProxy {
          * {@code NA} = 该维不是 dim78/dim79 或名册零配槽（EMPTY，无链）。
          */
         private static String genChainFor(String dimKey) {
-            if (!GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(dimKey)
-                && !GTSRBiomeAuthority.DIM_KEY_SHATTERED.equals(dimKey)) {
+            if (!GTSRBiomeAuthority.DIM_KEY_PROSPERITY.equals(dimKey)) {
                 return "NA";
             }
             return GTSRBiomeAuthority.forDimKey(dimKey)

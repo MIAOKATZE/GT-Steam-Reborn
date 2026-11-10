@@ -15,7 +15,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * 硬度档位（新方块集全部 ≥1000F，可调常量登记切片报告）：hardness 1200F（集合内最高档）、
  * blast 1200、harvest pickaxe 3。
  * <p>
- * 单 icon；贴图占位（gtsr:shattered_monolith，artgen 轮次换像素不改注册名/lang 键）。
+ * 退役维度兼容壳复用遗址砌石图标；旧注册名、物理参数和掉落行为保留。
  * 专用服字段剥离纪律：@SideOnly 字段不带字段级初始化器，registerBlockIcons 内赋值。
  */
 public class BlockShatteredMonolith extends Block {
@@ -36,7 +36,7 @@ public class BlockShatteredMonolith extends Block {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister register) {
-        this.monolithIcon = register.registerIcon("gtsr:shattered_monolith");
+        this.monolithIcon = register.registerIcon("gtsr:ruins_slag_masonry");
     }
 
     @Override

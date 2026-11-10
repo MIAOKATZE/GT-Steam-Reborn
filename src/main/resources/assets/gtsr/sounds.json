@@ -210,7 +210,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-03_attack",
+        "name": "gtsr:combat/entity_di-12_attack",
         "stream": false
       }
     ]
@@ -219,7 +219,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-03_death",
+        "name": "gtsr:combat/entity_di-12_death",
         "stream": false
       }
     ]
@@ -228,7 +228,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-03_hurt",
+        "name": "gtsr:combat/entity_di-12_hurt",
         "stream": false
       }
     ]
@@ -237,7 +237,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-03_idle",
+        "name": "gtsr:combat/entity_di-12_idle",
         "stream": false
       }
     ]
@@ -318,7 +318,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-06_attack",
+        "name": "gtsr:combat/entity_di-11_attack",
         "stream": false
       }
     ]
@@ -327,7 +327,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-06_death",
+        "name": "gtsr:combat/entity_di-11_death",
         "stream": false
       }
     ]
@@ -336,7 +336,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-06_hurt",
+        "name": "gtsr:combat/entity_di-11_hurt",
         "stream": false
       }
     ]
@@ -345,7 +345,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-06_idle",
+        "name": "gtsr:combat/entity_di-11_idle",
         "stream": false
       }
     ]
@@ -426,7 +426,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-09_attack",
+        "name": "gtsr:combat/entity_di-04_attack",
         "stream": false
       }
     ]
@@ -435,7 +435,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-09_death",
+        "name": "gtsr:combat/entity_di-04_death",
         "stream": false
       }
     ]
@@ -444,7 +444,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-09_hurt",
+        "name": "gtsr:combat/entity_di-04_hurt",
         "stream": false
       }
     ]
@@ -453,7 +453,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-09_idle",
+        "name": "gtsr:combat/entity_di-04_idle",
         "stream": false
       }
     ]
@@ -606,7 +606,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-14_attack",
+        "name": "gtsr:combat/entity_di-11_attack",
         "stream": false
       }
     ]
@@ -615,7 +615,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-14_death",
+        "name": "gtsr:combat/entity_di-11_death",
         "stream": false
       }
     ]
@@ -624,7 +624,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-14_hurt",
+        "name": "gtsr:combat/entity_di-11_hurt",
         "stream": false
       }
     ]
@@ -633,7 +633,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-14_idle",
+        "name": "gtsr:combat/entity_di-11_idle",
         "stream": false
       }
     ]
@@ -642,7 +642,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-15_attack",
+        "name": "gtsr:combat/entity_di-04_attack",
         "stream": false
       }
     ]
@@ -651,7 +651,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-15_death",
+        "name": "gtsr:combat/entity_di-04_death",
         "stream": false
       }
     ]
@@ -660,7 +660,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-15_hurt",
+        "name": "gtsr:combat/entity_di-04_hurt",
         "stream": false
       }
     ]
@@ -669,7 +669,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_di-15_idle",
+        "name": "gtsr:combat/entity_di-04_idle",
         "stream": false
       }
     ]
@@ -750,7 +750,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-02_attack",
+        "name": "gtsr:combat/entity_dr-04_attack",
         "stream": false
       }
     ]
@@ -759,7 +759,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-02_death",
+        "name": "gtsr:combat/entity_dr-04_death",
         "stream": false
       }
     ]
@@ -768,7 +768,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-02_hurt",
+        "name": "gtsr:combat/entity_dr-04_hurt",
         "stream": false
       }
     ]
@@ -777,7 +777,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-02_idle",
+        "name": "gtsr:combat/entity_dr-04_idle",
         "stream": false
       }
     ]
@@ -858,7 +858,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-05_attack",
+        "name": "gtsr:combat/entity_dr-04_attack",
         "stream": false
       }
     ]
@@ -867,7 +867,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-05_death",
+        "name": "gtsr:combat/entity_dr-04_death",
         "stream": false
       }
     ]
@@ -876,7 +876,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-05_hurt",
+        "name": "gtsr:combat/entity_dr-04_hurt",
         "stream": false
       }
     ]
@@ -885,7 +885,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-05_idle",
+        "name": "gtsr:combat/entity_dr-04_idle",
         "stream": false
       }
     ]
@@ -894,7 +894,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-06_attack",
+        "name": "gtsr:combat/entity_dr-04_attack",
         "stream": false
       }
     ]
@@ -903,7 +903,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-06_death",
+        "name": "gtsr:combat/entity_dr-04_death",
         "stream": false
       }
     ]
@@ -912,7 +912,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-06_hurt",
+        "name": "gtsr:combat/entity_dr-04_hurt",
         "stream": false
       }
     ]
@@ -921,7 +921,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-06_idle",
+        "name": "gtsr:combat/entity_dr-04_idle",
         "stream": false
       }
     ]
@@ -930,7 +930,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-07_attack",
+        "name": "gtsr:combat/entity_dr-04_attack",
         "stream": false
       }
     ]
@@ -939,7 +939,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-07_death",
+        "name": "gtsr:combat/entity_dr-04_death",
         "stream": false
       }
     ]
@@ -948,7 +948,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-07_hurt",
+        "name": "gtsr:combat/entity_dr-04_hurt",
         "stream": false
       }
     ]
@@ -957,7 +957,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-07_idle",
+        "name": "gtsr:combat/entity_dr-04_idle",
         "stream": false
       }
     ]
@@ -966,7 +966,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-08_attack",
+        "name": "gtsr:combat/entity_dr-04_attack",
         "stream": false
       }
     ]
@@ -975,7 +975,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-08_death",
+        "name": "gtsr:combat/entity_dr-04_death",
         "stream": false
       }
     ]
@@ -984,7 +984,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-08_hurt",
+        "name": "gtsr:combat/entity_dr-04_hurt",
         "stream": false
       }
     ]
@@ -993,7 +993,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-08_idle",
+        "name": "gtsr:combat/entity_dr-04_idle",
         "stream": false
       }
     ]
@@ -1038,7 +1038,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-10_attack",
+        "name": "gtsr:combat/entity_dr-09_attack",
         "stream": false
       }
     ]
@@ -1047,7 +1047,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-10_death",
+        "name": "gtsr:combat/entity_dr-09_death",
         "stream": false
       }
     ]
@@ -1056,7 +1056,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-10_hurt",
+        "name": "gtsr:combat/entity_dr-09_hurt",
         "stream": false
       }
     ]
@@ -1065,7 +1065,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-10_idle",
+        "name": "gtsr:combat/entity_dr-09_idle",
         "stream": false
       }
     ]
@@ -1146,7 +1146,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-13_attack",
+        "name": "gtsr:combat/entity_dr-14_attack",
         "stream": false
       }
     ]
@@ -1155,7 +1155,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-13_death",
+        "name": "gtsr:combat/entity_dr-14_death",
         "stream": false
       }
     ]
@@ -1164,7 +1164,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-13_hurt",
+        "name": "gtsr:combat/entity_dr-14_hurt",
         "stream": false
       }
     ]
@@ -1173,7 +1173,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-13_idle",
+        "name": "gtsr:combat/entity_dr-14_idle",
         "stream": false
       }
     ]
@@ -1254,7 +1254,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-16_attack",
+        "name": "gtsr:combat/entity_dr-04_attack",
         "stream": false
       }
     ]
@@ -1263,7 +1263,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-16_death",
+        "name": "gtsr:combat/entity_dr-04_death",
         "stream": false
       }
     ]
@@ -1272,7 +1272,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-16_hurt",
+        "name": "gtsr:combat/entity_dr-04_hurt",
         "stream": false
       }
     ]
@@ -1281,7 +1281,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-16_idle",
+        "name": "gtsr:combat/entity_dr-04_idle",
         "stream": false
       }
     ]
@@ -1362,7 +1362,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-19_attack",
+        "name": "gtsr:combat/entity_dr-20_attack",
         "stream": false
       }
     ]
@@ -1371,7 +1371,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-19_death",
+        "name": "gtsr:combat/entity_dr-20_death",
         "stream": false
       }
     ]
@@ -1380,7 +1380,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-19_hurt",
+        "name": "gtsr:combat/entity_dr-20_hurt",
         "stream": false
       }
     ]
@@ -1389,7 +1389,7 @@
     "category": "hostile",
     "sounds": [
       {
-        "name": "gtsr:combat/entity_dr-19_idle",
+        "name": "gtsr:combat/entity_dr-20_idle",
         "stream": false
       }
     ]

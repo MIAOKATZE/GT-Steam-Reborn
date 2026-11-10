@@ -271,57 +271,52 @@ public class BlockLoader {
         GameRegistry.registerBlock(BlocksGTSR.shatteredMonolith, "ShatteredMonolith");
         BlocksGTSR.shatteredAshTop = new BlockShatteredSurfaceTop(
             "ShatteredAshTop",
-            "gtsr:shattered_ash_top",
-            "gtsr:shattered_ash_top_side",
-            "gtsr:shattered_ash_base");
+            "gtsr:prosperity_steppe_top",
+            "gtsr:prosperity_steppe_top_side",
+            "gtsr:prosperity_steppe_base");
         GameRegistry.registerBlock(BlocksGTSR.shatteredAshTop, "ShatteredAshTop");
-        BlocksGTSR.shatteredAshBase = new BlockShatteredSurfaceBase("ShatteredAshBase", "gtsr:shattered_ash_base");
+        BlocksGTSR.shatteredAshBase = new BlockShatteredSurfaceBase("ShatteredAshBase", "gtsr:prosperity_steppe_base");
         GameRegistry.registerBlock(BlocksGTSR.shatteredAshBase, "ShatteredAshBase");
         BlocksGTSR.shatteredSlagTop = new BlockShatteredSurfaceTop(
             "ShatteredSlagTop",
-            "gtsr:shattered_slag_top",
-            "gtsr:shattered_slag_top_side",
-            "gtsr:shattered_slag_base");
+            "gtsr:prosperity_forest_top",
+            "gtsr:prosperity_forest_top_side",
+            "gtsr:prosperity_forest_base");
         GameRegistry.registerBlock(BlocksGTSR.shatteredSlagTop, "ShatteredSlagTop");
-        BlocksGTSR.shatteredSlagBase = new BlockShatteredSurfaceBase("ShatteredSlagBase", "gtsr:shattered_slag_base");
+        BlocksGTSR.shatteredSlagBase = new BlockShatteredSurfaceBase(
+            "ShatteredSlagBase",
+            "gtsr:prosperity_forest_base");
         GameRegistry.registerBlock(BlocksGTSR.shatteredSlagBase, "ShatteredSlagBase");
         BlocksGTSR.shatteredGlassTop = new BlockShatteredSurfaceTop(
             "ShatteredGlassTop",
-            "gtsr:shattered_glass_top",
-            "gtsr:shattered_glass_top_side",
-            "gtsr:shattered_glass_base");
+            "gtsr:prosperity_wastes_top",
+            "gtsr:prosperity_wastes_top_side",
+            "gtsr:prosperity_wastes_base");
         GameRegistry.registerBlock(BlocksGTSR.shatteredGlassTop, "ShatteredGlassTop");
         BlocksGTSR.shatteredGlassBase = new BlockShatteredSurfaceBase(
             "ShatteredGlassBase",
-            "gtsr:shattered_glass_base");
+            "gtsr:prosperity_wastes_base");
         GameRegistry.registerBlock(BlocksGTSR.shatteredGlassBase, "ShatteredGlassBase");
         BlocksGTSR.shatteredTarTop = new BlockShatteredSurfaceTop(
             "ShatteredTarTop",
-            "gtsr:shattered_tar_top",
-            "gtsr:shattered_tar_top_side",
-            "gtsr:shattered_tar_base");
+            "gtsr:prosperity_swamp_top",
+            "gtsr:prosperity_swamp_top_side",
+            "gtsr:prosperity_swamp_base");
         GameRegistry.registerBlock(BlocksGTSR.shatteredTarTop, "ShatteredTarTop");
-        BlocksGTSR.shatteredTarBase = new BlockShatteredSurfaceBase("ShatteredTarBase", "gtsr:shattered_tar_base");
+        BlocksGTSR.shatteredTarBase = new BlockShatteredSurfaceBase("ShatteredTarBase", "gtsr:prosperity_swamp_base");
         GameRegistry.registerBlock(BlocksGTSR.shatteredTarBase, "ShatteredTarBase");
         BlocksGTSR.shatteredSpikeCluster = new BlockShatteredCrossDecor(
             "ShatteredSpikeCluster",
-            "gtsr:shattered_spike_cluster");
+            "gtsr:prosperity_tuft_bristle");
         GameRegistry.registerBlock(BlocksGTSR.shatteredSpikeCluster, "ShatteredSpikeCluster");
         BlocksGTSR.shatteredAshLog = new BlockShatteredAshLog(
             "ShatteredAshLog",
-            "gtsr:shattered_ash_log_side",
-            "gtsr:shattered_ash_log_top");
+            "gtsr:prosperity_rust_log_side",
+            "gtsr:prosperity_rust_log_top");
         GameRegistry.registerBlock(BlocksGTSR.shatteredAshLog, "ShatteredAshLog");
-        BlocksGTSR.shatteredAshThorn = new BlockShatteredCrossDecor("ShatteredAshThorn", "gtsr:shattered_ash_thorn");
+        BlocksGTSR.shatteredAshThorn = new BlockShatteredCrossDecor("ShatteredAshThorn", "gtsr:prosperity_tuft_rust");
         GameRegistry.registerBlock(BlocksGTSR.shatteredAshThorn, "ShatteredAshThorn");
-        final Block[] shatteredBlocks = { BlocksGTSR.shatteredCorestone, BlocksGTSR.shatteredMonolith,
-            BlocksGTSR.shatteredAshTop, BlocksGTSR.shatteredAshBase, BlocksGTSR.shatteredSlagTop,
-            BlocksGTSR.shatteredSlagBase, BlocksGTSR.shatteredGlassTop, BlocksGTSR.shatteredGlassBase,
-            BlocksGTSR.shatteredTarTop, BlocksGTSR.shatteredTarBase, BlocksGTSR.shatteredSpikeCluster,
-            BlocksGTSR.shatteredAshLog, BlocksGTSR.shatteredAshThorn };
-        for (final Block shattered : shatteredBlocks) {
-            CreativeTabManager.addItemToTab(new ItemStack(shattered));
-        }
+        // Legacy registry/meta and physics remain for old chunks; retired materials have no new creative entry.
         GTSteamReborn.LOG
             .info("[GTSR] shattered blocks registered: Corestone/Monolith terrain=8 (4x top+base) decor=3");
     }
