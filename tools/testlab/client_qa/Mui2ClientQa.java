@@ -30,6 +30,7 @@ public final class Mui2ClientQa {
     static boolean uiStopProof(boolean worldLoaded,boolean threadAlive,boolean stopped,boolean registered)throws Exception {
         return Boolean.TRUE.equals(call(type("miaotest.host.OwnedClientScope"),"stopped",worldLoaded,threadAlive,stopped,registered));
     }
+    static boolean uiMenuSafe(boolean worldLoaded,boolean playerPresent,boolean container,boolean screenPresent){return !worldLoaded&&!playerPresent&&!container&&screenPresent;}
     void uiSaveScope(Object actualWorld)throws Exception {
         Path expected=Paths.get(System.getProperty("miaotest.host.worldPath"));
         Path actual=actualWorld==null?expected:((java.io.File)call(call(actualWorld,"getSaveHandler|func_72860_G"),"getWorldDirectory|func_75765_b")).toPath();
@@ -234,6 +235,7 @@ public final class Mui2ClientQa {
             if(clientWorld!=null&&uiServer==null)throw new IllegalStateException("Refusing a non-owned client world");
             uiUnloadRequested=true;
             if(clientWorld!=null){call(clientWorld,"sendQuittingDisconnectingPacket|func_72882_A");call(mc,"loadWorld|func_71403_a",(Object)null);}
+            call(mc,"displayGuiScreen|func_147108_a",type("net.minecraft.client.gui.GuiMainMenu").newInstance());
         }
         if(uiServer!=null&&!scriptServerStopped)call(uiServer,"initiateShutdown|func_71263_m");
         boolean loaded=field(mc,"theWorld|field_71441_e")!=null,alive=uiServerThread!=null&&uiServerThread.isAlive();
@@ -242,7 +244,9 @@ public final class Mui2ClientQa {
         boolean registered=environment==null||!environment.has("registered")||environment.get("registered").getAsBoolean();
         boolean stopped=scriptServerStopped&&environment!=null&&environment.has("runId")&&System.getProperty("miaotest.host.runId").equals(environment.get("runId").getAsString())&&environment.has("serverStopped")&&environment.get("serverStopped").getAsBoolean();
         boolean noServer=uiServer==null&&uiServerThread==null&&!loaded&&environment==null;
-        boolean complete=noServer||(uiServerThread!=null&&uiStopProof(loaded,alive,stopped,registered));
+        Object menu=field(mc,"currentScreen|field_71462_r");boolean menuReady=uiMenuSafe(loaded,field(mc,"thePlayer|field_71439_g")!=null,menu!=null&&type("net.minecraft.client.gui.inventory.GuiContainer").isInstance(menu),menu!=null);
+        receipt.addProperty("postUnloadScreenClass",menu==null?"<none>":menu.getClass().getName());receipt.addProperty("postUnloadMenuSafe",menuReady);
+        boolean complete=menuReady&&(noServer||(uiServerThread!=null&&uiStopProof(loaded,alive,stopped,registered)));
         JsonObject facts=new JsonObject();facts.addProperty("worldLoaded",loaded);facts.addProperty("threadAlive",alive);facts.addProperty("serverStoppedEvent",stopped);facts.addProperty("environmentRegistered",registered);facts.addProperty("noServerCreated",noServer);facts.addProperty("completed",complete);receipt.add("integratedLifecycle",facts);
         if(complete){done=true;writeUiReceipt();call(mc,"shutdown|func_71400_g");return;}
         if(System.currentTimeMillis()-uiCloseStarted>120000L)uiCloseFailure("Owned UI server has not stopped/unregistered; keep world for recovery");

@@ -8,6 +8,7 @@ FIXTURE=ROOT/'build/client-testlab-mui2'
 LEASE=ROOT.parent/'.gtsr-native-server.lease'
 
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def read_json(p):return json.loads(Path(p).read_text(encoding='utf-8-sig'))
 def ui_shutdown_complete(payload,environment):
     if not payload:return False
     import client_qa
@@ -47,14 +48,14 @@ def main():
     if not re.fullmatch(r'[a-zA-Z0-9_-]+',a.run):raise ValueError('Unsafe run name')
     assert FIXTURE.resolve()==FIXTURE
     result=OUT/'client-runs'/a.run;result.mkdir(parents=True,exist_ok=False)
-    spec=json.loads((OUT/'client-launch.json').read_text());compile_receipt=json.loads((OUT/'qa-compile-receipt.json').read_text())
+    spec=read_json(OUT/'client-launch.json');compile_receipt=read_json(OUT/'qa-compile-receipt.json')
     helper=OUT/'gtsr-mui2-qa-owned-only.jar';assert sha(helper)==compile_receipt['jarSHA256']
     if a.heap_gib<3 or a.reserve_gib<1 or not 2<=a.render_distance<=16:raise ValueError('Require heap3..5GiB, explicit reserve>=1GiB and render distance2..16')
     available=free_memory();required=(a.heap_gib+a.reserve_gib)*1024**3
     preflight=dict(availableBytes=available,requiredBytes=required,heapGiB=a.heap_gib,reserveGiB=a.reserve_gib,renderDistance=a.render_distance,leaseExists=LEASE.exists(),userAuthorizedLowMemory=a.allow_low_memory,state='PRECHECK')
-    (result/'preflight.json').write_text(json.dumps(preflight,indent=2))
+    (result/'preflight.json').write_text(json.dumps(preflight,indent=2),encoding='utf-8')
     if available<required and not a.allow_low_memory:raise RuntimeError(f'Insufficient memory: {available/1024**3:.2f} GiB available, {required/1024**3:.2f} required; no process started')
-    fd=os.open(LEASE,os.O_CREAT|os.O_EXCL|os.O_WRONLY);lease_token=dict(pid=os.getpid(),fixture=str(FIXTURE),run=a.run,created=time.time());os.write(fd,json.dumps(lease_token).encode());os.close(fd)
+    fd=os.open(LEASE,os.O_CREAT|os.O_EXCL|os.O_WRONLY);lease_token=dict(pid=os.getpid(),fixture=str(FIXTURE),run=a.run,created=time.time());os.write(fd,json.dumps(lease_token).encode('utf-8'));os.close(fd)
     owned_world=None;installed_helper=FIXTURE/'mods/gtsr-mui2-qa-owned-only.jar';helper_owned=False
     proc=None;desktop=None;payload=None;options=FIXTURE/'options.txt';original_options=options.read_bytes() if options.exists() else None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
     if a.mode=='ticket-restart':receipt['inputType']='Synthetic same-JVM Minecraft launchIntegratedServer/loadWorld(null) and production CriticalChunkLoading ensure/release; UI suite and physical input NOT_RUN'
@@ -80,7 +81,7 @@ def main():
             shutil.copy2(a.plan,result/'plan.json')
             manifest=a.plan.with_suffix('.manifest.json')
             if manifest.exists():
-                frozen=json.loads(manifest.read_text(encoding='utf-8'))
+                frozen=read_json(manifest)
                 if frozen['sha256']!=sha(a.plan):raise RuntimeError('Plan manifest SHA mismatch')
                 shutil.copy2(manifest,result/'plan-manifest.json')
         cmd[cmd.index('--width')+1]=str(a.width);cmd[cmd.index('--height')+1]=str(a.height)
@@ -95,7 +96,7 @@ def main():
             receipt['hiddenDesktop']=dict(name=desktop_name,switched=False,scope='Owned separate desktop from window creation; real GL, never SwitchDesktop')
             proc=subprocess.Popen(cmd,cwd=FIXTURE,stdout=log,stderr=subprocess.STDOUT,creationflags=subprocess.CREATE_NO_WINDOW,startupinfo=startup)
             client_identity=host.identity(proc.pid)
-            (result/'pid.json').write_text(json.dumps(dict(pid=proc.pid,identity=client_identity,ownerRunner=os.getpid(),hostRunId=a.owner_host_run)))
+            (result/'pid.json').write_text(json.dumps(dict(pid=proc.pid,identity=client_identity,ownerRunner=os.getpid(),hostRunId=a.owner_host_run)),encoding='utf-8')
             print('OWNED CLIENT',proc.pid,'candidate',receipt['candidateSHA256'],flush=True)
             try:
                 with (result/'memory-samples.jsonl').open('w',encoding='utf-8') as memory:
@@ -115,7 +116,7 @@ def main():
                 if a.mode=='ui':
                     receipt['forcedStop']|=host.stop_owned_process(proc,lambda:host.write(result/'stop.json',dict(reason='UI process deadline; normal owned shutdown required')),timeout=120);code=proc.poll()
                 else:receipt['forcedStop']=True;proc.terminate();code=proc.wait(30)
-        checks=result/'checks.json';payload=json.loads(checks.read_text(encoding='utf-8')) if checks.exists() else None
+        checks=result/'checks.json';payload=read_json(checks) if checks.exists() else None
         receipt.update(exitCode=code,elapsedSeconds=time.monotonic()-started,checksStatus=payload.get('status') if payload else 'NO_RECEIPT',candidateUnchanged=sha(destination)==receipt['candidateSHA256'])
         if True:
             # BetterCrashes can recover and leave exit0. Lifecycle checks alone cannot mean crash-free.
@@ -171,7 +172,7 @@ def main():
                     host.write(FIXTURE/'.testlab-host/business-recovery-pending.json',dict(runId=a.run,world=str(owned_world),evidence=str(result)))
         (result/'receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
         if proc is None or proc.poll() is not None:
-            if LEASE.exists() and json.loads(LEASE.read_text()).get('pid')==os.getpid():LEASE.unlink()
+            if LEASE.exists() and read_json(LEASE).get('pid')==os.getpid():LEASE.unlink()
         else:print('Owned process remains alive; lease retained for explicit recovery',flush=True)
         if desktop and (proc is None or proc.poll() is not None):
             receipt['hiddenDesktop']['handleClosed']=bool(user32.CloseDesktop(desktop))
