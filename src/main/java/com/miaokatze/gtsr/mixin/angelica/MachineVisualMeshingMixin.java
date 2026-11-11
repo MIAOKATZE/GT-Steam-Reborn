@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
 
 import org.embeddedt.embeddium.impl.render.chunk.RenderSection;
 import org.embeddedt.embeddium.impl.render.chunk.compile.ChunkBuildBuffers;
@@ -17,11 +18,14 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.gtnewhorizons.angelica.api.IBlockAccessExtended;
 import com.gtnewhorizons.angelica.rendering.celeritas.AngelicaBuiltRenderSectionData;
+import com.gtnewhorizons.angelica.rendering.celeritas.world.WorldSlice;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.miaokatze.gtsr.client.machinevisual.MachineVisualVisibility;
@@ -38,6 +42,14 @@ public abstract class MachineVisualMeshingMixin {
     @Shadow
     protected abstract IBlockAccess getBlockAccess();
 
+    @Unique
+    private static World gtsr$buildWorld(IBlockAccess access) {
+        if (access instanceof World world) return world;
+        // Other mods may expose an extended access that is not this meshing task's native slice.
+        return access instanceof IBlockAccessExtended slice && WorldSlice.class.isInstance(slice) ? slice.getWorld()
+            : null;
+    }
+
     @Inject(
         method = "execute(Lorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildContext;Lorg/embeddedt/embeddium/impl/util/task/CancellationToken;)Lorg/embeddedt/embeddium/impl/render/chunk/compile/ChunkBuildOutput;",
         at = @At(
@@ -47,9 +59,7 @@ public abstract class MachineVisualMeshingMixin {
         require = 1)
     private void gtsr$captureSection(ChunkBuildContext context, CancellationToken cancellation,
         CallbackInfoReturnable<ChunkBuildOutput> callback) {
-        IBlockAccess access = getBlockAccess();
-        net.minecraft.world.World world = access instanceof MachineVisualWorldSliceAccess slice ? slice.gtsr$world()
-            : access instanceof net.minecraft.world.World real ? real : null;
+        World world = gtsr$buildWorld(getBlockAccess());
         MachineVisualVisibility
             .beginSection(this, world, render.getOriginX(), render.getOriginY(), render.getOriginZ());
     }
@@ -79,9 +89,7 @@ public abstract class MachineVisualMeshingMixin {
             original.call(block, x, y, z, pass, tess, renderer);
             return;
         }
-        net.minecraft.world.World world = renderer.blockAccess instanceof MachineVisualWorldSliceAccess slice
-            ? slice.gtsr$world()
-            : renderer.blockAccess instanceof net.minecraft.world.World real ? real : null;
+        World world = gtsr$buildWorld(renderer.blockAccess);
         try {
             MachineVisualVisibility.beginBuild(this, world);
             original.call(block, x, y, z, pass, tess, renderer);

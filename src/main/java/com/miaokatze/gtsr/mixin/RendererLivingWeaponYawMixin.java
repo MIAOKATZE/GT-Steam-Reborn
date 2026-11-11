@@ -8,10 +8,10 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.miaokatze.gtsr.common.weapons.PortableWeapons;
 import com.miaokatze.gtsr.common.weapons.WeaponPose;
 
@@ -19,12 +19,7 @@ import com.miaokatze.gtsr.common.weapons.WeaponPose;
 @Mixin(RendererLivingEntity.class)
 public abstract class RendererLivingWeaponYawMixin {
 
-    @Shadow
-    private float interpolateRotation(float previous, float current, float partial) {
-        throw new AssertionError("Mixin shadow");
-    }
-
-    @Redirect(
+    @WrapOperation(
         method = "doRender(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V",
         at = @At(
             value = "INVOKE",
@@ -32,9 +27,9 @@ public abstract class RendererLivingWeaponYawMixin {
             ordinal = 0),
         require = 1)
     private float gtsr$weaponBodyYaw(RendererLivingEntity renderer, float previous, float current, float partial,
-        EntityLivingBase entity, double x, double y, double z, float entityYaw, float renderPartial) {
+        Operation<Float> original, EntityLivingBase entity) {
         if (entity instanceof EntityPlayer && PortableWeapons.kind(((EntityPlayer) entity).getHeldItem()) != null)
             return WeaponPose.yaw((EntityPlayer) entity, partial);
-        return interpolateRotation(previous, current, partial);
+        return original.call(renderer, previous, current, partial);
     }
 }

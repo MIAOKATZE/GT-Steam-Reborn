@@ -47,6 +47,7 @@ import com.miaokatze.gtsr.loader.BlockLoader;
 import com.miaokatze.gtsr.loader.GTSRRecipeLoader;
 import com.miaokatze.gtsr.loader.ItemLoader;
 import com.miaokatze.gtsr.loader.MachineLoader;
+import com.miaokatze.gtsr.loader.recipes.RockBreakerCatalysts;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 import com.miaokatze.miaokatzecore.api.recipe.RecipeRegistration;
 
@@ -244,6 +245,7 @@ public class CommonProxy {
      */
     @SuppressWarnings({ "unused" })
     public void init(FMLInitializationEvent event) {
+        RockBreakerCatalysts.registerIndustrialRule();
         com.miaokatze.gtsr.common.machinevisual.MachineVisualNetwork.register();
         com.miaokatze.gtsr.common.critical.CriticalDamageHighlights.register();
         // v1.20.40 P19-U1：深渊执念流体方块+桶+事件面（plan §I）。init 段调用——材料流体

@@ -6,34 +6,19 @@ package com.miaokatze.gtsr.mixin;
 import net.minecraft.item.ItemStack;
 
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
-import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
-import gregtech.api.enums.Materials;
-import gregtech.api.enums.OrePrefixes;
-import gregtech.api.util.GTOreDictUnificator;
-import gregtech.api.util.GTUtility;
+import com.llamalad7.mixinextras.sugar.Local;
+import com.miaokatze.gtsr.loader.recipes.RockBreakerCatalysts;
+
 import gregtech.common.tileentities.machines.basic.MTERockBreaker;
 
 @Mixin(value = MTERockBreaker.RockBreakerRecipe.Builder.class, remap = false)
-public class MTERockBreakerRecipeBuilderMixin {
+public abstract class MTERockBreakerRecipeBuilderMixin {
 
-    @Shadow(remap = false)
-    private ItemStack inputItem;
-
-    @Shadow(remap = false)
-    private boolean inputConsumed;
-
-    @Overwrite(remap = false)
-    public MTERockBreaker.RockBreakerRecipe.Builder inputItem(ItemStack aInputItem, boolean consumed) {
-        if (consumed && aInputItem != null) {
-            ItemStack glowstoneDust = GTOreDictUnificator.get(OrePrefixes.dust, Materials.Glowstone, 1);
-            if (glowstoneDust != null && GTUtility.areStacksEqual(aInputItem, glowstoneDust)) {
-                consumed = false;
-            }
-        }
-        this.inputItem = aInputItem;
-        this.inputConsumed = consumed;
-        return (MTERockBreaker.RockBreakerRecipe.Builder) (Object) this;
+    @ModifyVariable(method = "inputItem", at = @At("HEAD"), argsOnly = true, ordinal = 0, require = 1)
+    private boolean gtsr$keepGlowstone(boolean consumed, @Local(argsOnly = true) ItemStack input) {
+        return consumed && !RockBreakerCatalysts.isGlowstoneDust(input);
     }
 }

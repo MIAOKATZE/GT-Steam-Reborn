@@ -43,7 +43,6 @@
     "angelica.MachineVisualMeshingMixin",
     "angelica.MachineVisualDeferredReleaseMixin",
     "angelica.MachineVisualUploadMixin",
-    "angelica.MachineVisualWorldSliceAccess",
     "angelica.MachineVisualJobResultAccess",
     "angelica.MachineVisualSectionWorldAccess",
     "angelica.MachineVisualRestorationMixin",
