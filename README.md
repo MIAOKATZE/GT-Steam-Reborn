@@ -5,7 +5,7 @@
 <p align="center"><strong><em>GTNH 蒸汽时代扩展模组</em></strong><br><strong><em>GTNH Steam Age Expansion Mod</em></strong></p>
 
 <p align="center">
-  <a href="LICENSE"><img alt="License AGPL-3.0" src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg"></a>
+  <a href="LICENSE"><img alt="Code license AGPL-3.0" src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg"></a>
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0" src="https://img.shields.io/badge/GTNH-2.9.0-orange.svg"></a>
@@ -535,6 +535,10 @@ The four interfaces retain native ME compatibility. Critical inputs use per-slot
 
 ## License / 许可证
 
-采用 AGPL-3.0 许可证，详见 LICENSE 文件。
+**Code:** [AGPLv3](LICENSE) with [reasonable additional terms](AGPL-ADDITIONAL-TERMS.md). **Designated independent assets:** [CC BY-NC-ND 4.0](ASSET-LICENSE.md). See [NOTICE](NOTICE.md) for project identity, exact scope, third-party exceptions, and independent legal-compliance duties.
+
+**代码：** AGPLv3及合理附加条款；**指定独立素材：** CC BY-NC-ND 4.0。具体范围、第三方例外和独立法律合规义务见NOTICE；既有有效授权不追溯撤回。
+
+This arrangement applies from **v2.1.37**. The two licenses cover different material; they are not alternative choices for the same material.
 
 文档更新：2026-11-06 · 当前源码版本：2.1.26

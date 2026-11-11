@@ -5,8 +5,8 @@ Local source used: E:/CodeGT/GT-Outpost.
 
 The adapted Java effects in com.miaokatze.gtsr.client.weapons.outpost retain
 their original attribution and use the project's AGPL-3.0-or-later license.
-The full license is included in SOURCE_LICENSE.txt. The separate original
-asset license is preserved without modification in SOURCE_ASSET_LICENSE.txt.
+The full license is included in SOURCE_LICENSE.txt. The author-owned weapon artwork is designated CC BY-NC-ND 4.0 from GTSR v2.1.37;
+see SOURCE_ASSET_LICENSE.txt and the root NOTICE.md. Valid historical grants remain effective.
 
 Direct source implementations used include OverrideHudRenderer.drawArcBand,
 GatlingClientFxManager/MotorLoopSound, GatlingFxProfile, FxEntityWorldPass,

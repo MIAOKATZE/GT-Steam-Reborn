@@ -325,3 +325,6 @@ tasks.withType<Jar>().configureEach {
         "Miaokatze-Source-Dirty" to testlabSourceDirty.get(),
     )
 }
+
+// Package and verify the project-specific code and independent-asset licenses.
+apply(from = "gradle/licensing.gradle.kts")

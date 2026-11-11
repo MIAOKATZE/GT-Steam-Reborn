@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "project": "GT-Steam-Reborn",
+  "modId": "gtsr",
+  "effectiveFrom": "v2.1.37",
+  "canonicalSource": "https://github.com/MIAOKATZE/GT-Steam-Reborn",
+  "rightsHolder": "MIAOKATZE; other applicable rights holders retain their existing notices",
+  "defaultLicense": "AGPL-3.0-only",
+  "codeAdditionalTerms": "AGPL-ADDITIONAL-TERMS.md",
+  "ruleOrder": "last matching rule wins; paths are relative to src/main/resources or the JAR root; ** also matches zero directories",
+  "rules": [
+    {
+      "pattern": "assets/gtsr/textures/**",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "independent project artwork"
+    },
+    {
+      "pattern": "assets/gtsr/sounds/**/*.ogg",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "project sound-effect and music production"
+    },
+    {
+      "pattern": "assets/gtsr/models/weapons/*.obj",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "author-owned weapon artwork originating in GT-Outpost"
+    },
+    {
+      "pattern": "assets/gtsr/models/weapons/*.weaponmesh",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "compiled representation of the same weapon artwork"
+    },
+    {
+      "pattern": "assets/gtsr/liminal/**/*.obj",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "creature and encounter artwork"
+    },
+    {
+      "pattern": "assets/gtsr/liminal/**/*.mtl",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "artistic model material definitions"
+    },
+    {
+      "pattern": "assets/gtsr/liminal/**/*.png",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "creature and encounter artwork"
+    },
+    {
+      "pattern": "assets/gtsr/liminal/**/*.rigmesh",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "compiled representation of creature artwork"
+    },
+    {
+      "pattern": "assets/gtsr/critical/models/*.geometry.json",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "machine model artwork"
+    },
+    {
+      "pattern": "assets/gtsr/critical/models/*.gcjb",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "compiled representation of machine artwork"
+    },
+    {
+      "pattern": "assets/gtsr/remaster/prefabs/**/*.json.gz",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "independent prefab artistic layout"
+    },
+    {
+      "pattern": "assets/gtsr/remaster/prefabs/**/*.gcjb",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "compiled representation of prefab artistic layout"
+    },
+    {
+      "pattern": "assets/gtsr/workeffects/*.png",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "independent effect artwork"
+    },
+    {
+      "pattern": "assets/gtsr/liminal/**/models/rig_animation.json",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "independent authored creature animation data"
+    },
+    {
+      "pattern": "assets/gtsr/machinevisual/motions.json",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "independent authored machine animation motion data"
+    },
+    {
+      "pattern": "assets/gtsr/structures/**/*.json",
+      "license": "CC-BY-NC-ND-4.0",
+      "kind": "independent artistic structure layout; unprotectable facts and program logic are excluded"
+    }
+  ],
+  "notes": [
+    "GT-Outpost weapon models are the same author's assets. Their designation in this version is CC BY-NC-ND 4.0; historical effective grants are not withdrawn.",
+    "CC0 source recordings identified in assets/gtsr/sounds/CREDITS.txt remain CC0. The NC-ND designation covers only copyrightable project-authored recordings, arrangements, and creative layers, and cannot restrict those underlying CC0 inputs.",
+    "The NC-ND designation covers protectable artistic expression, not program code, functional configuration, block identifiers, unprotectable facts, or an independent replacement implementation."
+  ],
+  "existingGrants": "No valid existing grant is revoked or narrowed. Existing third-party terms and statutory rights remain applicable.",
+  "codeExceptions": [
+    {
+      "sourcePattern": "src/main/java/com/miaokatze/gtsr/client/weapons/outpost/**",
+      "runtimePattern": "com/miaokatze/gtsr/client/weapons/outpost/**",
+      "license": "AGPL-3.0-or-later",
+      "reason": "Preserve the broader grant recorded for adapted GT-Outpost effect code; weapon artwork has a separate designation."
+    }
+  ]
+}

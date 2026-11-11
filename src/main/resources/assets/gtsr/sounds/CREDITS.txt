@@ -1,14 +1,14 @@
-Combat audio refined for GT-Steam-Reborn v1.20.72.
-Physical and short speech recordings: Kenney, Creative Commons CC0 1.0.
-https://kenney.nl/assets/impact-sounds
-https://kenney.nl/assets/sci-fi-sounds
-https://kenney.nl/assets/rpg-audio
-https://kenney.nl/assets/voiceover-pack
-Bird recording: syncopika, Creative Commons CC0 1.0.
-https://opengameart.org/content/bird-chirping-sounds
-Original recording SHA256 and copied licenses are pinned in:
-plan/model/authored/audio/refinement-v72/*sources.json and original/.
-Deterministic body/texture/finite-space layers use anatomy-specific profiles:
-tools/prosperity/combat_audio_{boss_layers,families,publish}.py
-Additional synthesized layers are original procedural signals.
-No v1.20.71 repeated creature-mouth grains are used in the refined production set.
+GT-Steam-Reborn sound production and source credits
+
+From GTSR v2.1.37, copyrightable project-authored sound effects, recordings, arrangements and synthesized creative layers are designated CC BY-NC-ND 4.0. See the root ASSET-LICENSE.md, NOTICE.md and LICENSES/asset-scope.json.
+
+The following underlying source recordings remain CC0 1.0; the project license does not restrict these CC0 inputs or grant exclusive rights in them:
+- Physical and short speech recordings: Kenney, CC0 1.0.
+  https://kenney.nl/assets/impact-sounds
+  https://kenney.nl/assets/sci-fi-sounds
+  https://kenney.nl/assets/rpg-audio
+  https://kenney.nl/assets/voiceover-pack
+- Bird recording: syncopika, CC0 1.0.
+  https://opengameart.org/content/bird-chirping-sounds
+
+Additional project layers were synthesized through the project combat-audio tools. Weapon sound adaptations originate in the same author's GT-Outpost; see assets/gtsr/models/weapons/SOURCE_PORTS.md. Mere technical changes do not create exclusive rights in CC0 input. Valid historical grants remain effective.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Additional terms: see AGPL-ADDITIONAL-TERMS.md in the project root.
+
 package com.miaokatze.gtsr.common.critical;
 
 /** Confirmed prefix of a real debit. An uncertain tail must never be automatically retried. */

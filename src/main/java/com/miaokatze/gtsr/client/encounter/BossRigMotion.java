@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Additional terms: see AGPL-ADDITIONAL-TERMS.md in the project root.
+
 package com.miaokatze.gtsr.client.encounter;
 
 /** Maps real windups and repeated hits onto the imported articulated rigs, rather than an idle silhouette. */
