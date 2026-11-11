@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nKeep a Mega Steam Turbine Array controller in your inventory for this non-consuming check. It does not inspect the structure, steam outlets or dynamo capacity. §cRequested EU output above combined dynamo capacity causes an explosion.§r Complete the capacity calculation before generation.\n\n§3§lPreparation and operation§r\nFollow the current twin-row axial projection: one base ring group plus §10-4§r additional groups, each §112§r blocks longer. With k additional groups, power uses §1k+2§r groups while the structure contains §1k+1§r physical groups; the base generation multiplier is §14§r. The lenght subchannel uses §11-5§r for §10-4§r additional groups. Keep steel, titanium or tungstensteel materials uniform, and glass at least as high as the voltage-setting machine casings. Hatches can replace standard machine-casing positions. Ordinary and superheated steam work at every casing tier; dense-family and supercritical steam require §1LuV§r or higher. Before startup or expansion, connect suitable fluid recovery and electrical destinations and recalculate output for the selected steam, power and chip settings.",
+      "desc:8": "Scale from the heavy turbine to the twin-row unit. Add up to four rings, twelve blocks each. Size steam flow to the combined dynamo capacity; excess requested output can destroy the machine. Drain the condensate.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

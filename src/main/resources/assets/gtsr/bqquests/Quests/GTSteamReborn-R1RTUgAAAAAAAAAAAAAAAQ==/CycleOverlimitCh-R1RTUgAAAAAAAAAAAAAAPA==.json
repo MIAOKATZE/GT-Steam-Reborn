@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nThis task checks for the Cycle Overlimit Chip §2without consuming it§r and rewards §116§r Critical Steam Entangled Singularities. Install the chip in the Mega Steam Turbine Array controller slot and build all §14§r additional ring groups to activate it: the structure then has §15§r physical ring groups, with lenght set to §15§r. The inventory goal checks neither installation nor operation.\n\n§3§lPreparation and operation§r\nWhen active, superheated and supercritical steam, including their dense variants, return distilled water directly. The output conversion factor sums the full cooling chain within the same steam family: superheated §11 to 1.5§r and supercritical §11 to 2.5§r, with the same consumption of each steam type; ordinary and dense families are calculated separately. Plan water recovery and recalculate dynamo capacity and the electrical destination before enabling it. The rewarded singularities do not establish readiness; combine ring, steam, power and singularity settings when checking output.",
+      "desc:8": "Install the overlimit chip in the controller after completing all four extensions. It needs five physical ring groups counting the base.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 16,
-          "Damage:2": 0,
+          "Count:3": 4,
+          "Damage:2": 19305,
           "OreDict:8": "",
-          "id:8": "gtsr:CriticalSteamEntangledSingularity"
+          "id:8": "gregtech:gt.metaitem.01"
         }
       }
     }

@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nHold one Artificial Stellar Confinement Core controller; it is not consumed. It runs native GT fusion recipes in fixed 20-second cycles, retaining their material inputs and outputs while reducing power according to original recipe duration.\n\n§3§lPreparation and operation§r\nBuild it through the loom. Provide sufficient energy, helium-3, fusion inputs and output space at the main working ports. Additional helium plasma needs its own outlet too. This machine consumes EU; it is not a free-energy generator.",
+      "desc:8": "The artificial star consumes power to run fusion. Ignition needs 25 billion EU/t for 20 seconds and 50 million L of helium-3. Hot standby still costs one million EU/t and 100 L/t of helium-3. Leave outlets for products and extra helium plasma.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 97,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 16,
+          "Damage:2": 17305,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "autoConsume:1": 0,

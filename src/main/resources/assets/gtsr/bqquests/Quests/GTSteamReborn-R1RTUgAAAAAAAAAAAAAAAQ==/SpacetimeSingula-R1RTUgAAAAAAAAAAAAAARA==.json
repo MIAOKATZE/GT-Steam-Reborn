@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lTwo entry routes: choose either one§r\nRoute one: keep the Spacetime Singularity Calibration Engineering controller for the non-consuming retrieval task below. Route two: read the Spacetime Singularity Altar instructions below and tick the checkbox yourself. §6The checkbox is a player acknowledgment; it does not verify that you actually entered Prosperity.§r\n\n§3§lPurpose and mechanism§r\nKeep one Spacetime Singularity Calibration Engineering controller in your inventory to complete this check §2without consuming it§r. This attraction device opens the route to Prosperity and runs no recipes. With a valid structure, maintenance, and all covered chunks loaded, it preheats for §1600§r ticks (§130§r seconds) at §130,720§r EU/t, then draws §115,360§r EU/t continuously. Every energy hatch must accept at least §132,768§r EU/t. §cTouching the active core teleports the player immediately.§r\n\n§3§lImportant precautions§r\nProvide adequate energy-input capacity and sustained power before checking maintenance and covered-chunk loading. Before actually entering Prosperity, mark and charge the return beacon. Touching the active core teleports immediately, so treat access to it as part of the travel procedure.\n\n§3§lRoute two: Spacetime Singularity Altar§r\nIn the Overworld, use the Spacetime Anchor Beacon to navigate to the nearest Spacetime Singularity Altar without spending charge. An unactivated inactive core only displays light effects: it neither attracts nor teleports players. Activate it with a Thaumcraft wand containing at least §150§r vis of each primal aspect (Air, Fire, Water, Earth, Order, and Entropy). Only when all six are sufficient are §150§r vis of each deducted together; if any aspect is insufficient, none is deducted. The full effect gradually appears over §1200§r ticks (§110§r seconds) after activation. Attraction and teleportation to Prosperity begin only after those §110§r seconds. Mark and charge your return beacon before departure on this route too.",
+      "desc:8": "Show either the calibrator controller or the anchor beacon. For a built portal, supply input hatches rated at least 32,768 EU/t through warm-up and operation. For the altar, locate it with the beacon and bring 50 of each primal vis. Prepare a return point before either trip.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 1,
-          "Damage:2": 0,
+          "Count:3": 8,
+          "Damage:2": 17305,
           "OreDict:8": "",
-          "id:8": "gtsr:CriticalSteamEntangledSingularity"
+          "id:8": "gregtech:gt.metaitem.01"
         }
       }
     }
@@ -66,8 +66,22 @@
       "taskID:8": "bq_standard:retrieval"
     },
     "1:10": {
+      "autoConsume:1": 0,
+      "consume:1": 0,
+      "groupDetect:1": 0,
+      "ignoreNBT:1": 1,
       "index:3": 1,
-      "taskID:8": "bq_standard:checkbox"
+      "partialMatch:1": 1,
+      "requireOnlyOneItem:1": 0,
+      "requiredItems:9": {
+        "0:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:SpacetimeAnchorBeacon"
+        }
+      },
+      "taskID:8": "bq_standard:retrieval"
     }
   }
 }

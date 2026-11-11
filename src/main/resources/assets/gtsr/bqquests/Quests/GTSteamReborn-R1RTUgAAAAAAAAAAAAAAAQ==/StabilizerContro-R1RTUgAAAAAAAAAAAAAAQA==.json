@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nKeep a critical stabilizer controller and one Critical Steam Entangled Singularity in your inventory to complete this non-consuming check. §cA dropped critical singularity detonates after a delay, can damage blocks, and may scatter normal singularities.§r Store it safely and avoid dropping it.\n\n§3§lImportant precautions§r\nCritical singularities are hazardous dropped items, so store them carefully after checking inventory and avoid accidental discards. Construction separately requires dense-steam input and product logistics. Owning one singularity does not establish a structure or supply capable of sustained production.",
+      "desc:8": "The stabilizer uses dense steam to produce critical singularities. Bring the controller and a finished singularity, then put the drop somewhere safe.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

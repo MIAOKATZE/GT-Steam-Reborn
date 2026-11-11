@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nEvery 20-second batch consumes all fluids exposed by its connected inputs. NEI shows an example volume ratio and peak multiplier. Total input is unrestricted, but incorrect proportions lower efficiency. Extra fluids count toward total volume and dilute required components. Supply the entire recipe, not just its first two fluids.\n\n§3§lPreparation and operation§r\nLet q be the smallest actual-volume-share ÷ NEI-target-share among the components. Actual multiplier = 1+(NEI peak−1)×q²; generation equals total base fuel heat × actual multiplier. When several recipes match the circuit, the highest-output option is selected. Maintain ratios with dedicated inputs or correct filtering before expanding supply.",
+      "desc:8": "Match every component's NEI volume ratio in an isolated test tank. Each batch consumes all connected fluid, including unwanted diluents.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

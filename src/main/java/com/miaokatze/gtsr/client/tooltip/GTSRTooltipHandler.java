@@ -45,6 +45,15 @@ public final class GTSRTooltipHandler {
             String line = StatCollector.translateToLocal(key);
             if (!containsLine(event.toolTip, line)) event.toolTip.add(EnumChatFormatting.GRAY + line);
         }
+        var meta = ItemMachines.getMetaTileEntity(event.itemStack);
+        if (meta != null) {
+            String name = meta.getMetaName();
+            com.miaokatze.miaokatzecore.api.tooltip.MachineTooltipPages.apply(
+                event.itemStack,
+                event.toolTip,
+                "gtsr.compact." + name,
+                "gtsr.steam.singularity.entangler".equals(name) ? "gtsr.tooltip.entangler.desc5" : null);
+        }
         normalizeBrand(event.toolTip, GTSRUtils.getAddedByLine());
     }
 

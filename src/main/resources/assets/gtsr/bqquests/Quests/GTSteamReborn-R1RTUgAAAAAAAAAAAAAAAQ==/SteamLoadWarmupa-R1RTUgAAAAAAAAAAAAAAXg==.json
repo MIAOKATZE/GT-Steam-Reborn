@@ -13,7 +13,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nOrdinary, superheated and supercritical steam carry 0.5, 1.5 and 2.5 EU/L of base heat; dense forms multiply these by 1,000. Batch EU equals total base heat × starting efficiency ÷ 100. Efficiency rises from 100% to at most 2,000%; a sufficient base heat load reaches full warmup in 20 continuous seconds. Lower loads reduce the target and idle operation cools down.\n\n§3§lPreparation and operation§r\nEvery 160 L of non-dense steam returns 1 L of distilled water; dense steam counts 1,000-fold. Connect the boiler, power core and ME storage into a steam/condensate loop, but keep the initial working stock: the boiler still debits an entire batch at startup. Stable load is measured by base heat, so changing volume alone does not preserve high efficiency.",
+      "desc:8": "Feed the pulse core steadily through warm-up before comparing output. Low load and downtime reduce efficiency. Leave room on the condensate return.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

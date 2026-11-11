@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nKeep one LM12 Portable Machine Gun in your inventory for this non-consuming check. The LM12 is an LV assembler weapon using §17.62§r mm ammo packs. Standard mode requires spin-up; suppressive mode spins up faster and avoids functional overheating, at the cost of halving the maximum fire rate. Default controls: C changes mode, V changes ammunition, and R reloads. Left-click fires and right-click aims. Key bindings can be changed in settings.\n\n§3§lPreparation and operation§r\nThe assembly recipe uses steel plates, long steel rods, LV motors and a piston, LV circuits, and an integrated circuit set to §11§r. Prepare ordinary ammunition before practicing modes and reloads; inventory acceptance requires no firing. Verify key bindings and account for spin-up and mode differences during sustained fire. Suppression mode trades fire rate for its other behavior.",
+      "desc:8": "The portable equipment branch starts with the LV assembler's LM12. It uses the in-game 7.62 pack. Show the item; this quest does not require firing it.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

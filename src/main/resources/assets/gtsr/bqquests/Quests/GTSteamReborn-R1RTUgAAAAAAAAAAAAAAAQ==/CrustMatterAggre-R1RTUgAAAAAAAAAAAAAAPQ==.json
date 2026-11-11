@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nKeep a Crust Matter Aggregator controller in your inventory to complete this non-consuming check. Configure dimensions, ore mode, and filters before collecting, and check steam and output conditions. Consult the controller information for costs and mode effects.\n\n§3§lPreparation and operation§r\nPossessing this controller requires neither mineral production nor a configured dimension or filter. For production, identify required minerals and destinations before selecting mode, slots, and fortune. Consumption varies by configuration, requiring renewed input and output checks. Do not apply one collection setup's consumption unchanged to every dimension and mineral target.",
+      "desc:8": "Choose a dimension and ore mode, then filter for what you need. Test a small batch before increasing slots or fortune: both supply and output capacity matter.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

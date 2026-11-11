@@ -13,7 +13,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nHave one Steam Entangled Singularity in your inventory to satisfy this check; §2it is not consumed§r, and completion provides §132§r extra obsidian plates for the entangler recipe. Singularities can come from the relevant machine or world generation. §cA dropped singularity detonates after a delay§r, so pick it up promptly.\n\n§3§lPreparation and operation§r\nThis item supports later singularity technology and some network operations, so reserve it for actual uses. The target remains in your inventory; the obsidian plates support machine construction, while later travel or binding still costs singularities. Store collected singularities before continuing production and logistics setup, particularly when reorganizing inventory near machinery.",
+      "desc:8": "Keep your first steam entangled singularity. Produce one with the entangler or find a wild one if world generation allows it. Dropped singularities explode after a delay.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -42,7 +42,7 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 32,
+          "Count:3": 8,
           "Damage:2": 17804,
           "OreDict:8": "",
           "id:8": "gregtech:gt.metaitem.01"

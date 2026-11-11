@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nHold one Multiphase Thermochemical Reaction Core controller; it is not consumed. This machine generates wireless energy from the types and volume ratios of compound fuels; it is not an energy-storage array.\n\n§3§lPreparation and operation§r\nBuild it through the loom. Feed fuels into main-machine fluid inputs and put a configuration-2–9 programmed circuit in its item input bus. The circuit selects component count and is not consumed. NEI offers 1,024 compound recipes using 2–9 fluids. Choose a recipe whose full component list can be supplied continuously.",
+      "desc:8": "Select a two-to-nine-component blend with the programmed circuit in the main input bus. Match NEI's volume ratios and isolate a test batch: every 20 seconds all connected fluid is consumed, including unwanted diluents.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 95,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 16,
+          "Damage:2": 17305,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "autoConsume:1": 0,

@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nIgnition takes 20 seconds at 25,000,000,000 EU/t (12A MAX), consuming 50,000,000 L of helium-3. A hot star continuously consumes 1,000,000 EU/t and 100 L/t of helium-3, even while fusion is paused. Ignition and sustain additionally return half the helium-3 volume as helium plasma.\n\n§3§lPreparation and operation§r\nEach fusion cycle lasts 20 seconds. Remaining power ratio is original recipe seconds ÷ 400, limited to 0.1%–10%. Fusion EU/t = native EU/t × parallel count × this ratio, plus sustain. A 20-second, 1,000,000 EU/t native recipe uses 50,000 EU/t at one parallel, or 1,050,000 EU/t including sustain. Up to 8,196 parallels are constrained by power, materials and output. Sustain failure or lost structure extinguishes the star and requires reignition; use Extinguish in the terminal to end the hot session.",
+      "desc:8": "Ignition needs 25 billion EU/t for twenty seconds and fifty million litres of helium-3. Hot standby still uses a million EU/t and 100 litres per tick. Connect the extra helium-plasma outlet.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

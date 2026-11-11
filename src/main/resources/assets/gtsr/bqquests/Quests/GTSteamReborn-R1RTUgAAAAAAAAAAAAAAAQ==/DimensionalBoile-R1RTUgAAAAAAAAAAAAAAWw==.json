@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nHold one Dimensional Irradiation Coupled Boiler controller; this inventory check does not consume it. The boiler produces steam from distilled water or heats cold solar salt. It does not directly generate electricity.\n\n§3§lPreparation and operation§r\nBuild it through the loom and connect production hatches to the main machine. Supply both a coolant and an activation fluid. Helium gas is the basic activation option; helium plasma and other choices increase the multiplier. Consumption follows actual batch output; see the controller for the reference rates and formula.",
+      "desc:8": "Choose the water-to-steam or cold-to-hot solar salt route. Both need coolant and activator. Batches take 20 seconds and yield increases with accessible working fluid at diminishing returns. Configure the fluid in the ME hatch.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 91,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 16,
+          "Damage:2": 17305,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "autoConsume:1": 0,

@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nKeep the controllers for the Reinforced Brick Blast Furnace, Large Coke Oven and Crust Steam Borer in your inventory to complete this item check. Each machine has different input and output requirements; review their individual machine guides before starting production.\n\n§3§lPreparation and operation§r\nBuild in the order of your current processing needs; collecting them together does not require simultaneous construction. Design each machine's ingredients and product routes separately rather than treating coking, smelting, and drilling as one generic steam process.",
+      "desc:8": "Choose a reinforced brick blast furnace, large coke oven or crustal steam drill for your current bottleneck. One controller is enough. Reserve byproduct or ore storage as appropriate.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -54,7 +54,7 @@
       "ignoreNBT:1": 1,
       "index:3": 0,
       "partialMatch:1": 1,
-      "requireOnlyOneItem:1": 0,
+      "requireOnlyOneItem:1": 1,
       "requiredItems:9": {
         "0:10": {
           "Count:3": 1,

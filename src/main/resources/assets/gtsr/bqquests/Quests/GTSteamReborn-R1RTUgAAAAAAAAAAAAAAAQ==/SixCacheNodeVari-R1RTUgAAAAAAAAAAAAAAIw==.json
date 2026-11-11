@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nSteam and fluid cache nodes each have standard, reinforced, and overpressure variants. Capacity, rate, and binding requirements depend on type; steam and water nodes have different singularity-cost rules, and overpressure nodes have hub-chip requirements. Check the machine information before configuring them.\n\n§3§lPreparation and operation§r\nChoose ordinary, enhanced, and overpressure versions as needed; this introduction does not require deploying all of them. Identify the transferred medium, then check capacity, binding cost, and hub-chip requirements. Steam-node rules do not automatically apply to water nodes. Before upgrades or relocation, confirm hub compatibility and inspect the actual configuration in the interface.",
+      "desc:8": "Pick the medium first, then ordinary, reinforced or overpressure tier. Check binding cost and hub chips before upgrading.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

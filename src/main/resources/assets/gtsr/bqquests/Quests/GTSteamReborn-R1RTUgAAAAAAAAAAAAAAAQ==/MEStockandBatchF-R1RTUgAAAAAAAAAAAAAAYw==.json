@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nThe boiler and pulse core can access large stocks through native ME fluid input and output hatches. An ME input exposes only its configured fluids from real network storage; it does not automatically offer every network fluid. Ordinary physical hatches retain their own capacity limits.\n\n§3§lPreparation and operation§r\nInstall ME hatches at the main working ports, provide network power, channels, permissions and storage, and configure the required input fluids. Expose distilled water and both media to the boiler, steam to the pulse core, and return distilled water through its output. Prepare whole-batch startup stock and output space. Repeated connections to the same network fluid do not duplicate available stock.",
+      "desc:8": "For large batches, configure the intended fluids in ME hatches. Critical ME inputs can cap individual slots. Reserve room for condensate and products before exposing bulk stock.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -32,7 +32,20 @@
   },
   "questIDHigh:4": 5139824686389002240,
   "questIDLow:4": 99,
-  "rewards:9": {},
+  "rewards:9": {
+    "0:10": {
+      "index:3": 0,
+      "rewardID:8": "bq_standard:item",
+      "rewards:9": {
+        "0:10": {
+          "Count:3": 8,
+          "Damage:2": 17305,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      }
+    }
+  },
   "tasks:9": {
     "0:10": {
       "index:3": 0,

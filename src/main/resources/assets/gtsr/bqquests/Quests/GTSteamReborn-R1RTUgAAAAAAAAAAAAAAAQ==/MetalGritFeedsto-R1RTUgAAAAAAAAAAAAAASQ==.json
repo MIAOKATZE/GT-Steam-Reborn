@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nMetal Grit can be collected in Prosperity's Brass Wastes. Wet capture and centrifuging yield metal cakes and rare-resource liquor, feeding tantalum-group, platinum-group, rare-earth, radioactive, and gallium-molybdenum branches. Check one named raw-fluid cell filled with §11000§r mB of Metal Grit. §2The cell is not consumed§r; building the industrial line is not required.\n\n§3§lPreparation and operation§r\nThis resource has many branches. Preserve the raw fluid first, then choose downstream routes for the metals you need. Filter cakes and dilute resource liquids from wet capture and centrifuging do not replace the quest target. A full cell is sufficient; reagents for every branch are unnecessary. For industrial planning, record separate routes for cakes, solutions, and final metals.",
+      "desc:8": "Bring a cell of Metal Grit from the Brass Wastes. Wet capture and centrifuging split it into filter cakes and rare-resource liquor; route the fractions before scaling up.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -41,7 +41,7 @@
           "Count:3": 1,
           "Damage:2": 0,
           "OreDict:8": "",
-          "id:8": "gtsr:CriticalSteamEntangledSingularity"
+          "id:8": "minecraft:bucket"
         }
       }
     }

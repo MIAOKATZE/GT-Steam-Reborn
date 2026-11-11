@@ -13,7 +13,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nThe boiler uses fixed 20-second batches. Let x be connected working-fluid stock in L and m be dimension factor × coolant multiplier × activation multiplier. Dense supercritical steam output is 12G×x/(x+100G)×m L/batch; hot solar salt output is 40G×x/(x+100G)×m L/batch. Choose water or salt; other steam types convert using their base heat values.\n\n§3§lPreparation and operation§r\nPrivate dimensions use factor 0.6. Cryotheum and helium plasma each give ×1.5, so m=1.35. With 100G L of distilled-water stock, one batch produces 8.1G L of dense supercritical steam and consumes 50.625G L of water. It does not consume the whole stock. Operation maintains eternal night and permits only one boiler per dimension. Prepare circulating water and both media before selecting the next route and steam type in the terminal.",
+      "desc:8": "The radiation boiler settles every twenty seconds with diminishing returns on working-fluid inventory. Expose only the intended fluids and leave space for the entire batch.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

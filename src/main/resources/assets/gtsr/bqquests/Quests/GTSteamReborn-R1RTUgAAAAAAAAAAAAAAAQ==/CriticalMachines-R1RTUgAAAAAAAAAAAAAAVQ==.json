@@ -13,7 +13,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nThe completed critical machines are the Dimensional Irradiation Coupled Boiler, Supercritical Steam Pulse Power Core, Multiphase Thermochemical Reaction Core and Artificial Stellar Confinement Core. Prepare UHV equipment and sustained supplies. §6§lThese machines must be built through a [Mimetic Loom].§r Placing a controller or copying the visible shell does not complete construction.\n\n§3§lPreparation and operation§r\nRead the loom, foundation and working-hatch guides before choosing a machine branch. Controller manufacturing and staged construction have separate critical-singularity costs; NEI lists the materials. Complete this introduction manually; it does not detect a completed structure.",
+      "desc:8": "The loom builds the plant. Choose between the radiation boiler, pulse generator, chemical generator or fusion star before laying the foundation. Set aside one critical singularity.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -39,8 +39,22 @@
   "rewards:9": {},
   "tasks:9": {
     "0:10": {
+      "autoConsume:1": 0,
+      "consume:1": 0,
+      "groupDetect:1": 0,
+      "ignoreNBT:1": 1,
       "index:3": 0,
-      "taskID:8": "bq_standard:checkbox"
+      "partialMatch:1": 1,
+      "requireOnlyOneItem:1": 0,
+      "requiredItems:9": {
+        "0:10": {
+          "Count:3": 1,
+          "Damage:2": 0,
+          "OreDict:8": "",
+          "id:8": "gtsr:CriticalSteamEntangledSingularity"
+        }
+      },
+      "taskID:8": "bq_standard:retrieval"
     }
   }
 }

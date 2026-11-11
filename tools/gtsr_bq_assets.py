@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-EDITOR_ROOT = REPO_ROOT.parent / "GT-MIAO-Web-BQ-Trade"
+EDITOR_ROOT = REPO_ROOT.parent / "MiaoBQ"
 LINE_HIGH = 5139824686389002240
 LINE_LOW = 1
 
@@ -212,6 +212,7 @@ def main(argv=None):
     parser.add_argument("--pack-root", choices=("bqquests",), default="bqquests")
     parser.add_argument("--ws-id", default="gtsr")
     parser.add_argument("--mode", choices=("dry-run", "generate", "audit"), default="dry-run")
+    parser.add_argument("--layout-policy", choices=("check", "auto", "preserve"), default="check")
     args = parser.parse_args(argv)
     shared = load_module("gtsr_shared_bq", args.editor_root / "tools/generate_bq_assets.py")
     codec = load_module("gtsr_editor_nbt", args.editor_root / "app/nbt.py")
@@ -224,7 +225,7 @@ def main(argv=None):
                         "--ws-root", str(ws_root.resolve()), "--modid", args.modid,
                         "--pack-root", args.pack_root, "--ws-id", args.ws_id,
                         "--line-high", str(LINE_HIGH), "--order-index", "900",
-                        "--mode", args.mode])
+                        "--mode", args.mode, "--layout-policy", args.layout_policy])
 
 
 if __name__ == "__main__":

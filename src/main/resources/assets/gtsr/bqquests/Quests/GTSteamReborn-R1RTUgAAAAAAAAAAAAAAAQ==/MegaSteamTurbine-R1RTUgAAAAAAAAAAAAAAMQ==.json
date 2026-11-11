@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nThe Mega Steam Turbine Array is a twin-row axial generator. Build one base ring group and §10-4§r additional groups, each adding §112§r blocks of depth. For k additional groups, the base generation multiplier is §14§r, power-group count is §1k+2§r and physical ring-group count is §1k+1§r; the extra base power does not add another efficiency or steam-savings bonus. The structure subchannel is spelled lenght: values §11-5§r select §10-4§r additional groups.\n\n§3§lPreparation and operation§r\nUse uniform steel, titanium or tungstensteel material casings, pipes, gearboxes and frames. Standard machine casings set voltage; glass cannot be below that tier, and hatches can replace standard machine-casing positions. Ordinary and superheated steam work at every casing tier; dense-family and supercritical steam require §1LuV (tier 6)§r or higher. Provide a steam inlet, a suitable fluid/cooling outlet and a dynamo; ME and native fluid-based crafting buffers can supply steam, and ordinary, multi-amp and laser dynamos are supported. Plan cooled-fluid recovery and the electrical destination. §cRequested EU output above combined dynamo capacity causes an explosion.§r Recalculate after changing rings, steam, power settings, singularities or chips. This is a manual reading check.",
+      "desc:8": "Start with the base ring and extend in twelve-block sections, up to four more. Check combined dynamo throughput before increasing steam flow.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

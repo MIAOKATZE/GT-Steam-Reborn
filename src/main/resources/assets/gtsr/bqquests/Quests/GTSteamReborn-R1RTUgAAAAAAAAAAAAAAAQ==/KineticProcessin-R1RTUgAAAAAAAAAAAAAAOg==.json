@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nKeep a Kinetic Processing Array controller in your inventory for this §2non-consuming§r check. It proves possession, not structure formation or production. Install supported GT singleblock machines in the controller GUI, then supply electricity and superheated steam for their recipes.\n\n§3§lPreparation and operation§r\nUse the current projection. The §19§r standard machine casings set the voltage ceiling together with the installed machine; glass cannot be below the casing tier. Material casings, pipes, gearboxes and frames must share steel, titanium or tungstensteel material. Their speed multipliers are §12 / 2.5 / 3§r, recipe-EU multipliers §10.6 / 0.4 / 0.3§r, and superheated-steam costs §14 / 2 / 1 L§r per actual EU consumed. Provide outlets for recipe products and the equal-volume ordinary-steam return. Hatches occupy ordinary material-casing positions; the GUI shows current recipe products and progress. Recheck supply and output space after changing the installed machines or parallelism.",
+      "desc:8": "Insert a supported GT machine. Nine matching tiered casings and the inserted machine jointly cap recipe voltage; glass must meet the casing tier. Connect power, superheated steam and the regular-steam return.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

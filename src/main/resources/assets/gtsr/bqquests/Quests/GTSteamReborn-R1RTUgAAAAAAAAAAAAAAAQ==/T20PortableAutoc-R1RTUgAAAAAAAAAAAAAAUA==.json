@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nKeep one T20 Portable Autocannon in your inventory for this non-consuming check. The T20 is an MV assembler weapon using §120§r mm ammo packs. Standard mode delivers direct fire, while airburst mode detonates near entities. Default controls: C changes mode, V changes ammunition, and R reloads. Left-click fires and right-click aims. Key bindings can be changed in settings.\n\n§3§lPreparation and operation§r\nThe recipe uses aluminium plates, long steel rods, MV motors and a piston, MV circuits, and an integrated circuit set to §12§r. Modes change the attack behavior; select one for the target position and consider nearby entities. Possession completes the goal without firing. Check the §120§r mm pack and key bindings beforehand; other calibers are not interchangeable supplies.",
+      "desc:8": "The MV assembler unlocks the T20 and its in-game 20 mm pack. Bring the equipment; firing is not required.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nThe Critical Entangled Singularity Stabilizer uses dense steam as input and produces a Critical Steam Entangled Singularity when operating conditions are met. Prepare inputs and output capacity according to machine information. This manual checklist does not check structure or production.\n\n§3§lPreparation and operation§r\nThis route connects dense-steam processing with critical-singularity item production, so plan fluid input and item output separately. Check machine conditions during construction. Store critical singularities securely after obtaining them rather than keeping them as dropped items, especially around equipment or groups of players.",
+      "desc:8": "Provide dense steam and a safe item outlet for critical singularities before starting a continuous run.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

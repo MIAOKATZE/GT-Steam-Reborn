@@ -39,7 +39,8 @@ class ReviewedPackTests(unittest.TestCase):
 
     def run_mode(self, mode):
         with contextlib.redirect_stdout(io.StringIO()):
-            return adapter.main(["--repo-root", str(self.repo), "--ws-root", str(self.ws_root), "--mode", mode])
+            return adapter.main(["--repo-root", str(self.repo), "--ws-root", str(self.ws_root),
+                                 "--mode", mode, "--layout-policy", "preserve"])
 
     def quest(self, seq):
         return json.loads(self.paths[seq].read_text(encoding="utf-8"))
@@ -85,8 +86,10 @@ class ReviewedPackTests(unittest.TestCase):
             self.assertIn(prereq, [p["questIDLow:4"] for p in self.quest(seq)["preRequisites:9"].values()])
         foundry = self.quest(68)
         self.assertEqual("OR", foundry["properties:10"]["betterquesting:10"]["taskLogic:8"])
-        self.assertEqual(["bq_standard:retrieval", "bq_standard:checkbox"],
-                         [task["taskID:8"] for task in foundry["tasks:9"].values()])
+        routes = list(foundry["tasks:9"].values())
+        self.assertEqual(["bq_standard:retrieval"] * 2, [t["taskID:8"] for t in routes])
+        self.assertEqual([("gregtech:gt.blockmachines", 14903), ("gtsr:SpacetimeAnchorBeacon", 0)],
+                         [(s["id:8"], s["Damage:2"]) for t in routes for s in t["requiredItems:9"].values()])
         critical = self.quest(85)
         self.assertEqual([64, 83], [p["questIDLow:4"] for p in critical["preRequisites:9"].values()])
         self.assertNotIn("UHV", critical["properties:10"]["betterquesting:10"]["name:8"])
@@ -98,7 +101,8 @@ class ReviewedPackTests(unittest.TestCase):
                           bronze_stack["Count:3"], bronze_task["consume:1"]))
         self.assertEqual([3], [p["questIDLow:4"] for p in bronze["preRequisites:9"].values()])
         bronze_reward = bronze["rewards:9"]["0:10"]["rewards:9"]["0:10"]
-        self.assertEqual(("minecraft:glass", 4), (bronze_reward["id:8"], bronze_reward["Count:3"]))
+        self.assertEqual(("gregtech:gt.blockframes", 300, 2),
+                         (bronze_reward["id:8"], bronze_reward["Damage:2"], bronze_reward["Count:3"]))
         for entry in self.line["entries"]:
             data = json.loads((self.repo / "src/main/resources" / entry["entryFile"]).read_text(encoding="utf-8"))
             ws = self.by_seq[data["questIDLow:4"]]

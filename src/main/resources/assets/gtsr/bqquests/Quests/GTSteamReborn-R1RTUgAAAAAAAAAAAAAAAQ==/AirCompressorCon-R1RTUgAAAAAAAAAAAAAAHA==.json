@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nKeep an Air Compressor controller in your inventory to complete this item check; §2the items are not consumed§r. The machine consumes steam to produce air for downstream recipes, including gas processing and the Siemens-Martin Furnace. Match its output and storage capacity to the machines you plan to run.\n\n§3§lPreparation and operation§r\nSeparate controller collection from air-production preparation: this goal does not inspect tanks, pipes, or downstream machines. Once built, identify the recipes that will receive air and match output capacity to their demand. If the compressor and air consumers share steam supply, account for both rather than verifying only that the compressor can start.",
+      "desc:8": "Compress air with steam and buffer it separately for the open-hearth furnace and atmospheric centrifuge. If production stalls with steam available, check the air outlet.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

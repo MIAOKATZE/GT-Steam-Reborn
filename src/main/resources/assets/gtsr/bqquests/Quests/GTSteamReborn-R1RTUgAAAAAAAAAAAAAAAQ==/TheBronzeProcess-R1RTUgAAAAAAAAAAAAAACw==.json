@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nThe processing matrix introduces nine machines: the Large Steam Furnace, Air Compressor, Atmospheric Centrifuge, Steam Fluid Drill, Vein Steam Pyrolyzer, Reinforced Brick Blast Furnace, Large Coke Oven, Crust Steam Borer and Siemens-Martin Furnace. Their steam use and operating rules differ; use each machine's tooltip and lesson when planning a shared supply.\n\n§3§lPreparation and operation§r\nThese machines cover smelting, gases, fluids, coking, drilling, and steelmaking. One machine's steam consumption cannot represent the whole line. Begin with the processing step you currently lack and plan its ingredients, steam, and products separately. Equipment needing air or preheating should be planned together with its supporting supplies, rather than as a controller alone.",
+      "desc:8": "Start with your bottleneck: smelting, compressed air or fluid extraction. Size shared pipes for the machines that actually run together. Bring four bronze plates.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -48,8 +48,22 @@
   },
   "tasks:9": {
     "0:10": {
+      "autoConsume:1": 0,
+      "consume:1": 0,
+      "groupDetect:1": 0,
+      "ignoreNBT:1": 1,
       "index:3": 0,
-      "taskID:8": "bq_standard:checkbox"
+      "partialMatch:1": 1,
+      "requireOnlyOneItem:1": 0,
+      "requiredItems:9": {
+        "0:10": {
+          "Count:3": 4,
+          "Damage:2": 17300,
+          "OreDict:8": "",
+          "id:8": "gregtech:gt.metaitem.01"
+        }
+      },
+      "taskID:8": "bq_standard:retrieval"
     }
   }
 }

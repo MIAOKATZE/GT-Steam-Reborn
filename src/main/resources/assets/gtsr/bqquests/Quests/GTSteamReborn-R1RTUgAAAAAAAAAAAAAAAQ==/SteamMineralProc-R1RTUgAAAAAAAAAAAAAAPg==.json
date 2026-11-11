@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nKeep a cluster controller and Logistics Module in your inventory to complete this non-consuming check. Processing chains are configurable, and steam demand depends on enabled links, units, and settings. Preheat as indicated and meet steam, lubricant, and module requirements before starting.\n\n§3§lPreparation and operation§r\nThis goal checks the main controller and logistics module without inspecting a structure or completed chain. List the intended mineral steps, select their units, then plan steam and lubricant. A logistics module does not automatically perform every processing step. Confirm preheating and chain configuration in the interface and evaluate products for the workflow actually enabled.",
+      "desc:8": "The controller takes steam and lubricant; ore enters and leaves at the logistics module. Form all modules, use a Hub Terminal on the controller, verify Topology, then assign steps under Links. Each chain accepts up to 16 steps.\n\nStart with just the crushing step. Feed a few suitable ores to logistics, leave an outlet for crushed ore, enable the module and supply steam and lubricant. Allow 30 seconds for full heat. Add washing only after the first output arrives. A bad chain prevents starting; losing steam or lubricant mid-batch destroys the work in progress.\n\nOnce output is steady, choose speed or parallel for a backlog, or product boosters for recovery. Change one setting at a time and compare throughput, steam and lubricant. Logistics draws lubricant too.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
@@ -38,10 +38,10 @@
       "rewardID:8": "bq_standard:item",
       "rewards:9": {
         "0:10": {
-          "Count:3": 12,
-          "Damage:2": 0,
+          "Count:3": 8,
+          "Damage:2": 300,
           "OreDict:8": "",
-          "id:8": "gtsr:SteamEntangledSingularity"
+          "id:8": "gregtech:gt.blockframes"
         }
       }
     }

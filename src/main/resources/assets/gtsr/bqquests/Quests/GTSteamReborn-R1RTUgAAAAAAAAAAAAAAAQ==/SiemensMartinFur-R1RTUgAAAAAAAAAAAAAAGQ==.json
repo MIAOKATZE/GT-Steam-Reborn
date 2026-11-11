@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nThe Siemens-Martin Furnace requires superheated steam for preheating and recipe processing. Preheating uses more steam; air is consumed while recipes run, not during preheat. Furnace temperature affects recipe time and parallelism, so provide both inputs before production and monitor their supply.\n\n§3§lPreparation and operation§r\nSecure superheated steam for preheating before connecting air and ingredients for recipe operation. If the furnace is not yet at the required operating temperature, steady-state recipe consumption is not a sufficient estimate of startup supply. Observe temperature and recipe state to distinguish preheating from steam or air shortages, and reserve output space for sustained steelmaking.",
+      "desc:8": "Superheated steam is needed both for preheating and processing. Air is only consumed during a recipe. Check startup flow if the hearth stays cold.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

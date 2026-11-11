@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "§3§lPurpose and mechanism§r\nConstruction NEI has three pages: base, body and equipment, with three rows per page. Body work covers supports, distribution and shell/stabilization; equipment covers mechanical supports, working components and sensors/wiring. Shown material amounts are per small step, repeated for the listed step count.\n\n§3§lPreparation and operation§r\nSupply the next step continuously rather than delivering the entire project at once. Body and equipment steps support lossless overclocking; the four main machines still operate in fixed 20-second batches. Gold follows the active region and completed regions stay filled. Resolve material, power or chunk-loading blockers and resume; a pause does not require rebuilding.",
+      "desc:8": "NEI lists costs per construction step. Feed the next batch shown on the monitor; check supplies, power and loaded chunks before restarting stalled work.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,
