@@ -99,15 +99,22 @@ public final class GTSRTooltipCatalog {
     }
 
     private static String materialPurpose(Materials material) {
+        if (material == null) return "industrial_material";
         if (material == GTSRProsperityAirMaterials.AbyssalObsession) return "abyssal_material";
-        for (Materials air : airMaterials()) if (air != null && air == material) return "raw_gas";
+        if (material == GTSRProsperityAirMaterials.WastesSigh) return "air.wastes";
+        if (material == GTSRProsperityAirMaterials.ThickGrease) return "air.grease";
+        if (material == GTSRProsperityAirMaterials.MetalGrit) return "air.grit";
+        if (material == GTSRProsperityAirMaterials.UmbralMire) return "air.mire";
+        if (material == GTSRProsperityAirMaterials.SanzuResidualSteam) return "air.sanzu";
+        if (material == GTSRProsperityAirMaterials.WitheredBreath) return "air.withered";
         return "industrial_material";
     }
 
     private static String fluidPurpose(Fluid fluid) {
         Materials abyssal = GTSRProsperityAirMaterials.AbyssalObsession;
         if (abyssal != null && sameFluid(abyssal.getFluid(1), fluid)) return "abyssal_material";
-        for (Materials air : airMaterials()) if (air != null && sameFluid(air.getGas(1), fluid)) return "raw_gas";
+        for (Materials air : airMaterials())
+            if (air != null && sameFluid(air.getGas(1), fluid)) return materialPurpose(air);
         return "industrial_material";
     }
 
@@ -128,6 +135,8 @@ public final class GTSRTooltipCatalog {
                     || decoded.getFluid() != generated.fluid
                     || stack.getItemDamage() != generated.fluid.getID()) return null;
             }
+            if (generated.key.startsWith("air."))
+                return keys(generated.key + ".source", generated.key + ".use", generated.form);
             return keys(generated.key, generated.form);
         }
         GameRegistry.UniqueIdentifier id = GameRegistry.findUniqueIdentifierFor(stack.getItem());
@@ -146,7 +155,7 @@ public final class GTSRTooltipCatalog {
             case "IrradiatedMoonDust" -> keys("irradiated_moon", "irradiated_unused");
             case "IrradiatedStoneDust" -> keys("irradiated_stone", "irradiated_unused");
             case "SingularityTuningWand" -> keys("debug_permission");
-            case "AbyssalObsessionBucket" -> keys("abyssal_bucket", "abyssal_fallback");
+            case "AbyssalObsessionBucket" -> keys("abyssal_bucket", "abyssal_material");
             // Existing chip, catalyst, beacon, terminal and weapon classes retain their actual use/NBT text.
             default -> Collections.emptyList();
         };
@@ -171,11 +180,11 @@ public final class GTSRTooltipCatalog {
                 // Existing ItemBlocks own all four runaway variants and the separate spacetime identity.
                 case "RunawaySingularity", "SpacetimeSingularity" -> new ArrayList<>();
                 case "TungstenSteelGearbox" -> new ArrayList<>();
-                case "AbyssalFluid" -> keys("abyssal_block", "abyssal_fallback");
+                case "AbyssalFluid" -> keys("abyssal_block", "abyssal_material");
                 case "SealedChest" -> keys("sealed_chest");
                 case "UnsealedChest" -> keys("unsealed_chest");
                 case "RuinMechanism" -> keys("ruin_mechanism");
-                case "SpacetimeAltarCore" -> keys("altar");
+                case "SpacetimeAltarCore" -> keys("altar", "altar_vis", "altar_travel");
                 case "RuinedCasing" -> keys("ruined_casing");
                 case "RuinDebris" -> keys("ruin_debris");
                 default -> keys(name.startsWith("Ruins_") || name.startsWith("Royal_") ? "decoration" : "terrain");

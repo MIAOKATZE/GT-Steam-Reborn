@@ -225,8 +225,12 @@ public final class TooltipContract {
   }
   GTSRTooltipCatalog.initialize();
   for(ItemStack stack:generated) check(GTSRTooltipCatalog.descriptionKeys(stack)!=null,"generated form coverage");
-  for(int index=240;index<254;index++) check(GTSRTooltipCatalog.descriptionKeys(generated.get(index)).contains(
-   "gtsr.tooltip.catalog."+(index>=252?"abyssal_material":"raw_gas")),"native material and real-fluid purpose");
+  String[] routes={"wastes","grease","grit","mire","sanzu","withered"};
+  for(int i=0;i<routes.length;i++) for(int kind=0;kind<2;kind++){
+   java.util.List<String> lines=GTSRTooltipCatalog.descriptionKeys(generated.get(240+2*i+kind));
+   check(lines.contains("gtsr.tooltip.catalog.air."+routes[i]+".source") && lines.contains("gtsr.tooltip.catalog.air."+routes[i]+".use"),"cell and display identify route "+routes[i]);
+  }
+  for(int index=252;index<254;index++)check(GTSRTooltipCatalog.descriptionKeys(generated.get(index)).contains("gtsr.tooltip.catalog.abyssal_material"),"abyssal purpose");
   check(generated.size()==254,"106 material fixture count");
   check(GTSRTooltipCatalog.descriptionKeys(new ItemStack(shared,99))==null,"adjacent GT meta rejected");
   check(GTSRTooltipCatalog.descriptionKeys(new ItemStack(machine,41))==null,"adjacent machine meta rejected");
@@ -315,7 +319,8 @@ for locale in ('zh_CN', 'en_US'):
             entries[key] = value
     languages.append(entries)
 assert languages[0].keys() == languages[1].keys()
-assert len(languages[0]) == 38
+assert all(f'gtsr.tooltip.catalog.air.{route}.{field}' in languages[0]
+           for route in ('wastes', 'grease', 'grit', 'mire', 'sanzu', 'withered') for field in ('source', 'use'))
 
 for path in SOURCE.glob('*.java'):
     implementation = path.read_text(encoding='utf-8')

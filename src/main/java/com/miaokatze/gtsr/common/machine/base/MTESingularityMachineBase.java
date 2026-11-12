@@ -965,11 +965,13 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
         for (int i = 1; i <= 8; i++) {
             String key = keyPrefix + "overlimit_" + i;
             if (!StatCollector.canTranslate(key)) break;
-            tt.addInfo(EnumChatFormatting.GOLD + StatCollector.translateToLocal(key));
+            for (String line : gregtech.api.util.GTSplit.splitLocalized(key))
+                tt.addInfo(EnumChatFormatting.GOLD + line);
         }
         String explodeKey = keyPrefix + "overlimit_explode";
         if (StatCollector.canTranslate(explodeKey)) {
-            tt.addInfo(EnumChatFormatting.RED + StatCollector.translateToLocal(explodeKey));
+            for (String line : gregtech.api.util.GTSplit.splitLocalized(explodeKey))
+                tt.addInfo(EnumChatFormatting.RED + line);
         }
     }
 

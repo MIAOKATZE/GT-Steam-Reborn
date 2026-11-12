@@ -940,11 +940,11 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
         // 拆行) → 子类功能群 → 结构块(按子类 shape 实际尺寸) → ctrl(YELLOW) → 子类仓室群 →
         // hint(GRAY 裸键) → 品牌行 → toolTipFinisher("GTSR")。
         EnumChatFormatting descColor = getUnitDescColor();
-        tt.addMachineType(EnumChatFormatting.BLUE + StatCollector.translateToLocal(getUnitTypeNameKey()))
-            .addInfo(
-                descColor == null ? StatCollector.translateToLocal(getUnitDescKey())
-                    : descColor + StatCollector.translateToLocal(getUnitDescKey()))
-            .addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(UNIT_DESC_2_KEY));
+        tt.addMachineType(EnumChatFormatting.BLUE + StatCollector.translateToLocal(getUnitTypeNameKey()));
+        for (String line : gregtech.api.util.GTSplit.splitLocalized(getUnitDescKey())) {
+            tt.addInfo(descColor == null ? line : descColor + line);
+        }
+        tt.addInfo(EnumChatFormatting.AQUA + StatCollector.translateToLocal(UNIT_DESC_2_KEY));
         addUnitTooltipInfo(tt);
         tt.beginStructureBlock(getUnitSizeX(), getUnitSizeY(), getUnitSizeZ(), false)
             .addController(EnumChatFormatting.YELLOW + StatCollector.translateToLocal(UNIT_CTRL_KEY))

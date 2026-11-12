@@ -53,6 +53,7 @@ import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.GTSplit;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.MultiblockTooltipBuilder;
 
@@ -689,11 +690,12 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
                 1);
         tt.addInputBus(StatCollector.translateToLocal(keyPrefix + "input_bus"), 1);
         tt.addOutputBus(StatCollector.translateToLocal(keyPrefix + "output_bus"), 1);
-        tt.addStructureInfo("")
-            .addStructureInfo(EnumChatFormatting.DARK_GRAY + StatCollector.translateToLocal(keyPrefix + "desc6"))
-            .addStructureInfo(
-                EnumChatFormatting.DARK_PURPLE + StatCollector.translateToLocal(keyPrefix + "tier1_blocks"))
-            .addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.special.singularity_ports"))
+        tt.addStructureInfo("");
+        for (String row : GTSplit.splitLocalized(keyPrefix + "desc6"))
+            tt.addStructureInfo(EnumChatFormatting.DARK_GRAY + row);
+        for (String row : GTSplit.splitLocalized(keyPrefix + "tier1_blocks"))
+            tt.addStructureInfo(EnumChatFormatting.DARK_PURPLE + row);
+        tt.addStructureInfo(StatCollector.translateToLocal("gtsr.tooltip.structure.special.singularity_ports"))
             .addStructureHint("gtsr.tooltip.shared.no_maintenance")
             .addInfo(GTSRUtils.getAddedByLine())
             .toolTipFinisher();
