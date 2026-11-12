@@ -9,21 +9,21 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0" src="https://img.shields.io/badge/GTNH-2.9.0-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.39" src="https://img.shields.io/badge/GTSR-2.1.39-green.svg"></a>
+  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.40" src="https://img.shields.io/badge/GTSR-2.1.40-green.svg"></a>
 </p>
 
 | 前置 / Requirement | 版本 / Version |
 | --- | --- |
 | GTNH | 2.9.0 |
-| [MIAOKATZE Core](https://github.com/MIAOKATZE/MIAOKATZE-Core) | 0.2.11+ |
+| [MIAOKATZE Core](https://github.com/MIAOKATZE/MIAOKATZE-Core) | 0.2.12+ |
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
 
 在繁荣维度探索遗址、解开机关并挑战首领，将六种原液带回基地加工。四种便携武器与停火后补弹的拟态弹药包，为远征提供从 LV 到 EV 的装备路线。
 
-In the inventory, hover a supported controller and press **C** to collapse its description. GregTech’s Shift structure page remains available.
+In the inventory, hover a supported controller and press **X** to collapse its description. GregTech’s Shift structure page remains available.
 
-较长的控制器说明默认展开，悬停时按 **C** 收纳，同型号共用设置。蒸汽奇点纠缠装置每轮默认抽尽最高可用品位的输入蒸汽；设置取用上限可保留余量。**Alt+C** 只切换这条警告的动画，文字始终保留。
+较长的控制器说明默认展开，悬停时按 **X** 收纳，同型号共用设置。蒸汽奇点纠缠装置每轮默认抽尽最高可用品位的输入蒸汽；设置取用上限可保留余量。**Alt+X** 只切换这条警告的动画，文字始终保留。
 
 ## 从基地到远征 / From Base to Expedition
 

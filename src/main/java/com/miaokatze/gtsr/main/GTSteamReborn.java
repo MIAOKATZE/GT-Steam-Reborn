@@ -28,7 +28,7 @@ import cpw.mods.fml.common.event.FMLServerStoppedEvent;
     version = Tags.VERSION,
     name = "GTSteamReborn",
     acceptedMinecraftVersions = "[1.7.10]",
-    dependencies = "required-after:miaokatzecore@[0.2.11,);required-before:gregtech;after:betterquesting;")
+    dependencies = "required-after:miaokatzecore@[0.2.12,);required-before:gregtech;after:betterquesting;")
 public class GTSteamReborn {
 
     // 模组唯一标识符 (Mod ID)

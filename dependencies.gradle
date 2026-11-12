@@ -84,7 +84,7 @@ dependencies {
 
 // Shared library API; immutable candidate versions may be supplied for isolated integration builds.
 dependencies {
-    // Keep the compile and runtime minimum aligned with the shared Core 0.2.11 baseline.
-    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.11"
+    // Keep the compile and runtime minimum aligned with the shared Core 0.2.12 baseline.
+    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.12"
     api("com.miaokatze.miaokatzecore:miaokatzecore:${coreVersion}:dev") { transitive = false }
 }
