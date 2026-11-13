@@ -216,11 +216,11 @@ public final class MachineVisualClient {
                 entry.decorativeMs += Math.min(100, Math.max(0, (now - entry.lastClock) / 1000000L));
             } else entry.previousDecorativeMs = entry.decorativeMs = entry.sampledDecorativeMs = 0;
             entry.lastClock = now;
-            entry.candidateMask = fresh && entry.snapshot.motionShape() && entry.snapshot.working()
-                ? (1 << entry.definition.groups.size()) - 1 & ~entry.restoringMask
-                : 0;
-            // Already-published groups always see current obstacles, even while a native upload is pending.
-            entry.eligibleMask = MachineVisualClearance.safeGroups(entry, entry.mask & entry.candidateMask);
+            entry.candidateMask = decorationMask(
+                fresh,
+                entry.snapshot,
+                entry.definition.groups.size(),
+                entry.restoringMask);
             if (!entry.definition.groups.isEmpty()) motion.add(entry);
             if (fresh) com.miaokatze.gtsr.client.workeffects.WorkEffectParticles.tick(entry.host, tick);
         }
@@ -387,8 +387,8 @@ public final class MachineVisualClient {
             if (selected[i]) {
                 int extra = entry.candidateMask & ~(entry.mask | entry.restoringMask);
                 if (extra != 0) entry.lastCandidateScan = tick;
-                // Admission bounds candidate member/group scans before any world query or sweep work.
-                next = entry.eligibleMask | MachineVisualClearance.safeGroups(entry, extra);
+                // Decorative groups follow the formed/working snapshot and the admission budget.
+                next = entry.candidateMask;
             }
             if (next != 0 && entry.mask == 0) {
                 entry.lastMotionGrant = tick;
@@ -403,6 +403,12 @@ public final class MachineVisualClient {
         held = MachineVisualVisibility.heldCosts();
         heldMotionMembers = held[0];
         heldMotionGroups = held[1];
+    }
+
+    static int decorationMask(boolean fresh, MachineVisualSnapshot snapshot, int groups, int restoringMask) {
+        return fresh && snapshot != null && snapshot.formed() && snapshot.working() && snapshot.motionShape()
+            ? ((1 << groups) - 1) & ~restoringMask
+            : 0;
     }
 
     static int memberCost(Entry entry, int mask) {
@@ -517,7 +523,9 @@ public final class MachineVisualClient {
 
         MachineVisualRenderAccess renderAccess;
         MachineVisualMeshCache meshCache;
-        MachineVisualClearance.GroupStamp[] clearanceStamps;
+        final long[] meshRevisions = new long[8];
+        final MachineVisualVisibility.CellEntry[][] boundCells = new MachineVisualVisibility.CellEntry[8][];
+        final MachineVisualVisibility.Entrance entrance = new MachineVisualVisibility.Entrance();
         long readyRevision = Long.MIN_VALUE;
         int readyMask;
 
@@ -535,7 +543,7 @@ public final class MachineVisualClient {
             lastClock = System.nanoTime(), lastRequest = Long.MIN_VALUE, changedAtTick,
             lastRenderFrame = Long.MIN_VALUE;
         volatile int mask;
-        int eligibleMask, candidateMask;
+        int candidateMask;
         long lastMotionGrant = Long.MIN_VALUE, lastCandidateScan = Long.MIN_VALUE, motionLeaseUntil,
             lastVisibleTick = Long.MIN_VALUE;
         int restoringMask;

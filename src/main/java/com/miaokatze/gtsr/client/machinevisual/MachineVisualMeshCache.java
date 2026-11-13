@@ -9,7 +9,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.miaokatze.gtsr.client.render.ClientDisplayList;
 
-/** Native GT batches are sampled once per client tick; only the motion matrix changes between frames. */
+/** Native GT geometry is compiled on admission; only its motion matrix changes while the group is published. */
 final class MachineVisualMeshCache {
 
     interface Driver {
@@ -37,9 +37,20 @@ final class MachineVisualMeshCache {
     };
 
     private final Driver driver;
-    private final Map<Integer, Integer> groups = new HashMap<>();
-    private long tick = Long.MIN_VALUE, visibility = Long.MIN_VALUE;
-    private int pass, ambientOcclusion;
+    private final Map<Long, Mesh> groups = new HashMap<>();
+    private int pass, ambientOcclusion = Integer.MIN_VALUE;
+
+    private static final class Mesh {
+
+        final int list;
+        final long revision;
+
+        Mesh(int list, long revision) {
+            this.list = list;
+            this.revision = revision;
+        }
+    }
+
     private boolean disabled;
 
     MachineVisualMeshCache() {
@@ -50,26 +61,28 @@ final class MachineVisualMeshCache {
         this.driver = driver;
     }
 
-    void begin(long nextTick, long nextVisibility, int nextPass, int nextAmbientOcclusion) {
-        if (tick == nextTick && visibility == nextVisibility
-            && pass == nextPass
-            && ambientOcclusion == nextAmbientOcclusion) return;
-        clear();
-        tick = nextTick;
-        visibility = nextVisibility;
+    void begin(int nextPass, int nextAmbientOcclusion) {
+        if (ambientOcclusion != nextAmbientOcclusion) clear();
         pass = nextPass;
         ambientOcclusion = nextAmbientOcclusion;
     }
 
     /** Returns true for a replay. Compilation publishes only a successfully completed native batch. */
-    boolean draw(int group, Runnable commands) {
+    boolean draw(int group, long revision, Runnable commands) {
         if (disabled) {
             commands.run();
             return false;
         }
-        Integer list = groups.get(group);
-        boolean replay = list != null;
-        if (list == null) {
+        long key = ((long) pass << 32) | (group & 0xffffffffL);
+        Mesh mesh = groups.get(key);
+        if (mesh != null && mesh.revision != revision) {
+            groups.remove(key);
+            driver.delete(mesh.list);
+            mesh = null;
+        }
+        boolean replay = mesh != null;
+        if (mesh == null) {
+            int list;
             boolean[] entered = { false };
             try {
                 list = driver.compile(() -> {
@@ -84,26 +97,33 @@ final class MachineVisualMeshCache {
                 commands.run();
                 return false;
             }
-            groups.put(group, list);
+            mesh = new Mesh(list, revision);
+            groups.put(key, mesh);
         }
-        driver.draw(list);
+        driver.draw(mesh.list);
         return replay;
     }
 
     void invalidate(int group) {
-        Integer list = groups.remove(group);
-        if (list != null) driver.delete(list);
+        java.util.Iterator<Map.Entry<Long, Mesh>> iterator = groups.entrySet()
+            .iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Long, Mesh> item = iterator.next();
+            if ((int) (long) item.getKey() != group) continue;
+            int list = item.getValue().list;
+            iterator.remove();
+            driver.delete(list);
+        }
     }
 
     void clear() {
         // Remove ownership before deletion: a failed driver deletion must never replay a stale list.
-        Integer[] owned = groups.values()
-            .toArray(new Integer[0]);
+        Mesh[] owned = groups.values()
+            .toArray(new Mesh[0]);
         groups.clear();
-        tick = Long.MIN_VALUE;
         RuntimeException primary = null;
-        for (int list : owned) try {
-            driver.delete(list);
+        for (Mesh mesh : owned) try {
+            driver.delete(mesh.list);
         } catch (RuntimeException failure) {
             if (primary == null) primary = failure;
             else primary.addSuppressed(failure);

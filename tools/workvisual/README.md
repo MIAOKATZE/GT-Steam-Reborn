@@ -23,7 +23,7 @@ python tools/workvisual/test_pipeline.py
 - `runtime-manifest.json`：从实际 schema2 palette、51 等**实际发现的** geometry、隐式 legacy sprite、新运动与效果资源递归闭合；PNG 与 mcmeta 分别记字节哈希。数量由输入发现，不把旧 33/1186/371 路径断言沿用到新树。已有 geometry/冻结件与施工顺序按原字节保留。`v2_v30_base_t3` 的旧 constructionOrder 与 blocks 不是完整排列，单列历史警告并保留字节，不改旧布局。
 - `authoring-manifest.json`：任务包、实际 Java shape/材质源、工具、R5 原作者与 override 独立来源哈希；plan 仓与 Mod 仓身份分开。根 LICENSE 与 resources/LICENSE 的差异记录为待 owner 签收的元数据缺口，不推断素材法律归属。
 - `scope-audit.json`：最终矩阵、16 控制器处置、82 分类与当前 MachineLoader 的 class/enum/internalName 精确集合比较；同时记录相对 ID。KPA/Mega 排除不是欠缺动画，四个已删测试工具只登记，不恢复。
-- `continuous-sweep.json`：平移全程 swept AABB 与同相组相对路径；旋转为单位方块全圆径向充分证明。面接触、无正体积交叠、正机械公差分开；列出实际世界仍须检查的空位，Crust 按 0.60 重新算，未沿用 0.30。
+- `continuous-sweep.json`：离线美术几何核验，计算平移全程 swept AABB 与同相组相对路径；旋转为单位方块全圆径向充分证明。面接触、无正体积交叠、正机械公差分开；列出设计路径空位，Crust 按 0.60 重新算，未沿用 0.30。内部纯装饰运行时不据此扫描或复核世界空位。
 - `pose-oracle.json` / `required-pose-cases.json`：五机 × 六相位 × 四向 × 合法水平镜像 × OFF/STANDARD，共 480 个必需 case，保存全尺寸八角点。`scalar-oracle.json` / `required-scalar-cases.json` 保存 42 个实际组时刻样本请求。
 - `effects-contract.json`：原 38 加新 3 个排汽锚点、稳定 ID 归属、ABC 的 B 向下和上方空位转换、194 个真实火箱单元及 foreground 字节身份。源 token/孔像素证据不签工作状态、可见面或客户端 tick。
 - `validation.json`：以上回执的精确哈希；失败会覆盖该状态文件为 FAIL，不能保留上次 PASS。当输入来自 JAR 时使用 `--jar <明确候选>`，读取 JAR 内资源而非 source overlay。

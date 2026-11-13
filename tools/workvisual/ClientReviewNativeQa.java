@@ -116,15 +116,18 @@ final class ClientReviewNativeQa {
             sample.addProperty("memberChecks", counter("clearanceMemberChecks") - memberStart);
             sample.addProperty("airChecks", counter("clearanceAirChecks") - airStart);
             sample.addProperty("heldMembers", counter("heldMotionMembers"));
-            sample.addProperty("scope", "Exact production clearance query counters over real incomplete world cells; client authority DTOs are explicitly controlled; CPU/GC/p50/p95 NOT_RUN");
+            sample.addProperty("scope", "Decoration authority and budget over real incomplete world cells; explicit client authority DTOs; retired spatial-query counters must stay zero; CPU/GC/p50/p95 NOT_RUN");
             qualitySamples.add(sample);
-            h.check("review.controlled-" + name, sample.get("heldMembers").getAsLong() == 0 && (!name.equals("OFF") || sample.get("worldQueries").getAsLong() == 0), sample.toString());
+            long expectedMembers = name.equals("OFF") ? 0 : name.equals("LOW") ? 126 : 360;
+            h.check("review.controlled-" + name, sample.get("heldMembers").getAsLong() == expectedMembers
+                && sample.get("worldQueries").getAsLong() == 0 && sample.get("memberChecks").getAsLong() == 0
+                && sample.get("airChecks").getAsLong() == 0, sample.toString());
             if (++benchmarkPhase < 3) {
                 quality(new String[] { "OFF", "LOW", "STANDARD" }[benchmarkPhase]);
                 benchmarkTicks = 0; beginCounters(); return;
             }
-            h.check("review.controlled-low-query-budget", qualitySamples.get(1).getAsJsonObject().get("worldQueries").getAsLong() <= 20L * 7L * 4L,
-                "At most seven complete 18-member candidates fit LOW per tick; failed real material checks stop early");
+            h.check("review.controlled-low-decoration-budget", qualitySamples.get(1).getAsJsonObject().get("heldMembers").getAsLong() == 126,
+                "Seven complete 18-member decorations fit LOW; admission does not scan their incomplete world volume");
             for (int i = 0; i < benchmarkEntries.size(); i++) Task03ClientQa.set(benchmarkEntries.get(i), "snapshot", originalSnapshots.get(i));
             benchmarkEntries.clear();originalSnapshots.clear();
             bootstrapComplete = true;

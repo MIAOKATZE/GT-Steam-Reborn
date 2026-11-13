@@ -36,7 +36,9 @@ public final class MachineVisualVisibility {
     private static long restorationPumpTick = Long.MIN_VALUE;
     private static int restorationActions;
     private static final java.util.concurrent.atomic.AtomicLong REVISION = new java.util.concurrent.atomic.AtomicLong();
-    private static long pruneRevision = Long.MIN_VALUE, pruneTick = Long.MIN_VALUE;
+    private static long pruneRevision = Long.MIN_VALUE, ownersRevision = Long.MIN_VALUE, costsRevision = Long.MIN_VALUE;
+    private static Map<MachineVisualClient.Entry, Integer> cachedOwners = Collections.emptyMap();
+    private static int[] cachedCosts = { 0, 0 };
 
     static long revision() {
         return REVISION.get();
@@ -113,6 +115,8 @@ public final class MachineVisualVisibility {
             CellEntry built = decision.getKey();
             CellEntry current = CELLS.get(built.key);
             if (current == null || current.owner.world != built.owner.world) continue;
+            if (!current.uploaded || current.uploadedHidden != decision.getValue().hidden)
+                current.owner.meshRevisions[Integer.numberOfTrailingZeros(current.groupBit)]++;
             current.uploadedHidden = decision.getValue().hidden;
             current.uploadedEpoch = decision.getValue().epoch;
             current.uploaded = true;
@@ -198,6 +202,8 @@ public final class MachineVisualVisibility {
 
     private static void acknowledgeAbsence(CellEntry cell) {
         REVISION.incrementAndGet();
+        if (!cell.uploaded || cell.uploadedHidden)
+            cell.owner.meshRevisions[Integer.numberOfTrailingZeros(cell.groupBit)]++;
         cell.uploadedHidden = false;
         cell.uploaded = true;
         cell.uploadedEpoch = cell.owner.maskEpochs[Integer.numberOfTrailingZeros(cell.groupBit)];
@@ -405,64 +411,99 @@ public final class MachineVisualVisibility {
         return hide;
     }
 
+    /** A refused entrance can retry only after the request was withdrawn, never on a tick timer. */
+    static final class Entrance {
+
+        private int rejected;
+
+        int filter(int requested, int active, java.util.function.IntPredicate bind) {
+            rejected &= requested;
+            int allowed = requested & ~rejected;
+            for (int remaining = allowed & ~active; remaining != 0; remaining &= remaining - 1) {
+                int index = Integer.numberOfTrailingZeros(remaining), bit = 1 << index;
+                if (bind.test(index)) continue;
+                rejected |= bit;
+                allowed &= ~bit;
+            }
+            return allowed;
+        }
+    }
+
     static void publish(MachineVisualClient.Entry entry, int mask) {
         int old = entry.mask;
+        mask = entry.entrance.filter(mask, old, index -> {
+            CellEntry[] binding = bindGroup(entry, index);
+            if (binding == null) return false;
+            entry.boundCells[index] = binding;
+            return true;
+        });
+        MachineVisualDefinition definition = entry.definition;
         if (old == mask) return;
         REVISION.incrementAndGet();
         MachineVisualRenderer.clearMesh(entry);
         entry.mask = mask;
         entry.restoringMask |= old & ~mask;
-        MachineVisualDefinition definition = entry.definition;
         for (int i = 0; i < definition.groups.size(); i++) {
             int bit = 1 << i;
             if (((mask ^ old) & bit) == 0) continue;
             entry.maskEpochs[i]++;
             entry.neighbourUploads.remove(bit);
-            if ((mask & bit) != 0) planNeighbourSections(entry, i);
-            for (MachineVisualDefinition.Cell member : definition.groups.get(i).members) {
-                int[] p = entry.at(member.x, member.y, member.z);
-                String key = key(p[0], p[1], p[2]);
-                CellEntry oldCell = CELLS.get(key);
-                if ((mask & bit) != 0 && (oldCell == null || oldCell.owner != entry)) {
-                    CellEntry next = new CellEntry(
-                        entry,
-                        bit,
-                        p[0],
-                        p[1],
-                        p[2],
-                        entry.world.getBlock(p[0], p[1], p[2]),
-                        entry.world.getBlockMetadata(p[0], p[1], p[2]));
-                    if (oldCell != null && oldCell.owner.world == entry.world) {
-                        next.uploaded = oldCell.uploaded;
-                        next.uploadedHidden = oldCell.uploadedHidden;
+            if ((mask & bit) != 0) {
+                planNeighbourSections(entry, i);
+                for (CellEntry next : entry.boundCells[i]) {
+                    CellEntry prior = CELLS.get(next.key);
+                    if (prior != null && prior.owner.world == entry.world
+                        && prior.block == next.block
+                        && prior.metadata == next.metadata) {
+                        next.uploaded = prior.uploaded;
+                        next.uploadedHidden = prior.uploadedHidden;
                     }
-                    minX = Math.min(minX, p[0]);
-                    minY = Math.min(minY, p[1]);
-                    minZ = Math.min(minZ, p[2]);
-                    maxX = Math.max(maxX, p[0]);
-                    maxY = Math.max(maxY, p[1]);
-                    maxZ = Math.max(maxZ, p[2]);
-                    CELLS.put(key, next);
+                    minX = Math.min(minX, next.x);
+                    minY = Math.min(minY, next.y);
+                    minZ = Math.min(minZ, next.z);
+                    maxX = Math.max(maxX, next.x);
+                    maxY = Math.max(maxY, next.y);
+                    maxZ = Math.max(maxZ, next.z);
+                    CELLS.put(next.key, next);
                 }
-                entry.world.markBlockRangeForRenderUpdate(p[0] - 1, p[1] - 1, p[2] - 1, p[0] + 1, p[1] + 1, p[2] + 1);
             }
+            for (CellEntry cell : entry.boundCells[i]) entry.world
+                .markBlockRangeForRenderUpdate(cell.x - 1, cell.y - 1, cell.z - 1, cell.x + 1, cell.y + 1, cell.z + 1);
             if ((old & bit) != 0 && (mask & bit) == 0) enqueueRestoration(entry, i);
         }
         releaseRestoredGroups();
     }
 
+    /** Bind one complete rigid group once. A partial/wrong material group never suppresses native blocks. */
+    private static CellEntry[] bindGroup(MachineVisualClient.Entry entry, int index) {
+        MachineVisualDefinition.Group group = entry.definition.groups.get(index);
+        int[] members = entry.geometry.groups[index].members;
+        CellEntry[] binding = new CellEntry[group.members.size()];
+        for (int i = 0; i < binding.length; i++) {
+            int x = entry.originX + members[i * 3], y = entry.originY + members[i * 3 + 1],
+                z = entry.originZ + members[i * 3 + 2];
+            if (!entry.world.blockExists(x, y, z)) return null;
+            Block block = entry.world.getBlock(x, y, z);
+            int metadata = entry.world.getBlockMetadata(x, y, z);
+            if (!group.members.get(i)
+                .matches(block, metadata)) return null;
+            CellEntry prior = CELLS.get(key(x, y, z));
+            if (prior != null && prior.owner != entry
+                && ((prior.owner.mask | prior.owner.restoringMask) & prior.groupBit) != 0) return null;
+            binding[i] = new CellEntry(entry, 1 << index, x, y, z, block, metadata);
+        }
+        return binding;
+    }
+
     private static void enqueueRestoration(MachineVisualClient.Entry entry, int group) {
         int bit = 1 << group;
-        for (MachineVisualDefinition.Cell member : entry.definition.groups.get(group).members) {
-            int[] p = entry.at(member.x, member.y, member.z);
-            CellEntry cell = CELLS.get(key(p[0], p[1], p[2]));
-            if (cell == null || cell.owner != entry) continue;
+        for (CellEntry cell : entry.boundCells[group]) {
             SectionState known = cell.renderSection == null ? null : SECTIONS.get(cell.renderSection);
             if (known != null && known.world == entry.world && known.retired) {
                 acknowledgeAbsence(cell);
                 continue;
             }
-            Dependency key = new Dependency(entry, bit, section(p[0], p[1], p[2]));
+            Dependency key = new Dependency(entry, bit, section(cell.x, cell.y, cell.z));
             RestorationRequest prior = RESTORATIONS.get(key);
             if (prior != null && prior.epoch == entry.maskEpochs[group]) continue;
             RESTORATIONS.put(
@@ -470,9 +511,9 @@ public final class MachineVisualVisibility {
                 new RestorationRequest(
                     key,
                     entry.maskEpochs[group],
-                    p[0] >> 4,
-                    p[1] >> 4,
-                    p[2] >> 4,
+                    cell.x >> 4,
+                    cell.y >> 4,
+                    cell.z >> 4,
                     cell.renderSection,
                     known == null ? null : known.manager()));
             restorationRequestsEnqueued++;
@@ -481,22 +522,28 @@ public final class MachineVisualVisibility {
 
     /** Counts both active and restoring reservations, including controllers no longer in the client host map. */
     static int[] heldCosts() {
+        long revision = revision();
+        if (costsRevision == revision) return cachedCosts;
         Map<MachineVisualClient.Entry, Integer> owners = heldOwners();
         int members = 0, groups = 0;
         for (Map.Entry<MachineVisualClient.Entry, Integer> item : owners.entrySet()) {
             members += MachineVisualClient.memberCost(item.getKey(), item.getValue());
             groups += Integer.bitCount(item.getValue());
         }
-        return new int[] { members, groups };
+        costsRevision = revision;
+        return cachedCosts = new int[] { members, groups };
     }
 
     private static Map<MachineVisualClient.Entry, Integer> heldOwners() {
+        long revision = revision();
+        if (ownersRevision == revision) return cachedOwners;
         Map<MachineVisualClient.Entry, Integer> owners = new IdentityHashMap<>();
         for (CellEntry cell : CELLS.values()) {
             int mask = cell.owner.mask | cell.owner.restoringMask;
             if (mask != 0) owners.put(cell.owner, mask);
         }
-        return owners;
+        ownersRevision = revision;
+        return cachedOwners = owners;
     }
 
     private static void releaseRestoredGroups() {
@@ -505,13 +552,9 @@ public final class MachineVisualVisibility {
             for (int i = 0; i < entry.definition.groups.size(); i++) {
                 int bit = 1 << i;
                 if ((restored & bit) == 0) continue;
-                for (MachineVisualDefinition.Cell member : entry.definition.groups.get(i).members) {
-                    int[] p = entry.at(member.x, member.y, member.z);
-                    CellEntry cell = CELLS.get(key(p[0], p[1], p[2]));
-                    if (cell == null || cell.owner != entry
-                        || !cell.uploaded
-                        || !MachineVisualClient
-                            .restorationAcknowledged(entry.maskEpochs[i], cell.uploadedEpoch, cell.uploadedHidden)) {
+                for (CellEntry cell : entry.boundCells[i]) {
+                    if (!cell.uploaded || !MachineVisualClient
+                        .restorationAcknowledged(entry.maskEpochs[i], cell.uploadedEpoch, cell.uploadedHidden)) {
                         restored &= ~bit;
                         break;
                     }
@@ -529,13 +572,8 @@ public final class MachineVisualVisibility {
         for (int i = 0; i < entry.definition.groups.size(); i++) {
             int bit = 1 << i;
             if ((ready & bit) == 0) continue;
-            int[] members = entry.geometry.groups[i].members;
-            for (int member = 0; member < members.length; member += 3) {
-                if (!uploadedHidden(
-                    entry,
-                    entry.originX + members[member],
-                    entry.originY + members[member + 1],
-                    entry.originZ + members[member + 2])) {
+            for (CellEntry cell : entry.boundCells[i]) {
+                if (!cell.uploaded || !cell.uploadedHidden) {
                     ready &= ~bit;
                     break;
                 }
@@ -569,6 +607,9 @@ public final class MachineVisualVisibility {
 
     static void clear() {
         REVISION.incrementAndGet();
+        cachedOwners = Collections.emptyMap();
+        cachedCosts = new int[] { 0, 0 };
+        ownersRevision = costsRevision = Long.MIN_VALUE;
         CELLS.clear();
         BUILDS.clear();
         OUTPUTS.clear();
@@ -590,8 +631,7 @@ public final class MachineVisualVisibility {
     }
 
     static void prune() {
-        long tick = MachineVisualClient.clientTick();
-        if (pruneTick == tick && pruneRevision == revision()) return;
+        if (pruneRevision == revision()) return;
         releaseRestoredGroups();
         World world = Minecraft.getMinecraft().theWorld;
         boolean removed = CELLS.entrySet()
@@ -602,7 +642,6 @@ public final class MachineVisualVisibility {
                         && !cell.uploadedHidden;
             });
         if (removed) REVISION.incrementAndGet();
-        pruneTick = tick;
         pruneRevision = revision();
     }
 
@@ -613,6 +652,15 @@ public final class MachineVisualVisibility {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.theWorld == null || mc.renderViewEntity == null) return;
         prune();
+        boolean needsProxy = false;
+        long frame = MachineVisualClient.renderFrame();
+        for (MachineVisualClient.Entry owner : heldOwners().keySet()) {
+            if (owner.world == mc.theWorld && (owner.retired || owner.lastRenderFrame != frame)) {
+                needsProxy = true;
+                break;
+            }
+        }
+        if (!needsProxy) return;
         java.util.List<CellEntry> targets = null;
         for (CellEntry cell : CELLS.values()) {
             if ((!cell.owner.retired && cell.owner.lastRenderFrame == MachineVisualClient.renderFrame())
@@ -735,7 +783,7 @@ public final class MachineVisualVisibility {
         }
     }
 
-    private static final class CellEntry {
+    static final class CellEntry {
 
         final MachineVisualClient.Entry owner;
         final String key;

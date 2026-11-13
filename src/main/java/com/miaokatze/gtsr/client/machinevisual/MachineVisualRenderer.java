@@ -66,62 +66,53 @@ public final class MachineVisualRenderer {
             GL11.glEnable(GL11.GL_ALPHA_TEST);
             GL11.glColor4f(1, 1, 1, 1);
             boolean turbine = host.getClass() == MTEMegaSteamTurbineArray.class;
-            if (turbine && entry.renderAccess == null) entry.renderAccess = new MachineVisualRenderAccess();
-            boolean scopedLighting = turbine && entry.renderAccess.begin(entry.world);
-            // The same native list owner is used by Critical's stellar meshes. The world-light sample
-            // expires every client tick, while current motion/shader matrices remain outside the list.
-            boolean cached = turbine && GL11.glGetInteger(GL11.GL_LIST_INDEX) == 0;
-            try {
-                if (cached) {
-                    if (entry.meshCache == null) entry.meshCache = new MachineVisualMeshCache();
-                    entry.meshCache.begin(
-                        MachineVisualClient.clientTick(),
-                        MachineVisualVisibility.revision(),
-                        MinecraftForgeClient.getRenderPass(),
-                        Minecraft.getMinecraft().gameSettings.ambientOcclusion);
-                }
-                RenderBlocks blocks = new RenderBlocks(entry.world);
-                blocks.renderAllFaces = true;
-                for (int index = 0; index < entry.definition.groups.size(); index++) {
-                    int bit = 1 << index;
-                    if ((draw & bit) == 0) continue;
-                    MachineVisualDefinition.Group group = entry.definition.groups.get(index);
-                    MachineVisualClearance.GroupGeometry geometry = entry.geometry.groups[index];
-                    GL11.glPushMatrix();
-                    try {
-                        if (animating && (ready & bit) != 0) {
-                            double value = group.sample(decorativeTime);
-                            if (group.kind.startsWith("rotate_")) {
-                                double[] pivot = geometry.pivot, axis = geometry.axis;
-                                GL11.glTranslated(pivot[0], pivot[1], pivot[2]);
-                                GL11.glRotated(
-                                    Math.toDegrees(value) * entry.geometry.handedness,
-                                    axis[0],
-                                    axis[1],
-                                    axis[2]);
-                                GL11.glTranslated(-pivot[0], -pivot[1], -pivot[2]);
-                            } else {
-                                GL11.glTranslated(
-                                    geometry.axis[0] * value,
-                                    geometry.axis[1] * value,
-                                    geometry.axis[2] * value);
-                            }
-                        }
-                        if (cached && MachineVisualClearance.currentForMesh(entry, index)) {
-                            if (entry.meshCache
-                                .draw(index, () -> drawGroup(entry, group, geometry, blocks, scopedLighting)))
-                                MachineVisualClient.motionMeshReplays++;
-                            else MachineVisualClient.motionMeshCompiles++;
+            // The same lifecycle-owned native lists are used by Critical's stellar meshes.
+            // The first native light/material sample belongs to this decorative animation until restoration.
+            boolean cached = turbine;
+            if (cached) {
+                if (entry.meshCache == null) entry.meshCache = new MachineVisualMeshCache();
+                entry.meshCache.begin(
+                    MinecraftForgeClient.getRenderPass(),
+                    Minecraft.getMinecraft().gameSettings.ambientOcclusion);
+            }
+            for (int index = 0; index < entry.definition.groups.size(); index++) {
+                int bit = 1 << index;
+                if ((draw & bit) == 0) continue;
+                MachineVisualDefinition.Group group = entry.definition.groups.get(index);
+                MachineVisualClearance.GroupGeometry geometry = entry.geometry.groups[index];
+                MachineVisualVisibility.CellEntry[] binding = entry.boundCells[index];
+                GL11.glPushMatrix();
+                try {
+                    if (animating && (ready & bit) != 0) {
+                        double value = group.sample(decorativeTime);
+                        if (group.kind.startsWith("rotate_")) {
+                            double[] pivot = geometry.pivot, axis = geometry.axis;
+                            GL11.glTranslated(pivot[0], pivot[1], pivot[2]);
+                            GL11.glRotated(
+                                Math.toDegrees(value) * entry.geometry.handedness,
+                                axis[0],
+                                axis[1],
+                                axis[2]);
+                            GL11.glTranslated(-pivot[0], -pivot[1], -pivot[2]);
                         } else {
-                            if (entry.meshCache != null) entry.meshCache.invalidate(index);
-                            drawGroup(entry, group, geometry, blocks, scopedLighting);
+                            GL11.glTranslated(
+                                geometry.axis[0] * value,
+                                geometry.axis[1] * value,
+                                geometry.axis[2] * value);
                         }
-                    } finally {
-                        GL11.glPopMatrix();
                     }
+                    if (cached) {
+                        if (entry.meshCache
+                            .draw(index, entry.meshRevisions[index], () -> drawGroup(entry, binding, turbine)))
+                            MachineVisualClient.motionMeshReplays++;
+                        else MachineVisualClient.motionMeshCompiles++;
+                    } else {
+                        if (entry.meshCache != null) entry.meshCache.invalidate(index);
+                        drawGroup(entry, binding, turbine);
+                    }
+                } finally {
+                    GL11.glPopMatrix();
                 }
-            } finally {
-                if (scopedLighting) entry.renderAccess.end();
             }
         } finally {
             MachineVisualVisibility.endProxy();
@@ -138,18 +129,23 @@ public final class MachineVisualRenderer {
         }
     }
 
-    private static void drawGroup(MachineVisualClient.Entry entry, MachineVisualDefinition.Group group,
-        MachineVisualClearance.GroupGeometry geometry, RenderBlocks blocks, boolean scopedLighting) {
+    private static void drawGroup(MachineVisualClient.Entry entry, MachineVisualVisibility.CellEntry[] binding,
+        boolean turbine) {
+        RenderBlocks blocks = new RenderBlocks(entry.world);
+        blocks.renderAllFaces = true;
+        if (turbine && entry.renderAccess == null) entry.renderAccess = new MachineVisualRenderAccess();
+        boolean scopedLighting = turbine && entry.renderAccess.begin(entry.world);
         Tessellator tessellator = Tessellator.instance;
         boolean batch = false;
         try {
-            for (int i = 0; i < group.members.size(); i++) {
-                MachineVisualDefinition.Cell member = group.members.get(i);
-                int px = entry.originX + geometry.members[i * 3], py = entry.originY + geometry.members[i * 3 + 1],
-                    pz = entry.originZ + geometry.members[i * 3 + 2];
-                if (!MachineVisualVisibility.uploadedHidden(entry, px, py, pz)) continue;
-                Block block = entry.world.getBlock(px, py, pz);
-                if (!member.matches(block, entry.world.getBlockMetadata(px, py, pz))) continue;
+            for (MachineVisualVisibility.CellEntry cell : binding) {
+                int px = cell.x, py = cell.y, pz = cell.z;
+                if (!cell.uploaded || !cell.uploadedHidden) continue;
+                // Large groups bake only at lifecycle changes. Small groups use the uploaded binding directly;
+                // their native renderer owns material/pass handling without another identity scan every frame.
+                Block block = cell.block;
+                if (turbine && (entry.world.getBlock(px, py, pz) != block
+                    || entry.world.getBlockMetadata(px, py, pz) != cell.metadata)) continue;
                 if (!batch) {
                     tessellator.startDrawingQuads();
                     tessellator.setTranslation(
@@ -171,6 +167,7 @@ public final class MachineVisualRenderer {
             if (batch) MachineVisualClient.recordSubmission(tessellator.draw(), false);
         } finally {
             tessellator.setTranslation(0, 0, 0);
+            if (scopedLighting) entry.renderAccess.end();
         }
     }
 
