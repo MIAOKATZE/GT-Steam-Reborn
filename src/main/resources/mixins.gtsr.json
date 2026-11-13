@@ -37,6 +37,8 @@
     "gtnl.SteamMultiMachineBaseGTNLMixin"
   ],
   "client": [
+    "LoginSuccessProfileAccess",
+    "NetHandlerLoginClientIdentityMixin",
     "RenderBlocksMachineVisualMixin",
     "BlockMachineVisualFaceMixin",
     "WorldRendererMachineVisualMixin",

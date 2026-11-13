@@ -5,9 +5,11 @@ package com.miaokatze.gtsr.client.lore;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.network.INetHandler;
 
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.miaokatze.gtsr.client.gui.mui2.lore.ProsperityJournalScreen;
+import com.miaokatze.gtsr.client.network.ClientRecipientIdentity;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreNetwork;
 import com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry;
 import com.miaokatze.gtsr.common.gui.mui2.Mui2TerminalRoutes;
@@ -20,37 +22,32 @@ public final class LoreClient {
 
     private LoreClient() {}
 
-    public static void receiveTitle(final LoreNetwork.StructureTitle title) {
+    public static void receiveTitle(final LoreNetwork.StructureTitle title, INetHandler source) {
+        final ClientRecipientIdentity.Audience audience = ClientRecipientIdentity
+            .capture(source, title.dimension, title.player);
+        if (audience == null) return;
         final Minecraft mc = Minecraft.getMinecraft();
         final WorldClient world = mc.theWorld;
         mc.func_152344_a(new Runnable() {
 
             @Override
             public void run() {
-                if (mc.theWorld != world || world == null
-                    || mc.thePlayer == null
-                    || mc.thePlayer.dimension != title.dimension
-                    || !mc.thePlayer.getUniqueID()
-                        .equals(title.player))
-                    return;
+                if (!audience.current()) return;
                 StructureTitleOverlay.show(world, title.key);
             }
         });
     }
 
-    public static void receive(final LoreNetwork.Snapshot snapshot) {
+    public static void receive(final LoreNetwork.Snapshot snapshot, INetHandler source) {
+        final ClientRecipientIdentity.Audience audience = ClientRecipientIdentity
+            .capture(source, snapshot.dimension, snapshot.player);
+        if (audience == null) return;
         final Minecraft mc = Minecraft.getMinecraft();
-        final WorldClient receivingWorld = mc.theWorld;
         mc.func_152344_a(new Runnable() {
 
             @Override
             public void run() {
-                if (mc.theWorld == null || mc.theWorld != receivingWorld
-                    || mc.thePlayer == null
-                    || mc.thePlayer.dimension != snapshot.dimension
-                    || !mc.thePlayer.getUniqueID()
-                        .equals(snapshot.player))
-                    return;
+                if (!audience.current()) return;
                 if (snapshot.open) {
                     if (mc.thePlayer.getHeldItem() == null || mc.thePlayer.getHeldItem()
                         .getItem() != LoreRegistry.journal) return;

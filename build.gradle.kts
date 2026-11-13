@@ -250,6 +250,63 @@ val verifyPortableWeaponRecipeContracts = tasks.register<JavaExec>("verifyPortab
     doFirst { contractDirectory.mkdirs() }
 }
 
+val verifyTurbineCasingLightContracts = tasks.register<JavaExec>("verifyTurbineCasingLightContracts") {
+    group = "verification"
+    description = "Verify native light reuse and world boundaries within a single turbine render."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.client.machinevisual.MachineVisualRenderAccessContracts")
+    maxHeapSize = "256m"
+}
+
+val verifyProsperityClientIdentityContracts = tasks.register<JavaExec>("verifyProsperityClientIdentityContracts") {
+    group = "verification"
+    description = "Verify server-login recipient identity and queued-client lifecycle without a game."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.client.network.ClientRecipientIdentityContracts")
+    maxHeapSize = "256m"
+    systemProperty("java.awt.headless", "true")
+}
+val verifyProsperityLoginMixinContracts = tasks.register<JavaExec>("verifyProsperityLoginMixinContracts") {
+    group = "verification"
+    description = "Apply the client login Mixins to actual Forge 1.7.10 classes without a game."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.client.network.LoginIdentityMixinContracts")
+    args(layout.buildDirectory.dir("prosperity-login-mixin-contract/mcp").get().asFile.absolutePath, "mcp")
+    val mappings = tasks.named<com.gtnewhorizons.retrofuturagradle.mcp.GenSrgMappingsTask>("generateForgeSrgMappings")
+    systemProperty("mixin.env.remapRefMap", "true")
+    systemProperty("mixin.env.refMapRemappingFile", mappings.get().srgToMcp.get().asFile.absolutePath)
+    maxHeapSize = "256m"
+    systemProperty("java.awt.headless", "true")
+}
+// Use the same official Forge-patched classes and production MCP-to-SRG toolchain, never hand-renamed fixtures.
+val loginIdentityMinecraft = tasks.register<Jar>("loginIdentityMinecraft") {
+    dependsOn(tasks.named("patchedMcClasses"))
+    from(sourceSets["patchedMc"].output)
+    include("net/minecraft/client/network/NetHandlerLoginClient.class")
+    include("net/minecraft/network/login/server/S02PacketLoginSuccess.class")
+    archiveFileName.set("forge-1614-login-mcp.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("prosperity-login-mixin-contract/input"))
+}
+val loginSrgMinecraft = tasks.named<com.gtnewhorizons.retrofuturagradle.mcp.ReobfuscatedJar>("reobfLoginIdentityMinecraft") {
+    archiveFileName.set("forge-1614-login-srg.jar")
+}
+val loginRuntimeJar = tasks.named<com.gtnewhorizons.retrofuturagradle.mcp.ReobfuscatedJar>("reobfJar")
+val verifyProsperityLoginSrgMixinContracts = tasks.register<JavaExec>("verifyProsperityLoginSrgMixinContracts") {
+    group = "verification"
+    description = "Apply the login Mixins and production refmap to official Forge 1614 classes reobfuscated to SRG."
+    dependsOn(tasks.named("testClasses"), loginSrgMinecraft, loginRuntimeJar)
+    classpath = files(loginSrgMinecraft.flatMap { it.archiveFile }, loginRuntimeJar.flatMap { it.archiveFile }) +
+        sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.client.network.LoginIdentityMixinContracts")
+    args(layout.buildDirectory.dir("prosperity-login-mixin-contract/srg").get().asFile.absolutePath, "srg",
+        loginRuntimeJar.get().archiveFile.get().asFile.absolutePath)
+    maxHeapSize = "256m"
+    systemProperty("java.awt.headless", "true")
+}
+
 tasks.named("check") {
     dependsOn(verifyBossCombatContracts)
     dependsOn(verifyRigMeshContracts)
@@ -258,6 +315,10 @@ tasks.named("check") {
     dependsOn(verifyRemasterJsonContracts)
     dependsOn(verifyWeaponModelContracts)
     dependsOn(verifyPortableWeaponRecipeContracts)
+    dependsOn(verifyTurbineCasingLightContracts)
+    dependsOn(verifyProsperityClientIdentityContracts)
+    dependsOn(verifyProsperityLoginMixinContracts)
+    dependsOn(verifyProsperityLoginSrgMixinContracts)
 }
 
 // Gradle writes nonempty parent directories too. Rewrite only runtime archives through standard Java ZIP APIs.

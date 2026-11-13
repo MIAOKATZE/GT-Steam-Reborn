@@ -39,7 +39,7 @@ public final class EncounterNetwork {
 
         @Override
         public IMessage onMessage(SceneBossSignal s, MessageContext c) {
-            if (s.valid) EncounterSignals.receiveScene(s);
+            if (s.valid && c.side == Side.CLIENT) EncounterSignals.receiveScene(s, c.netHandler);
             return null;
         }
     }
@@ -123,7 +123,7 @@ public final class EncounterNetwork {
 
         @Override
         public IMessage onMessage(Signal s, MessageContext c) {
-            if (s.valid) EncounterSignals.receive(s);
+            if (s.valid && c.side == Side.CLIENT) EncounterSignals.receive(s, c.netHandler);
             return null;
         }
     }
