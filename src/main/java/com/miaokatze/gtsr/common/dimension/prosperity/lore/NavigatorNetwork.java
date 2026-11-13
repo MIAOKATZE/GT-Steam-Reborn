@@ -382,7 +382,7 @@ public final class NavigatorNetwork {
 
         @Override
         public IMessage onMessage(Result result, MessageContext context) {
-            if (result.valid) NavigatorClient.receive(result);
+            if (result.valid && context.side == Side.CLIENT) NavigatorClient.receive(result, context.netHandler);
             return null;
         }
     }

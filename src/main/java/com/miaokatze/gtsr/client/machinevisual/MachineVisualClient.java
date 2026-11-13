@@ -509,6 +509,8 @@ public final class MachineVisualClient {
 
     static final class Entry {
 
+        MachineVisualRenderAccess renderAccess;
+
         final MachineVisualHost host;
         final com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition definition;
         final IGregTechTileEntity tile;

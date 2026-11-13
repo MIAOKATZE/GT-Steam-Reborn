@@ -11,8 +11,14 @@ import net.minecraft.client.renderer.texture.TextureMap;
 
 import org.lwjgl.opengl.GL11;
 
+import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+
+import gregtech.api.render.RenderOverlay;
+import gregtech.common.blocks.BlockCasings2;
+import gregtech.common.blocks.BlockCasings4;
+import gregtech.common.render.GTRendererCasing;
 
 /** GT's own atlas/ISBRH draws the original full blocks; only the display matrix moves. */
 public final class MachineVisualRenderer {
@@ -55,59 +61,74 @@ public final class MachineVisualRenderer {
             GL11.glDisable(GL11.GL_CULL_FACE);
             GL11.glEnable(GL11.GL_ALPHA_TEST);
             GL11.glColor4f(1, 1, 1, 1);
-            RenderBlocks blocks = new RenderBlocks(entry.world);
-            blocks.renderAllFaces = true;
-            for (int index = 0; index < entry.definition.groups.size(); index++) {
-                int bit = 1 << index;
-                if ((draw & bit) == 0) continue;
-                MachineVisualDefinition.Group group = entry.definition.groups.get(index);
-                MachineVisualClearance.GroupGeometry geometry = entry.geometry.groups[index];
-                GL11.glPushMatrix();
-                Tessellator tessellator = Tessellator.instance;
-                boolean batch = false;
-                try {
-                    if (animating && (ready & bit) != 0) {
-                        double value = group.sample(decorativeTime);
-                        if (group.kind.startsWith("rotate_")) {
-                            double[] pivot = geometry.pivot, axis = geometry.axis;
-                            GL11.glTranslated(pivot[0], pivot[1], pivot[2]);
-                            GL11.glRotated(
-                                Math.toDegrees(value) * entry.geometry.handedness,
-                                axis[0],
-                                axis[1],
-                                axis[2]);
-                            GL11.glTranslated(-pivot[0], -pivot[1], -pivot[2]);
-                        } else {
-                            GL11.glTranslated(
-                                geometry.axis[0] * value,
-                                geometry.axis[1] * value,
-                                geometry.axis[2] * value);
+            boolean turbine = host.getClass() == MTEMegaSteamTurbineArray.class;
+            if (turbine && entry.renderAccess == null) entry.renderAccess = new MachineVisualRenderAccess();
+            boolean scopedLighting = turbine && entry.renderAccess.begin(entry.world);
+            try {
+                RenderBlocks blocks = new RenderBlocks(entry.world);
+                blocks.renderAllFaces = true;
+                for (int index = 0; index < entry.definition.groups.size(); index++) {
+                    int bit = 1 << index;
+                    if ((draw & bit) == 0) continue;
+                    MachineVisualDefinition.Group group = entry.definition.groups.get(index);
+                    MachineVisualClearance.GroupGeometry geometry = entry.geometry.groups[index];
+                    GL11.glPushMatrix();
+                    Tessellator tessellator = Tessellator.instance;
+                    boolean batch = false;
+                    try {
+                        if (animating && (ready & bit) != 0) {
+                            double value = group.sample(decorativeTime);
+                            if (group.kind.startsWith("rotate_")) {
+                                double[] pivot = geometry.pivot, axis = geometry.axis;
+                                GL11.glTranslated(pivot[0], pivot[1], pivot[2]);
+                                GL11.glRotated(
+                                    Math.toDegrees(value) * entry.geometry.handedness,
+                                    axis[0],
+                                    axis[1],
+                                    axis[2]);
+                                GL11.glTranslated(-pivot[0], -pivot[1], -pivot[2]);
+                            } else {
+                                GL11.glTranslated(
+                                    geometry.axis[0] * value,
+                                    geometry.axis[1] * value,
+                                    geometry.axis[2] * value);
+                            }
                         }
-                    }
-                    for (int i = 0; i < group.members.size(); i++) {
-                        MachineVisualDefinition.Cell member = group.members.get(i);
-                        int px = entry.originX + geometry.members[i * 3],
-                            py = entry.originY + geometry.members[i * 3 + 1],
-                            pz = entry.originZ + geometry.members[i * 3 + 2];
-                        if (!MachineVisualVisibility.uploadedHidden(entry, px, py, pz)) continue;
-                        Block block = entry.world.getBlock(px, py, pz);
-                        if (!member.matches(block, entry.world.getBlockMetadata(px, py, pz))) continue;
-                        if (!batch) {
-                            tessellator.startDrawingQuads();
-                            tessellator.setTranslation(
-                                -entry.tile.getXCoord() - .5,
-                                -entry.tile.getYCoord() - .5,
-                                -entry.tile.getZCoord() - .5);
-                            batch = true;
+                        for (int i = 0; i < group.members.size(); i++) {
+                            MachineVisualDefinition.Cell member = group.members.get(i);
+                            int px = entry.originX + geometry.members[i * 3],
+                                py = entry.originY + geometry.members[i * 3 + 1],
+                                pz = entry.originZ + geometry.members[i * 3 + 2];
+                            if (!MachineVisualVisibility.uploadedHidden(entry, px, py, pz)) continue;
+                            Block block = entry.world.getBlock(px, py, pz);
+                            if (!member.matches(block, entry.world.getBlockMetadata(px, py, pz))) continue;
+                            if (!batch) {
+                                tessellator.startDrawingQuads();
+                                tessellator.setTranslation(
+                                    -entry.tile.getXCoord() - .5,
+                                    -entry.tile.getYCoord() - .5,
+                                    -entry.tile.getZCoord() - .5);
+                                batch = true;
+                            }
+                            // Only the sampled native GT casing renderer uses the per-invocation light memo.
+                            // Other machines, custom blocks, overlays and the tungsten gearbox retain the real World.
+                            boolean nativeCasing = block.getClass() == BlockCasings2.class
+                                || block.getClass() == BlockCasings4.class;
+                            blocks.blockAccess = scopedLighting && nativeCasing
+                                && block.getRenderType() == GTRendererCasing.mRenderID
+                                && RenderOverlay.get(entry.world, px, py, pz) == null ? entry.renderAccess
+                                    : entry.world;
+                            blocks.renderBlockByRenderType(block, px, py, pz);
+                            MachineVisualClient.renderedCubes++;
                         }
-                        blocks.renderBlockByRenderType(block, px, py, pz);
-                        MachineVisualClient.renderedCubes++;
+                        if (batch) MachineVisualClient.recordSubmission(tessellator.draw(), false);
+                    } finally {
+                        tessellator.setTranslation(0, 0, 0);
+                        GL11.glPopMatrix();
                     }
-                    if (batch) MachineVisualClient.recordSubmission(tessellator.draw(), false);
-                } finally {
-                    tessellator.setTranslation(0, 0, 0);
-                    GL11.glPopMatrix();
                 }
+            } finally {
+                if (scopedLighting) entry.renderAccess.end();
             }
         } finally {
             MachineVisualVisibility.endProxy();

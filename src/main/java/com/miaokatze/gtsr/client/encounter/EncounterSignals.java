@@ -7,7 +7,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.network.INetHandler;
 
+import com.miaokatze.gtsr.client.network.ClientRecipientIdentity;
 import com.miaokatze.gtsr.common.dimension.prosperity.encounter.EncounterNetwork;
 import com.miaokatze.gtsr.common.fx.GTSRGlowFX;
 
@@ -19,26 +21,26 @@ public final class EncounterSignals {
 
     private static final SceneBossCache SCENE = new SceneBossCache();
     private static WorldClient world;
+    private static ClientRecipientIdentity.Audience audience;
     private static int progressTicks, guideTicks, remaining, entity = -1;
     private static double x, y, z;
 
     private EncounterSignals() {}
 
-    public static void receive(final EncounterNetwork.Signal s) {
+    public static void receive(final EncounterNetwork.Signal s, INetHandler source) {
+        final ClientRecipientIdentity.Audience receivedAudience = ClientRecipientIdentity
+            .capture(source, s.dimension, s.player);
+        if (receivedAudience == null) return;
         final Minecraft mc = Minecraft.getMinecraft();
         final WorldClient received = mc.theWorld;
         mc.func_152344_a(new Runnable() {
 
             @Override
             public void run() {
-                if (mc.theWorld == null || mc.theWorld != received
-                    || mc.thePlayer == null
-                    || mc.thePlayer.dimension != s.dimension
-                    || !mc.thePlayer.getUniqueID()
-                        .equals(s.player))
-                    return;
+                if (!receivedAudience.current()) return;
                 if (world != received) clear();
                 world = received;
+                audience = receivedAudience;
                 if (s.kind == 0) {
                     progressTicks = s.active ? 60 : 0;
                     remaining = s.remaining;
@@ -53,47 +55,57 @@ public final class EncounterSignals {
         });
     }
 
-    public static void receiveScene(final com.miaokatze.gtsr.common.dimension.prosperity.encounter.SceneBossSignal s) {
+    public static void receiveScene(final com.miaokatze.gtsr.common.dimension.prosperity.encounter.SceneBossSignal s,
+        INetHandler source) {
+        final ClientRecipientIdentity.Audience receivedAudience = ClientRecipientIdentity
+            .capture(source, s.dimension, s.player);
+        if (receivedAudience == null) return;
         final Minecraft mc = Minecraft.getMinecraft();
         final WorldClient received = mc.theWorld;
         mc.func_152344_a(new Runnable() {
 
             @Override
             public void run() {
-                if (received == null || mc.theWorld != received || mc.thePlayer == null) return;
+                if (!receivedAudience.current()) return;
                 if (world != received) clear();
                 world = received;
-                SCENE.receive(received, mc.thePlayer.dimension, mc.thePlayer.getUniqueID(), s);
+                audience = receivedAudience;
+                SCENE.receive(received, mc.thePlayer.dimension, audience.player(), s);
             }
         });
     }
 
     public static com.miaokatze.gtsr.common.dimension.prosperity.encounter.SceneBossSignal scene() {
+        if (audience == null || !audience.current()) {
+            clear();
+            return null;
+        }
         return SCENE.get(Minecraft.getMinecraft().theWorld);
     }
 
     public static boolean progressActive() {
-        return progressTicks > 0;
+        return audience != null && audience.current() && progressTicks > 0;
     }
 
     public static int remaining() {
-        return remaining;
+        return audience != null && audience.current() ? remaining : 0;
     }
 
     public static void clear() {
         SCENE.clear();
         world = null;
+        audience = null;
         progressTicks = guideTicks = 0;
         entity = -1;
     }
 
     public static void tick() {
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc.theWorld == null || mc.theWorld != world || mc.thePlayer == null) {
+        if (audience == null || !audience.current()) {
             clear();
             return;
         }
-        SCENE.tick(mc.theWorld, mc.thePlayer.dimension, mc.thePlayer.getUniqueID());
+        SCENE.tick(mc.theWorld, mc.thePlayer.dimension, audience.player());
         if (progressTicks > 0) progressTicks--;
         if (guideTicks <= 0) return;
         Entity target = entity < 0 ? null : world.getEntityByID(entity);

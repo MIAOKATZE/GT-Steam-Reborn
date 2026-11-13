@@ -135,7 +135,7 @@ public final class LoreNetwork {
 
         @Override
         public IMessage onMessage(StructureTitle message, MessageContext context) {
-            if (message.valid) LoreClient.receiveTitle(message);
+            if (message.valid && context.side == Side.CLIENT) LoreClient.receiveTitle(message, context.netHandler);
             return null;
         }
     }
@@ -144,7 +144,7 @@ public final class LoreNetwork {
 
         @Override
         public IMessage onMessage(Snapshot message, MessageContext context) {
-            if (message.valid) LoreClient.receive(message);
+            if (message.valid && context.side == Side.CLIENT) LoreClient.receive(message, context.netHandler);
             return null;
         }
     }
