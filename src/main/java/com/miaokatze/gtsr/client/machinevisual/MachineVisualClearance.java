@@ -9,7 +9,11 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import net.minecraft.client.multiplayer.ChunkProviderClient;
+import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.EmptyChunk;
 
 import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
@@ -47,6 +51,13 @@ final class MachineVisualClearance {
             if ((wanted & bit) == 0) continue;
             GroupGeometry geometry = entry.geometry.groups[index];
             MachineVisualDefinition.Group group = entry.definition.groups.get(index);
+            GroupStamp stamp = groupStamp(entry, index);
+            long tick = MachineVisualClient.clientTick();
+            if (stamp != null && stamp.reuse(world, tick)) {
+                mask |= bit;
+                continue;
+            }
+            boolean cacheable = stamp != null && stamp.capture(world);
             boolean valid = true;
             for (int i = 0; i < geometry.members.length; i += 3) {
                 int x = entry.originX + geometry.members[i], y = entry.originY + geometry.members[i + 1],
@@ -80,14 +91,93 @@ final class MachineVisualClearance {
                     break;
                 }
                 MachineVisualClient.clearanceWorldQueries++;
-                if (!world.isAirBlock(x, y, z)) {
+                // A mod's isAir can depend on a neighbour or TE without a block write.
+                // Honour it, but only cache a cleared volume made of ordinary vanilla air.
+                net.minecraft.block.Block block = world.getBlock(x, y, z);
+                if (!block.isAir(world, x, y, z)) {
                     valid = false;
                     break;
                 }
+                if (block != Blocks.air) cacheable = false;
             }
-            if (valid) mask |= bit;
+            if (valid) {
+                mask |= bit;
+                if (cacheable) stamp.verifiedUntil = tick + 160 + (int) ((entry.nonce + index * 13L) & 63);
+            }
         }
         return mask;
+    }
+
+    private static GroupStamp groupStamp(MachineVisualClient.Entry entry, int index) {
+        // All motion groups share the same membership/empty-volume contract; effect-only hosts never reach here.
+        if (!(entry.world.getChunkProvider() instanceof ChunkProviderClient)) return null;
+        if (entry.clearanceStamps == null) entry.clearanceStamps = new GroupStamp[entry.geometry.groups.length];
+        if (entry.clearanceStamps[index] == null)
+            entry.clearanceStamps[index] = new GroupStamp(entry, entry.geometry.groups[index]);
+        return entry.clearanceStamps[index];
+    }
+
+    static boolean currentForMesh(MachineVisualClient.Entry entry, int index) {
+        GroupStamp[] stamps = entry.clearanceStamps;
+        return stamps != null && stamps[index] != null
+            && stamps[index].reuse(entry.world, MachineVisualClient.clientTick());
+    }
+
+    /** Watch the sections intersecting either the members or their swept air, including chunk replacement. */
+    static final class GroupStamp {
+
+        private final int[] coords;
+        private final Chunk[] chunks;
+        private final long[] revisions;
+        private long verifiedUntil = Long.MIN_VALUE;
+
+        GroupStamp(MachineVisualClient.Entry entry, GroupGeometry group) {
+            Set<Long> sections = new LinkedHashSet<>();
+            for (int[] points : new int[][] { group.members, group.air }) {
+                for (int i = 0; i < points.length; i += 3) {
+                    int x = (entry.originX + points[i]) >> 4, y = (entry.originY + points[i + 1]) >> 4,
+                        z = (entry.originZ + points[i + 2]) >> 4;
+                    sections.add(((long) x & 0x3ffffffL) << 38 | ((long) z & 0x3ffffffL) << 12 | y & 0xfffL);
+                }
+            }
+            coords = new int[sections.size() * 3];
+            chunks = new Chunk[sections.size()];
+            revisions = new long[sections.size()];
+            int pos = 0;
+            for (long section : sections) {
+                coords[pos++] = (int) (section >> 38);
+                coords[pos++] = (int) (section << 52 >> 52);
+                coords[pos++] = (int) (section << 26 >> 38);
+            }
+        }
+
+        boolean capture(World world) {
+            verifiedUntil = Long.MIN_VALUE;
+            return sections(world, true);
+        }
+
+        boolean reuse(World world, long tick) {
+            if (tick >= verifiedUntil) return false;
+            if (sections(world, false)) return true;
+            verifiedUntil = Long.MIN_VALUE;
+            return false;
+        }
+
+        private boolean sections(World world, boolean capture) {
+            for (int i = 0; i < chunks.length; i++) {
+                int x = coords[3 * i], y = coords[3 * i + 1], z = coords[3 * i + 2];
+                if (y < 0 || y >= 16) return false;
+                // Vanilla client provideChunk is a non-loading map lookup, returning EmptyChunk on a miss.
+                Chunk chunk = world.getChunkFromChunkCoords(x, z);
+                if (chunk instanceof EmptyChunk || !(chunk instanceof MotionSectionChanges tracked)) return false;
+                long revision = tracked.gtsr$motionRevision(y);
+                if (capture) {
+                    chunks[i] = chunk;
+                    revisions[i] = revision;
+                } else if (chunks[i] != chunk || revisions[i] != revision) return false;
+            }
+            return true;
+        }
     }
 
     private static int[] sweep(MachineVisualDefinition.Group group) {

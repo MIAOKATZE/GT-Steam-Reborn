@@ -259,6 +259,24 @@ val verifyTurbineCasingLightContracts = tasks.register<JavaExec>("verifyTurbineC
     maxHeapSize = "256m"
 }
 
+val verifyTurbineMeshContracts = tasks.register<JavaExec>("verifyTurbineMeshContracts") {
+    group = "verification"
+    description = "Check native turbine mesh reuse and retirement without creating a GL context."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.client.machinevisual.MachineVisualMeshCacheContracts")
+    maxHeapSize = "256m"
+}
+
+val verifyMotionClearanceContracts = tasks.register<JavaExec>("verifyMotionClearanceContracts") {
+    group = "verification"
+    description = "Check section identity, mutation tracking and motion clearance expiry."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.client.machinevisual.TurbineClearanceContracts")
+    maxHeapSize = "256m"
+}
+
 val verifyProsperityClientIdentityContracts = tasks.register<JavaExec>("verifyProsperityClientIdentityContracts") {
     group = "verification"
     description = "Verify server-login recipient identity and queued-client lifecycle without a game."
@@ -316,6 +334,8 @@ tasks.named("check") {
     dependsOn(verifyWeaponModelContracts)
     dependsOn(verifyPortableWeaponRecipeContracts)
     dependsOn(verifyTurbineCasingLightContracts)
+    dependsOn(verifyTurbineMeshContracts)
+    dependsOn(verifyMotionClearanceContracts)
     dependsOn(verifyProsperityClientIdentityContracts)
     dependsOn(verifyProsperityLoginMixinContracts)
     dependsOn(verifyProsperityLoginSrgMixinContracts)

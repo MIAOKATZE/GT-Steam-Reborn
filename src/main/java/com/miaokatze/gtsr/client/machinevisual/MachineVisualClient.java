@@ -46,6 +46,7 @@ public final class MachineVisualClient {
     public static long framesReceived, framesRejected, subscriptionRequests, renderCalls, renderedCubes;
     /** Completed Tessellator submissions and their returned byte counts; these are not GPU timer measurements. */
     public static long motionSubmissions, motionSubmittedBytes, restorationSubmissions, restorationSubmittedBytes;
+    public static long motionMeshCompiles, motionMeshReplays;
     public static int heldMotionMembers, heldMotionGroups, motionMemberLimit, motionGroupLimit;
     public static long budgetDeferredHosts, budgetRotations;
     public static int registeredHosts, waitingHosts, retiringHosts;
@@ -70,6 +71,11 @@ public final class MachineVisualClient {
             .bus()
             .register(new MachineVisualClient());
         MachineVisualVisibility.register();
+        ((net.minecraft.client.resources.IReloadableResourceManager) Minecraft.getMinecraft()
+            .getResourceManager()).registerReloadListener(manager -> {
+                for (Entry entry : ENTRIES.values()) MachineVisualRenderer.clearMesh(entry);
+                for (Entry entry : RETIRING.values()) MachineVisualRenderer.clearMesh(entry);
+            });
     }
 
     public static void observe(MachineVisualHost host, long hostTick) {
@@ -510,6 +516,10 @@ public final class MachineVisualClient {
     static final class Entry {
 
         MachineVisualRenderAccess renderAccess;
+        MachineVisualMeshCache meshCache;
+        MachineVisualClearance.GroupStamp[] clearanceStamps;
+        long readyRevision = Long.MIN_VALUE;
+        int readyMask;
 
         final MachineVisualHost host;
         final com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition definition;

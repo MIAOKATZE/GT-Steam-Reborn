@@ -35,6 +35,13 @@ public final class MachineVisualVisibility {
     private static final Map<Dependency, RestorationRequest> RESTORATIONS = new java.util.LinkedHashMap<>();
     private static long restorationPumpTick = Long.MIN_VALUE;
     private static int restorationActions;
+    private static final java.util.concurrent.atomic.AtomicLong REVISION = new java.util.concurrent.atomic.AtomicLong();
+    private static long pruneRevision = Long.MIN_VALUE, pruneTick = Long.MIN_VALUE;
+
+    static long revision() {
+        return REVISION.get();
+    }
+
     private static final ThreadLocal<BuildContext> BUILD = new ThreadLocal<>();
     private static final ThreadLocal<Boolean> PROXY = ThreadLocal.withInitial(() -> false);
     private static volatile int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
@@ -101,6 +108,7 @@ public final class MachineVisualVisibility {
         BuildReceipt decisions = OUTPUTS.remove(output);
         if (decisions == null) return;
         committedOutputs++;
+        REVISION.incrementAndGet();
         for (Map.Entry<CellEntry, CellDecision> decision : decisions.cells.entrySet()) {
             CellEntry built = decision.getKey();
             CellEntry current = CELLS.get(built.key);
@@ -189,6 +197,7 @@ public final class MachineVisualVisibility {
     }
 
     private static void acknowledgeAbsence(CellEntry cell) {
+        REVISION.incrementAndGet();
         cell.uploadedHidden = false;
         cell.uploaded = true;
         cell.uploadedEpoch = cell.owner.maskEpochs[Integer.numberOfTrailingZeros(cell.groupBit)];
@@ -399,6 +408,8 @@ public final class MachineVisualVisibility {
     static void publish(MachineVisualClient.Entry entry, int mask) {
         int old = entry.mask;
         if (old == mask) return;
+        REVISION.incrementAndGet();
+        MachineVisualRenderer.clearMesh(entry);
         entry.mask = mask;
         entry.restoringMask |= old & ~mask;
         MachineVisualDefinition definition = entry.definition;
@@ -506,19 +517,25 @@ public final class MachineVisualVisibility {
                     }
                 }
             }
+            if (restored != 0) REVISION.incrementAndGet();
             entry.restoringMask &= ~restored;
         }
         pruneRestorations();
     }
 
     static int ready(MachineVisualClient.Entry entry) {
+        if (entry.readyRevision == revision()) return entry.readyMask;
         int ready = entry.mask;
         for (int i = 0; i < entry.definition.groups.size(); i++) {
             int bit = 1 << i;
             if ((ready & bit) == 0) continue;
-            for (MachineVisualDefinition.Cell member : entry.definition.groups.get(i).members) {
-                int[] p = entry.at(member.x, member.y, member.z);
-                if (!uploadedHidden(entry, p[0], p[1], p[2])) {
+            int[] members = entry.geometry.groups[i].members;
+            for (int member = 0; member < members.length; member += 3) {
+                if (!uploadedHidden(
+                    entry,
+                    entry.originX + members[member],
+                    entry.originY + members[member + 1],
+                    entry.originZ + members[member + 2])) {
                     ready &= ~bit;
                     break;
                 }
@@ -532,6 +549,8 @@ public final class MachineVisualVisibility {
                 }
             }
         }
+        entry.readyRevision = revision();
+        entry.readyMask = ready;
         return ready;
     }
 
@@ -542,12 +561,14 @@ public final class MachineVisualVisibility {
 
     static void remove(MachineVisualClient.Entry entry) {
         entry.retired = true;
+        MachineVisualRenderer.clearMesh(entry);
         publish(entry, 0);
         // Keep ownership and rest proxies until the replacement static chunk output is committed.
         prune();
     }
 
     static void clear() {
+        REVISION.incrementAndGet();
         CELLS.clear();
         BUILDS.clear();
         OUTPUTS.clear();
@@ -569,15 +590,20 @@ public final class MachineVisualVisibility {
     }
 
     static void prune() {
+        long tick = MachineVisualClient.clientTick();
+        if (pruneTick == tick && pruneRevision == revision()) return;
         releaseRestoredGroups();
         World world = Minecraft.getMinecraft().theWorld;
-        CELLS.entrySet()
+        boolean removed = CELLS.entrySet()
             .removeIf(item -> {
                 CellEntry cell = item.getValue();
                 return cell.owner.world != world
                     || ((cell.owner.mask | cell.owner.restoringMask) & cell.groupBit) == 0 && cell.uploaded
                         && !cell.uploadedHidden;
             });
+        if (removed) REVISION.incrementAndGet();
+        pruneTick = tick;
+        pruneRevision = revision();
     }
 
     /** Retired controllers have no TESR callback; fill only their still-hidden original world cells. */

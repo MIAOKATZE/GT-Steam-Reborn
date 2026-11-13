@@ -38,7 +38,7 @@ def main():
     environment_source = ROOT.parent / 'tools/testlab/client_qa/HostEnvironment.java'
     scope_source = ROOT.parent / 'tools/testlab/client_qa/OwnedClientScope.java'
     profile_source = ROOT / 'src/testlab/java/com/miaokatze/gtsr/common/dimension/testlab/MegaTurbineProfileFixture.java'
-    extra_sources = [profile_source.resolve(strict=True)] if args.include_mega_turbine_profile else []
+    extra_sources = [profile_source.resolve(strict=True), profile_source.with_name("MegaTurbineProximityFixture.java").resolve(strict=True)] if args.include_mega_turbine_profile else []
     launch = json.loads((out / 'client-launch.json').read_text(encoding='utf-8'))['command']
     classpath = launch[launch.index('-cp') + 1] + ';' + ';'.join(str(p) for p in sorted((fixture / 'mods').rglob('*.jar')))
     options = ["-encoding", "UTF-8", "-proc:none", "--release", "8", "-cp", classpath, "-d", str(classes), *[str(p) for p in sorted(source.parent.glob("*.java"))], str(environment_source), str(scope_source), *map(str, extra_sources)]
@@ -54,6 +54,7 @@ def main():
     artifacts = [p for p in artifacts if p.relative_to(classes).as_posix().startswith(("audit/Mui2ClientQa", "audit/UiQaWireCounter", "audit/UiQaScript", "audit/UiQaGallery", "audit/UiGalleryBatch", "audit/TicketRestartQa", "miaotest/host/HostEnvironment", "miaotest/host/OwnedClientScope"))]
     if args.include_mega_turbine_profile:
         artifacts.extend(sorted((classes / 'com/miaokatze/gtsr/common/dimension/testlab').glob('MegaTurbineProfileFixture*.class')))
+        artifacts.extend(sorted((classes / 'com/miaokatze/gtsr/common/dimension/testlab').glob('MegaTurbineProximityFixture*.class')))
     with zipfile.ZipFile(jar, "w") as archive:
         for path in artifacts:
             info = zipfile.ZipInfo(path.relative_to(classes).as_posix(), date_time=(1980, 1, 1, 0, 0, 0))

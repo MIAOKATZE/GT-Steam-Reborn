@@ -37,6 +37,7 @@
     "gtnl.SteamMultiMachineBaseGTNLMixin"
   ],
   "client": [
+    "ChunkMotionClearanceMixin",
     "LoginSuccessProfileAccess",
     "NetHandlerLoginClientIdentityMixin",
     "RenderBlocksMachineVisualMixin",

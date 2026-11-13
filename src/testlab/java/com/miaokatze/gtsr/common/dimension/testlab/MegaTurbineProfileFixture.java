@@ -28,9 +28,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /** Explicit owned-client-only profile. Runtime reflection follows the existing SRG QA helper contract. */
-public final class MegaTurbineProfileFixture {
+public class MegaTurbineProfileFixture {
 
     public static final String SCRIPT = "gtsr-issue155-mega-turbine-profile-v1";
+    public static final String PROXIMITY_SCRIPT = "gtsr-mega-turbine-proximity-v1";
+    private final String scriptIdentity;
     private static final String LAB = "com.miaokatze.gtsr.common.dimension.testlab.";
     private static final String VIS = "com.miaokatze.gtsr.client.machinevisual.MachineVisualClient";
     private static final String COMMAND = "/sparkc profiler start --timeout 30 --interval 4 --force-java-sampler --save-to-file";
@@ -54,6 +56,11 @@ public final class MegaTurbineProfileFixture {
     private Object structure, originalQuality, nativeTask;
     private int controllerX, controllerY, controllerZ;
     private double cameraX, cameraY, cameraZ;
+    private final double cameraDistance;
+    private final float cameraPitch;
+    private volatile boolean tickSampling;
+    private long serverTickStarted;
+    private final List<Long> serverTickDurations = Collections.synchronizedList(new ArrayList<Long>());
     private final List<Object> tickets = new ArrayList<Object>();
     private boolean renderConfigured;
     private int originalDistance, originalFrameCap, originalServerDistance = -1;
@@ -66,7 +73,7 @@ public final class MegaTurbineProfileFixture {
     private int serverPhase, serverTicks, clientTicks, stage, settle, cameraWaitTicks, cameraStableTicks;
     private long started = System.nanoTime(), stageStarted, frames, frameStart, lastFrameStart, frameNanos, intervals;
     private volatile long generatedEU;
-    private long initialSegmentEU, maxFrameNanos;
+    private long initialSegmentEU, maxFrameNanos, stagePrepared;
     private double oldX, oldY, oldZ;
     private float oldYaw, oldPitch;
     private int oldDimension;
@@ -79,10 +86,10 @@ public final class MegaTurbineProfileFixture {
         this.hooks = hooks;
         JsonObject document = new JsonParser().parse(new String(Files.readAllBytes(plan), StandardCharsets.UTF_8))
             .getAsJsonObject();
+        scriptIdentity = document.get("scriptOnly")
+            .getAsString();
         require(
-            SCRIPT.equals(
-                document.get("scriptOnly")
-                    .getAsString()),
+            SCRIPT.equals(scriptIdentity) || PROXIMITY_SCRIPT.equals(scriptIdentity),
             "Unexpected explicit scriptOnly identity");
         require(
             "mega_steam_turbine_array".equals(
@@ -97,6 +104,19 @@ public final class MegaTurbineProfileFixture {
                 .equals("36c0bc7c5665dbd2af384f3609e06842d3c14a52b5dfaf7632288f8f0a57314f"),
             "Frozen Spark artifact required");
         JsonObject render = document.getAsJsonObject("render");
+        if (PROXIMITY_SCRIPT.equals(scriptIdentity)) {
+            cameraDistance = document.getAsJsonObject("camera")
+                .get("horizontalDistance")
+                .getAsDouble();
+            cameraPitch = document.getAsJsonObject("camera")
+                .get("pitch")
+                .getAsFloat();
+            require(cameraDistance == 16d && cameraPitch == -35f, "Explicit fixed near camera required");
+        } else {
+            cameraDistance = 48d;
+            cameraPitch = -12f;
+        }
+
         require(
             render.get("distance")
                 .getAsInt() == 8
@@ -158,7 +178,7 @@ public final class MegaTurbineProfileFixture {
         config = save.getParent()
             .getParent()
             .resolve("config");
-        receipt.put("scriptOnly", SCRIPT);
+        receipt.put("scriptOnly", scriptIdentity);
         receipt.put("runId", runId);
         receipt.put("planSHA256", sha(plan));
         receipt.put("javaVersion", System.getProperty("java.version"));
@@ -176,7 +196,9 @@ public final class MegaTurbineProfileFixture {
             "Exact fresh run-owned save; existing native mega_steam_turbine_array case and catalog station; no separate structure or texture changes");
         receipt.put(
             "measurementScope",
-            "Natural render frame wall time and sparkc Java sampler; integrated server has its own thread; not exclusive GPU timing");
+            PROXIMITY_SCRIPT.equals(scriptIdentity)
+                ? "Client RenderTick START-to-END and start-to-start wall time; server ServerTick START-to-END on its own thread; Spark client Java sampling. Includes background mods; not exclusive GPU or machine CPU timing"
+                : "Natural render frame wall time and sparkc Java sampler; integrated server has its own thread; not exclusive GPU timing");
         receipt.put("cleanupPending", true);
     }
 
@@ -299,7 +321,7 @@ public final class MegaTurbineProfileFixture {
                 controllerZ = ((Number) call(controller, "getZCoord")).intValue();
                 cameraX = controllerX + .5d;
                 cameraY = 65d;
-                cameraZ = controllerZ - 47.5d;
+                cameraZ = controllerZ + .5d - cameraDistance;
                 for (Object port : (List<?>) field(nativeTask, "ports")) {
                     Object meta = call(port, "getMetaTileEntity");
                     if (type("gregtech.api.metatileentity.implementations.MTEHatchDynamo").isInstance(meta))
@@ -380,7 +402,16 @@ public final class MegaTurbineProfileFixture {
                     ((Number) call(configuration, "getViewDistance|func_72395_o")).intValue() == 8,
                     "Integrated server view distance must match RD8");
                 receipt.put("serverViewDistance", 8);
-                call(type(LAB + "TestLabCommand"), "transfer", actor, world, cameraX, cameraY + 1d, cameraZ, 0f, -12f);
+                call(
+                    type(LAB + "TestLabCommand"),
+                    "transfer",
+                    actor,
+                    world,
+                    cameraX,
+                    cameraY + 1d,
+                    cameraZ,
+                    0f,
+                    cameraPitch);
                 serverPhase = 2;
                 ready = true;
                 stageApplied = false;
@@ -391,6 +422,8 @@ public final class MegaTurbineProfileFixture {
                     "Journalled and retained until host verifies unload and removes this exact marker-owned temporary save");
                 receipt.put("controller", Arrays.asList(controllerX, controllerY, controllerZ));
                 receipt.put("cameraFeet", Arrays.asList(cameraX, cameraY, cameraZ));
+                receipt.put("controllerHorizontalDistance", cameraDistance);
+                receipt.put("requestedPitch", cameraPitch);
                 receipt.put("initialTransferFeet", Arrays.asList(cameraX, cameraY + 1d, cameraZ));
             } else {
                 if (!stageApplied) {
@@ -427,6 +460,15 @@ public final class MegaTurbineProfileFixture {
             publishState();
         } catch (Throwable cause) {
             cancel(unwrap(cause));
+        }
+    }
+
+    public void serverTiming(boolean start) {
+        if (!tickSampling || System.nanoTime() - stageStarted > 30_000_000_000L) return;
+        if (start) serverTickStarted = System.nanoTime();
+        else if (serverTickStarted != 0) {
+            serverTickDurations.add(System.nanoTime() - serverTickStarted);
+            serverTickStarted = 0;
         }
     }
 
@@ -622,14 +664,18 @@ public final class MegaTurbineProfileFixture {
                     .getAsFloat());
             segment.put("serverBefore", serverState);
             initialSegmentEU = generatedEU;
+            stagePrepared = System.nanoTime();
         }
         float yaw = spec.get("yaw")
             .getAsFloat();
         set(player, "rotationYaw|field_70177_z", yaw);
         set(player, "prevRotationYaw|field_70126_B", yaw);
-        set(player, "rotationPitch|field_70125_A", stage < 3 ? -12f : 0f);
-        set(player, "prevRotationPitch|field_70127_C", stage < 3 ? -12f : 0f);
+        set(player, "rotationPitch|field_70125_A", cameraPitch);
+        set(player, "prevRotationPitch|field_70127_C", cameraPitch);
         if (!sampling) {
+            require(
+                System.nanoTime() - stagePrepared < 120_000_000_000L,
+                "Client running/visibility gate timeout: " + segment);
             if (!stageApplied || Boolean.TRUE.equals(serverState.get("active")) != wantRunning
                 || !Boolean.TRUE.equals(serverState.get("formed"))
                 || (wantRunning && generatedEU <= initialSegmentEU)) {
@@ -638,10 +684,15 @@ public final class MegaTurbineProfileFixture {
             }
             if (++settle < 100) return;
             if (clientTicks % 10 != 0) return;
+            segment.put("lastServerGateState", serverState);
+            if (clientTicks % 100 == 0) write(output.resolve("turbine-profile-wait.json"), segment);
             Object clientTile = call(clientWorld, "getTileEntity|func_147438_o", controllerX, controllerY, controllerZ);
             if (clientTile == null) return;
             Object clientMachine = call(clientTile, "getMetaTileEntity");
             if (clientMachine == null) return;
+            segment.put("clientIsWorking", call(type(VIS), "isWorking", clientMachine));
+            segment.put("clientSafeMask", call(type(VIS), "safeGroupMask", clientMachine));
+            segment.put("clientUploadedMask", call(type(VIS), "uploadedGroupMask", clientMachine));
             if (wantRunning && !"OFF".equals(
                 spec.get("quality")
                     .getAsString())
@@ -670,7 +721,7 @@ public final class MegaTurbineProfileFixture {
                     num(field(player, "posY|field_70163_u")),
                     num(field(player, "posZ|field_70161_v")),
                     yaw,
-                    stage < 3 ? -12 : 0));
+                    cameraPitch));
             segment.put("safeGroupMask", mask);
             segment.put("uploadedGroupMask", uploaded);
             segment.put("cameraFeetY", num(field(field(player, "boundingBox|field_70121_D"), "minY|field_72338_b")));
@@ -685,8 +736,11 @@ public final class MegaTurbineProfileFixture {
             lastFrameStart = 0;
             frameDurations.clear();
             frameIntervals.clear();
+            serverTickDurations.clear();
+            tickSampling = true;
             spark(mc, COMMAND);
             sparkStarted = true;
+            segment.put("clientCountersAtStart", diagnosticCounters());
             stageStarted = System.nanoTime();
             sampling = true;
             hooks.screenshot(
@@ -709,6 +763,10 @@ public final class MegaTurbineProfileFixture {
             Boolean.TRUE.equals(serverState.get("active")) == wantRunning,
             "Machine activity changed during profile segment");
         if (wantRunning) require(generatedEU > initialSegmentEU, "No native dynamo generation during running profile");
+        tickSampling = false;
+        synchronized (serverTickDurations) {
+            segment.put("serverTickDurationsNanos", new ArrayList<Long>(serverTickDurations));
+        }
         segment.put("elapsedNanos", elapsed);
         segment.put("frameCount", frames);
         segment.put("renderNanos", frameNanos);
@@ -716,6 +774,12 @@ public final class MegaTurbineProfileFixture {
         segment.put("frameIntervalsNanos", new ArrayList<Long>(frameIntervals));
         segment.put("renderDurationsNanos", new ArrayList<Long>(frameDurations));
         segment.put("serverAfter", serverState);
+        if (!segment.containsKey("clientCountersAtEnd")) segment.put("clientCountersAtEnd", diagnosticCounters());
+        segment.put(
+            "clientCounterDelta",
+            counterDelta(
+                (Map<String, Object>) segment.get("clientCountersAtStart"),
+                (Map<String, Object>) segment.get("clientCountersAtEnd")));
         List<Map<String, Object>> files = new ArrayList<Map<String, Object>>();
         for (Path file : now) {
             require(Files.size(file) > 0, "Empty spark profile");
@@ -738,7 +802,15 @@ public final class MegaTurbineProfileFixture {
     }
 
     public void render(boolean start) {
-        if (!sampling || cancel || System.nanoTime() - stageStarted > 30_000_000_000L) return;
+        if (!sampling || cancel) return;
+        if (System.nanoTime() - stageStarted > 30_000_000_000L) {
+            if (!segment.containsKey("clientCountersAtEnd")) try {
+                segment.put("clientCountersAtEnd", diagnosticCounters());
+            } catch (Exception e) {
+                cancel(e);
+            }
+            return;
+        }
         long now = System.nanoTime();
         if (start) {
             frameStart = now;
@@ -792,6 +864,41 @@ public final class MegaTurbineProfileFixture {
             originalServerDistance = -1;
         }
         cleaned = true;
+    }
+
+    private static Map<String, Object> diagnosticCounters() throws Exception {
+        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        for (String name : Arrays.asList(
+            "hostAdmissions",
+            "hostRetirements",
+            "clearanceWorldQueries",
+            "clearanceMemberChecks",
+            "clearanceAirChecks",
+            "renderCalls",
+            "renderedCubes",
+            "motionSubmissions",
+            "motionSubmittedBytes",
+            "motionMeshCompiles",
+            "motionMeshReplays")) {
+            try {
+                result.put(name, field(type(VIS), name));
+            } catch (NoSuchFieldException absent) {
+                result.put(name, "MISSING_IN_ARTIFACT");
+            }
+        }
+        return result;
+    }
+
+    private static Map<String, Object> counterDelta(Map<String, Object> before, Map<String, Object> after) {
+        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        for (String key : before.keySet()) {
+            Object a = before.get(key), b = after.get(key);
+            result.put(
+                key,
+                a instanceof Number && b instanceof Number ? ((Number) b).longValue() - ((Number) a).longValue()
+                    : "NOT_AVAILABLE");
+        }
+        return result;
     }
 
     private static Map<String, Object> summary(Map<?, ?> visibility) {

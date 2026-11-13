@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureMap;
+import net.minecraftforge.client.MinecraftForgeClient;
 
 import org.lwjgl.opengl.GL11;
 
@@ -46,7 +47,10 @@ public final class MachineVisualRenderer {
         }
         int ready = MachineVisualVisibility.ready(entry);
         int draw = entry.mask | entry.restoringMask;
-        if (draw == 0) return;
+        if (draw == 0) {
+            clearMesh(entry);
+            return;
+        }
         boolean animating = MachineVisualClient.isAnimating(host);
         long decorativeTime = animating ? MachineVisualClient.decorativeTime(entry, partialTick) : 0;
         Minecraft.getMinecraft()
@@ -64,7 +68,18 @@ public final class MachineVisualRenderer {
             boolean turbine = host.getClass() == MTEMegaSteamTurbineArray.class;
             if (turbine && entry.renderAccess == null) entry.renderAccess = new MachineVisualRenderAccess();
             boolean scopedLighting = turbine && entry.renderAccess.begin(entry.world);
+            // The same native list owner is used by Critical's stellar meshes. The world-light sample
+            // expires every client tick, while current motion/shader matrices remain outside the list.
+            boolean cached = turbine && GL11.glGetInteger(GL11.GL_LIST_INDEX) == 0;
             try {
+                if (cached) {
+                    if (entry.meshCache == null) entry.meshCache = new MachineVisualMeshCache();
+                    entry.meshCache.begin(
+                        MachineVisualClient.clientTick(),
+                        MachineVisualVisibility.revision(),
+                        MinecraftForgeClient.getRenderPass(),
+                        Minecraft.getMinecraft().gameSettings.ambientOcclusion);
+                }
                 RenderBlocks blocks = new RenderBlocks(entry.world);
                 blocks.renderAllFaces = true;
                 for (int index = 0; index < entry.definition.groups.size(); index++) {
@@ -73,8 +88,6 @@ public final class MachineVisualRenderer {
                     MachineVisualDefinition.Group group = entry.definition.groups.get(index);
                     MachineVisualClearance.GroupGeometry geometry = entry.geometry.groups[index];
                     GL11.glPushMatrix();
-                    Tessellator tessellator = Tessellator.instance;
-                    boolean batch = false;
                     try {
                         if (animating && (ready & bit) != 0) {
                             double value = group.sample(decorativeTime);
@@ -94,36 +107,16 @@ public final class MachineVisualRenderer {
                                     geometry.axis[2] * value);
                             }
                         }
-                        for (int i = 0; i < group.members.size(); i++) {
-                            MachineVisualDefinition.Cell member = group.members.get(i);
-                            int px = entry.originX + geometry.members[i * 3],
-                                py = entry.originY + geometry.members[i * 3 + 1],
-                                pz = entry.originZ + geometry.members[i * 3 + 2];
-                            if (!MachineVisualVisibility.uploadedHidden(entry, px, py, pz)) continue;
-                            Block block = entry.world.getBlock(px, py, pz);
-                            if (!member.matches(block, entry.world.getBlockMetadata(px, py, pz))) continue;
-                            if (!batch) {
-                                tessellator.startDrawingQuads();
-                                tessellator.setTranslation(
-                                    -entry.tile.getXCoord() - .5,
-                                    -entry.tile.getYCoord() - .5,
-                                    -entry.tile.getZCoord() - .5);
-                                batch = true;
-                            }
-                            // Only the sampled native GT casing renderer uses the per-invocation light memo.
-                            // Other machines, custom blocks, overlays and the tungsten gearbox retain the real World.
-                            boolean nativeCasing = block.getClass() == BlockCasings2.class
-                                || block.getClass() == BlockCasings4.class;
-                            blocks.blockAccess = scopedLighting && nativeCasing
-                                && block.getRenderType() == GTRendererCasing.mRenderID
-                                && RenderOverlay.get(entry.world, px, py, pz) == null ? entry.renderAccess
-                                    : entry.world;
-                            blocks.renderBlockByRenderType(block, px, py, pz);
-                            MachineVisualClient.renderedCubes++;
+                        if (cached && MachineVisualClearance.currentForMesh(entry, index)) {
+                            if (entry.meshCache
+                                .draw(index, () -> drawGroup(entry, group, geometry, blocks, scopedLighting)))
+                                MachineVisualClient.motionMeshReplays++;
+                            else MachineVisualClient.motionMeshCompiles++;
+                        } else {
+                            if (entry.meshCache != null) entry.meshCache.invalidate(index);
+                            drawGroup(entry, group, geometry, blocks, scopedLighting);
                         }
-                        if (batch) MachineVisualClient.recordSubmission(tessellator.draw(), false);
                     } finally {
-                        tessellator.setTranslation(0, 0, 0);
                         GL11.glPopMatrix();
                     }
                 }
@@ -136,4 +129,49 @@ public final class MachineVisualRenderer {
             GL11.glPopAttrib();
         }
     }
+
+    static void clearMesh(MachineVisualClient.Entry entry) {
+        if (entry.meshCache != null) {
+            MachineVisualMeshCache owned = entry.meshCache;
+            entry.meshCache = null;
+            owned.clear();
+        }
+    }
+
+    private static void drawGroup(MachineVisualClient.Entry entry, MachineVisualDefinition.Group group,
+        MachineVisualClearance.GroupGeometry geometry, RenderBlocks blocks, boolean scopedLighting) {
+        Tessellator tessellator = Tessellator.instance;
+        boolean batch = false;
+        try {
+            for (int i = 0; i < group.members.size(); i++) {
+                MachineVisualDefinition.Cell member = group.members.get(i);
+                int px = entry.originX + geometry.members[i * 3], py = entry.originY + geometry.members[i * 3 + 1],
+                    pz = entry.originZ + geometry.members[i * 3 + 2];
+                if (!MachineVisualVisibility.uploadedHidden(entry, px, py, pz)) continue;
+                Block block = entry.world.getBlock(px, py, pz);
+                if (!member.matches(block, entry.world.getBlockMetadata(px, py, pz))) continue;
+                if (!batch) {
+                    tessellator.startDrawingQuads();
+                    tessellator.setTranslation(
+                        -entry.tile.getXCoord() - .5,
+                        -entry.tile.getYCoord() - .5,
+                        -entry.tile.getZCoord() - .5);
+                    batch = true;
+                }
+                // Only the sampled native GT casing renderer uses the per-invocation light memo.
+                // Other machines, custom blocks, overlays and the tungsten gearbox retain the real World.
+                boolean nativeCasing = block.getClass() == BlockCasings2.class
+                    || block.getClass() == BlockCasings4.class;
+                blocks.blockAccess = scopedLighting && nativeCasing
+                    && block.getRenderType() == GTRendererCasing.mRenderID
+                    && RenderOverlay.get(entry.world, px, py, pz) == null ? entry.renderAccess : entry.world;
+                blocks.renderBlockByRenderType(block, px, py, pz);
+                MachineVisualClient.renderedCubes++;
+            }
+            if (batch) MachineVisualClient.recordSubmission(tessellator.draw(), false);
+        } finally {
+            tessellator.setTranslation(0, 0, 0);
+        }
+    }
+
 }
