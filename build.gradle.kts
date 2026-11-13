@@ -225,6 +225,31 @@ val verifyBossCombatContracts = tasks.register<JavaExec>("verifyBossCombatContra
     maxHeapSize = "256m"
 }
 
+// GT's public entry classes link these APIs even though this fixture never runs their mod lifecycle.
+val portableRecipeContractRuntime = configurations.create("portableRecipeContractRuntime") {
+    isTransitive = false
+}
+dependencies {
+    add(portableRecipeContractRuntime.name, "com.falsepattern:chunkapi-mc1.7.10:0.8.3:dev")
+    add(portableRecipeContractRuntime.name, "com.falsepattern:endlessids-mc1.7.10:1.7.3:dev")
+    add(portableRecipeContractRuntime.name, "com.falsepattern:falsepatternlib-mc1.7.10:1.12.0:dev")
+    // Same Java-17 multi-release shim used by tools/tests/turbine_restart/run.py.
+    add(portableRecipeContractRuntime.name, "xyz.wagyourtail.jvmdowngrader:jvmdowngrader-java-api:1.3.5:downgraded-8")
+}
+val verifyPortableWeaponRecipeContracts = tasks.register<JavaExec>("verifyPortableWeaponRecipeContracts") {
+    group = "verification"
+    description = "Verify portable recipes and schematic/cache isolation with the native GT .265 backend."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath +
+        sourceSets["main"].compileClasspath + portableRecipeContractRuntime
+    mainClass.set("com.miaokatze.gtsr.loader.recipes.PortableWeaponRecipeContracts")
+    maxHeapSize = "512m"
+    systemProperty("java.awt.headless", "true")
+    val contractDirectory = layout.buildDirectory.dir("portable-recipe-contract").get().asFile
+    workingDir(contractDirectory)
+    doFirst { contractDirectory.mkdirs() }
+}
+
 tasks.named("check") {
     dependsOn(verifyBossCombatContracts)
     dependsOn(verifyRigMeshContracts)
@@ -232,6 +257,7 @@ tasks.named("check") {
     dependsOn(verifyCriticalJsonContracts)
     dependsOn(verifyRemasterJsonContracts)
     dependsOn(verifyWeaponModelContracts)
+    dependsOn(verifyPortableWeaponRecipeContracts)
 }
 
 // Gradle writes nonempty parent directories too. Rewrite only runtime archives through standard Java ZIP APIs.

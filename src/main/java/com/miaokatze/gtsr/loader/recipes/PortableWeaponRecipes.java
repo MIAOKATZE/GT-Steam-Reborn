@@ -22,11 +22,12 @@ import gregtech.api.enums.TierEU;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTRecipe;
-import gregtech.api.util.GTUtility;
 
 /** Portable weapons and full ammunition packs; missing required ingredients fail explicitly. */
 public final class PortableWeaponRecipes {
 
+    // One selector for the portable family; configuration 3 also matches GT's empty schematic.
+    private static final int PORTABLE_CONFIGURATION = 24;
     private static int registeredRecipeCount;
 
     private PortableWeaponRecipes() {}
@@ -43,8 +44,7 @@ public final class PortableWeaponRecipes {
             ore(OrePrefixes.stickLong, Materials.Steel, 6),
             ItemList.Electric_Motor_LV.get(2),
             ItemList.Electric_Piston_LV.get(1),
-            ore(OrePrefixes.circuit, Materials.LV, 2),
-            GTUtility.getIntegratedCircuit(1));
+            ore(OrePrefixes.circuit, Materials.LV, 2));
         add(
             "T20",
             GTSRItemList.PortableT20,
@@ -55,8 +55,7 @@ public final class PortableWeaponRecipes {
             ore(OrePrefixes.stickLong, Materials.Steel, 4),
             ItemList.Electric_Motor_MV.get(2),
             ItemList.Electric_Piston_MV.get(1),
-            ore(OrePrefixes.circuit, Materials.MV, 2),
-            GTUtility.getIntegratedCircuit(2));
+            ore(OrePrefixes.circuit, Materials.MV, 2));
         add(
             "QLZ04",
             GTSRItemList.PortableQLZ04,
@@ -67,8 +66,7 @@ public final class PortableWeaponRecipes {
             ore(OrePrefixes.stickLong, Materials.StainlessSteel, 2),
             ItemList.Electric_Motor_HV.get(2),
             ItemList.Electric_Piston_HV.get(1),
-            ore(OrePrefixes.circuit, Materials.HV, 2),
-            GTUtility.getIntegratedCircuit(3));
+            ore(OrePrefixes.circuit, Materials.HV, 2));
         add(
             "107",
             GTSRItemList.PortableSingularity,
@@ -79,12 +77,11 @@ public final class PortableWeaponRecipes {
             ore(OrePrefixes.stickLong, Materials.Titanium, 2),
             ItemList.Field_Generator_EV.get(1),
             ore(OrePrefixes.circuit, Materials.EV, 2),
-            GTSRItemList.SteamEntangledSingularity.get(1),
-            GTUtility.getIntegratedCircuit(4));
+            GTSRItemList.SteamEntangledSingularity.get(1));
 
-        ammo("7.62mm/500", GTSRItemList.Ammo762Pack, Materials.Steel, Materials.LV, 16, 11, TierEU.RECIPE_LV, 200);
-        ammo("20mm/160", GTSRItemList.Ammo20Pack, Materials.Aluminium, Materials.MV, 24, 12, TierEU.RECIPE_MV, 300);
-        ammo("35mm/60", GTSRItemList.Ammo35Pack, Materials.StainlessSteel, Materials.HV, 32, 13, TierEU.RECIPE_HV, 400);
+        ammo("7.62mm/500", GTSRItemList.Ammo762Pack, Materials.Steel, Materials.LV, 16, TierEU.RECIPE_LV, 200);
+        ammo("20mm/160", GTSRItemList.Ammo20Pack, Materials.Aluminium, Materials.MV, 24, TierEU.RECIPE_MV, 300);
+        ammo("35mm/60", GTSRItemList.Ammo35Pack, Materials.StainlessSteel, Materials.HV, 32, TierEU.RECIPE_HV, 400);
 
         // Native TConstruct materials metadata 6 is the moss ball, not an ore-dictionary substitute.
         ItemStack moss = GTModHandler.getModItem("TConstruct", "materials", 1, 6);
@@ -93,14 +90,14 @@ public final class PortableWeaponRecipes {
             throw failure("Missing required AbyssalObsession material");
         FluidStack abyss = GTSRProsperityAirMaterials.AbyssalObsession.getFluid(1000);
         if (abyss == null || abyss.getFluid() == null) throw failure("Missing required AbyssalObsession fluid");
-        mimic("Mimic7.62mm", GTSRItemList.Ammo762Pack, GTSRItemList.MimicAmmo762Pack, moss, abyss, 21);
-        mimic("Mimic20mm", GTSRItemList.Ammo20Pack, GTSRItemList.MimicAmmo20Pack, moss, abyss, 22);
-        mimic("Mimic35mm", GTSRItemList.Ammo35Pack, GTSRItemList.MimicAmmo35Pack, moss, abyss, 23);
+        mimic("Mimic7.62mm", GTSRItemList.Ammo762Pack, GTSRItemList.MimicAmmo762Pack, moss, abyss);
+        mimic("Mimic20mm", GTSRItemList.Ammo20Pack, GTSRItemList.MimicAmmo20Pack, moss, abyss);
+        mimic("Mimic35mm", GTSRItemList.Ammo35Pack, GTSRItemList.MimicAmmo35Pack, moss, abyss);
         GTSteamReborn.LOG.info("[GTSR-PortableRecipes] Registered " + registeredRecipeCount + " assembler recipes");
     }
 
-    private static void ammo(String id, GTSRItemList output, Materials casing, Materials circuit, int charge,
-        int configuration, long eut, int duration) {
+    private static void ammo(String id, GTSRItemList output, Materials casing, Materials circuit, int charge, long eut,
+        int duration) {
         add(
             id,
             output,
@@ -111,12 +108,10 @@ public final class PortableWeaponRecipes {
             ore(OrePrefixes.dust, Materials.Lead, charge),
             ore(OrePrefixes.dust, Materials.Gunpowder, charge),
             ore(OrePrefixes.foil, Materials.Copper, charge),
-            ore(OrePrefixes.circuit, circuit, 1),
-            GTUtility.getIntegratedCircuit(configuration));
+            ore(OrePrefixes.circuit, circuit, 1));
     }
 
-    private static void mimic(String id, GTSRItemList ordinary, GTSRItemList output, ItemStack moss, FluidStack abyss,
-        int configuration) {
+    private static void mimic(String id, GTSRItemList ordinary, GTSRItemList output, ItemStack moss, FluidStack abyss) {
         add(
             id,
             output,
@@ -127,8 +122,7 @@ public final class PortableWeaponRecipes {
             moss.copy(),
             ore(OrePrefixes.plate, Materials.HSSS, 2),
             ItemList.Sensor_LuV.get(1),
-            ore(OrePrefixes.circuit, Materials.LuV, 1),
-            GTUtility.getIntegratedCircuit(configuration));
+            ore(OrePrefixes.circuit, Materials.LuV, 1));
     }
 
     private static ItemStack ore(OrePrefixes prefix, Materials material, int amount) {
@@ -146,11 +140,12 @@ public final class PortableWeaponRecipes {
 
     private static void add(String id, GTSRItemList output, long eut, int duration, FluidStack fluid,
         ItemStack... inputs) {
-        if (inputs.length > 6) throw failure(id + " exceeds six assembler item inputs");
+        if (inputs.length > 5) throw failure(id + " exceeds five ingredients plus the assembler selector");
         for (int i = 0; i < inputs.length; i++) require(inputs[i], id + " input " + i);
         ItemStack result = full(output);
         Collection<GTRecipe> added = GTValues.RA.stdBuilder()
             .itemInputs(inputs)
+            .circuit(PORTABLE_CONFIGURATION)
             .itemOutputs(result)
             .fluidInputs(fluid == null ? new FluidStack[0] : new FluidStack[] { fluid })
             .duration(duration)
