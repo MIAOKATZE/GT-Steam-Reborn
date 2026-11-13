@@ -1,4 +1,4 @@
-"""Execute real client/clearance/renderer sources against explicit, deterministic MC boundary fakes.
+"""Execute real decoration-policy/orientation/renderer sources against deterministic MC boundary fakes.
 
 This is source-call-site feedback, not a production JAR, Forge/GL or native performance acceptance.
 Never launches Gradle or Minecraft. The fixture definition values come from packaged motions.json.
@@ -13,25 +13,27 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = "com/miaokatze/gtsr/client/machinevisual"
 
 STUBS = {
-    "net/minecraft/block/Block": "public class Block {}",
+    "net/minecraft/block/Block": "public class Block {public int getRenderType(){return 0;}}",
     "net/minecraft/tileentity/TileEntity": "public class TileEntity { public boolean invalid; public boolean isInvalid(){return invalid;} }",
     "net/minecraft/world/World": """public class World {
       public static class Provider { public int dimensionId; } public final Provider provider=new Provider();
-      public long queries; public final java.util.Map<String,net.minecraft.tileentity.TileEntity> tiles=new java.util.HashMap<>();
-      public final net.minecraft.block.Block block=new net.minecraft.block.Block(); public final java.util.Set<String> obstacles=new java.util.HashSet<>();
+      public long queries,decorationQueries; public final java.util.Map<String,net.minecraft.tileentity.TileEntity> tiles=new java.util.HashMap<>();
+      public final net.minecraft.block.Block block=new net.minecraft.block.Block();
       public static String key(int x,int y,int z){return x+":"+y+":"+z;}
       public boolean blockExists(int x,int y,int z){queries++;return true;}
       public net.minecraft.tileentity.TileEntity getTileEntity(int x,int y,int z){queries++;return tiles.get(key(x,y,z));}
-      public net.minecraft.block.Block getBlock(int x,int y,int z){queries++;return block;}
-      public int getBlockMetadata(int x,int y,int z){queries++;return 0;}
-      public boolean isAirBlock(int x,int y,int z){queries++;return !obstacles.contains(key(x,y,z));}
+      public net.minecraft.block.Block getBlock(int x,int y,int z){queries++;decorationQueries++;return block;}
+      public int getBlockMetadata(int x,int y,int z){queries++;decorationQueries++;return 0;}
+      public boolean isAirBlock(int x,int y,int z){queries++;decorationQueries++;return true;}
     }""",
     "net/minecraft/client/Minecraft": """public class Minecraft {
       private static final Minecraft INSTANCE=new Minecraft(); public static Minecraft getMinecraft(){return INSTANCE;}
       public net.minecraft.world.World theWorld; public final Player thePlayer=new Player(); public boolean paused;
+      public final Settings gameSettings=new Settings(); public static class Settings {public int ambientOcclusion;}
       public boolean isSingleplayer(){return true;} public boolean isGamePaused(){return paused;}
       public static class Player { public double x; public boolean alwaysNear; public double getDistanceSq(double x,double y,double z){return alwaysNear?0:(this.x-x)*(this.x-x)+z*z;} }
       public static class Textures { public void bindTexture(Object texture){} } public Textures getTextureManager(){return new Textures();}
+      public Object getResourceManager(){return null;}
     }""",
     "cpw/mods/fml/common/FMLCommonHandler": """public class FMLCommonHandler {public static FMLCommonHandler instance(){return new FMLCommonHandler();} public FMLCommonHandler bus(){return this;} public void register(Object o){}}""",
     "cpw/mods/fml/common/eventhandler/SubscribeEvent": "public @interface SubscribeEvent {}",
@@ -48,15 +50,25 @@ STUBS = {
     "com/miaokatze/gtsr/client/workeffects/WorkEffectParticles": "public class WorkEffectParticles {public static void tick(com.miaokatze.gtsr.common.machinevisual.MachineVisualHost host,long tick){}}",
     "com/miaokatze/gtsr/client/workeffects/WorkEffectRenderer": "public class WorkEffectRenderer {public static void render(com.miaokatze.gtsr.common.machinevisual.MachineVisualHost host,boolean working){}}",
     "com/miaokatze/gtsr/client/machinevisual/MachineVisualVisibility": """final class MachineVisualVisibility {
+      static final class CellEntry {int x,y,z,metadata;boolean uploaded,uploadedHidden;net.minecraft.block.Block block;}
       static final java.util.Set<MachineVisualClient.Entry> owners=java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
       static void register(){} static void prune(){} static void clear(){owners.clear();}
-      static void publish(MachineVisualClient.Entry e,int next){e.restoringMask|=e.mask&~next;e.mask=next;if((e.mask|e.restoringMask)!=0)owners.add(e);}
+      static void publish(MachineVisualClient.Entry e,int next){e.restoringMask|=e.mask&~next;e.mask=next;for(int i=0;i<e.definition.groups.size();i++)if((next&(1<<i))!=0)e.boundCells[i]=new CellEntry[0];if((e.mask|e.restoringMask)!=0)owners.add(e);}
       static void remove(MachineVisualClient.Entry e){e.retired=true;publish(e,0);}
       static int[] heldCosts(){int m=0,g=0;for(MachineVisualClient.Entry e:owners){int bits=e.mask|e.restoringMask;m+=MachineVisualClient.memberCost(e,bits);g+=Integer.bitCount(bits);}return new int[]{m,g};}
       static int ready(MachineVisualClient.Entry e){return e.mask;} static boolean uploadedHidden(MachineVisualClient.Entry e,int x,int y,int z){return true;}
       static void beginProxy(){} static void endProxy(){} static java.util.Map<String,Object> diagnostics(java.util.Collection<MachineVisualClient.Entry> e){return new java.util.HashMap<>();}
     }""",
-    "net/minecraft/client/renderer/RenderBlocks": "public class RenderBlocks {public boolean renderAllFaces; public RenderBlocks(net.minecraft.world.World w){} public void renderBlockByRenderType(net.minecraft.block.Block b,int x,int y,int z){}}",
+    "com/miaokatze/gtsr/client/machinevisual/MachineVisualMeshCache": """final class MachineVisualMeshCache {void begin(int pass,int ao){} boolean draw(int group,long revision,Runnable sample){sample.run();return false;} void invalidate(int group){} void clear(){}}""",
+    "com/miaokatze/gtsr/client/machinevisual/MachineVisualRenderAccess": """final class MachineVisualRenderAccess {boolean begin(net.minecraft.world.World world){return true;} void end(){}}""",
+    "com/miaokatze/gtsr/common/machine/MTEMegaSteamTurbineArray": "public abstract class MTEMegaSteamTurbineArray implements com.miaokatze.gtsr.common.machinevisual.MachineVisualHost {}",
+    "net/minecraftforge/client/MinecraftForgeClient": "public class MinecraftForgeClient {public static int getRenderPass(){return 0;}}",
+    "net/minecraft/client/resources/IReloadableResourceManager": "public interface IReloadableResourceManager {void registerReloadListener(java.util.function.Consumer<Object> listener);}",
+    "gregtech/api/render/RenderOverlay": "public class RenderOverlay {public static Object get(net.minecraft.world.World w,int x,int y,int z){return null;}}",
+    "gregtech/common/blocks/BlockCasings2": "public class BlockCasings2 extends net.minecraft.block.Block {}",
+    "gregtech/common/blocks/BlockCasings4": "public class BlockCasings4 extends net.minecraft.block.Block {}",
+    "gregtech/common/render/GTRendererCasing": "public class GTRendererCasing {public static int mRenderID=1;}",
+    "net/minecraft/client/renderer/RenderBlocks": "public class RenderBlocks {public boolean renderAllFaces; public Object blockAccess; public RenderBlocks(net.minecraft.world.World w){} public void renderBlockByRenderType(net.minecraft.block.Block b,int x,int y,int z){}}",
     "net/minecraft/client/renderer/Tessellator": "public class Tessellator {public static final Tessellator instance=new Tessellator(); public void startDrawingQuads(){} public void setTranslation(double x,double y,double z){} public int draw(){return 1;}}",
     "net/minecraft/client/renderer/texture/TextureMap": "public class TextureMap {public static final Object locationBlocksTexture=new Object();}",
     "org/lwjgl/opengl/GL11": """public class GL11 {public static final int GL_ENABLE_BIT=1,GL_LIGHTING_BIT=2,GL_CURRENT_BIT=4,GL_COLOR_BUFFER_BIT=8,GL_LIGHTING=16,GL_CULL_FACE=32,GL_ALPHA_TEST=64;
@@ -112,7 +124,7 @@ def main():
     files += [ROOT / ("src/main/java/" + PACKAGE + "/" + name + ".java") for name in ("MachineVisualClient", "MachineVisualClearance", "MachineVisualRenderer")]
     files += [ROOT / "src/main/java/com/miaokatze/gtsr/common/machinevisual/MachineVisualSpace.java", Path(__file__).with_name("ClientReviewContract.java")]
     receipt = {"status": "FAIL", "boundary": __doc__, "sources": {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}, "commands": []}
-    commands = [("compile", [args.javac, "--release", "17", "-encoding", "UTF-8", "-proc:none", "-d", str(classes), *map(str, files)]), ("feedback", [args.java, "-cp", str(classes), "com.miaokatze.gtsr.client.machinevisual.ClientReviewContract"])]
+    commands = [("compile", [args.javac, "-J-Duser.language=en", "--release", "17", "-encoding", "UTF-8", "-proc:none", "-d", str(classes), *map(str, files)]), ("feedback", [args.java, "-Duser.language=en", "-cp", str(classes), "com.miaokatze.gtsr.client.machinevisual.ClientReviewContract"])]
     for label, command in commands:
         result = subprocess.run(command, capture_output=True)
         (out / (label + ".stdout.log")).write_bytes(result.stdout)

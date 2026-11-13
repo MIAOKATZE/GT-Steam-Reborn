@@ -73,34 +73,41 @@ public final class ClientReviewContract {
         reset(); hosts=fill(512,MachineVisualDefinition.get("atmospheric_centrifuge"));working(hosts);
         MachineVisualClient.setQuality(MachineVisualClient.Quality.LOW);world.queries=0;tick();
         long low=world.queries;
-        check(low<=5000,"PERF-001 LOW candidate world queries are bounded: actual="+low);
+        check(low==1024,"PERF-001 LOW only checks 512 controller identities, without decoration-volume queries: actual="+low);
         System.out.println("MEASURE LOW hosts=512 worldQueries="+low+" heldMembers="+MachineVisualClient.heldMotionMembers);
 
-        long sweepBuilds=MachineVisualClearance.sweepBuilds,orientationBuilds=MachineVisualClearance.orientationBuilds;
+        long orientationBuilds=MachineVisualClearance.orientationBuilds;
         working(hosts);tick();
-        check(MachineVisualClearance.sweepBuilds==sweepBuilds&&MachineVisualClearance.orientationBuilds==orientationBuilds,
+        check(MachineVisualClearance.orientationBuilds==orientationBuilds,
             "fixed geometry and orientation are reused across hosts/ticks");
-
-        reset();hosts=fill(20,MachineVisualDefinition.get("atmospheric_centrifuge"));working(hosts);
-        for(Host blocked:hosts){MachineVisualClient.Entry entry=MachineVisualClient.entry(blocked);int[] air=entry.geometry.groups[0].air;
-            world.obstacles.add(World.key(entry.originX+air[0],entry.originY+air[1],entry.originZ+air[2]));}
-        MachineVisualClient.setQuality(MachineVisualClient.Quality.LOW);
-        for(int i=0;i<3;i++)tick();
-        int scanned=0;for(Host blocked:hosts)if(MachineVisualClient.entry(blocked).lastCandidateScan!=Long.MIN_VALUE)scanned++;
-        check(scanned==20,"blocked candidates take finite scan turns within LOW credits: "+scanned);
 
         reset();hosts=fill(1,MachineVisualDefinition.get("air_compressor"));working(hosts);
         MachineVisualClient.setQuality(MachineVisualClient.Quality.LOW);tick();
-        MachineVisualClient.Entry old=MachineVisualClient.entry(hosts.get(0));int[] air=old.geometry.groups[0].air;
-        world.obstacles.add(World.key(old.originX+air[0],old.originY+air[1],old.originZ+air[2]));tick();
-        check((old.mask&1)==0&&(old.restoringMask&1)!=0,"published group sees a new obstruction in the next tick");
-        check(MachineVisualVisibility.heldCosts()[0]==4,"obstructed group's static restoration still holds its reservation");
+        MachineVisualClient.Entry old=MachineVisualClient.entry(hosts.get(0));
+        world.decorationQueries=0;tick();
+        check(old.mask==3&&world.decorationQueries==0,"authorised decoration stays animated without spatial or lighting queries");
+        old.snapshot.flags=3;tick();
+        check(old.mask==0&&old.restoringMask==3,"authority stop restores every published decoration group");
+        check(MachineVisualVisibility.heldCosts()[0]==4,"stopped group's static restoration still holds its reservation");
         hosts.get(0).tile.invalid=true;Host replacement=new Host(0,hosts.get(0).definition);observe(replacement);tick();
         check(MachineVisualClient.entry(replacement)==null&&MachineVisualVisibility.heldCosts()[0]==4,
             "same-coordinate replacement waits for old owner's static acknowledgement");
         // Explicit fake boundary acknowledgement; native section/GPU acknowledgement remains a separate test.
         old.restoringMask=0;tick();
         check(MachineVisualClient.entry(replacement)!=null,"replacement may register after explicit restoration acknowledgement");
+
+        reset();hosts=fill(1,MachineVisualDefinition.get("air_compressor"));
+        MachineVisualClient.setQuality(MachineVisualClient.Quality.LOW);tick();
+        check(MachineVisualClient.entry(hosts.get(0)).mask==0,"nearby host without a server snapshot cannot claim decoration");
+        working(hosts);tick();
+        MachineVisualClient.Entry resumed=MachineVisualClient.entry(hosts.get(0));
+        check(resumed.mask==3,"fresh formed working authority grants complete decoration");
+        resumed.snapshot.flags=1;tick();
+        check(resumed.mask==0&&resumed.restoringMask==3,"missing motion authority restores decoration");
+        resumed.snapshot.flags=7;tick();
+        check(resumed.mask==0,"fresh work cannot reclaim groups awaiting static restoration acknowledgement");
+        resumed.restoringMask=0;tick();
+        check(resumed.mask==3,"acknowledged restoration permits fresh work to resume decoration");
 
         reset();hosts=fill(1,MachineVisualDefinition.get("air_compressor"));working(hosts);
         Host h=hosts.get(0);MachineVisualClient.setQuality(MachineVisualClient.Quality.LOW);tick();
@@ -131,8 +138,8 @@ public final class ClientReviewContract {
             MachineVisualClearance.Plan a=MachineVisualClearance.plan(d,ExtendedFacing.NORTH),b=MachineVisualClearance.plan(d,ExtendedFacing.EAST);
             boolean bounded=true;
             for(MachineVisualClearance.Plan p:new MachineVisualClearance.Plan[]{a,b})for(MachineVisualClearance.GroupGeometry g:p.groups)
-                for(int coordinate:g.air)if(Math.abs(coordinate)>32)bounded=false;
-            check(bounded,"fixed sweep coordinate signs and rotated bounds: "+id);
+                for(int coordinate:g.members)if(Math.abs(coordinate)>32)bounded=false;
+            check(bounded,"member-only orientation geometry preserves signed rotated bounds: "+id);
         }
 
         System.out.println((failures==0?"PASS":"FAIL")+" source client feedback checks="+checks+" failures="+failures+"; production JAR/FML/GL/native timing NOT_RUN");

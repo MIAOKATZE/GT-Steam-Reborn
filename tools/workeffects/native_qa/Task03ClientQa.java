@@ -263,7 +263,7 @@ public final class Task03ClientQa {
             Object definition=call(machine,"visualDefinition");String[][] layers=(String[][])call(definition,"shapeLayers");
             int a=x+(int)number(call(definition,"offset",0)),b=(int)number(call(definition,"offset",1))-y,c=z+(int)number(call(definition,"offset",2));
             boolean in=b>=0&&b<layers.length&&c>=0&&c<layers[b].length&&a>=0&&a<layers[b][c].length();
-            check("obstacle-source-skip",!in||layers[b][c].charAt(a)==' ',"Selected sweep cell is outside original shape or literal skip, never required-air/hatch/material");
+            check("obstacle-source-skip",!in||layers[b][c].charAt(a)==' ',"Selected decoration-adjacent cell is outside original shape or literal skip, never required-air/hatch/material");
             point=localCell(x,y,z);
         } else {
             Object definition=call(type("com.miaokatze.gtsr.common.workeffects.WorkEffectDefinitions"),"forHost",machine);
@@ -427,20 +427,20 @@ public final class Task03ClientQa {
             if(phase==45&&working&&mask==expectedMask&&number(call(type(CLIENT),"uploadedGroupMask",m))==expectedMask){pendingShot=machineId+"-offscreen-resumed";phase=46;phaseTick=ticks;return;}
             if(phase==46&&ticks-phaseTick>=5){offscreenTestDone=true;check("offscreen-return-restores-motion",true,"Original near camera and STANDARD return only after complete upload mask and a real nonzero native sampled pose");completeCase(frame);return;}
             if(phase==7) {
-                if(obstacleAck!=1||call(clientWorld,"getBlock|func_147439_a",ox,oy,oz)!=field(type("net.minecraft.init.Blocks"),"stone|field_150348_b")||mask!=0||uploadedHiddenCells(m)!=0||number(field(frame,"workSequence"))<=blockedSequence)return;
-                check("sweep-block-fallback",working&&Boolean.TRUE.equals(call(frame,"formed")),"Actual skip/top stone is visible in client; all affected groups restored to committed static chunks while native advancement continues");
-                blockedCubes=cubes();pendingShot=machineId+"-sweep-blocked";phase=8;phaseTick=ticks;return;
+                if(obstacleAck!=1||call(clientWorld,"getBlock|func_147439_a",ox,oy,oz)!=field(type("net.minecraft.init.Blocks"),"stone|field_150348_b")||mask!=expectedMask||number(call(type(CLIENT),"uploadedGroupMask",m))!=expectedMask||number(field(frame,"workSequence"))<=blockedSequence)return;
+                check("decoration-ignores-skip-stone",working&&Boolean.TRUE.equals(call(frame,"formed")),"Actual skip/top stone is visible in client; authorised internal decoration keeps its published groups while native advancement continues");
+                blockedCubes=cubes();pendingShot=machineId+"-decoration-stone";phase=8;phaseTick=ticks;return;
             }
             if(phase==8&&ticks-phaseTick>=12) {
-                check("sweep-block-no-motion",cubes()==blockedCubes&&mask==0,"No dynamic cubes after static upload recovery; source-world obstacle never changes native structure acceptance");
-                check("sweep-block-production",number(field(frame,"workSequence"))>blockedSequence,"Actual successful native work continues while sweep presentation is blocked");
-                JsonObject trace=new JsonObject();trace.addProperty("kind","motion sweep skip/external cell");trace.addProperty("xyz",ox+","+oy+","+oz);trace.addProperty("blockedMask",mask);trace.addProperty("uploadedHiddenCells",uploadedHiddenCells(m));trace.addProperty("workSequenceBefore",blockedSequence);trace.addProperty("workSequenceAfter",number(field(frame,"workSequence")));q.receipt.add("obstructionTrace",trace);
+                check("decoration-stone-keeps-motion",mask==expectedMask&&number(call(type(CLIENT),"uploadedGroupMask",m))==expectedMask,"Unrelated source skip stone never revokes authorised decoration or forces static restoration");
+                check("decoration-stone-production",number(field(frame,"workSequence"))>blockedSequence,"Actual successful native work continues with decoration and unrelated stone");
+                JsonObject trace=new JsonObject();trace.addProperty("kind","decoration ignores unrelated source skip cell");trace.addProperty("xyz",ox+","+oy+","+oz);trace.addProperty("animatedMask",mask);trace.addProperty("uploadedHiddenCells",uploadedHiddenCells(m));trace.addProperty("workSequenceBefore",blockedSequence);trace.addProperty("workSequenceAfter",number(field(frame,"workSequence")));q.receipt.add("obstructionTrace",trace);
                 obstacleRequest=2;phase=9;return;
             }
             if(phase==9&&obstacleAck==2&&Boolean.TRUE.equals(call(clientWorld,"isAirBlock|func_147437_c",ox,oy,oz))&&working&&mask==expectedMask&&number(call(type(CLIENT),"uploadedGroupMask",m))==expectedMask) {
-                pendingShot=machineId+"-obstacle-resumed";phase=10;phaseTick=ticks;return;
+                pendingShot=machineId+"-decoration-stone-removed";phase=10;phaseTick=ticks;return;
             }
-            if(phase==10&&ticks-phaseTick>=5){check("sweep-clear-restores",mask==expectedMask,"Ordinary stone removed; original animated groups recommit without any world machine-block movement");completeCase(frame);return;}
+            if(phase==10&&ticks-phaseTick>=5){check("decoration-cleanup-keeps-motion",mask==expectedMask,"Removing owned unrelated stone leaves the original decorative animation authorised");completeCase(frame);return;}
             if(phase==20) {
                 if(obstacleAck!=1||call(clientWorld,"getBlock|func_147439_a",ox,oy,oz)!=field(type("net.minecraft.init.Blocks"),"stone|field_150348_b"))return;
                 blockedCloudCalls=cloudCalls();blockedSequence=number(field(frame,"workSequence"));phase=21;phaseTick=ticks;return;
