@@ -369,8 +369,8 @@ public final class SolarNativeTooltipFixture {
         current.put(
             "fontSampleWidth",
             call(field(mc, "fontRenderer|field_71466_p"), "getStringWidth|func_78256_a", "ABC 123 中"));
-        current.put("physicalWindowWidth", call(type("org.lwjglx.opengl.Display"), "getWidth"));
-        current.put("physicalWindowHeight", call(type("org.lwjglx.opengl.Display"), "getHeight"));
+        current.put("preparedWindowWidth", call(type("org.lwjglx.opengl.Display"), "getWidth"));
+        current.put("preparedWindowHeight", call(type("org.lwjglx.opengl.Display"), "getHeight"));
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -498,8 +498,11 @@ public final class SolarNativeTooltipFixture {
             Object shader = field(type("com.miaokatze.miaokatzecore.client.tooltip.art.SealShader"), "INSTANCE");
             current.put("sealShaderProgram", field(shader, "program"));
             current.put("sealShaderFailed", field(shader, "failed"));
-            try { current.put("openGL30", field(call(type("org.lwjgl.opengl.GL"), "getCapabilities"), "OpenGL30")); }
-            catch (ReflectiveOperationException unavailable) { current.put("openGL30", "DIAGNOSTIC_UNAVAILABLE: "+unavailable); }
+            try {
+                current.put("openGL30", field(call(type("org.lwjgl.opengl.GL"), "getCapabilities"), "OpenGL30"));
+            } catch (ReflectiveOperationException unavailable) {
+                current.put("openGL30", "DIAGNOSTIC_UNAVAILABLE: " + unavailable);
+            }
             draws++;
         } catch (Throwable t) {
             cancel(t);
@@ -518,6 +521,11 @@ public final class SolarNativeTooltipFixture {
     }
 
     private void verifyCapture() throws Exception {
+        int ww = ((Number) call(type("org.lwjglx.opengl.Display"), "getWidth")).intValue(),
+            wh = ((Number) call(type("org.lwjglx.opengl.Display"), "getHeight")).intValue();
+        require(ww == 2560 && wh == 1440, "Actual private native window must be 2560x1440 at capture");
+        current.put("physicalWindowWidth", ww);
+        current.put("physicalWindowHeight", wh);
         require(current.containsKey("hitItemMeta"), "Natural item hit was never observed");
         require(
             ((Number) ((Map<?, ?>) current.get("actualRenderEvent")).get("scale")).intValue() == row.get("scale")
