@@ -184,14 +184,26 @@ public final class CriticalTooltips {
 
     private static void policyEntry(MultiblockTooltipBuilder tt, String group, CriticalSolarPolicy.Entry entry,
         EnumChatFormatting color) {
-        tt.addInfo(
-            EnumChatFormatting.GRAY + formatted(
-                "solar.medium",
-                color + tr("solar." + group + "." + entry.id) + EnumChatFormatting.GRAY,
-                java.math.BigDecimal.valueOf(entry.multiplier)
-                    .stripTrailingZeros()
-                    .toPlainString(),
-                String.format(java.util.Locale.ROOT, "%,d", (long) entry.litresPerSecond)));
+        tt.addInfo(solarMediumLine(group, entry, color));
+    }
+
+    /** Original native text is also the exact-match fallback anchor for the optional client table. */
+    public static String solarMediumLine(String group, CriticalSolarPolicy.Entry entry, EnumChatFormatting color) {
+        return EnumChatFormatting.GRAY + formatted(
+            "solar.medium",
+            color + tr("solar." + group + "." + entry.id) + EnumChatFormatting.GRAY,
+            solarMediumMultiplier(entry),
+            solarMediumFlow(entry));
+    }
+
+    public static String solarMediumMultiplier(CriticalSolarPolicy.Entry entry) {
+        return BigDecimal.valueOf(entry.multiplier)
+            .stripTrailingZeros()
+            .toPlainString();
+    }
+
+    public static String solarMediumFlow(CriticalSolarPolicy.Entry entry) {
+        return String.format(java.util.Locale.ROOT, "%,d", (long) entry.litresPerSecond);
     }
 
     private static String formatted(String key, Object... values) {

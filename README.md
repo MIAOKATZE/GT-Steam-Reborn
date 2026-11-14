@@ -15,7 +15,9 @@
 | 前置 / Requirement | 版本 / Version |
 | --- | --- |
 | GTNH | 2.9.0 |
-| [MIAOKATZE Core](https://github.com/MIAOKATZE/MIAOKATZE-Core) | 0.2.14+ |
+| [MIAOKATZE Core](https://github.com/MIAOKATZE/MIAOKATZE-Core) | 0.2.16+（本开发分支） |
+
+从源码构建这版时，先准备 Core 0.2.16 的 dev 包。该坐标未发布时，用 `-PmiaokatzeCoreRepository=<本地依赖目录>` 指向含该 dev 包与 POM 的 Maven 布局目录；勿用旧版 Core 编译。
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
 

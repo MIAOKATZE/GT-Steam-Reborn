@@ -325,7 +325,17 @@ val verifyProsperityLoginSrgMixinContracts = tasks.register<JavaExec>("verifyPro
     systemProperty("java.awt.headless", "true")
 }
 
+val verifySolarTooltipContracts = tasks.register<JavaExec>("verifySolarTooltipContracts") {
+    group = "verification"
+    description = "Verify boiler table rows retain the exact policy labels, fixed flow and multipliers."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.client.tooltip.SolarTooltipTableContracts")
+    maxHeapSize = "256m"
+}
+
 tasks.named("check") {
+    dependsOn(verifySolarTooltipContracts)
     dependsOn(verifyBossCombatContracts)
     dependsOn(verifyRigMeshContracts)
     dependsOn(verifyEchoRosterContracts)

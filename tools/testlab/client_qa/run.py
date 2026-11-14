@@ -32,6 +32,12 @@ def process_memory(proc):
 def main():
     global OUT, FIXTURE
     p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path);p.add_argument('--owner-host-run');p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=4);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);p.add_argument('--hidden-desktop',action='store_true',default=True,help='Required private Windows desktop; no foreground fallback');p.add_argument('--allow-low-memory',action='store_true',help='Use only after the user explicitly requests launch below the advisory memory reserve; heap limit still applies');a=p.parse_args()
+    native_tooltip=False
+    if a.plan:
+        declared=read_json(a.plan)
+        if isinstance(declared,dict) and declared.get("scriptOnly")=="gtsr-native-tooltip-table-v1":
+            a.language=declared.get("language","zh_CN")
+            native_tooltip=True
     if os.name!='nt' or not a.hidden_desktop:raise RuntimeError('Private Windows desktop is mandatory; foreground fallback is forbidden')
     if a.heap_gib>5:raise ValueError('User limit: client Java heap must not exceed 5GiB')
     import sys
@@ -59,6 +65,15 @@ def main():
     owned_world=None;installed_helper=FIXTURE/'mods/gtsr-mui2-qa-owned-only.jar';helper_owned=False
     proc=None;desktop=None;payload=None;options=FIXTURE/'options.txt';original_options=options.read_bytes() if options.exists() else None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
     if a.mode=='ticket-restart':receipt['inputType']='Synthetic same-JVM Minecraft launchIntegratedServer/loadWorld(null) and production CriticalChunkLoading ensure/release; UI suite and physical input NOT_RUN'
+    scoped_backups={}
+    if native_tooltip:
+        backup=result/'native-tooltip-before';backup.mkdir()
+        for rel in ['ops.json','config/miaokatzecore/tooltip.properties']:
+            path=FIXTURE/rel
+            scoped_backups[rel]=path.read_bytes() if path.is_file() else None
+            if scoped_backups[rel] is not None:
+                saved=backup/rel;saved.parent.mkdir(parents=True,exist_ok=True);saved.write_bytes(scoped_backups[rel])
+        (backup/'inventory.json').write_text(json.dumps({k:hashlib.sha256(v).hexdigest() if v is not None else None for k,v in scoped_backups.items()},indent=2),encoding='utf8')
     try:
         if installed_helper.exists():raise FileExistsError('Owned helper filename already exists; inspect previous recovery')
         helper_owned=True;shutil.copy2(helper,installed_helper)
@@ -150,6 +165,12 @@ def main():
         if original_options is None:options.unlink(missing_ok=True)
         else:options.write_bytes(original_options)
         receipt['optionsRestored']=True
+        if scoped_backups and (proc is None or proc.poll() is not None):
+            for rel,raw in scoped_backups.items():
+                path=FIXTURE/rel
+                if raw is None:path.unlink(missing_ok=True)
+                else:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+            receipt['nativeTooltipScopedFilesRestored']=True
         if helper_owned and (proc is None or proc.poll() is not None):installed_helper.unlink(missing_ok=True);receipt['helperRemoved']=True
         if owned_world is not None and (proc is None or proc.poll() is not None):
             if a.mode=='ui' and (result/'checks.json').is_file():

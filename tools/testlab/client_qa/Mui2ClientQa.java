@@ -83,8 +83,8 @@ public final class Mui2ClientQa {
         if(planPath!=null){JsonElement explicit=new JsonParser().parse(new String(Files.readAllBytes(Paths.get(planPath)),StandardCharsets.UTF_8));
             if(explicit.isJsonObject()){
                 JsonObject object=explicit.getAsJsonObject();
-                if(!uiMode()||!object.has("scriptOnly")||!("gtsr-issue155-mega-turbine-profile-v1".equals(object.get("scriptOnly").getAsString())||"gtsr-mega-turbine-proximity-v1".equals(object.get("scriptOnly").getAsString())))throw new IllegalArgumentException("Unknown explicit script-only plan");
-                Class<?> fixture=type("com.miaokatze.gtsr.common.dimension.testlab."+("gtsr-mega-turbine-proximity-v1".equals(object.get("scriptOnly").getAsString())?"MegaTurbineProximityFixture":"MegaTurbineProfileFixture")),hooks=type(fixture.getName()+"$Hooks");
+                if(!uiMode()||!object.has("scriptOnly")||!("gtsr-issue155-mega-turbine-profile-v1".equals(object.get("scriptOnly").getAsString())||"gtsr-mega-turbine-proximity-v1".equals(object.get("scriptOnly").getAsString())||"gtsr-native-tooltip-table-v1".equals(object.get("scriptOnly").getAsString())))throw new IllegalArgumentException("Unknown explicit script-only plan");
+                Class<?> fixture=type("com.miaokatze.gtsr.common.dimension.testlab."+("gtsr-native-tooltip-table-v1".equals(object.get("scriptOnly").getAsString())?"SolarNativeTooltipFixture":"gtsr-mega-turbine-proximity-v1".equals(object.get("scriptOnly").getAsString())?"MegaTurbineProximityFixture":"MegaTurbineProfileFixture")),hooks=type(fixture.getName()+"$Hooks");
                 Object listenerHooks=Proxy.newProxyInstance(hooks.getClassLoader(),new Class<?>[]{hooks},new InvocationHandler(){public Object invoke(Object proxy,Method method,Object[] args)throws Throwable{
                     if(method.getName().equals("complete")){receipt.add("turbineProfile",new Gson().toJsonTree(args[0]));finish((Throwable)args[1]);return null;}
                     if(method.getName().equals("screenshot")){shot((String)args[0]);return null;}

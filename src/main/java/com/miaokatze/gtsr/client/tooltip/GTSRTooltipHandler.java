@@ -54,6 +54,7 @@ public final class GTSRTooltipHandler {
                 "gtsr.compact." + name,
                 "gtsr.steam.singularity.entangler".equals(name) ? "gtsr.tooltip.entangler.desc5" : null);
         }
+        GTSRSolarTooltipTables.apply(event.itemStack, event.toolTip);
         normalizeBrand(event.toolTip, GTSRUtils.getAddedByLine());
     }
 

@@ -5073,3 +5073,7 @@ gtsr.tooltip.catalog.air.withered.source=§b采集§7 · 繁荣维度的枯竭�
 gtsr.tooltip.catalog.air.withered.use=§6初加工§7 · 真空冷冻后得到枯竭气息凝液。
 gtsr.tooltip.catalog.altar_vis=激活：手持法杖右键核心，一次扣除六种原始要素各 50 vis。
 gtsr.tooltip.catalog.altar_travel=通行：祭坛启动后，靠近环心即可传送；潜行可避开牵引。
+
+gtsr.tooltip.table.material=材料
+gtsr.tooltip.table.flow=流量
+gtsr.tooltip.table.multiplier=倍率

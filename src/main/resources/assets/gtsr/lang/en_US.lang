@@ -5077,3 +5077,7 @@ gtsr.tooltip.catalog.air.withered.source=§bSource§7 · Air compressor in the W
 gtsr.tooltip.catalog.air.withered.use=§6Processing§7 · A vacuum freezer condenses it into withered breath condensate.
 gtsr.tooltip.catalog.altar_vis=Activation: right-click the core with a wand. It draws 50 vis of each primal aspect once.
 gtsr.tooltip.catalog.altar_travel=Travel: approach the center of the active ring to cross. Sneaking avoids its pull.
+
+gtsr.tooltip.table.material=Material
+gtsr.tooltip.table.flow=Flow
+gtsr.tooltip.table.multiplier=Multiplier

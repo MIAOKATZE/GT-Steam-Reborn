@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--javac", type=Path)
     parser.add_argument("--include-mega-turbine-profile", action="store_true",
                         help="Explicitly compile the issue155 testlab fixture into this owned-only helper")
+    parser.add_argument("--include-native-tooltip", action="store_true", help="Compile the explicit owned native-tooltip fixture")
     args = parser.parse_args()
     item = host.registered(host.REGISTRY, 'gtsr', 'client')
     out, fixture = args.workspace.resolve(), item['_path']
@@ -39,6 +40,8 @@ def main():
     scope_source = ROOT.parent / 'tools/testlab/client_qa/OwnedClientScope.java'
     profile_source = ROOT / 'src/testlab/java/com/miaokatze/gtsr/common/dimension/testlab/MegaTurbineProfileFixture.java'
     extra_sources = [profile_source.resolve(strict=True), profile_source.with_name("MegaTurbineProximityFixture.java").resolve(strict=True)] if args.include_mega_turbine_profile else []
+    if args.include_native_tooltip:
+        extra_sources.append(profile_source.with_name('SolarNativeTooltipFixture.java').resolve(strict=True))
     launch = json.loads((out / 'client-launch.json').read_text(encoding='utf-8'))['command']
     classpath = launch[launch.index('-cp') + 1] + ';' + ';'.join(str(p) for p in sorted((fixture / 'mods').rglob('*.jar')))
     options = ["-encoding", "UTF-8", "-proc:none", "--release", "8", "-cp", classpath, "-d", str(classes), *[str(p) for p in sorted(source.parent.glob("*.java"))], str(environment_source), str(scope_source), *map(str, extra_sources)]
@@ -55,6 +58,8 @@ def main():
     if args.include_mega_turbine_profile:
         artifacts.extend(sorted((classes / 'com/miaokatze/gtsr/common/dimension/testlab').glob('MegaTurbineProfileFixture*.class')))
         artifacts.extend(sorted((classes / 'com/miaokatze/gtsr/common/dimension/testlab').glob('MegaTurbineProximityFixture*.class')))
+    if args.include_native_tooltip:
+        artifacts.extend(sorted((classes / 'com/miaokatze/gtsr/common/dimension/testlab').glob('SolarNativeTooltipFixture*.class')))
     with zipfile.ZipFile(jar, "w") as archive:
         for path in artifacts:
             info = zipfile.ZipInfo(path.relative_to(classes).as_posix(), date_time=(1980, 1, 1, 0, 0, 0))
