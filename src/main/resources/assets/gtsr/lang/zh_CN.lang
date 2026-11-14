@@ -4635,16 +4635,16 @@ gtsr.critical.tooltip.native.loom.manage=手持§e机械终端§7右击控制器
 gtsr.critical.tooltip.native.loom.ports=建设物料放入织机§b输入总线/输入仓§7，建设用电由织机§c能源仓§7供应
 gtsr.critical.tooltip.native.solar.purpose=利用维度辐照热，生产§b蒸汽§7、§6热太阳能盐§7或§d等离子体
 gtsr.critical.tooltip.native.solar.power_off=关闭主电源会§c作废当前批次§7：已扣工质、冷却剂与激活剂不退，不产出
-gtsr.critical.tooltip.native.solar.plasma_amount=等离子体§dP=V×x/(x+H) L/批§7；V、H参数见NEI
+gtsr.critical.tooltip.native.solar.plasma_amount=等离子体 §dP/V ≤ s/(s+1)§7，s=x/H；V、H 见 NEI
 gtsr.critical.tooltip.native.solar.heat_steam=蒸汽等效热值：通过§e100%效率蒸汽轮机§7完全释放的EU
 gtsr.critical.tooltip.native.solar.heat_converted=等离子体与熔盐等效热值：经§6超级热交换机§7产出的蒸汽，通过§e100%效率蒸汽轮机§7完全释放的EU
 gtsr.critical.tooltip.native.solar.media_fixed=固定消耗（每批扣除§e20秒§7用量）
 gtsr.critical.tooltip.native.solar.water=水路：§b蒸馏水 → 所选蒸汽§7；水、盐、等离子体三路互斥
 gtsr.critical.tooltip.native.solar.salt=盐路：§6冷太阳能盐 → 等量热太阳能盐
-gtsr.critical.tooltip.native.solar.private=§e总倍率=维度系数×冷却倍率×激活倍率§7；私人维度系数§e0.6
-gtsr.critical.tooltip.native.solar.stock=§ex§7为所选工质开工时各仓合计实际库存L；蒸馏水不足时按现有量生产
-gtsr.critical.tooltip.native.solar.steam_amount=致密超临界蒸汽§by≤24G×x/(x+100G)×总倍率 L/批
-gtsr.critical.tooltip.native.solar.salt_amount=热太阳能盐§6y=80G×x/(x+100G)×总倍率 L/批
+gtsr.critical.tooltip.native.solar.private=§e总倍率 m=维度系数×冷却倍率×激活倍率§7；私人维度系数§e0.6
+gtsr.critical.tooltip.native.solar.stock=§ex§7 为开工时各输入仓的工质总库存（L）；热盐和等离子体产量不超过 x
+gtsr.critical.tooltip.native.solar.steam_amount=致密超临界蒸汽 §by ≤ 24G·m·x/(x+100G) L/批§7；受可用蒸馏水限制
+gtsr.critical.tooltip.native.solar.salt_amount=热太阳能盐 §6y ≤ 80G·m·x/(x+100G) L/批
 gtsr.critical.tooltip.native.solar.dimension=主电源开启即维持本维度§5无月永夜§7；同维度第二台锅炉不能运行
 gtsr.critical.tooltip.native.solar.coolant=必须供应以下一种§b冷却剂§7：
 gtsr.critical.tooltip.native.solar.excitation=同时必须供应以下一种§d激活剂§7：
@@ -4766,7 +4766,7 @@ gtsr.critical.ui.runtime.solar.exciter_litres=本批激活剂消耗
 gtsr.critical.ui.runtime.solar.equivalent_power=本批产物热功率
 gtsr.critical.ui.runtime.solar.load=实际采热负载
 gtsr.critical.nei.simple.solar.intro=20秒/批 · 槽位仅为换算比例
-gtsr.critical.nei.simple.solar.formula=产量 y≤%s×x/(x+%s)×m
+gtsr.critical.nei.simple.solar.formula=产量 y ≤ %s·m·x/(x+%s)
 gtsr.critical.nei.simple.solar.variables=x=工质库存L；y=产量L/批
 gtsr.critical.nei.simple.solar.multiplier=m=维度系数×冷却倍率×激活倍率
 gtsr.critical.nei.simple.solar.example=例：x=%s L，m=%s
@@ -4799,21 +4799,21 @@ gtsr.critical.ui.runtime.solar.plasma=等离子体工质
 gtsr.critical.ui.runtime.solar.plasma_litres=本批工质用量
 gtsr.critical.nei.simple.solar_plasma.title=维度辐照耦合锅炉
 gtsr.critical.nei.simple.plasma.intro=20秒/批 · 1:1等离子体加热
-gtsr.critical.nei.simple.plasma.formula=产量P=V×S/(S+H)
+gtsr.critical.nei.simple.plasma.formula=产量比 P/V ≤ s/(s+1)
 gtsr.critical.nei.simple.plasma.maximum=V≈%s×m L
 gtsr.critical.nei.simple.plasma.half=H≈%s L（半饱和库存）
 gtsr.critical.nei.simple.plasma.multiplier=总倍率m=维度×冷却×激活
-gtsr.critical.nei.simple.plasma.example=例：库存S=5H，总倍率m=1.35
+gtsr.critical.nei.simple.plasma.example=例：s=5，总倍率 m=1.35
 gtsr.critical.nei.simple.plasma.output=产出：约%s L/批
 gtsr.critical.nei.simple.plasma.heat=等效热值：约%s EU
-gtsr.critical.nei.showcase.plasma.variables=S为本轮开始时冷态流体库存L；P为本批等离子体产量L。
-gtsr.critical.nei.showcase.plasma.exact_half=半饱和库存H = %s L；工质热值越高，H越低。
+gtsr.critical.nei.showcase.plasma.variables=s=x/H；x 是开工时冷态库存（L），实际产量 P 不超过 x（整升）。
+gtsr.critical.nei.showcase.plasma.exact_half=H = %s L；库存为 H 时，产量上界为 V/2。
 gtsr.critical.nei.showcase.plasma.exchanger=超级热交换机满负载：每1 L等离子体
 gtsr.critical.nei.showcase.plasma.conversion=换出 %s L致密超临界蒸汽，并回收1 L冷态流体。
 gtsr.critical.nei.showcase.plasma.exact_maximum=V = (60,000,000,000 × %s ÷ %s) × 总倍率 L。
 gtsr.critical.nei.showcase.plasma.media=冷却剂与激活剂按固定消耗，每轮开始时扣除20秒用量。
 gtsr.critical.nei.showcase.solar.heat=等效热值按100%效率蒸汽轮机完全释放的EU计算；等离子体与熔盐先经超级热交换机产出蒸汽。
-gtsr.critical.nei.showcase.solar.salt_supercritical=主行采用超级热交换机超临界路线：本例等效热值225T EU。
+gtsr.critical.nei.showcase.solar.salt_supercritical=热盐按整升计，不超过冷盐库存；本例经超级热交换机超临界线得 225T EU。
 gtsr.critical.nei.showcase.solar.salt_superheated=普通过热路线：本例等效热值135T EU。
 gtsr.critical.nei.showcase.solar.salt_media=冷却剂与激活剂按固定消耗，每轮开始时扣除20秒用量。
 gtsr.critical.tooltip.native.structure.main_ports_span=三层各三排，分别20/32/38口，共90口；§c不要替换下方供给舱§r
