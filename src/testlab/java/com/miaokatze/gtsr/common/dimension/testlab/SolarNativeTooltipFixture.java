@@ -549,6 +549,9 @@ public final class SolarNativeTooltipFixture {
                 for (Object page : pages) chartComponents(page, charts, guides);
                 current.put("nativeCharts", charts);
                 current.put("nativeGuides", guides);
+                List<Object> displayOrder = new ArrayList<Object>();
+                for (int page = 0; page < pages.size(); page++) displayOrder(pages.get(page), page, displayOrder);
+                current.put("actualDisplayOrder", displayOrder);
                 Object pageState = call(pageApi(), "forItem", item);
                 current.put("tier", String.valueOf(call(pageState, "tier")));
                 Object itemKey = call(type("com.miaokatze.miaokatzecore.api.tooltip.TooltipPages"), "identity", item);
@@ -727,6 +730,7 @@ public final class SolarNativeTooltipFixture {
 
     private void verifyCharts() throws Exception {
         require(!actionPending, "Real keyboard action must complete before capture");
+        verifyTitleGuideOrder();
         require(
             row.get("tier")
                 .getAsString()
@@ -776,6 +780,54 @@ public final class SolarNativeTooltipFixture {
         }
         require(found, "Expected native chart identity: " + expectedId);
         require(!((List<?>) current.get("nativeGuides")).isEmpty(), "Native guide components must render");
+    }
+
+    private void displayOrder(Object component, int page, List<Object> order) throws Exception {
+        Map<String, Object> node = new LinkedHashMap<String, Object>();
+        String name = component.getClass()
+            .getName();
+        node.put("class", name);
+        node.put("page", page);
+        if (name.equals("com.miaokatze.miaokatzecore.client.tooltip.NativeGuideComponent")) {
+            Object guide = call(component, "guide");
+            node.put("guideKind", String.valueOf(field(guide, "kind")));
+            node.put("text", field(guide, "text"));
+        } else if (name.equals("com.slprime.chromatictooltips.component.KeyboardModifierComponent")) {
+            node.put("supportedModifiers", String.valueOf(field(component, "supportedModifiers")));
+            node.put("text", field(component, "text"));
+        } else if (name.equals("com.slprime.chromatictooltips.component.SectionComponent")) {
+            node.put("sectionId", call(component, "getSectionId"));
+        }
+        order.add(node);
+        try {
+            Object children = call(component, "getComponents");
+            if (children instanceof Iterable)
+                for (Object child : (Iterable<?>) children) displayOrder(child, page, order);
+        } catch (NoSuchMethodException ignored) {}
+    }
+
+    private void verifyTitleGuideOrder() {
+        List<?> order = (List<?>) current.get("actualDisplayOrder");
+        int title = -1, tier = -1, shift = -1;
+        for (int i = 0; i < order.size(); i++) {
+            Map<?, ?> node = (Map<?, ?>) order.get(i);
+            String name = String.valueOf(node.get("class"));
+            if (title < 0 && name.endsWith("TitleEnricher$StackTitleTooltipComponent")) title = i;
+            if (tier < 0 && "TIER".equals(node.get("guideKind"))) tier = i;
+            if (shift < 0 && name.equals("com.slprime.chromatictooltips.component.KeyboardModifierComponent")
+                && String.valueOf(node.get("supportedModifiers"))
+                    .contains("SHIFT"))
+                shift = i;
+        }
+        require(
+            title >= 0 && tier > title && shift > tier,
+            "Actual paginated display order must be title -> Core tier guide -> native Shift (indices " + title
+                + ","
+                + tier
+                + ","
+                + shift
+                + ")");
+        current.put("titleGuideShiftOrderVerified", true);
     }
 
     private void chartAction() throws Exception {
