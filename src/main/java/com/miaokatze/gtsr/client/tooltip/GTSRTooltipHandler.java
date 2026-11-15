@@ -10,7 +10,9 @@ import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
+import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
+import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import cpw.mods.fml.common.eventhandler.EventPriority;
@@ -31,13 +33,21 @@ public final class GTSRTooltipHandler {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onTooltip(ItemTooltipEvent event) {
-        if (ItemMachines.getMetaTileEntity(event.itemStack) instanceof MTECriticalMachine machine) {
+        var meta = ItemMachines.getMetaTileEntity(event.itemStack);
+        if (meta instanceof MTECriticalMachine machine) {
             String capacity = StatCollector.translateToLocalFormatted(
                 "gt.tileentity.eup_store",
                 TooltipHelper.euCapacityText(
                     machine.getBaseMetaTileEntity()
                         .getEUCapacity()));
             event.toolTip.removeIf(line -> plain(line).equals(plain(capacity)));
+            if (machine.getPresetKind() == CriticalMachineKind.SOLAR) {
+                GTSRSolarBoilerTooltip.apply(event.itemStack, event.toolTip);
+                return;
+            }
+        } else if (meta instanceof MTEMegaSteamTurbineArray) {
+            GTSRMegaTurbineTooltip.apply(event.itemStack, event.toolTip);
+            return;
         }
         List<String> keys = GTSRTooltipCatalog.descriptionKeys(event.itemStack);
         if (keys == null) return;
@@ -45,7 +55,6 @@ public final class GTSRTooltipHandler {
             String line = StatCollector.translateToLocal(key);
             if (!containsLine(event.toolTip, line)) event.toolTip.add(EnumChatFormatting.GRAY + line);
         }
-        var meta = ItemMachines.getMetaTileEntity(event.itemStack);
         if (meta != null) {
             String name = meta.getMetaName();
             com.miaokatze.miaokatzecore.api.tooltip.MachineTooltipPages.apply(
@@ -54,7 +63,6 @@ public final class GTSRTooltipHandler {
                 "gtsr.compact." + name,
                 "gtsr.steam.singularity.entangler".equals(name) ? "gtsr.tooltip.entangler.desc5" : null);
         }
-        GTSRSolarTooltipTables.apply(event.itemStack, event.toolTip);
         normalizeBrand(event.toolTip, GTSRUtils.getAddedByLine());
     }
 

@@ -1,0 +1,74 @@
+gtsr.tooltip.mega_native.purpose=A twin steam turbine that expands along its main shaft and converts steam into electricity.
+gtsr.tooltip.mega_native.formula=Steady EU/t = §e40 × casing voltage × load × (2+extra rings) × singularity × steam × efficiency
+gtsr.tooltip.mega_native.baseline=LV steel array, ordinary steam, full load: the base ring counts as 2 groups, with a 150% efficiency cap and 20% steam savings.
+gtsr.tooltip.mega_native.conditions=The two singularities are mutually exclusive. The chip requires all 4 extra rings.
+gtsr.tooltip.mega_native.supply=Ordinary and superheated steam work from LV; dense or supercritical steam requires §bLuV §7or higher casings.
+gtsr.tooltip.mega_native.rating=LV–UV casings determine the array voltage. Dynamo hatches need not match that tier.
+gtsr.tooltip.mega_native.glass=All glass must have the same tier, at least the casing tier. Glass above UV is accepted.
+gtsr.tooltip.mega_native.risk=Insufficient dynamo output capacity causes the array to explode.
+gtsr.tooltip.mega_native.sample=At LuV voltage, running at full load.
+gtsr.tooltip.mega_native.control=Right-click the controller with a screwdriver to cycle load settings.
+gtsr.tooltip.mega_native.structure=Hold Left Shift to view the structure.
+gtsr.tooltip.mega_native.column.upgrade=Cumulative upgrade
+gtsr.tooltip.mega_native.column.efficiency=Efficiency cap
+gtsr.tooltip.mega_native.column.savings=Steam savings
+gtsr.tooltip.mega_native.column.power=Power (EU/t)
+gtsr.tooltip.mega_native.column.gain=Gain (EU/t)
+gtsr.tooltip.mega_native.column.effect=Component or condition
+gtsr.tooltip.mega_native.column.power_term=Power term
+gtsr.tooltip.mega_native.column.cap_pp=Efficiency cap (pp)
+gtsr.tooltip.mega_native.column.saving_pp=Steam savings (pp)
+gtsr.tooltip.mega_native.step.base=Base steel array
+gtsr.tooltip.mega_native.step.rings=Add 4 rings
+gtsr.tooltip.mega_native.step.tungsten=Fit tungstensteel parts
+gtsr.tooltip.mega_native.step.entangled=Add entangled singularity
+gtsr.tooltip.mega_native.step.critical=Fit critical entangled singularity
+gtsr.tooltip.mega_native.step.chip=Fit cycle overlimit chip
+gtsr.tooltip.mega_native.effect.casing=Raise casing by one tier
+gtsr.tooltip.mega_native.effect.casing.power=Voltage tier +1
+gtsr.tooltip.mega_native.effect.casing.efficiency=+5
+gtsr.tooltip.mega_native.effect.casing.savings=—
+gtsr.tooltip.mega_native.effect.ring=Add one ring (up to 4)
+gtsr.tooltip.mega_native.effect.ring.power=Power groups +1
+gtsr.tooltip.mega_native.effect.ring.efficiency=+10
+gtsr.tooltip.mega_native.effect.ring.savings=+2
+gtsr.tooltip.mega_native.effect.load=Lower load by one setting
+gtsr.tooltip.mega_native.effect.load.power=−20% of full-load power
+gtsr.tooltip.mega_native.effect.load.efficiency=—
+gtsr.tooltip.mega_native.effect.load.savings=−5
+gtsr.tooltip.mega_native.effect.titanium=Titanium
+gtsr.tooltip.mega_native.effect.titanium.power=—
+gtsr.tooltip.mega_native.effect.titanium.efficiency=+10
+gtsr.tooltip.mega_native.effect.titanium.savings=+2
+gtsr.tooltip.mega_native.effect.tungsten=Tungstensteel
+gtsr.tooltip.mega_native.effect.tungsten.power=—
+gtsr.tooltip.mega_native.effect.tungsten.efficiency=+20
+gtsr.tooltip.mega_native.effect.tungsten.savings=+5
+gtsr.tooltip.mega_native.effect.steam=Steam
+gtsr.tooltip.mega_native.effect.steam.power=Steam factor = 0.5
+gtsr.tooltip.mega_native.effect.steam.efficiency=—
+gtsr.tooltip.mega_native.effect.steam.savings=—
+gtsr.tooltip.mega_native.effect.heated=Superheated / supercritical
+gtsr.tooltip.mega_native.effect.heated.power=Steam factor = 1
+gtsr.tooltip.mega_native.effect.heated.efficiency=+50 / +100
+gtsr.tooltip.mega_native.effect.heated.savings=—
+gtsr.tooltip.mega_native.effect.dense=Dense steam (same family)
+gtsr.tooltip.mega_native.effect.dense.power=—
+gtsr.tooltip.mega_native.effect.dense.efficiency=+50
+gtsr.tooltip.mega_native.effect.dense.savings=—
+gtsr.tooltip.mega_native.effect.entangled=Entangled steam singularity
+gtsr.tooltip.mega_native.effect.entangled.power=Singularity factor = 2
+gtsr.tooltip.mega_native.effect.entangled.efficiency=+50
+gtsr.tooltip.mega_native.effect.entangled.savings=+5
+gtsr.tooltip.mega_native.effect.critical=Critical entangled steam singularity
+gtsr.tooltip.mega_native.effect.critical.power=Singularity factor = 5
+gtsr.tooltip.mega_native.effect.critical.efficiency=+100
+gtsr.tooltip.mega_native.effect.critical.savings=+10
+gtsr.tooltip.mega_native.effect.chip_heated=Cycle overlimit chip (superheated)
+gtsr.tooltip.mega_native.effect.chip_heated.power=Steam factor = 1.5
+gtsr.tooltip.mega_native.effect.chip_heated.efficiency=—
+gtsr.tooltip.mega_native.effect.chip_heated.savings=—
+gtsr.tooltip.mega_native.effect.chip_critical=Cycle overlimit chip (supercritical)
+gtsr.tooltip.mega_native.effect.chip_critical.power=Steam factor = 2.5
+gtsr.tooltip.mega_native.effect.chip_critical.efficiency=—
+gtsr.tooltip.mega_native.effect.chip_critical.savings=—

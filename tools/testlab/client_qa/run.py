@@ -35,7 +35,7 @@ def main():
     native_tooltip=False
     if a.plan:
         declared=read_json(a.plan)
-        if isinstance(declared,dict) and declared.get("scriptOnly")=="gtsr-native-tooltip-table-v1":
+        if isinstance(declared,dict) and declared.get("scriptOnly") in ("gtsr-native-tooltip-table-v1", "gtsr-native-tooltip-charts-v2"):
             a.language=declared.get("language","zh_CN")
             native_tooltip=True
     if os.name!='nt' or not a.hidden_desktop:raise RuntimeError('Private Windows desktop is mandatory; foreground fallback is forbidden')

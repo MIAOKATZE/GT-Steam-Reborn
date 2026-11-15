@@ -168,6 +168,32 @@ class TurbineRestartRuntime {
         check(ks.getInteger("mEfficiency")==10000&&ks.getLong("boostModeUntil")==24000,"KPA actual NBT retains efficiency and existing boost deadline");
         kpa.mStartUpCheck=0;kpa.mMachine=true;kpa.onPostTick(kpa.getBaseMetaTileEntity(),101);
         check(kpa.mEfficiency==9000,"KPA resumes its existing standard idle decay after startup");
+        var obsolete=machine(MegaProbe.class);obsolete.loadNBTData(mn);obsolete.mCasingTier=9;
+        check(obsolete.getVoltage()==0,"UHV legacy casing is rejected rather than clamped to UV");
+        check(!obsolete.onRunningTick(null)&&obsolete.outputs==0,"old UHV save cannot emit a pre-validation tick");
+        check(!obsolete.checkProcessing().wasSuccessful()&&obsolete.mFullBaseEUt==0,"unsupported casing cannot settle fuel or retain output");
+        obsolete.mCasingTier=8;
+        check(obsolete.getVoltage()==gregtech.api.enums.GTValues.V[8],"UV remains the highest actual voltage");
+        obsolete.mCasingTier=6;obsolete.mStackCount=4;obsolete.setMaterialTier(3);obsolete.mSingularityMode=2;obsolete.mPowerParameter=10;
+        check(obsolete.getMaxEfficiencyLimit(com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes.SteamType.STEAM)==33500,"machine calls final cumulative efficiency policy");
+        check(Math.abs(obsolete.getSteamSavings()-0.43f)<0.000001f,"machine calls final cumulative steam savings policy");
+        for(int tier=1;tier<=12;tier++) gregtech.api.util.CasingTier.addCasing(net.minecraft.init.Blocks.stone,tier,tier+1);
+        var casingChoices=com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.casingChoices();
+        check(casingChoices.size()==8,"projection and survival construction expose exactly eight supported casing tiers");
+        for(int tier=1;tier<=12;tier++) {
+            var mapped=com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.casingTier(net.minecraft.init.Blocks.stone,tier);
+            check(tier<=8?Integer.valueOf(tier).equals(mapped):mapped==null,"actual casing matcher accepts LV through UV only: "+tier);
+        }
+        gregtech.api.util.GlassTier.addCustomGlass(net.minecraft.init.Blocks.stained_glass,0,9,0);
+        check(com.miaokatze.gtsr.common.structure.RebuiltMachineGlass.tier(net.minecraft.init.Blocks.stained_glass,0)==9,"UHV glass remains accepted after the casing ceiling changes");
+        var trigger=new net.minecraft.item.ItemStack(net.minecraft.init.Items.stick,1);
+        com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor.setChannelData(trigger,"casing",9);
+        check(!com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.supportsConstruction(trigger),"explicit UHV construction selection is rejected, not downgraded to UV");
+        obsolete.mMachine=false;
+        obsolete.construct(trigger,true);
+        check(obsolete.survivalConstruct(trigger,100,null)==0,"unsupported survival selection places nothing before touching a world/environment");
+        com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor.setChannelData(trigger,"casing",8);
+        check(com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef.supportsConstruction(trigger),"explicit UV construction selection remains usable");
         System.out.println("PASS real GT265 startup and NBT checks="+checks);
     }
 }

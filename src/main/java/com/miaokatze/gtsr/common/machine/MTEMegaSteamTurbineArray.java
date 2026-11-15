@@ -49,6 +49,7 @@ import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityModeMachineBase;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
+import com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbinePolicy;
 import com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef;
 import com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes;
 import com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes.SteamType;
@@ -139,41 +140,13 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     // 奇点模式字段（mSingularityMode/mSingularityModeTicks）与持续时间常量
     // SINGULARITY_DURATION_TICKS 由父类 MTESingularityModeMachineBase 提供
     private static final int[] POWER_PARAMETERS = { 10, 8, 6, 4, 2 };
-    /** 蒸汽纠缠奇点模式：效率上限 +100% */
-    private static final int SINGULARITY_EFFICIENCY_BONUS = 10000; // +100%
-    /** 蒸汽纠缠奇点模式：蒸汽节省 +15% */
-    private static final float SINGULARITY_SAVINGS_BONUS = 0.15f; // +15%
-    /** 蒸汽纠缠奇点模式：功率翻倍 */
-    private static final int SINGULARITY_POWER_MULTIPLIER = 2; // 功率翻倍
-    /** 临界奇点模式：功率×5 */
-    private static final int CRITICAL_POWER_MULTIPLIER = 5; // 功率×5
-    /** 临界奇点模式：效率上限 +200% */
-    private static final int CRITICAL_EFFICIENCY_BONUS = 20000; // +200%
-    /** 临界奇点模式：蒸汽节省 +20% */
-    private static final float CRITICAL_SAVINGS_BONUS = 0.20f; // +20%
 
     /**
      * 奇点模式功率倍率：mode 2=×5、mode 1=×2、mode 0=×1。
      * 临界模式功率×5，蒸汽纠缠模式功率翻倍，普通模式无加成。
      */
     private int getSingularityPowerMult() {
-        return mSingularityMode == 2 ? CRITICAL_POWER_MULTIPLIER
-            : mSingularityMode == 1 ? SINGULARITY_POWER_MULTIPLIER : 1;
-    }
-
-    /**
-     * 奇点模式效率上限加成：mode 2=+200%、mode 1=+100%、mode 0=无。
-     */
-    private int getSingularityEfficiencyBonus() {
-        return mSingularityMode == 2 ? CRITICAL_EFFICIENCY_BONUS
-            : mSingularityMode == 1 ? SINGULARITY_EFFICIENCY_BONUS : 0;
-    }
-
-    /**
-     * 奇点模式蒸汽节省加成：mode 2=+20%、mode 1=+15%、mode 0=无。
-     */
-    private float getSingularitySavingsBonus() {
-        return mSingularityMode == 2 ? CRITICAL_SAVINGS_BONUS : mSingularityMode == 1 ? SINGULARITY_SAVINGS_BONUS : 0f;
+        return MegaSteamTurbinePolicy.powerMultiplier(mSingularityMode);
     }
 
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
@@ -680,8 +653,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
-        if (mCasingAmount < 1 || mCasingTier <= 0
-            || mCasingTier > 12
+        if (mCasingAmount < 1 || !MegaSteamTurbinePolicy.supportsCasing(mCasingTier)
             || mGlassTier < mCasingTier
             || mMaterialTier < 1
             || mMaterialTier > 3) {
@@ -726,43 +698,30 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
      * 最大效率上限 (含所有加成，加算).
      * 基准: 10000 = 100%效率，1% = 100
      * - 每额外组+10%效率上限 = +1000
-     * - 钛齿轮额外+5%、钨钢齿轮额外+10%效率上限 = +500/+1000
-     * - 钛管+10%效率上限 = +1000，钨钢管+25%效率上限 = +2500
+     * - 统一材料档钛+10%、钨钢+20%效率上限 = +1000/+2000
      * - 机器等级每提高一级(等级-1)，增加5%效率上限 = +500
-     * - 奇点模式：蒸汽纠缠+100% = +10000，临界+200% = +20000
+     * - 奇点模式：蒸汽纠缠+50% = +5000，临界+100% = +10000
      */
     public int getMaxEfficiencyLimit(SteamType type) {
-        int base = type.maxEfficiency;
-        // 效率上限加成（加算）：每额外组+1000，钛齿轮+500/钨钢齿轮+1000，钛管+1000/钨钢管+2500，机器等级每级+500
-        int bonus = 1000 * mStackCount + (mMaterialTier == 3 ? 1000 : mMaterialTier == 2 ? 500 : 0)
-            + (mMaterialTier == 2 ? 1000 : mMaterialTier == 3 ? 2500 : 0)
-            + 500 * (mCasingTier - 1);
-        // 奇点模式效率上限加成：蒸汽纠缠+100%、临界+200%（三态 helper 统一取用）
-        bonus += getSingularityEfficiencyBonus();
-        return base + bonus;
+        return MegaSteamTurbinePolicy
+            .efficiencyLimit(type.maxEfficiency, mCasingTier, mStackCount, mMaterialTier, mSingularityMode);
     }
 
     /**
      * 计算蒸汽节省率。
      * 基础节省率随功率参数变化：10→20%，8→15%，6→10%，4→5%，2→0%。
-     * 叠加 Stack/Gear/Pipe 加成，奇点模式下：蒸汽纠缠额外 +15%、临界额外 +20%。
+     * 每额外环+2%，统一材料档钛+2%/钨钢+5%，奇点额外+5%/临界+10%。
      */
     public float getSteamSavings() {
-        // 基础节省率 = 20% - (10 - power) / 2 * 5%
-        float baseSavings = 0.20f - ((10 - mPowerParameter) / 2) * 0.05f;
-        if (baseSavings < 0) baseSavings = 0;
-        // 结构加成
-        float bonus = 0.05f * mStackCount + (mMaterialTier == 3 ? 0.05f : mMaterialTier == 2 ? 0.025f : 0f)
-            + (mMaterialTier == 2 ? 0.025f : mMaterialTier == 3 ? 0.075f : 0f);
-        // 奇点模式蒸汽节省加成：蒸汽纠缠+15%、临界+20%（三态 helper 统一取用）
-        bonus += getSingularitySavingsBonus();
-        return Math.min(1.0f, baseSavings + bonus);
+        return MegaSteamTurbinePolicy.savingsPercent(mPowerParameter, mStackCount, mMaterialTier, mSingularityMode)
+            / 100.0f;
     }
 
     public long getVoltage() {
         // 客户端 GUI 构建期（DoubleSyncValue 构造即求值词条）可能带着未同步/越界的 mCasingTier
-        // （GT5U 自定义数据通道仅 7 位 &0x7F，见 onValueUpdate/getUpdateData），索引硬钳制防 AIOOBE
-        int tier = Math.min(mCasingTier > 0 ? mCasingTier : 1, GTValues.V.length - 1);
+        // 未同步的等级使用 LV 预览；高于 UV 的旧存档不产生电压，不能降档运行。
+        if (mCasingTier > MegaSteamTurbinePolicy.MAX_CASING_TIER) return 0;
+        int tier = mCasingTier > 0 ? mCasingTier : 1;
         return GTValues.V[tier];
     }
 
@@ -819,6 +778,13 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public CheckRecipeResult checkProcessing() {
+        if (!MegaSteamTurbinePolicy.supportsCasing(mCasingTier)) {
+            mEUt = 0;
+            mFullBaseEUt = 0;
+            mTheoreticalEUt = 0;
+            mSteamConsumption = 0;
+            return CheckRecipeResultRegistry.NO_FUEL_FOUND;
+        }
         List<FluidStack> tFluids = workingSteamInputs();
         if (tFluids.isEmpty() && mPressureSteamInputs.isEmpty() && mOverpressureInputs.isEmpty()) {
             mEUt = 0;
@@ -995,7 +961,13 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             mEfficiency = Math.max(mEfficiency, savedEfficiency);
             if (mStartUpCheck < 0) mLoadRecoveryTicks--;
         }
-        machineVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
+        machineVisualState.observe(
+            this,
+            aTick,
+            mMachine && MegaSteamTurbinePolicy.supportsCasing(mCasingTier),
+            mProgresstime,
+            mMaxProgresstime,
+            true);
     }
 
     /**
@@ -1004,6 +976,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
      */
     @Override
     public boolean onRunningTick(ItemStack aStack) {
+        // An old higher-tier save cannot emit one last tick before its next structure check.
+        if (!MegaSteamTurbinePolicy.supportsCasing(mCasingTier)) return false;
         if (mFullBaseEUt > 0) {
             addEnergyOutput(mFullBaseEUt * mEfficiency / 10000);
             return true;
@@ -1269,7 +1243,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             return info.toArray(new String[0]);
         }
 
-        String tierText = mCasingTier >= 1 && mCasingTier < GTValues.VN.length ? GTValues.VN[mCasingTier] : "Unknown";
+        String tierText = MegaSteamTurbinePolicy.supportsCasing(mCasingTier) ? GTValues.VN[mCasingTier] : "Unknown";
         info.add(
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
                 + EnumChatFormatting.GOLD
@@ -1445,6 +1419,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public void construct(ItemStack stackSize, boolean hintsOnly) {
+        if (!MegaSteamTurbineStructureDef.supportsConstruction(stackSize)) return;
         buildPiece(
             MegaSteamTurbineStructureDef.piece(getConstructExtraStackCount(stackSize)),
             stackSize,
@@ -1462,6 +1437,7 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     @Override
     public int survivalConstruct(ItemStack stackSize, int elementBudget, ISurvivalBuildEnvironment env) {
         if (mMachine) return -1;
+        if (!MegaSteamTurbineStructureDef.supportsConstruction(stackSize)) return 0;
         return survivalBuildPiece(
             MegaSteamTurbineStructureDef.piece(getConstructExtraStackCount(stackSize)),
             stackSize,
@@ -1602,11 +1578,8 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     private int getCasingTextureIndex() {
-        if (mCasingTier >= 1 && mCasingTier <= 9) {
+        if (MegaSteamTurbinePolicy.supportsCasing(mCasingTier)) {
             return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, mCasingTier);
-        }
-        if (mCasingTier >= 10 && mCasingTier <= 12) {
-            return GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasingsNH, mCasingTier);
         }
         return SOLID_STEEL_CASING_INDEX;
     }

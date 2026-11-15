@@ -14,7 +14,13 @@ import static gregtech.api.enums.HatchElement.InputHatch;
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
+
+import org.apache.commons.lang3.tuple.Pair;
 
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
@@ -57,15 +63,34 @@ public final class MegaSteamTurbineStructureDef {
         return (int) Math.max(0L, Math.min(MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS, (long) selection - 1L));
     }
 
+    public static boolean supportsConstruction(ItemStack trigger) {
+        return trigger == null
+            || MegaSteamTurbinePolicy.supportsCasing(ChannelDataAccessor.getChannelData(trigger, "casing"));
+    }
+
     public static MachineVisualDefinition visual(int extraStacks) {
         return MachineVisualDefinition.get("mega_steam_turbine_" + extraStacks);
+    }
+
+    /** Restrict actual matching and the projection/survival choices to LV through UV. */
+    public static Integer casingTier(Block block, int meta) {
+        Integer tier = RebuiltMachineMaterials.voltageTier(block, meta);
+        return tier != null && MegaSteamTurbinePolicy.supportsCasing(tier) ? tier : null;
+    }
+
+    public static List<Pair<Block, Integer>> casingChoices() {
+        List<Pair<Block, Integer>> choices = new ArrayList<>();
+        for (Pair<Block, Integer> choice : RebuiltMachineMaterials.voltageChoices())
+            if (casingTier(choice.getLeft(), choice.getRight()) != null) choices.add(choice);
+        return choices;
     }
 
     public static IStructureDefinition<MTEMegaSteamTurbineArray> definition() {
         if (STRUCTURE_DEFINITION == null) {
             StructureDefinition.Builder<MTEMegaSteamTurbineArray> builder = StructureDefinition
                 .<MTEMegaSteamTurbineArray>builder()
-                .addChannel("lenght", 1, MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS + 1);
+                .addChannel("lenght", 1, MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS + 1)
+                .addChannel("casing", 1, MegaSteamTurbinePolicy.MAX_CASING_TIER);
             for (int count = 0; count <= MTEMegaSteamTurbineArray.MAX_EXTRA_STACKS; count++) {
                 builder.addShape(piece(count), transpose(visual(count).shapeLayers()));
             }
@@ -110,8 +135,8 @@ public final class MegaSteamTurbineStructureDef {
                         withChannel(
                             "casing",
                             ofBlocksTiered(
-                                RebuiltMachineMaterials::voltageTier,
-                                RebuiltMachineMaterials.voltageChoices(),
+                                MegaSteamTurbineStructureDef::casingTier,
+                                casingChoices(),
                                 -1,
                                 (t, tier) -> t.mCasingTier = tier,
                                 t -> t.mCasingTier)))))

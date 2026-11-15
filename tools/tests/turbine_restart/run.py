@@ -76,6 +76,9 @@ def main():
     sources = [production / (name + ".java") for name in (
         "MTEHeavySteamTurbine", "MTEMegaSteamTurbineArray", "MTEKineticProcessingArray",
     )]
+    sources.extend(production / "turbine" / (name + ".java") for name in (
+        "MegaSteamTurbinePolicy", "MegaSteamTurbineStructureDef",
+    ))
     compile_code = run("javac.exe", "compile", [
         "-encoding", "UTF-8", "-proc:none", "-cp", classpath, "-d", OUT / "classes",
         *sources, FIXTURE / "TurbineRestartContract.java", FIXTURE / "MachineVisualNetwork.java",

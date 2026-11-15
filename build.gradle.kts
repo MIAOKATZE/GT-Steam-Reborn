@@ -334,6 +334,22 @@ val verifySolarTooltipContracts = tasks.register<JavaExec>("verifySolarTooltipCo
     maxHeapSize = "256m"
 }
 
+mapOf(
+    "verifyMegaTurbinePolicy" to "com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbinePolicyContract",
+    "verifyMegaTurbineTooltip" to "com.miaokatze.gtsr.client.tooltip.MegaTurbineTooltipContract",
+).forEach { (name, entry) ->
+    val contract = tasks.register<JavaExec>(name) {
+        group = "verification"
+        dependsOn(tasks.named("testClasses"))
+        classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath +
+            sourceSets["main"].compileClasspath + portableRecipeContractRuntime
+        mainClass.set(entry)
+        maxHeapSize = "256m"
+        systemProperty("java.awt.headless", "true")
+    }
+    tasks.named("check") { dependsOn(contract) }
+}
+
 tasks.named("check") {
     dependsOn(verifySolarTooltipContracts)
     dependsOn(verifyBossCombatContracts)

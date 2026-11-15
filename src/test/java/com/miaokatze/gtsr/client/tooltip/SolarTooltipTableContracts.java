@@ -12,7 +12,7 @@ import com.miaokatze.gtsr.common.critical.CriticalSolarPolicy;
 /** Verifies the visible catalogue against the actual fixed twenty-second consumption policy. */
 public final class SolarTooltipTableContracts {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ReflectiveOperationException {
         verify(
             CriticalSolarPolicy.COOLANTS,
             "coolant",
@@ -24,6 +24,7 @@ public final class SolarTooltipTableContracts {
             new String[] { "30,000", "800", "800", "800", "800", "200" },
             new String[] { "1", "1.5", "2", "3", "4", "8" });
         System.out.println("PASS solar tooltip: 9 policy rows, labels, units, multipliers and actual batch costs");
+        SolarBoilerTooltipContract.verify();
     }
 
     private static void verify(List<CriticalSolarPolicy.Entry> entries, String group, String[] flows,

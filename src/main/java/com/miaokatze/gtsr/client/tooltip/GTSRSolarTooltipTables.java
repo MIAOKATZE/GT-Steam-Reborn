@@ -30,7 +30,9 @@ public final class GTSRSolarTooltipTables {
 
     private GTSRSolarTooltipTables() {}
 
+    /** Legacy caller entry point. Use the complete page when supported, otherwise keep exact-match tables. */
     public static void apply(ItemStack stack, List<String> lines) {
+        if (GTSRSolarBoilerTooltip.apply(stack, lines)) return;
         var meta = ItemMachines.getMetaTileEntity(stack);
         if (!(meta instanceof MTECriticalMachine machine) || machine.getPresetKind() != CriticalMachineKind.SOLAR)
             return;

@@ -1,23 +1,43 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 package com.miaokatze.gtsr.common.dimension.testlab;
 
-import java.lang.reflect.*;
-import java.nio.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import net.minecraftforge.client.event.GuiScreenEvent;
 
-import com.google.gson.*;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
-import cpw.mods.fml.common.eventhandler.*;
+import cpw.mods.fml.common.eventhandler.EventPriority;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /** Explicit owned-client test. Natural inventory/NEI hover; synthetic in-process input only. */
 public final class SolarNativeTooltipFixture {
 
     public static final String SCRIPT = "gtsr-native-tooltip-table-v1";
+    public static final String CHART_SCRIPT = "gtsr-native-tooltip-charts-v2";
+    private boolean chartScript, actionPending;
+    private final Object[] targetStacks = new Object[2], originalSlots = new Object[2];
+    private int targetIndex;
 
     public interface Hooks {
 
@@ -54,13 +74,29 @@ public final class SolarNativeTooltipFixture {
         JsonObject doc = new JsonParser().parse(new String(Files.readAllBytes(plan), StandardCharsets.UTF_8))
             .getAsJsonObject();
         require(
-            SCRIPT.equals(
+            (SCRIPT.equals(
                 doc.get("scriptOnly")
-                    .getAsString()),
+                    .getAsString())
+                || CHART_SCRIPT.equals(
+                    doc.get("scriptOnly")
+                        .getAsString())),
             "Wrong script identity");
         cases = doc.getAsJsonArray("cases");
         expected = doc.getAsJsonObject("expectedArtifacts");
-        require(cases.size() == 16, "Explicit 16-case font/scale/context/shift matrix required");
+        chartScript = CHART_SCRIPT.equals(
+            doc.get("scriptOnly")
+                .getAsString());
+        require(chartScript ? cases.size() >= 8 : cases.size() == 16, "Explicit native-tooltip case matrix required");
+        if (chartScript) {
+            Set<String> targets = new HashSet<String>();
+            for (JsonElement entry : cases) targets.add(
+                entry.getAsJsonObject()
+                    .get("target")
+                    .getAsString());
+            require(
+                targets.equals(new HashSet<String>(Arrays.asList("CriticalSolar", "MegaSteamTurbineArray"))),
+                "Both real registered chart targets required");
+        }
         save = Paths.get(System.getProperty("miaotest.host.worldPath"))
             .toAbsolutePath()
             .normalize();
@@ -75,7 +111,7 @@ public final class SolarNativeTooltipFixture {
                 marker.get("runId")
                     .getAsString()),
             "Owned world marker mismatch");
-        receipt.put("scriptOnly", SCRIPT);
+        receipt.put("scriptOnly", chartScript ? CHART_SCRIPT : SCRIPT);
         receipt.put("runId", run);
         receipt.put("captures", captures);
         receipt.put("keyChecks", keyChecks);
@@ -104,7 +140,8 @@ public final class SolarNativeTooltipFixture {
         try {
             if (cancel) {
                 if (serverInventory != null) {
-                    call(serverInventory, "setInventorySlotContents|func_70299_a", 0, originalSlot);
+                    for (int slot = 0; slot < (chartScript ? 2 : 1); slot++)
+                        call(serverInventory, "setInventorySlotContents|func_70299_a", slot, originalSlots[slot]);
                     call(serverInventory, "markDirty|func_70296_d");
                 }
                 if (ops != null) {
@@ -171,18 +208,23 @@ public final class SolarNativeTooltipFixture {
                     .equals(field(field(serverActor, "capabilities|field_71075_bZ"), "isCreativeMode|field_75098_d")),
                 "Survival actor");
             serverInventory = field(serverActor, "inventory|field_71071_by");
-            originalSlot = call(serverInventory, "getStackInSlot|func_70301_a", 0);
-            if (originalSlot != null) originalSlot = call(originalSlot, "copy|func_77946_l");
-            stack = call(
-                field(type("com.miaokatze.gtsr.common.api.enums.GTSRItemList"), "CriticalSolar"),
-                "get",
-                1L,
-                new Object[0]);
+            String[] entries = chartScript ? new String[] { "CriticalSolar", "MegaSteamTurbineArray" }
+                : new String[] { "CriticalSolar" };
+            for (int slot = 0; slot < entries.length; slot++) {
+                originalSlots[slot] = call(serverInventory, "getStackInSlot|func_70301_a", slot);
+                if (originalSlots[slot] != null) originalSlots[slot] = call(originalSlots[slot], "copy|func_77946_l");
+                targetStacks[slot] = call(
+                    field(type("com.miaokatze.gtsr.common.api.enums.GTSRItemList"), entries[slot]),
+                    "get",
+                    1L,
+                    new Object[0]);
+                require(
+                    call(type("gregtech.common.blocks.ItemMachines"), "getMetaTileEntity", targetStacks[slot]) != null,
+                    "Registered GT machine " + entries[slot]);
+                call(serverInventory, "setInventorySlotContents|func_70299_a", slot, targetStacks[slot]);
+            }
+            stack = targetStacks[0];
             solarMeta = ((Number) call(stack, "getItemDamage|func_77960_j")).intValue();
-            Object meta = call(type("gregtech.common.blocks.ItemMachines"), "getMetaTileEntity", stack);
-            require("SOLAR".equals(String.valueOf(call(meta, "getPresetKind"))), "Registered solar machine kind");
-            receipt.put("registeredSolarMeta", solarMeta);
-            call(serverInventory, "setInventorySlotContents|func_70299_a", 0, stack);
             call(serverInventory, "markDirty|func_70296_d");
             serverReady = true;
         } catch (Throwable t) {
@@ -260,7 +302,10 @@ public final class SolarNativeTooltipFixture {
         }
         if (!serverReady || field(mc, "thePlayer|field_71439_g") == null) return;
         Object player = field(mc, "thePlayer|field_71439_g");
-        Object clientStack = call(field(player, "inventory|field_71071_by"), "getStackInSlot|func_70301_a", 0);
+        Object clientStack = call(
+            field(player, "inventory|field_71071_by"),
+            "getStackInSlot|func_70301_a",
+            targetIndex);
         if (clientStack == null || ((Number) call(clientStack, "getItemDamage|func_77960_j")).intValue() != solarMeta)
             return;
         if (((Number) field(player, "ticksExisted|field_70173_aa")).intValue() < 80) return;
@@ -311,7 +356,7 @@ public final class SolarNativeTooltipFixture {
             call(type("com.slprime.chromatictooltips.TooltipHandler"), "nextTooltipPage");
             return;
         }
-        if (caseIndex == 0 && effectStep < 2) {
+        if (!chartScript && caseIndex == 0 && effectStep < 2) {
             effectStep++;
             prepare(player);
             row.addProperty("id", effectStep == 1 ? "effects-off" : "effects-restored");
@@ -331,6 +376,14 @@ public final class SolarNativeTooltipFixture {
             cases.get(caseIndex)
                 .toString())
             .getAsJsonObject();
+        if (chartScript) {
+            targetIndex = "MegaSteamTurbineArray".equals(
+                row.get("target")
+                    .getAsString()) ? 1 : 0;
+            stack = targetStacks[targetIndex];
+            solarMeta = ((Number) call(stack, "getItemDamage|func_77960_j")).intValue();
+            actionPending = row.has("action");
+        }
         draws = settle = 0;
         selectedPage = 0;
         captureRequested = false;
@@ -390,7 +443,7 @@ public final class SolarNativeTooltipFixture {
             } else {
                 int left = ((Number) field(gui, "guiLeft|field_147003_i")).intValue(),
                     top = ((Number) field(gui, "guiTop|field_147009_r")).intValue();
-                hoverX = left + 16;
+                hoverX = left + 16 + targetIndex * 18;
                 hoverY = top + 150;
             }
             set(event, "mouseX", hoverX);
@@ -415,7 +468,7 @@ public final class SolarNativeTooltipFixture {
             if (hit != null) {
                 require(
                     ((Number) call(hit, "getItemDamage|func_77960_j")).intValue() == solarMeta,
-                    "Natural hit must be solar item");
+                    "Natural hit must match selected registered machine");
                 current.put("hitItemMeta", solarMeta);
                 current.put(
                     "hitContext",
@@ -432,6 +485,11 @@ public final class SolarNativeTooltipFixture {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void after(GuiScreenEvent.DrawScreenEvent.Post event) {
         if (event.gui == gui) try {
+            if (actionPending && draws >= 2) {
+                chartAction();
+                actionPending = false;
+                draws = 0;
+            }
             if (togglePending && draws >= 2) {
                 toggleEffect();
                 togglePending = false;
@@ -486,6 +544,25 @@ public final class SolarNativeTooltipFixture {
             List<Object> layouts = new ArrayList<Object>();
             for (Object page : pages) tables(page, layouts);
             current.put("allTableLayouts", layouts);
+            if (chartScript) {
+                List<Object> charts = new ArrayList<Object>(), guides = new ArrayList<Object>();
+                for (Object page : pages) chartComponents(page, charts, guides);
+                current.put("nativeCharts", charts);
+                current.put("nativeGuides", guides);
+                Object pageState = call(pageApi(), "forItem", item);
+                current.put("tier", String.valueOf(call(pageState, "tier")));
+                Object itemKey = call(type("com.miaokatze.miaokatzecore.api.tooltip.TooltipPages"), "identity", item);
+                current.put("selectedChart", call(pageApi(), "selected", itemKey));
+                current.put(
+                    "storedVariant",
+                    call(
+                        pageState,
+                        "variant",
+                        row.get("chartId")
+                            .getAsString(),
+                        row.get("variants")
+                            .getAsInt()));
+            }
             totalPages = pages.size();
             current.put("pages", ((List<?>) field(context, "pagedComponents")).size());
             current.put("actualPage", field(context, "currentPage"));
@@ -541,6 +618,21 @@ public final class SolarNativeTooltipFixture {
                     && (text.contains("结构") || text.contains("Structure")),
                 "Actual GT structure markers");
             require(layouts.isEmpty(), "Native tables must not replace structure page");
+            if (chartScript) {
+                require(((List<?>) current.get("nativeCharts")).isEmpty(), "Charts must not replace GT structure");
+                require(
+                    row.get("tier")
+                        .getAsString()
+                        .equals(current.get("tier")),
+                    "Left Shift must preserve stored tier");
+                if (row.has("active")) require(
+                    ((Number) current.get("storedVariant")).intValue() == row.get("active")
+                        .getAsInt(),
+                    "Left Shift must preserve chart variant");
+            }
+            caseVerified = true;
+        } else if (chartScript) {
+            verifyCharts();
             caseVerified = true;
         } else {
             require(layouts.size() >= 2, "Both coolant and activator tables must be present across native pages");
@@ -579,6 +671,181 @@ public final class SolarNativeTooltipFixture {
         require(org.lwjgl.opengl.GL11.glGetError() == 0, "Client GL error");
         current.put("glError", 0);
         current.put("nativeHoverVerified", true);
+    }
+
+    private static Class<?> pageApi() throws Exception {
+        return type("com.miaokatze.miaokatzecore.api.tooltip.component.NativeTooltipPage");
+    }
+
+    private void chartComponents(Object component, List<Object> charts, List<Object> guides) throws Exception {
+        String name = component.getClass()
+            .getSimpleName();
+        if (name.equals("NativeChartComponent")) {
+            Object chart = call(component, "chart");
+            Map<String, Object> data = new LinkedHashMap<String, Object>();
+            for (String property : new String[] { "kind", "chartId", "variants", "active", "compact", "maximum" }) {
+                Object value = field(chart, property);
+                data.put(property, value instanceof Enum ? value.toString() : value);
+            }
+            Object table = field(chart, "table");
+            if (table != null) {
+                int rows = ((List<?>) call(table, "rows")).size();
+                List<?> headers = (List<?>) call(table, "headers");
+                data.put("rows", rows);
+                data.put("headers", headers);
+                String kind = String.valueOf(field(chart, "kind"));
+                int valueRows = kind.equals("BARS") ? 1 : rows;
+                int valueColumns = kind.equals("BARS") ? rows : headers.size() - 1;
+                List<Object> values = new ArrayList<Object>();
+                for (int r = 0; r < valueRows; r++) {
+                    List<Double> cells = new ArrayList<Double>();
+                    for (int c = 0; c < valueColumns; c++) {
+                        double value = ((Number) call(chart, "value", r, c)).doubleValue();
+                        require(
+                            Double.isFinite(value) && value >= 0,
+                            "Actual chart value must be finite and nonnegative");
+                        cells.add(value);
+                    }
+                    values.add(cells);
+                }
+                data.put("values", values);
+            }
+            charts.add(data);
+        } else if (name.equals("NativeGuideComponent")) {
+            Object guide = call(component, "guide");
+            Map<String, Object> data = new LinkedHashMap<String, Object>();
+            data.put("kind", String.valueOf(field(guide, "kind")));
+            data.put("text", field(guide, "text"));
+            guides.add(data);
+        }
+        try {
+            Object children = call(component, "getComponents");
+            if (children instanceof Iterable)
+                for (Object child : (Iterable<?>) children) chartComponents(child, charts, guides);
+        } catch (NoSuchMethodException ignored) {}
+    }
+
+    private void verifyCharts() throws Exception {
+        require(!actionPending, "Real keyboard action must complete before capture");
+        require(
+            row.get("tier")
+                .getAsString()
+                .equals(String.valueOf(current.get("tier"))),
+            "Actual selected tier");
+        if (row.has("selectedChart")) require(
+            row.get("selectedChart")
+                .getAsString()
+                .equals(current.get("selectedChart")),
+            "Actual selected chart after Tab");
+        List<?> charts = (List<?>) current.get("nativeCharts");
+        if ("QUICK".equals(current.get("tier"))) {
+            require(charts.isEmpty(), "Quick tier has no charts");
+            require(((List<?>) current.get("allTableLayouts")).isEmpty(), "Quick tier has no tables");
+            return;
+        }
+        require(!charts.isEmpty(), "Actual native chart components must render");
+        String expectedId = row.get("chartId")
+            .getAsString();
+        boolean found = false;
+        for (Object entry : charts) {
+            Map<?, ?> chart = (Map<?, ?>) entry;
+            if (expectedId.equals(chart.get("chartId"))) {
+                require(
+                    ((List<?>) chart.get("variants")).size() == row.get("variants")
+                        .getAsInt(),
+                    "Actual chart variant count");
+                if (row.has("active")) require(
+                    ((Number) chart.get("active")).intValue() == row.get("active")
+                        .getAsInt(),
+                    "Actual rendered variant after keyboard event");
+                if (row.has("chartKind")) require(
+                    row.get("chartKind")
+                        .getAsString()
+                        .equals(chart.get("kind")),
+                    "Actual chart kind");
+                if (row.has("chartRows")) require(
+                    ((Number) chart.get("rows")).intValue() == row.get("chartRows")
+                        .getAsInt(),
+                    "Actual chart row count");
+                if (row.has("valueColumns")) require(
+                    ((List<?>) ((List<?>) chart.get("values")).get(0)).size() == row.get("valueColumns")
+                        .getAsInt(),
+                    "Actual chart data column count");
+                found = true;
+            }
+        }
+        require(found, "Expected native chart identity: " + expectedId);
+        require(!((List<?>) current.get("nativeGuides")).isEmpty(), "Native guide components must render");
+    }
+
+    private void chartAction() throws Exception {
+        String action = row.get("action")
+            .getAsString();
+        Class<?> kb = type("org.lwjglx.input.Keyboard");
+        Object queue = field(kb, "eventQueue");
+        ByteBuffer keys = (ByteBuffer) field(kb, "sdlKeyPressedArray");
+        ByteBuffer local = ByteBuffer.allocateDirect(keys.capacity());
+        for (int i = 0; i < keys.capacity(); i++) local.put(i, keys.get(i));
+        for (int key : new int[] { 42, 54, 56, 184 }) {
+            int scan = ((Number) call(type("org.lwjglx.input.KeyCodes"), "lwjglToSdlScancode", key)).intValue();
+            local.put(scan, (byte) (action.equals("tier") && key == 56 ? 1 : 0));
+        }
+        int key = action.equals("select") ? 15 : 47;
+        java.util.concurrent.ArrayBlockingQueue<Object> events = new java.util.concurrent.ArrayBlockingQueue<Object>(2);
+        Object press = Enum.valueOf((Class) type("org.lwjglx.input.Keyboard$KeyState"), "PRESS");
+        events.add(
+            type("org.lwjglx.input.Keyboard$KeyEvent")
+                .getConstructor(int.class, int.class, int.class, type("org.lwjglx.input.Keyboard$KeyState"), long.class)
+                .newInstance(key, key, action.equals("select") ? 9 : 118, press, System.nanoTime()));
+        String before = String.valueOf(call(call(pageApi(), "forItem", stack), "tier"));
+        Object itemKey = call(type("com.miaokatze.miaokatzecore.api.tooltip.TooltipPages"), "identity", stack);
+        Object selectedBefore = call(pageApi(), "selected", itemKey);
+        int variantBefore = ((Number) call(
+            call(pageApi(), "forItem", stack),
+            "variant",
+            row.get("chartId")
+                .getAsString(),
+            row.get("variants")
+                .getAsInt())).intValue();
+        try {
+            set(kb, "sdlKeyPressedArray", local);
+            set(kb, "eventQueue", events);
+            Object event = type("com.cleanroommc.modularui.api.event.KeyboardInputEvent$Pre")
+                .getConstructor(type("net.minecraft.client.gui.GuiScreen"))
+                .newInstance(gui);
+            call(net.minecraftforge.common.MinecraftForge.EVENT_BUS, "post", event);
+            require(Boolean.TRUE.equals(call(event, "isCanceled")), "Actual Core key event must consume " + action);
+            Map<String, Object> check = new LinkedHashMap<String, Object>();
+            check.put("action", action);
+            check.put("tierBefore", before);
+            check.put("selectedBefore", selectedBefore);
+            check.put("selectedAfter", call(pageApi(), "selected", itemKey));
+            int variantAfter = ((Number) call(
+                call(pageApi(), "forItem", stack),
+                "variant",
+                row.get("chartId")
+                    .getAsString(),
+                row.get("variants")
+                    .getAsInt())).intValue();
+            check.put("variantBefore", variantBefore);
+            check.put("variantAfter", variantAfter);
+            if (action.equals("variant")) require(
+                variantAfter == (variantBefore + 1) % row.get("variants")
+                    .getAsInt(),
+                "Real V must advance selected chart variant exactly once");
+            if (action.equals("select")) require(
+                !Objects.equals(selectedBefore, call(pageApi(), "selected", itemKey)),
+                "Real Tab must change selected chart");
+            if (action.equals("tier")) require(
+                !before.equals(String.valueOf(call(call(pageApi(), "forItem", stack), "tier"))),
+                "Real Alt+V must change tier");
+            check.put("tierAfter", String.valueOf(call(call(pageApi(), "forItem", stack), "tier")));
+            check.put("input", "Synthetic KeyboardInputEvent.Pre under real native item hover; no OS input");
+            keyChecks.add(check);
+        } finally {
+            set(kb, "sdlKeyPressedArray", keys);
+            set(kb, "eventQueue", queue);
+        }
     }
 
     private void toggleEffect() throws Exception {
