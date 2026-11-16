@@ -44,8 +44,10 @@ import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchDynamo;
+import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
@@ -71,6 +73,12 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
     private int pendingSteam, turbineEfficiency, workingTicks, idleTicks, fullFlowTicks;
     private int actualOutput, actualSteam, effectiveEfficiency;
     private boolean superheated, workedThisTick, fullFlowThisTick;
+    private static final CheckRecipeResult ENERGY_OUTPUT_FULL = SimpleCheckRecipeResult
+        .ofFailure("gtsr.heavy_turbine.energy_output_full");
+    private static final CheckRecipeResult STEAM_OUTPUT_FULL = SimpleCheckRecipeResult
+        .ofFailure("gtsr.heavy_turbine.steam_output_full");
+    private static final CheckRecipeResult WATER_OUTPUT_FULL = SimpleCheckRecipeResult
+        .ofFailure("gtsr.heavy_turbine.water_output_full");
 
     public enum DynamoElement implements IHatchElement<MTEHeavySteamTurbine> {
 
@@ -329,12 +337,15 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         int waterBefore = pendingWater, steamBefore = pendingSteam;
         for (var hatch : GTUtility.validMTEList(mOutputHatches)) {
             if (pendingWater > 0)
-                pendingWater -= hatch.fill(ForgeDirection.UNKNOWN, GTModHandler.getDistilledWater(pendingWater), true);
-            if (pendingSteam > 0)
-                pendingSteam -= hatch.fill(ForgeDirection.UNKNOWN, Materials.Steam.getGas(pendingSteam), true);
+                pendingWater -= fillCoolant(hatch, GTModHandler.getDistilledWater(pendingWater), true);
+            if (pendingSteam > 0) pendingSteam -= fillCoolant(hatch, Materials.Steam.getGas(pendingSteam), true);
         }
         if (waterBefore != pendingWater || steamBefore != pendingSteam) markDirty();
         return pendingWater == 0 && pendingSteam == 0;
+    }
+
+    private int fillCoolant(MTEHatchOutput hatch, FluidStack fluid, boolean doFill) {
+        return hatch.canStoreFluid(fluid) ? hatch.fill(ForgeDirection.UNKNOWN, fluid, doFill) : 0;
     }
 
     private int coolantSteamRoom(boolean heated) {
@@ -344,8 +355,8 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         for (var hatch : GTUtility.validMTEList(mOutputHatches)) {
             int remaining = required - room;
             if (remaining == 0) break;
-            room += hatch.fill(
-                ForgeDirection.UNKNOWN,
+            room += fillCoolant(
+                hatch,
                 heated ? Materials.Steam.getGas(remaining) : GTModHandler.getDistilledWater(remaining),
                 false);
         }
@@ -368,13 +379,18 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
             mMaxProgresstime = 1;
             return CheckRecipeResultRegistry.GENERATING;
         }
-        if (outputRoom() == 0 || !flushCoolant()) return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
+        long outputRoom = outputRoom();
+        if (outputRoom == 0) return ENERGY_OUTPUT_FULL;
+        if (!flushCoolant()) return pendingWater > 0 ? WATER_OUTPUT_FULL : STEAM_OUTPUT_FULL;
         SteamType type = selectSteam();
         if (type == SteamType.NONE && energyCredit < HeavySteamTurbineCycle.ENERGY_UNITS_PER_EU)
             return CheckRecipeResultRegistry.NO_FUEL_FOUND;
         int rated = HeavySteamTurbineCycle.ratedSteam(mMaterialTier, type == SteamType.SH_STEAM);
-        Settlement plan = settlement(type, availableSteam(type, rated), outputRoom());
-        if (plan.steam() == 0 && plan.output() == 0) return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
+        int availableSteam = availableSteam(type, rated);
+        Settlement plan = settlement(type, availableSteam, outputRoom);
+        if (plan.steam() == 0 && plan.output() == 0)
+            return availableSteam == 0 ? CheckRecipeResultRegistry.NO_FUEL_FOUND
+                : type == SteamType.SH_STEAM ? STEAM_OUTPUT_FULL : WATER_OUTPUT_FULL;
         mEfficiencyIncrease = 0;
         mMaxProgresstime = 1;
         return CheckRecipeResultRegistry.GENERATING;

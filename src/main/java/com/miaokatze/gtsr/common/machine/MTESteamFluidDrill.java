@@ -13,6 +13,7 @@ import static com.miaokatze.gtsr.common.structure.GTSRStructureUtility.minimumCa
 import static gregtech.api.enums.HatchElement.OutputHatch;
 import static gregtech.api.util.GTStructureUtility.buildHatchAdder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -24,6 +25,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -40,6 +42,7 @@ import com.gtnewhorizons.modularui.common.widget.FakeSyncWidget;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.api.compat.GTSRHatchFluidAccess;
+import com.miaokatze.gtsr.api.compat.IAdditionalSteamSourceHolder;
 import com.miaokatze.gtsr.api.compat.ICoolingHatchHolder;
 import com.miaokatze.gtsr.api.compat.SteamCoolingSupport;
 import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
@@ -63,6 +66,7 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.recipe.check.SimpleCheckRecipeResult;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTModHandler;
@@ -90,12 +94,10 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
     private static final int VERTICAL_OFF_SET = 5;
     private static final int DEPTH_OFF_SET = 0;
 
-    private static final int BRONZE_MIN_OUTPUT = 200;
-    private static final int BRONZE_MAX_OUTPUT = 2_000;
-    private static final int STEEL_MIN_OUTPUT = 200;
-    private static final int STEEL_MAX_OUTPUT = 8_000;
     private static final int BASE_STEAM_PER_SECOND = 1_000;
-    private static final int PROGRESSION_TIME_TICKS = 20;
+    private final SteamFluidDrillCycle steamPayment = new SteamFluidDrillCycle();
+    private int cycleOutput, syncedOutput;
+    private boolean cycleSuperheated, syncedSuperheated;
 
     private static IStructureDefinition<MTESteamFluidDrill> STRUCTURE_DEFINITION = null;
 
@@ -368,35 +370,41 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         return 10000;
     }
 
-    private float getEfficiencyRatio() {
-        return mEfficiency / 10000F;
+    public int calculateFinalWaterOutput() {
+        if (getBaseMetaTileEntity() != null && getBaseMetaTileEntity().isClientSide()) return syncedOutput;
+        return mMaxProgresstime > 0 && cycleOutput > 0 ? cycleOutput : outputForSteam(isDisplayedSuperheated());
     }
 
-    public int calculateFinalWaterOutput() {
-        float ratio = getEfficiencyRatio();
-        int minOutput, maxOutput;
-        if (mSetTier == 1) {
-            minOutput = BRONZE_MIN_OUTPUT;
-            maxOutput = BRONZE_MAX_OUTPUT;
-        } else {
-            minOutput = STEEL_MIN_OUTPUT;
-            maxOutput = STEEL_MAX_OUTPUT;
-        }
-        int output = (int) (minOutput + ratio * (maxOutput - minOutput));
-        // 产出系数：蒸馏水独立20%，盐水10%，岩浆按维度判定（下界5%/其他0.5%）
-        if (mOutputMode == 1) {
-            // 蒸馏水模式：水模式的20%
-            output = (int) (output * 0.20);
-        } else if (mOutputMode == 2) {
-            // 盐水模式：水模式的10%
-            output = (int) (output * 0.10);
-        } else if (mOutputMode == 3) {
-            // 岩浆模式：下界5%，其他维度0.5%
-            boolean isNether = getBaseMetaTileEntity() != null && getBaseMetaTileEntity().getWorld() != null
-                && getBaseMetaTileEntity().getWorld().provider.dimensionId == -1;
-            output = isNether ? (int) (output * 0.05) : (int) (output * 0.005);
-        }
-        return output;
+    private int outputForSteam(boolean heated) {
+        boolean nether = getBaseMetaTileEntity() != null && getBaseMetaTileEntity().getWorld() != null
+            && getBaseMetaTileEntity().getWorld().provider.dimensionId == -1;
+        return SteamFluidDrillCycle.output(mSetTier, mEfficiency, mOutputMode, nether, heated);
+    }
+
+    public boolean isDisplayedSuperheated() {
+        if (getBaseMetaTileEntity() != null && getBaseMetaTileEntity().isClientSide()) return syncedSuperheated;
+        if (mMaxProgresstime > 0 && cycleOutput > 0) return cycleSuperheated;
+        return steamPayment.prepaid() > 0 || steamPayment.isUncertain() ? steamPayment.superheated()
+            : selectSteam() == 2;
+    }
+
+    private List<MTEHatch> steamSources() {
+        List<MTEHatch> sources = new ArrayList<>(mInputHatches);
+        for (Object candidate : mSteamInputFluids) if (candidate instanceof MTEHatch hatch) sources.add(hatch);
+        if (this instanceof IAdditionalSteamSourceHolder holder)
+            sources.addAll(holder.gtsr$getAdditionalSteamSources());
+        return sources;
+    }
+
+    private int availableSteam(boolean heated) {
+        FluidStack request = heated ? FluidRegistry.getFluidStack("ic2superheatedsteam", getSteamPerSecond())
+            : Materials.Steam.getGas(getSteamPerSecond());
+        return GTSRHatchFluidAccess.probeWorkingFluid(steamSources(), mDualInputHatches, request);
+    }
+
+    private int selectSteam() {
+        if (steamPayment.isUncertain()) return 0;
+        return steamPayment.select(getSteamPerSecond(), availableSteam(false), availableSteam(true));
     }
 
     private FluidStack[] getOutputFluid(int amount) {
@@ -446,7 +454,14 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
 
     @Override
     public CheckRecipeResult checkProcessing() {
-        int waterOutput = calculateFinalWaterOutput();
+        if (steamPayment.isUncertain()) return uncertainPaymentResult();
+        int fuel = selectSteam();
+        if (fuel == 0) {
+            mEfficiency = 0;
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        boolean isSuperheated = fuel == 2;
+        int waterOutput = outputForSteam(isSuperheated);
 
         VoidProtectionHelper voidProtection = new VoidProtectionHelper().setMachine(this)
             .setFluidOutputs(getOutputFluid(waterOutput))
@@ -458,27 +473,44 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
             return CheckRecipeResultRegistry.FLUID_OUTPUT_FULL;
         }
 
-        if (getTotalSteamStored() >= getSteamPerSecond()) {
-            // v1.20.23：扣汽前判定蒸汽类型（扣汽后本地罐可能已排空导致误判）。
-            // 本机蒸汽消耗不走 lEUt/onRunningTick 路径，mixin 的冷却产物推送不触发，
-            // 需在扣汽后手动推送（普通→蒸馏水 160:1、过热→压力冷却仓 1:1），与奇点枢纽/地壳钻机同源。
-            boolean isSuperheated = hasSuperheatedSteamInHatch();
-            if (!tryConsumeSteam(getSteamPerSecond())) {
-                mOutputFluids = null;
-                mMaxProgresstime = 0;
-                mEfficiency = 0;
-                return CheckRecipeResultRegistry.NO_RECIPE;
-            }
-            mMaxProgresstime = PROGRESSION_TIME_TICKS;
-            mEfficiencyIncrease = getEfficiencyIncrease();
-            SteamCoolingSupport.pushCoolingProducts((ICoolingHatchHolder) this, getSteamPerSecond(), isSuperheated);
-            mOutputFluids = getOutputFluid(waterOutput);
-            updateSlots();
-            return CheckRecipeResultRegistry.SUCCESSFUL;
+        int remaining = Math.max(0, getSteamPerSecond() - steamPayment.prepaid());
+        if (remaining > 0) {
+            FluidStack request = isSuperheated ? FluidRegistry.getFluidStack("ic2superheatedsteam", remaining)
+                : Materials.Steam.getGas(remaining);
+            // Record each actual receipt immediately; a short network withdrawal cannot disappear or produce a batch.
+            boolean confirmed = steamPayment.attemptPayment(remaining, isSuperheated, () -> {
+                markDirty();
+                GTSRHatchFluidAccess.payWorkingFluid(steamSources(), mDualInputHatches, request, paid -> {
+                    steamPayment.paid(paid, isSuperheated);
+                    markDirty();
+                });
+            });
+            markDirty();
+            if (!confirmed) return uncertainPaymentResult();
         }
+        if (steamPayment.prepaid() < getSteamPerSecond()) {
+            mOutputFluids = null;
+            mMaxProgresstime = 0;
+            mEfficiency = 0;
+            return CheckRecipeResultRegistry.NO_RECIPE;
+        }
+        steamPayment.spend(getSteamPerSecond());
+        cycleOutput = waterOutput;
+        cycleSuperheated = isSuperheated;
+        mMaxProgresstime = SteamFluidDrillCycle.TICKS;
+        mEfficiencyIncrease = getEfficiencyIncrease();
+        SteamCoolingSupport.pushCoolingProducts((ICoolingHatchHolder) this, getSteamPerSecond(), isSuperheated);
+        mOutputFluids = getOutputFluid(waterOutput);
+        markDirty();
+        updateSlots();
+        return CheckRecipeResultRegistry.SUCCESSFUL;
+    }
 
+    private CheckRecipeResult uncertainPaymentResult() {
+        mOutputFluids = null;
+        mMaxProgresstime = 0;
         mEfficiency = 0;
-        return CheckRecipeResultRegistry.NO_RECIPE;
+        return SimpleCheckRecipeResult.ofFailurePersistOnShutdown("gtsr_working_fluid_uncertain");
     }
 
     @Override
@@ -551,8 +583,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                     + " L/s ("
                     + NumberFormatUtil.formatNumber(HIGH_STEAM_PER_SECOND)
                     + " L/s Brine/Lava)")
-            .addInfo(
-                EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
+            .addInfo(EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.superheated"))
+            .addInfo(StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.steam_payment"))
             .beginStructureBlock(5, 6, 5, false)
             .addCasingInfoMin(
                 StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
@@ -596,6 +628,12 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         super.saveNBTData(aNBT);
         aNBT.setInteger("mSetTier", mSetTier);
         aNBT.setInteger("mOutputMode", mOutputMode);
+        aNBT.setInteger("gtsrDrillPaidSteam", steamPayment.prepaid());
+        aNBT.setBoolean("gtsrDrillPaidSuperheated", steamPayment.superheated());
+        aNBT.setBoolean("gtsrDrillPaymentUncertain", steamPayment.isUncertain());
+        aNBT.setInteger("gtsrDrillUnresolvedRequest", steamPayment.unresolvedRequest());
+        aNBT.setInteger("gtsrDrillCycleOutput", cycleOutput);
+        aNBT.setBoolean("gtsrDrillCycleSuperheated", cycleSuperheated);
     }
 
     @Override
@@ -603,6 +641,17 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         super.loadNBTData(aNBT);
         mSetTier = aNBT.getInteger("mSetTier");
         mOutputMode = aNBT.getInteger("mOutputMode");
+        steamPayment.restore(
+            aNBT.getInteger("gtsrDrillPaidSteam"),
+            aNBT.getBoolean("gtsrDrillPaidSuperheated"),
+            aNBT.getBoolean("gtsrDrillPaymentUncertain"),
+            aNBT.getInteger("gtsrDrillUnresolvedRequest"));
+        cycleOutput = Math.max(0, aNBT.getInteger("gtsrDrillCycleOutput"));
+        cycleSuperheated = aNBT.getBoolean("gtsrDrillCycleSuperheated");
+        if (cycleOutput == 0 && mMaxProgresstime > 0
+            && mOutputFluids != null
+            && mOutputFluids.length > 0
+            && mOutputFluids[0] != null) cycleOutput = mOutputFluids[0].amount;
     }
 
     public boolean hasSuperheatedSteamInHatch() {
@@ -616,6 +665,8 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         screenElements.widget(new FakeSyncWidget.IntegerSyncer(() -> mSetTier, val -> mSetTier = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mEfficiency, val -> mEfficiency = val))
             .widget(new FakeSyncWidget.IntegerSyncer(() -> mOutputMode, val -> mOutputMode = val))
+            .widget(new FakeSyncWidget.IntegerSyncer(this::calculateFinalWaterOutput, val -> syncedOutput = val))
+            .widget(new FakeSyncWidget.BooleanSyncer(this::isDisplayedSuperheated, val -> syncedSuperheated = val))
             .widget(
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")
@@ -626,8 +677,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
                 new TextWidget().setStringSupplier(
                     () -> EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
                         + EnumChatFormatting.YELLOW
-                        + (hasSuperheatedSteamInHatch()
-                            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+                        + (isDisplayedSuperheated() ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
                             : StatCollector.translateToLocal("gtsr.gui.steam_type.normal"))))
             .widget(
                 new TextWidget().setStringSupplier(
@@ -653,7 +703,11 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
     }
 
     public String getOutputModeDisplayName() {
-        switch (mOutputMode) {
+        return getOutputModeDisplayName(mOutputMode);
+    }
+
+    public String getOutputModeDisplayName(int outputMode) {
+        switch (outputMode) {
             case 1:
                 return StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.mode_distilled");
             case 2:
@@ -676,8 +730,7 @@ public class MTESteamFluidDrill extends MTESteamMultiBlockBase<MTESteamFluidDril
         int currentOutput = calculateFinalWaterOutput();
         String tierText = mSetTier == 2 ? StatCollector.translateToLocal("gtsr.gui.tier.steel")
             : StatCollector.translateToLocal("gtsr.gui.tier.bronze");
-        String steamType = hasSuperheatedSteamInHatch()
-            ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
+        String steamType = isDisplayedSuperheated() ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
             : StatCollector.translateToLocal("gtsr.gui.steam_type.normal");
         return new String[] { EnumChatFormatting.BLUE + StatCollector.translateToLocal("gtsr.tooltip.fluid_drill.type"),
             EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.tier")

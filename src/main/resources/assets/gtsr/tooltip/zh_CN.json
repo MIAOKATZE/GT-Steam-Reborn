@@ -756,17 +756,18 @@
         {"type":"line","text":"§b用蒸汽直接产出水介质，无需消耗地下油藏；青铜仅产 [fluid:water|水]，钢可切四种流体。"},
         {"type":"line","text":"§6连续运转§r：效率决定产量；青铜约5分钟、钢约1小时暖至满效。默认 [fluid:water|水] 模式，缺汽或切换模式都会清空效率。"},
         {"type":"table","columns":[" [fluid:steam|蒸汽] 工况","青铜产量（L/s）","钢产量（L/s）","耗汽（L/s）"],"rows":[[" [fluid:water|水] ","200～2,000","200～8,000","1,000"],[" [fluid:ic2distilledwater|蒸馏水] ","不可用","40～1,600","1,000"],[" [fluid:saltwater|盐水] ","不可用","20～800","4,000"],[" [fluid:lava|岩浆]：下界","不可用","10～400","4,000"],[" [fluid:lava|岩浆]：其他维度","不可用","1～40","4,000"]],"title":"§a冷机→满效； [fluid:steam|蒸汽]／ [fluid:ic2superheatedsteam|过热蒸汽] 耗量相同"},
-        {"type":"line","text":"§7钢级以 [fluid:water|水] 产量为基数： [fluid:ic2distilledwater|蒸馏水] 20%、 [fluid:saltwater|盐水] 10%、下界 [fluid:lava|岩浆] 5%、其他维度 [fluid:lava|岩浆] 0.5%。"},
+        {"type":"line","text":"§a整批使用 [fluid:ic2superheatedsteam|过热蒸汽] 时，表内产量提高至2倍；每轮仍为1秒，耗汽量不变。"},
         {"type":"divider"},
-        {"type":"line","text":"§6选模式§r：钢级螺丝刀[right:右击]按 [fluid:water|水]→ [fluid:ic2distilledwater|蒸馏水]→ [fluid:saltwater|盐水]→ [fluid:lava|岩浆] 轮换；切换后须重新积累效率。"},
+        {"type":"line","text":"§6选模式§r：钢级螺丝刀[right:右击]轮换四种产出；切换后须重新积累效率。"},
         {"type":"line","text":"§a回收§r：装蒸汽冷却仓可回收 [fluid:steam|蒸汽] 凝水；装耐压蒸汽冷却仓回收 [fluid:ic2superheatedsteam|过热蒸汽] 返出的 [fluid:steam|蒸汽]。"},
-        {"type":"warning","text":"输出仓满时等待。改用 [fluid:ic2superheatedsteam|过热蒸汽] 不会额外加速，也不提高本机耗汽量。"},
+        {"type":"warning","text":"输出仓须容纳整轮产物。混供时优先使用足额 [fluid:ic2superheatedsteam|过热蒸汽]，否则使用足额 [fluid:steam|蒸汽]；每轮只使用一种蒸汽。"},
         {"type":"line","text":"§7无需维护仓。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ],
       "quick":[
         {"type":"line","text":"§b蒸汽直接产 [fluid:water|水]；钢级另可产 [fluid:ic2distilledwater|蒸馏水]、 [fluid:saltwater|盐水] 和 [fluid:lava|岩浆]。"},
         {"type":"line","text":"青铜／钢满效产 [fluid:water|水] 2,000／8,000 L/s；暖机约5分钟／1小时。"},
+        {"type":"line","text":"§a整轮 [fluid:ic2superheatedsteam|过热蒸汽] 使产量翻倍，周期与耗汽量不变；混供优先足额过热蒸汽。"},
         {"type":"line","text":"钢级螺丝刀[right:右击]切模式，缺汽或切换重置效率。"},
         {"type":"line","text":" [fluid:water|水]／ [fluid:ic2distilledwater|蒸馏水] 耗汽1,000 L/s； [fluid:saltwater|盐水]／ [fluid:lava|岩浆] 4,000 L/s。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}

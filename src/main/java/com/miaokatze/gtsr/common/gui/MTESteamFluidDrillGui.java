@@ -29,11 +29,14 @@ public class MTESteamFluidDrillGui extends MTESteamMultiBlockBaseGui {
         com.miaokatze.gtsr.common.machine.MTESteamFluidDrill machine = (com.miaokatze.gtsr.common.machine.MTESteamFluidDrill) multiblock;
         syncManager.syncValue("gtsr.tier", new IntSyncValue(() -> machine.mSetTier));
         syncManager.syncValue("gtsr.outputMode", new IntSyncValue(() -> machine.mOutputMode));
+        syncManager.syncValue("gtsr.drillSteamType", new IntSyncValue(() -> machine.isDisplayedSuperheated() ? 1 : 0));
     }
 
     @Override
     protected ListWidget<IWidget, ?> createTerminalTextWidget(PanelSyncManager syncManager, ModularPanel parent) {
         IntSyncValue tierSyncer = syncManager.findSyncHandler("gtsr.tier", IntSyncValue.class);
+        IntSyncValue steamTypeSyncer = syncManager.findSyncHandler("gtsr.drillSteamType", IntSyncValue.class);
+        IntSyncValue modeSyncer = syncManager.findSyncHandler("gtsr.outputMode", IntSyncValue.class);
 
         ListWidget<IWidget, ?> list = super.createTerminalTextWidget(syncManager, parent);
         list.child(IKey.dynamic(() -> {
@@ -47,8 +50,7 @@ public class MTESteamFluidDrillGui extends MTESteamMultiBlockBaseGui {
             .marginBottom(2)
             .fullWidth())
             .child(IKey.dynamic(() -> {
-                boolean isSuperheated = ((com.miaokatze.gtsr.common.machine.MTESteamFluidDrill) multiblock)
-                    .hasSuperheatedSteamInHatch();
+                boolean isSuperheated = steamTypeSyncer.getValue() == 1;
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.steam_type")
                     + EnumChatFormatting.YELLOW
                     + (isSuperheated ? StatCollector.translateToLocal("gtsr.gui.steam_type.superheated")
@@ -61,7 +63,7 @@ public class MTESteamFluidDrillGui extends MTESteamMultiBlockBaseGui {
                 com.miaokatze.gtsr.common.machine.MTESteamFluidDrill machine = (com.miaokatze.gtsr.common.machine.MTESteamFluidDrill) multiblock;
                 return EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.gui.fluid_drill.output_mode")
                     + EnumChatFormatting.LIGHT_PURPLE
-                    + machine.getOutputModeDisplayName();
+                    + machine.getOutputModeDisplayName(modeSyncer.getValue());
             })
                 .asWidget()
                 .marginBottom(2)
