@@ -4,6 +4,8 @@
 package com.miaokatze.gtsr.common.dimension.testlab;
 
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.WorldServer;
@@ -36,6 +38,13 @@ final class TestLabHeavySteamTurbineProbe {
     private long energyBefore, steamBefore, coolantBefore, measuredEnergy, consumedSteam;
     private NBTTagCompound before;
     private boolean partialOutputSeen, lowFlowStarted, pulseComplete;
+    private final StringBuilder phaseTrace = new StringBuilder();
+    private long phaseEnergy, phaseSteam;
+    private int phaseNoFuelTicks, phaseDisabledTicks, phaseFirstWorkTick = -1;
+    private final Map<String, Integer> phaseResults = new TreeMap<>();
+    private int probeTick;
+    private boolean preparedDynamoBlocked, intermittentGeneration;
+    private int pendingReplaySteam;
 
     TestLabHeavySteamTurbineProbe(MTEHeavySteamTurbine machine, List<IGregTechTileEntity> ports, int tick,
         boolean heated) {
@@ -49,11 +58,13 @@ final class TestLabHeavySteamTurbineProbe {
         rated = HeavySteamTurbineCycle.ratedSteam(machine.mMaterialTier, heated);
         limit = HeavySteamTurbineCycle.efficiencyLimit(machine.mMaterialTier, heated);
         started = tick;
+        probeTick = tick;
         prepareNextTick();
         snapshot();
     }
 
     String tick(int tick) {
+        probeTick = tick;
         if (samples == 0 && tick == started) return null;
         NBTTagCompound after = state();
         long consumed = steamBefore - inputSteam() + before.getInteger("paidSteam") - after.getInteger("paidSteam");
@@ -63,10 +74,18 @@ final class TestLabHeavySteamTurbineProbe {
             - before.getInteger(heated ? "pendingSteam" : "pendingWater");
         int effective = (int) machine.getEntryValue("steam_efficiency");
         require(consumed >= 0 && consumed <= rated, "actual fuel exceeds rated throughput");
+        // Production discards sub-EU generation each tick, retaining only already-paid whole EU.
+        long expectedWholeEu = before.getInteger("energyCredit") / 200 + consumed * effective * (heated ? 2 : 1) / 200;
         require(
-            consumed * effective * (heated ? 2 : 1)
-                == generated * 200 + after.getInteger("energyCredit") - before.getInteger("energyCredit"),
-            "weighted native energy/credit conservation failed");
+            expectedWholeEu == generated + after.getInteger("energyCredit") / 200
+                && after.getInteger("energyCredit") % 200 == 0,
+            "integer native energy/credit conservation failed: consumed=" + consumed
+                + " effective="
+                + effective
+                + " expectedWholeEu="
+                + expectedWholeEu
+                + " generated="
+                + generated);
         require(
             heated ? coolant == consumed
                 : coolant * 160 + after.getInteger("excessWater") - before.getInteger("excessWater") == consumed,
@@ -77,6 +96,17 @@ final class TestLabHeavySteamTurbineProbe {
         require(consumed == (long) machine.getEntryValue("steam_rate"), "displayed steam differs from actual debit");
         measuredEnergy += generated;
         consumedSteam += consumed;
+        phaseEnergy += generated;
+        phaseSteam += consumed;
+        if (consumed == 0) phaseNoFuelTicks++;
+        else if (phaseFirstWorkTick < 0) phaseFirstWorkTick = tick - started;
+        if (!machine.getBaseMetaTileEntity()
+            .isAllowedToWork()) phaseDisabledTicks++;
+        phaseResults.merge(
+            after.getCompoundTag("checkRecipeResult")
+                .getString("key"),
+            1,
+            Integer::sum);
         samples++;
         int rotor = after.getInteger("turbineEfficiency");
         int elapsed = tick - started;
@@ -124,6 +154,11 @@ final class TestLabHeavySteamTurbineProbe {
             }
             case 3 -> {
                 require(consumed == 0 && generated == 0, "full dynamo consumed fuel or overflowed");
+                if (elapsed > 2) require(
+                    "gtsr.heavy_turbine.energy_output_full".equals(
+                        after.getCompoundTag("checkRecipeResult")
+                            .getString("key")),
+                    "dynamo backpressure has wrong message");
                 require(
                     machine.getBaseMetaTileEntity()
                         .isAllowedToWork(),
@@ -141,6 +176,11 @@ final class TestLabHeavySteamTurbineProbe {
             case 5 -> {
                 // Ordinary steam can finish the already-owned sub-water fraction before becoming blocked.
                 if (elapsed > 10) require(consumed == 0, "full liquid output kept consuming fuel");
+                if (elapsed > 10) require(
+                    (heated ? "gtsr.heavy_turbine.steam_output_full" : "gtsr.heavy_turbine.water_output_full").equals(
+                        after.getCompoundTag("checkRecipeResult")
+                            .getString("key")),
+                    "coolant blockage has wrong message");
                 require(
                     machine.getBaseMetaTileEntity()
                         .isAllowedToWork(),
@@ -178,21 +218,70 @@ final class TestLabHeavySteamTurbineProbe {
                 require(elapsed <= 150, "enabled controller did not recover");
                 if (consumed > 0) {
                     verifyNbtRoundTrip(after);
-                    return "nativeLowFeed=16L/t lowFlowWarmup=100% fullFlowLimit=" + limit
-                        + "% halfFlowEffectiveCap=100% fractionalOutputRoom=1EU PASS fullDynamo=PASS"
-                        + " coolantBlockRecovery=PASS starvationDecay=10pp/s disabledDecay=10pp/s"
-                        + " automaticRestart=PASS controllerNbtRoundTrip=PASS measuredEnergy="
-                        + measuredEnergy
-                        + "EU actualSteam="
-                        + consumedSteam
-                        + "L samples="
-                        + samples
-                        + " steam="
-                        + (heated ? "superheated" : "ordinary")
-                        + " pulsedWarmup="
-                        + (machine.mMaterialTier == 1 ? "5tick_period_20_actual_workticks_0to2_PASS" : "not_applicable")
-                        + " fixture=real_input_hatch_fill_and_output_drain_real_dynamo_buffer_only manualMachineTicks=0";
+                    advance(10, tick);
                 }
+            }
+            case 10 -> {
+                if (preparedDynamoBlocked)
+                    require(consumed == 0 && generated == 0, "intermittently full dynamo consumed fuel");
+                intermittentGeneration |= generated > 0;
+                require(
+                    machine.getBaseMetaTileEntity()
+                        .isAllowedToWork(),
+                    "intermittent backpressure disabled work");
+                if (elapsed >= 100) advance(11, tick);
+            }
+            case 11 -> {
+                require(elapsed <= 150, "sustained dynamo room did not recover after intermittent backpressure");
+                if (consumed > 0) {
+                    require(intermittentGeneration, "five-tick open windows never generated power");
+                    if (heated) advance(12, tick);
+                    else return complete(tick);
+                }
+            }
+            case 12 -> {
+                require(consumed == 0 && generated == 0, "empty water-locked output accepted returned steam");
+                if (elapsed > 2) require(
+                    "gtsr.heavy_turbine.steam_output_full".equals(
+                        after.getCompoundTag("checkRecipeResult")
+                            .getString("key")),
+                    "fluid lock has wrong message");
+                require(
+                    machine.getBaseMetaTileEntity()
+                        .isAllowedToWork(),
+                    "output fluid lock disabled work");
+                if (elapsed >= 40) advance(13, tick);
+            }
+            case 13 -> {
+                require(elapsed <= 150, "unlocking empty coolant output did not recover");
+                if (consumed > 0) {
+                    // Move only already-produced, owned steam into its saved pending-output representation.
+                    for (IGregTechTileEntity port : ports)
+                        if (port.getMetaTileEntity() instanceof MTEHatchOutput hatch) {
+                            FluidStack paid = hatch.drain(Integer.MAX_VALUE, true);
+                            if (paid != null) {
+                                require(
+                                    paid.isFluidEqual(Materials.Steam.getGas(1)),
+                                    "pending replay got wrong coolant");
+                                pendingReplaySteam += paid.amount;
+                            }
+                        }
+                    require(pendingReplaySteam > 0, "pending replay lacks actually generated steam");
+                    NBTTagCompound restoredPending = state();
+                    restoredPending
+                        .setInteger("pendingSteam", restoredPending.getInteger("pendingSteam") + pendingReplaySteam);
+                    machine.loadNBTData(restoredPending);
+                    advance(14, tick);
+                }
+            }
+            case 14 -> {
+                require(consumed == 0 && generated == 0, "blocked pending output consumed more steam");
+                require(after.getInteger("pendingSteam") == pendingReplaySteam, "blocked pending output was lost");
+                if (elapsed >= 40) advance(15, tick);
+            }
+            case 15 -> {
+                require(elapsed <= 150, "paid pending steam did not flush and restart after output drain");
+                if (consumed > 0 && after.getInteger("pendingSteam") == 0) return complete(tick);
             }
             default -> throw new IllegalStateException("Unknown heavy probe phase " + phase);
         }
@@ -201,9 +290,106 @@ final class TestLabHeavySteamTurbineProbe {
         return null;
     }
 
+    private String complete(int tick) {
+        recordPhase(tick);
+        return "nativeLowFeed=16L/t lowFlowWarmup=100% fullFlowLimit=" + limit
+            + "% halfFlowEffectiveCap=100% fractionalOutputRoom=1EU PASS fullDynamo=PASS"
+            + " coolantBlockRecovery=PASS starvationDecay=10pp/s disabledDecay=10pp/s"
+            + " automaticRestart=PASS controllerNbtRoundTrip=PASS measuredEnergy="
+            + measuredEnergy
+            + "EU actualSteam="
+            + consumedSteam
+            + "L samples="
+            + samples
+            + " steam="
+            + (heated ? "superheated" : "ordinary")
+            + " pulsedWarmup="
+            + (machine.mMaterialTier == 1 ? "5tick_period_20_actual_workticks_0to2_PASS" : "not_applicable")
+            + " fixture=real_input_hatch_fill_and_output_drain_real_dynamo_buffer_only manualMachineTicks=0"
+            + " pendingReplayMovedActualPaidSteamL="
+            + pendingReplaySteam
+            + " phaseTrace=["
+            + phaseTrace
+            + "]";
+    }
+
     private void advance(int nextPhase, int tick) {
+        recordPhase(tick);
         phase = nextPhase;
         started = tick;
+        phaseEnergy = phaseSteam = 0;
+        phaseNoFuelTicks = phaseDisabledTicks = 0;
+        phaseFirstWorkTick = -1;
+        phaseResults.clear();
+    }
+
+    private void recordPhase(int tick) {
+        if (phaseTrace.length() > 0) phaseTrace.append("; ");
+        phaseTrace.append("phase=")
+            .append(phase)
+            .append(" ticks=")
+            .append(tick - started)
+            .append(" steamL=")
+            .append(phaseSteam)
+            .append(" generatedEU=")
+            .append(phaseEnergy)
+            .append(" firstWorkAt=")
+            .append(phaseFirstWorkTick)
+            .append(" zeroFuelTicks=")
+            .append(phaseNoFuelTicks)
+            .append(" disabledTicks=")
+            .append(phaseDisabledTicks)
+            .append(" rotor=")
+            .append(state().getInteger("turbineEfficiency"))
+            .append(" active=")
+            .append(
+                machine.getBaseMetaTileEntity()
+                    .isActive())
+            .append(" results=")
+            .append(phaseResults)
+            .append(" pendingSteam=")
+            .append(state().getInteger("pendingSteam"))
+            .append(" dynamoStoredEU=")
+            .append(energy())
+            .append(" ports=")
+            .append(portState());
+    }
+
+    private String portState() {
+        StringBuilder result = new StringBuilder();
+        for (IGregTechTileEntity port : ports) {
+            if (port.getMetaTileEntity() instanceof MTEHatchInput hatch) {
+                result.append("{input:")
+                    .append(
+                        hatch.getFluid() == null ? "empty"
+                            : hatch.getFluid()
+                                .getFluid()
+                                .getName())
+                    .append(" amount=")
+                    .append(hatch.getFluid() == null ? 0 : hatch.getFluid().amount)
+                    .append(" capacity=")
+                    .append(hatch.getCapacity())
+                    .append('}');
+            } else if (port.getMetaTileEntity() instanceof MTEHatchOutput hatch) {
+                result.append("{coolant:")
+                    .append(
+                        hatch.getFluid() == null ? "empty"
+                            : hatch.getFluid()
+                                .getFluid()
+                                .getName())
+                    .append(" amount=")
+                    .append(hatch.getFluid() == null ? 0 : hatch.getFluid().amount)
+                    .append(" capacity=")
+                    .append(hatch.getCapacity())
+                    .append(" lock=")
+                    .append(
+                        hatch.getLockedFluid() == null ? "none"
+                            : hatch.getLockedFluid()
+                                .getName())
+                    .append('}');
+            }
+        }
+        return result.toString();
     }
 
     private void prepareNextTick() {
@@ -223,15 +409,23 @@ final class TestLabHeavySteamTurbineProbe {
             }
         require(remaining == 0, "real hatch rejected the bounded fuel fixture");
         boolean first = true;
+        preparedDynamoBlocked = phase == 3 || phase == 10 && (probeTick - started) % 10 < 5;
         for (IGregTechTileEntity port : ports) if (isDynamo(port)) {
-            if (phase == 3) ((BaseMetaTileEntity) port).setStoredEU(port.getEUCapacity());
+            if (preparedDynamoBlocked) ((BaseMetaTileEntity) port).setStoredEU(port.getEUCapacity());
             else if (phase == 4) ((BaseMetaTileEntity) port).setStoredEU(port.getEUCapacity() - (first ? 1 : 0));
             else require(port.decreaseStoredEnergyUnits(port.getStoredEU(), false), "native dynamo load refused EU");
             first = false;
         }
         require(!first, "real dynamo fixture missing");
         for (IGregTechTileEntity port : ports) if (port.getMetaTileEntity() instanceof MTEHatchOutput hatch) {
-            if (phase == 5) hatch.fill(
+            if (phase == 12) {
+                hatch.drain(Integer.MAX_VALUE, true);
+                hatch.setLockedFluid(
+                    GTModHandler.getDistilledWater(1)
+                        .getFluid());
+                hatch.lockFluid(true);
+            } else if (phase == 13) hatch.lockFluid(false);
+            if (phase == 5 || phase == 14) hatch.fill(
                 ForgeDirection.UNKNOWN,
                 heated ? Materials.Steam.getGas(Integer.MAX_VALUE) : GTModHandler.getDistilledWater(Integer.MAX_VALUE),
                 true);
@@ -310,6 +504,15 @@ final class TestLabHeavySteamTurbineProbe {
     }
 
     private void require(boolean condition, String message) {
-        if (!condition) throw new IllegalStateException("Heavy phase=" + phase + " sample=" + samples + " " + message);
+        if (!condition) throw new IllegalStateException(
+            "Heavy phase=" + phase
+                + " sample="
+                + samples
+                + " "
+                + message
+                + " priorPhases=["
+                + phaseTrace
+                + "] ports="
+                + portState());
     }
 }

@@ -338,6 +338,7 @@ mapOf(
     "verifyMegaTurbinePolicy" to "com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbinePolicyContract",
     "verifyMegaTurbineTooltip" to "com.miaokatze.gtsr.client.tooltip.MegaTurbineTooltipContract",
     "verifyReviewedTooltipCatalog" to "com.miaokatze.gtsr.client.tooltip.ReviewedTooltipCatalogContract",
+    "verifySteamFluidDrillCycle" to "com.miaokatze.gtsr.common.machine.SteamFluidDrillCycleContract",
 ).forEach { (name, entry) ->
     val contract = tasks.register<JavaExec>(name) {
         group = "verification"

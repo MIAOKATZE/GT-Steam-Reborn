@@ -1139,6 +1139,9 @@ gtsr.gui.kinetic_array.steam_per_amp=蒸汽/安培:
 gtsr.gui.kinetic_array.hp_steam=高压蒸汽: 
 gtsr.gui.kinetic_array.parallel=并行: 
 GT5U.gui.text.recipe_result.gtsr.gui.kinetic_array.cooling_full=耐压蒸汽冷却仓空间不足（冷凝蒸汽无处存放）
+GT5U.gui.text.recipe_result.gtsr.heavy_turbine.energy_output_full=发电仓无法接收电能，请检查下游用电或储能空间
+GT5U.gui.text.recipe_result.gtsr.heavy_turbine.steam_output_full=普通蒸汽无法排出：检查流体输出仓的锁定类型与排汽管线
+GT5U.gui.text.recipe_result.gtsr.heavy_turbine.water_output_full=蒸馏水无法排出：检查流体输出仓的锁定类型与排水管线
 gtsr.gui.turbine_array.eu_t=理论最大输出功率: 
 gtsr.gui.turbine_array.steam=蒸汽: 
 gtsr.gui.turbine_array.theoretical=理论值，普通蒸汽口径
@@ -1178,7 +1181,7 @@ gtsr.tooltip.geothermal_boiler.lava_rate_chip=芯片 冷态: 333 mB/s | 热态: 
 
 # Steam Fluid Drill - NEI & Tooltip
 gtsr.tooltip.fluid_drill.mode_lava=岩浆
-gtsr.tooltip.fluid_drill.output_rates=产出速率 (水模式, 满效率):
+gtsr.tooltip.fluid_drill.output_rates=普通蒸汽产出速率（水模式，冷机→满效率）:
 gtsr.tooltip.fluid_drill.rate_water=青铜: 200~2,000 L/s | 钢: 200~8,000 L/s
 gtsr.tooltip.fluid_drill.rate_distilled=蒸馏水: 水模式的20% (需钢级)
 gtsr.tooltip.fluid_drill.rate_brine=盐水: 水模式的10% (需钢级)
@@ -1286,6 +1289,8 @@ gtsr.tooltip.atmospheric_centrifuge.optional_cooling=可选: 蒸汽冷却仓
 gtsr.tooltip.fluid_drill.desc2_2=蒸馏水模式产出为20%，盐水模式为10%，
 gtsr.tooltip.fluid_drill.desc2_3=岩浆模式在下界为5%、其他维度为0.5%。
 gtsr.tooltip.fluid_drill.steam_input=蒸汽仓/耐压蒸汽仓/输入仓（含ME），支持流体型原生ME合成缓存及已绑定Slave
+gtsr.tooltip.fluid_drill.superheated=整轮使用过热蒸汽时产量翻倍；周期仍为1秒，耗汽量不变
+gtsr.tooltip.fluid_drill.steam_payment=混供优先足额过热蒸汽，否则使用足额普通蒸汽；每轮只用一种，已支付的部分保留至补足
 
 gtsr.tooltip.crust_borer.desc_2=直接从主世界和下界中获取虚空矿物。
 gtsr.tooltip.crust_borer.steam_input=蒸汽仓/耐压蒸汽仓/输入仓（含ME），支持流体型原生ME合成缓存及已绑定Slave
