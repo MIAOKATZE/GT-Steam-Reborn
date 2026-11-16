@@ -24,6 +24,7 @@ import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
@@ -97,6 +98,7 @@ public final class GTSRSolarBoilerTooltip {
                 && cachedRoute == route
                 && cachedDimension == dim
                 && cachedDimensions == dims) return cachedPage.apply(stack, lines);
+            page.input(tr("terminal"));
             page.line(tr("purpose"));
             if (brief) page.line(tr("mandatory"));
             page.warning(tr(detail ? "warning.detail" : "warning", CriticalEnergyMath.CYCLE_TICKS / 20));
@@ -131,8 +133,13 @@ public final class GTSRSolarBoilerTooltip {
     }
 
     private static String tr(String key, Object... values) {
-        return values.length == 0 ? StatCollector.translateToLocal(PREFIX + key)
+        String text = values.length == 0 ? StatCollector.translateToLocal(PREFIX + key)
             : StatCollector.translateToLocalFormatted(PREFIX + key, values);
+        if (text.contains("{loom}"))
+            text = text.replace("{loom}", Integer.toString(GTSRItemList.CriticalLoom.getMeta()));
+        if (text.contains("{pulse}"))
+            text = text.replace("{pulse}", Integer.toString(GTSRItemList.CriticalTurbine.getMeta()));
+        return text;
     }
 
     private static String n(double x) {
@@ -154,7 +161,10 @@ public final class GTSRSolarBoilerTooltip {
     }
 
     private static String medium(String group, Entry e) {
-        return StatCollector.translateToLocal("gtsr.critical.solar." + group + "." + e.id);
+        String label = StatCollector.translateToLocal("gtsr.critical.solar." + group + "." + e.id);
+        String id = fluid(
+            group.equals("coolant") ? CriticalEnergyRuntime.solarCoolant(e) : CriticalEnergyRuntime.solarExciter(e));
+        return id.isEmpty() ? "[" + label + "]" : "[fluid:" + id + "|" + label + "]";
     }
 
     private static String fluid(FluidStack stack) {

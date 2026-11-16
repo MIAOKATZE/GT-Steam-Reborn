@@ -473,12 +473,11 @@ public final class CriticalBusinessSnapshotContract {
                 0,
                 0,
                 0));
-        data.setInteger("turbineRunTicks", 123);
-        data.setInteger("turbineTargetWarmupTicks", 200);
+        data.setString("turbinePreviousHeat", "246");
         rows = (String[][]) projection.invoke(null, state);
         check(
-            value(rows, "steam.warmup").equals("123 / 200 t"),
-            "equivalent-heat target replaces old trend thresholds");
+            value(rows, "steam.previous_heat").equals("123 EU"),
+            "previous paid heat is expressed in EU");
         check(
             Arrays.stream(rows)
                 .noneMatch(row -> row[0].equals("ui.runtime.steam.rise") || row[0].equals("ui.runtime.steam.fall")),

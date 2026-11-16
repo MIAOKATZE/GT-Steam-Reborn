@@ -151,8 +151,8 @@ public class MTESingularityMinerNode extends MTERemoteWorkerNode {
     }
 
     @Override
-    public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
-        super.addAdditionalTooltipInformation(stack, tooltip);
+    public void addWorkerPageInformation(ItemStack stack, List<String> tooltip) {
+        super.addWorkerPageInformation(stack, tooltip);
         tooltip.add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.miner_node.table_title"));
         tooltip.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.miner_node.table_header"));
         tooltip.add(

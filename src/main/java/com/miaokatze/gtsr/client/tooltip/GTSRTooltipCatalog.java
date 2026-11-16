@@ -122,6 +122,12 @@ public final class GTSRTooltipCatalog {
         return stack != null && stack.getFluid() == fluid;
     }
 
+    /** ItemMachines subclasses share GT's meta lookup. Only the actual registered item/meta belongs to GTSR. */
+    static boolean ownsMachine(ItemStack stack) {
+        Set<Integer> metas = stack == null ? null : MACHINES.get(stack.getItem());
+        return metas != null && metas.contains(stack.getItemDamage());
+    }
+
     /** Null means foreign: the event must leave every original line untouched. Empty means brand only. */
     public static List<String> descriptionKeys(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return null;

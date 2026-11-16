@@ -144,7 +144,7 @@ public final class CriticalNEIShowcase {
                     "simple.turbine.efficiency",
                     CriticalEnergyMath.MIN_EFFICIENCY / 100,
                     CriticalEnergyMath.MAX_EFFICIENCY / 100),
-                CriticalRecipeMaps.formatted("simple.turbine.warmup", CriticalEnergyMath.TURBINE_WARMUP_TICKS / 20),
+                text("turbine.trend"),
                 text("turbine.cycle"),
                 text("turbine.condensation"));
         } else if (operation.equals("solar_dust")) {

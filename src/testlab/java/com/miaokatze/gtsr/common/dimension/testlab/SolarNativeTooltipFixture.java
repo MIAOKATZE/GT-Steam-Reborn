@@ -36,8 +36,9 @@ public final class SolarNativeTooltipFixture {
     public static final String SCRIPT = "gtsr-native-tooltip-table-v1";
     public static final String CHART_SCRIPT = "gtsr-native-tooltip-charts-v2";
     private boolean chartScript, actionPending;
-    private final Object[] targetStacks = new Object[2], originalSlots = new Object[2];
-    private int targetIndex;
+    private final Object[] targetStacks = new Object[4], originalSlots = new Object[4];
+    private final List<String> targetEntries = new ArrayList<String>();
+    private int targetIndex, savedSlots;
 
     public interface Hooks {
 
@@ -94,9 +95,17 @@ public final class SolarNativeTooltipFixture {
                     .get("target")
                     .getAsString());
             require(
-                targets.equals(new HashSet<String>(Arrays.asList("CriticalSolar", "MegaSteamTurbineArray"))),
-                "Both real registered chart targets required");
-        }
+                targets.containsAll(Arrays.asList("CriticalSolar", "MegaSteamTurbineArray")) && new HashSet<String>(
+                    Arrays.asList(
+                        "CriticalSolar",
+                        "MegaSteamTurbineArray",
+                        "CrustMatterAggregator",
+                        "SteamSingularityEntangler")).containsAll(targets),
+                "Both original registered chart targets and only declared native targets required");
+            for (String entry : Arrays
+                .asList("CriticalSolar", "MegaSteamTurbineArray", "CrustMatterAggregator", "SteamSingularityEntangler"))
+                if (targets.contains(entry)) targetEntries.add(entry);
+        } else targetEntries.add("CriticalSolar");
         save = Paths.get(System.getProperty("miaotest.host.worldPath"))
             .toAbsolutePath()
             .normalize();
@@ -140,7 +149,7 @@ public final class SolarNativeTooltipFixture {
         try {
             if (cancel) {
                 if (serverInventory != null) {
-                    for (int slot = 0; slot < (chartScript ? 2 : 1); slot++)
+                    for (int slot = 0; slot < savedSlots; slot++)
                         call(serverInventory, "setInventorySlotContents|func_70299_a", slot, originalSlots[slot]);
                     call(serverInventory, "markDirty|func_70296_d");
                 }
@@ -208,19 +217,18 @@ public final class SolarNativeTooltipFixture {
                     .equals(field(field(serverActor, "capabilities|field_71075_bZ"), "isCreativeMode|field_75098_d")),
                 "Survival actor");
             serverInventory = field(serverActor, "inventory|field_71071_by");
-            String[] entries = chartScript ? new String[] { "CriticalSolar", "MegaSteamTurbineArray" }
-                : new String[] { "CriticalSolar" };
-            for (int slot = 0; slot < entries.length; slot++) {
+            for (int slot = 0; slot < targetEntries.size(); slot++) {
                 originalSlots[slot] = call(serverInventory, "getStackInSlot|func_70301_a", slot);
                 if (originalSlots[slot] != null) originalSlots[slot] = call(originalSlots[slot], "copy|func_77946_l");
+                savedSlots = slot + 1;
                 targetStacks[slot] = call(
-                    field(type("com.miaokatze.gtsr.common.api.enums.GTSRItemList"), entries[slot]),
+                    field(type("com.miaokatze.gtsr.common.api.enums.GTSRItemList"), targetEntries.get(slot)),
                     "get",
                     1L,
                     new Object[0]);
                 require(
                     call(type("gregtech.common.blocks.ItemMachines"), "getMetaTileEntity", targetStacks[slot]) != null,
-                    "Registered GT machine " + entries[slot]);
+                    "Registered GT machine " + targetEntries.get(slot));
                 call(serverInventory, "setInventorySlotContents|func_70299_a", slot, targetStacks[slot]);
             }
             stack = targetStacks[0];
@@ -377,9 +385,10 @@ public final class SolarNativeTooltipFixture {
                 .toString())
             .getAsJsonObject();
         if (chartScript) {
-            targetIndex = "MegaSteamTurbineArray".equals(
+            targetIndex = targetEntries.indexOf(
                 row.get("target")
-                    .getAsString()) ? 1 : 0;
+                    .getAsString());
+            require(targetIndex >= 0, "Declared native target");
             stack = targetStacks[targetIndex];
             solarMeta = ((Number) call(stack, "getItemDamage|func_77960_j")).intValue();
             actionPending = row.has("action");
@@ -556,7 +565,7 @@ public final class SolarNativeTooltipFixture {
                 current.put("tier", String.valueOf(call(pageState, "tier")));
                 Object itemKey = call(type("com.miaokatze.miaokatzecore.api.tooltip.TooltipPages"), "identity", item);
                 current.put("selectedChart", call(pageApi(), "selected", itemKey));
-                current.put(
+                if (row.has("chartId")) current.put(
                     "storedVariant",
                     call(
                         pageState,
@@ -686,10 +695,17 @@ public final class SolarNativeTooltipFixture {
         if (name.equals("NativeChartComponent")) {
             Object chart = call(component, "chart");
             Map<String, Object> data = new LinkedHashMap<String, Object>();
-            for (String property : new String[] { "kind", "chartId", "variants", "active", "compact", "maximum" }) {
+            for (String property : new String[] { "kind", "title", "chartId", "variants", "active", "compact",
+                "maximum", "xAxis", "yAxis", "xMax", "yMax", "markX", "markY", "legends", "rowFluids", "columnFluids",
+                "rowFactors", "columnFactors", "rowRates", "columnRates" }) {
                 Object value = field(chart, property);
+                if (value instanceof Double && !Double.isFinite((Double) value)) value = null;
                 data.put(property, value instanceof Enum ? value.toString() : value);
             }
+            for (String property : new String[] { "xTicks", "yTicks", "probeIndex", "readouts", "colors", "barColumn" })
+                try {
+                    data.put(property, field(chart, property));
+                } catch (NoSuchFieldException absentInHistoricalBaseline) {}
             Object table = field(chart, "table");
             if (table != null) {
                 int rows = ((List<?>) call(table, "rows")).size();
@@ -712,6 +728,23 @@ public final class SolarNativeTooltipFixture {
                     values.add(cells);
                 }
                 data.put("values", values);
+            } else if ("LINES".equals(String.valueOf(field(chart, "kind")))) {
+                int points = ((Number) call(chart, "points")).intValue();
+                List<?> legends = (List<?>) field(chart, "legends");
+                List<Double> axis = new ArrayList<Double>();
+                List<Object> values = new ArrayList<Object>();
+                for (int p = 0; p < points; p++) axis.add(((Number) call(chart, "x", p)).doubleValue());
+                for (int series = 0; series < legends.size(); series++) {
+                    List<Object> cells = new ArrayList<Object>();
+                    for (int p = 0; p < points; p++) {
+                        double v = ((Number) call(chart, "value", series, p)).doubleValue();
+                        cells.add(Double.isFinite(v) ? v : null);
+                    }
+                    values.add(cells);
+                }
+                data.put("axis", axis);
+                data.put("values", values);
+                data.put("rows", legends.size());
             }
             charts.add(data);
         } else if (name.equals("NativeGuideComponent")) {
@@ -748,13 +781,19 @@ public final class SolarNativeTooltipFixture {
             return;
         }
         require(!charts.isEmpty(), "Actual native chart components must render");
-        String expectedId = row.get("chartId")
-            .getAsString();
+        String expectedId = row.has("chartId") ? row.get("chartId")
+            .getAsString() : "";
         boolean found = false;
         for (Object entry : charts) {
             Map<?, ?> chart = (Map<?, ?>) entry;
-            if (expectedId.equals(chart.get("chartId"))) {
-                require(
+            if (expectedId.equals(chart.get("chartId")) && (!row.has("chartKind") || row.get("chartKind")
+                .getAsString()
+                .equals(chart.get("kind")))
+                && (!row.has("chartTitleContains") || String.valueOf(chart.get("title"))
+                    .contains(
+                        row.get("chartTitleContains")
+                            .getAsString()))) {
+                if (row.has("variants")) require(
                     ((List<?>) chart.get("variants")).size() == row.get("variants")
                         .getAsInt(),
                     "Actual chart variant count");
@@ -775,6 +814,42 @@ public final class SolarNativeTooltipFixture {
                     ((List<?>) ((List<?>) chart.get("values")).get(0)).size() == row.get("valueColumns")
                         .getAsInt(),
                     "Actual chart data column count");
+                if (row.has("expectedValues")) {
+                    JsonArray expectedRows = row.getAsJsonArray("expectedValues");
+                    List<?> values = (List<?>) chart.get("values");
+                    require(values.size() == expectedRows.size(), "Native expected value rows");
+                    for (int r = 0; r < expectedRows.size(); r++) {
+                        JsonArray cells = expectedRows.get(r)
+                            .getAsJsonArray();
+                        List<?> actual = (List<?>) values.get(r);
+                        require(actual.size() == cells.size(), "Native expected value columns");
+                        for (int c = 0; c < cells.size(); c++) require(
+                            Math.abs(
+                                ((Number) actual.get(c)).doubleValue() - cells.get(c)
+                                    .getAsDouble())
+                                < 1e-8,
+                            "Native chart differs from authoritative policy");
+                    }
+                }
+                if (row.has("probeX")) {
+                    List<?> axis = (List<?>) chart.get("axis");
+                    int point = -1;
+                    for (int p = 0; p < axis.size(); p++) if (Math.abs(
+                        ((Number) axis.get(p)).doubleValue() - row.get("probeX")
+                            .getAsDouble())
+                        < 1e-8) point = p;
+                    require(point >= 0, "Authoritative curve probe exists in rendered data");
+                    JsonArray expectedValues = row.getAsJsonArray("probeValues");
+                    List<?> values = (List<?>) chart.get("values");
+                    require(values.size() == expectedValues.size(), "Native curve series count");
+                    for (int series = 0; series < values.size(); series++) require(
+                        Math.abs(
+                            ((Number) ((List<?>) values.get(series)).get(point)).doubleValue()
+                                - expectedValues.get(series)
+                                    .getAsDouble())
+                            < 1e-8,
+                        "Native curve probe differs from authoritative policy");
+                }
                 found = true;
             }
         }
@@ -852,13 +927,12 @@ public final class SolarNativeTooltipFixture {
         String before = String.valueOf(call(call(pageApi(), "forItem", stack), "tier"));
         Object itemKey = call(type("com.miaokatze.miaokatzecore.api.tooltip.TooltipPages"), "identity", stack);
         Object selectedBefore = call(pageApi(), "selected", itemKey);
-        int variantBefore = ((Number) call(
-            call(pageApi(), "forItem", stack),
-            "variant",
-            row.get("chartId")
-                .getAsString(),
-            row.get("variants")
-                .getAsInt())).intValue();
+        String actionChart = row.has("chartId") ? row.get("chartId")
+            .getAsString() : "";
+        int actionVariants = row.has("variants") ? row.get("variants")
+            .getAsInt() : 1;
+        int variantBefore = ((Number) call(call(pageApi(), "forItem", stack), "variant", actionChart, actionVariants))
+            .intValue();
         try {
             set(kb, "sdlKeyPressedArray", local);
             set(kb, "eventQueue", events);
@@ -875,10 +949,8 @@ public final class SolarNativeTooltipFixture {
             int variantAfter = ((Number) call(
                 call(pageApi(), "forItem", stack),
                 "variant",
-                row.get("chartId")
-                    .getAsString(),
-                row.get("variants")
-                    .getAsInt())).intValue();
+                actionChart,
+                actionVariants)).intValue();
             check.put("variantBefore", variantBefore);
             check.put("variantAfter", variantAfter);
             if (action.equals("variant")) require(

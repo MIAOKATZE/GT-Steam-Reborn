@@ -263,6 +263,11 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
     @Override
     public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
         super.addAdditionalTooltipInformation(stack, tooltip);
+        addWorkerPageInformation(stack, tooltip);
+    }
+
+    /** The authored page may replace these lines; GT keeps its own tank/upgrade details. */
+    public void addWorkerPageInformation(ItemStack stack, List<String> tooltip) {
         if (stack != null && stack.hasTagCompound()
             && stack.getTagCompound()
                 .hasKey("gtsr.hubPos")) {

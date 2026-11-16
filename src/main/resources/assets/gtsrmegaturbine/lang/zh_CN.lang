@@ -1,14 +1,14 @@
 gtsr.tooltip.mega_native.purpose=可沿主轴扩建的双列蒸汽轮机，将蒸汽转化为电力。
 gtsr.tooltip.mega_native.formula=稳态 EU/t = §e40 × 机械壳电压 × 档位 × (2+额外环数) × 奇点 × 蒸汽 × 效率
-gtsr.tooltip.mega_native.baseline=LV 钢机组、普通蒸汽、满档：基础环计 2 组，效率上限 150%，节汽率 20%。
+gtsr.tooltip.mega_native.baseline=LV 钢机组、[fluid:steam|蒸汽]、满档：基础环计 2 组，效率上限 150%，节汽率 20%。
 gtsr.tooltip.mega_native.conditions=两种奇点互斥。芯片需加满 4 环。
-gtsr.tooltip.mega_native.supply=普通、过热蒸汽从 LV 起可用；致密或超临界蒸汽需要 §bLuV §7及以上机械壳。
+gtsr.tooltip.mega_native.supply= [fluid:steam|蒸汽]、[fluid:ic2superheatedsteam|过热蒸汽] 从 LV 起可用；致密蒸汽族或 [fluid:supercriticalsteam|超临界蒸汽] 需要 §bLuV §7及以上机械壳。
 gtsr.tooltip.mega_native.rating=机械壳范围 LV–UV，决定机组电压；动力仓无需同级。
 gtsr.tooltip.mega_native.glass=玻璃必须全部同级且不低于机械壳，允许使用高于 UV 的玻璃。
 gtsr.tooltip.mega_native.risk=动力仓输出功率不足会导致机组爆炸。
 gtsr.tooltip.mega_native.sample=在 LuV 电压级下，以满功率档运行。
-gtsr.tooltip.mega_native.control=用螺丝刀右击控制器切换功率档位。
-gtsr.tooltip.mega_native.structure=按住左 Shift 查看结构。
+gtsr.tooltip.mega_native.control=用螺丝刀 [right:右击] 控制器切换功率档位。
+gtsr.tooltip.mega_native.structure=按住[key:左 Shift] 查看结构。
 gtsr.tooltip.mega_native.column.upgrade=累计升级
 gtsr.tooltip.mega_native.column.efficiency=效率上限
 gtsr.tooltip.mega_native.column.savings=节汽率
@@ -21,9 +21,9 @@ gtsr.tooltip.mega_native.column.saving_pp=节汽率 (百分点)
 gtsr.tooltip.mega_native.step.base=基础钢机组
 gtsr.tooltip.mega_native.step.rings=加装 4 环
 gtsr.tooltip.mega_native.step.tungsten=换钨钢部件
-gtsr.tooltip.mega_native.step.entangled=加蒸汽纠缠奇点
-gtsr.tooltip.mega_native.step.critical=换临界蒸汽纠缠奇点
-gtsr.tooltip.mega_native.step.chip=装循环超限芯片
+gtsr.tooltip.mega_native.step.entangled=加 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]
+gtsr.tooltip.mega_native.step.critical=换 [item:gtsr:CriticalSteamEntangledSingularity@0|临界蒸汽纠缠奇点]
+gtsr.tooltip.mega_native.step.chip=装 [item:gtsr:SteamTurbineCycleOverlimitChip@0|循环超限芯片]
 gtsr.tooltip.mega_native.effect.casing=机械壳升一级
 gtsr.tooltip.mega_native.effect.casing.power=电压级 +1
 gtsr.tooltip.mega_native.effect.casing.efficiency=+5
@@ -44,11 +44,11 @@ gtsr.tooltip.mega_native.effect.tungsten=钨钢
 gtsr.tooltip.mega_native.effect.tungsten.power=—
 gtsr.tooltip.mega_native.effect.tungsten.efficiency=+20
 gtsr.tooltip.mega_native.effect.tungsten.savings=+5
-gtsr.tooltip.mega_native.effect.steam=蒸汽
+gtsr.tooltip.mega_native.effect.steam=[fluid:steam|蒸汽]
 gtsr.tooltip.mega_native.effect.steam.power=蒸汽倍率 = 0.5
 gtsr.tooltip.mega_native.effect.steam.efficiency=—
 gtsr.tooltip.mega_native.effect.steam.savings=—
-gtsr.tooltip.mega_native.effect.heated=过热 / 超临界
+gtsr.tooltip.mega_native.effect.heated=[fluid:ic2superheatedsteam|过热] / [fluid:supercriticalsteam|超临界]
 gtsr.tooltip.mega_native.effect.heated.power=蒸汽倍率 = 1
 gtsr.tooltip.mega_native.effect.heated.efficiency=+50 / +100
 gtsr.tooltip.mega_native.effect.heated.savings=—
@@ -56,19 +56,19 @@ gtsr.tooltip.mega_native.effect.dense=致密型（同族）
 gtsr.tooltip.mega_native.effect.dense.power=—
 gtsr.tooltip.mega_native.effect.dense.efficiency=+50
 gtsr.tooltip.mega_native.effect.dense.savings=—
-gtsr.tooltip.mega_native.effect.entangled=蒸汽纠缠奇点
+gtsr.tooltip.mega_native.effect.entangled=[item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]
 gtsr.tooltip.mega_native.effect.entangled.power=奇点倍率 = 2
 gtsr.tooltip.mega_native.effect.entangled.efficiency=+50
 gtsr.tooltip.mega_native.effect.entangled.savings=+5
-gtsr.tooltip.mega_native.effect.critical=临界蒸汽纠缠奇点
+gtsr.tooltip.mega_native.effect.critical=[item:gtsr:CriticalSteamEntangledSingularity@0|临界蒸汽纠缠奇点]
 gtsr.tooltip.mega_native.effect.critical.power=奇点倍率 = 5
 gtsr.tooltip.mega_native.effect.critical.efficiency=+100
 gtsr.tooltip.mega_native.effect.critical.savings=+10
-gtsr.tooltip.mega_native.effect.chip_heated=循环超限芯片（过热族）
+gtsr.tooltip.mega_native.effect.chip_heated=[item:gtsr:SteamTurbineCycleOverlimitChip@0|循环超限芯片]（过热族）
 gtsr.tooltip.mega_native.effect.chip_heated.power=蒸汽倍率 = 1.5
 gtsr.tooltip.mega_native.effect.chip_heated.efficiency=—
 gtsr.tooltip.mega_native.effect.chip_heated.savings=—
-gtsr.tooltip.mega_native.effect.chip_critical=循环超限芯片（超临界族）
+gtsr.tooltip.mega_native.effect.chip_critical=[item:gtsr:SteamTurbineCycleOverlimitChip@0|循环超限芯片]（超临界族）
 gtsr.tooltip.mega_native.effect.chip_critical.power=蒸汽倍率 = 2.5
 gtsr.tooltip.mega_native.effect.chip_critical.efficiency=—
 gtsr.tooltip.mega_native.effect.chip_critical.savings=—

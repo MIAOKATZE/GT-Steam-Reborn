@@ -23,6 +23,7 @@ import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyPorts;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
+import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalShellCatalog;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
@@ -449,11 +450,9 @@ final class CriticalBusinessSnapshot {
         } else if (state.getKind() == CriticalMachineKind.TURBINE) {
             BigInteger heat = number(data, "turbineRawHeat");
             row(rows, "steam.heat", decimal(heat, 2) + " EU");
-            row(rows, "steam.multiplier", data.getInteger("efficiency") + "%");
-            row(
-                rows,
-                "steam.warmup",
-                data.getInteger("turbineRunTicks") + " / " + data.getInteger("turbineTargetWarmupTicks") + " t");
+            row(rows, "steam.multiplier", CriticalEnergyMath.efficiency(data.getInteger("efficiency")) + "%");
+            BigInteger previous = number(data, "turbinePreviousHeat");
+            row(rows, "steam.previous_heat", previous.signum() > 0 ? decimal(previous, 2) + " EU" : "—");
             row(rows, "steam.water_remainder", Integer.toString(data.getInteger("waterRemainder")));
             row(rows, "steam.return_water", number(data, "turbineWater") + " L");
             for (int i = 0; i < 6; i++) row(rows, "steam.volume." + i, number(data, "turbineVolume" + i) + " L");

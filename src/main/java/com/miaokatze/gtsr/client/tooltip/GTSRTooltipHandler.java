@@ -34,6 +34,7 @@ public final class GTSRTooltipHandler {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onTooltip(ItemTooltipEvent event) {
         var meta = ItemMachines.getMetaTileEntity(event.itemStack);
+        if (meta != null && !GTSRTooltipCatalog.ownsMachine(event.itemStack)) return;
         if (meta instanceof MTECriticalMachine machine) {
             String capacity = StatCollector.translateToLocalFormatted(
                 "gt.tileentity.eup_store",
@@ -49,6 +50,7 @@ public final class GTSRTooltipHandler {
             GTSRMegaTurbineTooltip.apply(event.itemStack, event.toolTip);
             return;
         }
+        if (GTSRReviewedPages.apply(event.itemStack, event.entityPlayer, event.toolTip, meta)) return;
         List<String> keys = GTSRTooltipCatalog.descriptionKeys(event.itemStack);
         if (keys == null) return;
         for (String key : keys) {

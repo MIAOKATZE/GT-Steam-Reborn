@@ -337,6 +337,7 @@ val verifySolarTooltipContracts = tasks.register<JavaExec>("verifySolarTooltipCo
 mapOf(
     "verifyMegaTurbinePolicy" to "com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbinePolicyContract",
     "verifyMegaTurbineTooltip" to "com.miaokatze.gtsr.client.tooltip.MegaTurbineTooltipContract",
+    "verifyReviewedTooltipCatalog" to "com.miaokatze.gtsr.client.tooltip.ReviewedTooltipCatalogContract",
 ).forEach { (name, entry) ->
     val contract = tasks.register<JavaExec>(name) {
         group = "verification"

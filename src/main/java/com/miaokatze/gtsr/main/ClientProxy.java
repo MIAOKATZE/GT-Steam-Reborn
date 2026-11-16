@@ -110,6 +110,7 @@ public class ClientProxy extends CommonProxy {
     public void postInit(FMLPostInitializationEvent event) {
         super.postInit(event);
         com.miaokatze.gtsr.client.tooltip.GTSRTooltipCatalog.initialize();
+        com.miaokatze.gtsr.client.tooltip.GTSRReviewedPages.initialize();
 
         codechicken.nei.api.API
             .hideItem(new net.minecraft.item.ItemStack(com.miaokatze.gtsr.common.critical.CriticalRenderAnchors.BLOCK));

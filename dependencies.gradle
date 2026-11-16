@@ -85,6 +85,6 @@ dependencies {
 // Shared library API; immutable candidate versions may be supplied for isolated integration builds.
 dependencies {
     // The two authored machine pages use the shared native page and chart API.
-    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.17"
+    def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.20"
     api("com.miaokatze.miaokatzecore:miaokatzecore:${coreVersion}:dev") { transitive = false }
 }

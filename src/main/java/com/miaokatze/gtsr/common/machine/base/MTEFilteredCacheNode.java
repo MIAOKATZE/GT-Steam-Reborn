@@ -766,6 +766,11 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     @Override
     public final void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
         super.addAdditionalTooltipInformation(stack, tooltip);
+        addCachePageInformation(stack, tooltip);
+    }
+
+    /** The authored page may replace these lines; GT keeps its own tank/upgrade details. */
+    public void addCachePageInformation(ItemStack stack, List<String> tooltip) {
         tooltip.add(
             EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.cache_node.base_transfer_rate")
                 + EnumChatFormatting.GREEN

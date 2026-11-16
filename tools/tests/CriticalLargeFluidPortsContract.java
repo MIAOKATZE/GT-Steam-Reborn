@@ -28,7 +28,7 @@ import gregtech.common.tileentities.machines.outputme.MTEHatchOutputME;
 /** Real jar Ports, AEFluidStack and GT hatch types; finite monitor/storage/energy seams, no live grid. */
 public final class CriticalLargeFluidPortsContract {
     public static void main(String[] args) throws Exception {
-        Issue37RegistrationRegression.launch("CriticalLargeFluidPortsRuntime", "5.09.54.205");
+        Issue37RegistrationRegression.launch("CriticalLargeFluidPortsRuntime", "5.09.54.265");
     }
 }
 
@@ -102,7 +102,7 @@ class CriticalLargeFluidPortsRuntime {
         controllerField.setAccessible(true);
         Object controller=controllerField.get(cpw.mods.fml.common.Loader.instance());
         cpw.mods.fml.common.ModMetadata metadata=new cpw.mods.fml.common.ModMetadata();
-        metadata.modId="appliedenergistics2";metadata.name="AE detached API bootstrap";metadata.version="rv3-beta-1080-GTNH";
+        metadata.modId="appliedenergistics2";metadata.name="AE detached API bootstrap";metadata.version="rv3-beta-1095-GTNH";
         var aeContainer=new cpw.mods.fml.common.DummyModContainer(metadata);
         var modObjects=com.google.common.collect.HashBiMap.create();
         modObjects.put(aeContainer,appeng.core.AppEng.instance());

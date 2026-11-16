@@ -158,8 +158,8 @@ public class MTESingularityDrillingNode extends MTERemoteWorkerNode {
     }
 
     @Override
-    public void addAdditionalTooltipInformation(ItemStack stack, List<String> tooltip) {
-        super.addAdditionalTooltipInformation(stack, tooltip);
+    public void addWorkerPageInformation(ItemStack stack, List<String> tooltip) {
+        super.addWorkerPageInformation(stack, tooltip);
         tooltip
             .add(EnumChatFormatting.YELLOW + StatCollector.translateToLocal("gtsr.tooltip.drilling_node.table_title"));
         tooltip

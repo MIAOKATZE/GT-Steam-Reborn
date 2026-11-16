@@ -18,6 +18,7 @@ import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.StatCollector;
 
+import com.miaokatze.gtsr.common.critical.CriticalEnergyRuntime;
 import com.miaokatze.gtsr.common.machine.MTEMegaSteamTurbineArray;
 import com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbinePolicy;
 import com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes;
@@ -70,7 +71,7 @@ public final class GTSRMegaTurbineTooltip {
             page.line("§7" + view.text("sample"));
             page.chart(CHART_ID, view.fuels, view.charts[detail ? 1 : 0][page.variant(CHART_ID, FUELS.length)]);
             page.divider();
-            page.line("§7" + view.text("control"));
+            page.input("§7" + view.text("control"));
         }
         page.structure("§7" + view.text("structure"));
         page.line(GTSRUtils.getAddedByLine());
@@ -105,7 +106,12 @@ public final class GTSRMegaTurbineTooltip {
             this.language = language;
             List<String> labels = new ArrayList<>();
             for (int i = 0; i < FUELS.length; i++) {
-                labels.add(StatCollector.translateToLocal(FUELS[i].nameKey));
+                String label = StatCollector.translateToLocal(FUELS[i].nameKey);
+                var steam = CriticalEnergyRuntime.steam(i);
+                labels.add(
+                    steam == null || steam.getFluid() == null ? "[" + label + "]"
+                        : "[fluid:" + steam.getFluid()
+                            .getName() + "|" + label + "]");
                 charts[0][i] = chart(i, false);
                 charts[1][i] = chart(i, true);
             }
@@ -221,7 +227,7 @@ public final class GTSRMegaTurbineTooltip {
     private static TooltipTable leftAligned(TooltipTable table) {
         for (int column = 0; column < table.headers()
             .size(); column++) table = table.align(column, TooltipTable.Alignment.LEFT);
-        return table;
+        return table.withInputIcons();
     }
 
     private static String text(String key) {

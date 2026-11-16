@@ -24,9 +24,14 @@ public final class CriticalEnergyMath {
         return Math.max(MIN_EFFICIENCY, Math.min(MAX_EFFICIENCY, value));
     }
 
-    /** Retained source compatibility; changing input heat can never award permanent efficiency. */
+    /** Compare exact weighted inputs. Both endpoints of the ten-percent band are inclusive. */
     public static int trendEfficiency(int current, BigInteger previous, BigInteger raw) {
-        return efficiency(current);
+        int next = efficiency(current);
+        if (previous.signum() <= 0 || raw.signum() <= 0) return next;
+        BigInteger scaled = raw.multiply(BigInteger.TEN);
+        if (scaled.compareTo(previous.multiply(BigInteger.valueOf(11))) > 0) next += EFFICIENCY_STEP;
+        else if (scaled.compareTo(previous.multiply(BigInteger.valueOf(9))) < 0) next -= EFFICIENCY_STEP;
+        return efficiency(next);
     }
 
     public static int runningEfficiency(int paidRunningTicks) {

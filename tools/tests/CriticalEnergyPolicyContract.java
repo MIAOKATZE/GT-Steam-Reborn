@@ -16,7 +16,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 /** Production boiler catalogue/planner, pulse arithmetic, real native hatch debit and frozen NBT. */
 public final class CriticalEnergyPolicyContract {
     public static void main(String[] args) throws Exception {
-        Issue37RegistrationRegression.launch("CriticalEnergyPolicyRuntime", "5.09.54.205");
+        Issue37RegistrationRegression.launch("CriticalEnergyPolicyRuntime", "5.09.54.265");
     }
 }
 
@@ -334,7 +334,7 @@ class CriticalEnergyPolicyRuntime {
             "historical fixture is a real policy9 low-heat paid receipt with its original smaller coolant bill");
         String inputs=historical.getTagList("inputs",10).toString(),outputs=historical.getTagList("outputs",10).toString();
         BigInteger amount=new BigInteger(historical.getTagList("outputs",10).getCompoundTagAt(0).getString("exactAmount"));
-        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.n=(NBTTagCompound)historical.copy();
+        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.setRuntime((NBTTagCompound)historical.copy());
         state.n.setInteger("progress",0);state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
         Output output=(Output)unsafe.allocateInstance(Output.class);output.stored=BigInteger.ZERO;output.setBaseMetaTileEntity(tile);
         CriticalCompoundRuntime.set(host,"mInputHatches",new ArrayList<>());
@@ -400,7 +400,7 @@ class CriticalEnergyPolicyRuntime {
         CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>());
     }
     static EnergyState waterState()throws Exception {
-        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.n=new NBTTagCompound();
+        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.setRuntime(new NBTTagCompound());
         state.n.setInteger("steamMode",5);state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
         CriticalCompoundRuntime.set(state.worldObj,"provider",unsafe.allocateInstance(
             Class.forName("me.eigenraven.personalspace.world.PersonalWorldProvider")));
@@ -419,7 +419,7 @@ class CriticalEnergyPolicyRuntime {
         output.setBaseMetaTileEntity(tile);
         CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>(List.of(output)));
         CriticalCompoundRuntime.set(host,"mInputHatches",hatches);
-        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.n=new NBTTagCompound();
+        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.setRuntime(new NBTTagCompound());
         state.n.setInteger("steamMode",5);state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
         CriticalCompoundRuntime.set(state.worldObj,"provider",unsafe.allocateInstance(
             Class.forName("me.eigenraven.personalspace.world.PersonalWorldProvider")));
@@ -458,7 +458,7 @@ class CriticalEnergyPolicyRuntime {
             BigInteger commonHeat=expectedWaterHeat(b(stock),.6D,CriticalSolarPolicy.COOLANTS.get(1),CriticalSolarPolicy.EXCITERS.get(1),mode);
             for(var hatch:waters)hatch.stock=0;waters.get(0).stock=stock;
             cryo.stock=Integer.MAX_VALUE;helium.stock=Integer.MAX_VALUE;
-            EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.n=new NBTTagCompound();
+            EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.setRuntime(new NBTTagCompound());
             state.n.setInteger("steamMode",mode);state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
             CriticalCompoundRuntime.set(state.worldObj,"provider",unsafe.allocateInstance(
                 Class.forName("me.eigenraven.personalspace.world.PersonalWorldProvider")));
@@ -512,7 +512,7 @@ class CriticalEnergyPolicyRuntime {
         CriticalCompoundRuntime.set(host,"mInputBusses",new ArrayList<>());
         CriticalCompoundRuntime.set(host,"meSnapshotTick",Long.MIN_VALUE);
         EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);
-        state.n=new NBTTagCompound();state.n.setInteger("steamMode",5);state.n.setBoolean("solarSaltMode",true);
+        state.setRuntime(new NBTTagCompound());state.n.setInteger("steamMode",5);state.n.setBoolean("solarSaltMode",true);
         state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
         CriticalCompoundRuntime.set(state.worldObj,"provider",unsafe.allocateInstance(net.minecraft.world.WorldProviderSurface.class));
         Method start=CriticalEnergyRuntime.class.getDeclaredMethod("startSolar",CriticalMachineState.class,
@@ -552,12 +552,12 @@ class CriticalEnergyPolicyRuntime {
             "salt mode debits cold salt only even when full water budget is present");
         BigInteger frozen=new BigInteger(state.n.getTagList("outputs",10).getCompoundTagAt(0).getString("exactAmount"));
         NBTTagCompound frozenManifest=(NBTTagCompound)state.n.copy();
-        state.n=(NBTTagCompound)state.n.copy();state.n.setBoolean("solarSaltMode",false);state.n.setInteger("steamMode",0);
+        state.setRuntime((NBTTagCompound)state.n.copy());state.n.setBoolean("solarSaltMode",false);state.n.setInteger("steamMode",0);
         state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);
         check(!state.n.getBoolean("funded")&&output.stored.equals(frozen)&&output.fluid.isFluidEqual(new FluidStack(hot,1)),
             "mode switch and saved-NBT recovery deliver original paid hot-salt output without repricing");
         for(int oldPolicy:new int[]{0,1,2,3,4,5,6,7,8,9,10,11,12}){
-            state.n=(NBTTagCompound)frozenManifest.copy();
+            state.setRuntime((NBTTagCompound)frozenManifest.copy());
             if(oldPolicy==0)state.n.removeTag("solarPolicy");else state.n.setInteger("solarPolicy",oldPolicy);
             state.n.setInteger("progress",398);state.n.setBoolean("solarSaltMode",false);state.n.setInteger("steamMode",0);
             String frozenInputs=state.n.getTagList("inputs",10).toString();
@@ -590,7 +590,7 @@ class CriticalEnergyPolicyRuntime {
         CriticalCompoundRuntime.set(host,"mInputHatches",new ArrayList<>(List.of(cooling,activation,cold)));
         Output output=(Output)unsafe.allocateInstance(Output.class);output.stored=BigInteger.ZERO;output.setBaseMetaTileEntity(tile);
         CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>(List.of(output)));
-        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.n=new NBTTagCompound();
+        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.setRuntime(new NBTTagCompound());
         state.n.setBoolean("solarSaltMode",true);state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
         CriticalCompoundRuntime.set(state.worldObj,"provider",unsafe.allocateInstance(net.minecraft.world.WorldProviderSurface.class));
         Method start=CriticalEnergyRuntime.class.getDeclaredMethod("startSolar",CriticalMachineState.class,MTECriticalMachine.class,NBTTagCompound.class);
@@ -733,7 +733,7 @@ class CriticalEnergyPolicyRuntime {
         CriticalCompoundRuntime.set(host,"mInputHatches",new ArrayList<>(List.of(cryo,helium,input)));
         Output output=(Output)unsafe.allocateInstance(Output.class);output.stored=BigInteger.ZERO;output.setBaseMetaTileEntity(tile);
         CriticalCompoundRuntime.set(host,"mOutputHatches",new ArrayList<>(List.of(output)));
-        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.n=new NBTTagCompound();
+        EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);state.setRuntime(new NBTTagCompound());
         state.n.setBoolean("solarPlasmaMode",true);state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
         CriticalCompoundRuntime.set(state.worldObj,"provider",unsafe.allocateInstance(net.minecraft.world.WorldProviderSurface.class));
         Method start=CriticalEnergyRuntime.class.getDeclaredMethod("startSolar",CriticalMachineState.class,MTECriticalMachine.class,NBTTagCompound.class);
@@ -741,7 +741,7 @@ class CriticalEnergyPolicyRuntime {
         var lowInput=CriticalCompoundRuntime.hatch(unsafe,tile,tin.input,100);
         cryo.stock=Integer.MAX_VALUE;helium.stock=Integer.MAX_VALUE;
         CriticalCompoundRuntime.set(host,"mInputHatches",new ArrayList<>(List.of(cryo,helium,lowInput)));
-        EnergyState low=(EnergyState)unsafe.allocateInstance(EnergyState.class);low.n=new NBTTagCompound();
+        EnergyState low=(EnergyState)unsafe.allocateInstance(EnergyState.class);low.setRuntime(new NBTTagCompound());
         low.n.setBoolean("solarPlasmaMode",true);low.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
         CriticalCompoundRuntime.set(low.worldObj,"provider",unsafe.allocateInstance(
             Class.forName("me.eigenraven.personalspace.world.PersonalWorldProvider")));
@@ -761,7 +761,7 @@ class CriticalEnergyPolicyRuntime {
         check((boolean)start.invoke(null,state,host,state.n)&&state.n.getBoolean("solarBatchPlasmaMode")
             &&state.n.getString("solarPlasma").equals("plasma.tin")&&cryo.stock==0&&helium.stock==0
             &&b(input.stock).equals(tin.halfSaturation.subtract(paid)),"real start prepays the whole plasma batch and freezes its material");
-        state.n=(NBTTagCompound)state.n.copy();state.n.setBoolean("solarPlasmaMode",false);state.n.setBoolean("solarSaltMode",true);
+        state.setRuntime((NBTTagCompound)state.n.copy());state.n.setBoolean("solarPlasmaMode",false);state.n.setBoolean("solarSaltMode",true);
         state.n.setInteger("progress",399);CriticalEnergyRuntime.tick(state,host);
         check(!state.n.getBoolean("funded")&&output.stored.equals(paid)&&output.fluid.isFluidEqual(tin.output),
             "saved plasma batch finishes its frozen output after next-route change without repricing");
@@ -999,38 +999,38 @@ class CriticalEnergyPolicyRuntime {
             &&CriticalEnergyMath.targetWarmupTicks(fullTurbineHeat().divide(b(2)))==200
             &&CriticalEnergyMath.targetWarmupTicks(fullTurbineHeat())==400,
             "one litre normal steam cannot preheat; half/full absolute16A MAX base-EU targets are200/400");
-        int current=100;
-        for(int i=0;i<1000;i++) current=CriticalEnergyMath.trendEfficiency(current,b(i%2==0?100:90),b(i%2==0?90:100));
-        check(current==100,"100/90 oscillation cannot mint rotor efficiency");
+        BigInteger scale=BigInteger.TEN.pow(60);
+        for(int delta:new int[]{-11,-10,0,10,11}){
+            check(CriticalEnergyMath.trendEfficiency(150,scale.multiply(b(100)),scale.multiply(b(100+delta)))
+                ==(delta < -10 ? 140 : delta > 10 ? 160 : 150),"strict ten-percent boundaries at "+delta);
+        }
+        check(CriticalEnergyMath.trendEfficiency(2000,b(100),b(120))==2000
+            &&CriticalEnergyMath.trendEfficiency(100,b(100),b(80))==100,"efficiency stays inside both limits");
     }
     static void frozenPulse(MTECriticalMachine host, UUID owner) throws Exception {
         EnergyState state=(EnergyState)unsafe.allocateInstance(EnergyState.class);
-        state.n=new NBTTagCompound();state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
+        state.setRuntime(new NBTTagCompound());state.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
         ((EnergyClock)state.worldObj).clock=10;
-        state.n.setString("owner",owner.toString()); state.n.setInteger("efficiency",1900);
+        state.n.setString("owner",owner.toString());
         Method fund=CriticalEnergyRuntime.class.getDeclaredMethod("fundAdaptive",CriticalMachineState.class,
             NBTTagCompound.class,List.class,List.class,BigInteger.class,int.class);fund.setAccessible(true);
         BigInteger fullHeat=fullTurbineHeat();
         check((boolean)fund.invoke(null,state,state.n,new ArrayList<>(),new ArrayList<>(),fullHeat,0),"fresh paid turbine batch starts");
         check(new BigInteger(state.n.getString("eu")).equals(fullHeat.divide(b(2))) && state.n.getInteger("efficiency")==100
-            &&state.n.getInteger("turbinePolicy")==4&&state.n.getInteger("turbineTargetWarmupTicks")==400,
-            "new policy resets unearned legacy trend warmth only when funding new batch");
+            &&state.n.getInteger("turbinePolicy")==5,
+            "first paid cycle freezes its receipt at 100 percent");
         String frozen=state.n.getString("eu");
         for(int i=0;i<399;i++){((EnergyClock)state.worldObj).clock++;CriticalEnergyRuntime.tick(state,host);}
         check(state.n.getString("eu").equals(frozen) && state.n.getInteger("progress")==399
-            && state.n.getInteger("turbineRunTicks")==399 && state.n.getInteger("efficiency")>100,
-            "399 paid work ticks visibly warm rotor without repricing frozen batch EU");
-        NBTTagCompound saved=(NBTTagCompound)state.n.copy();state.n=saved;
+            && state.n.getInteger("efficiency")==100,"work ticks do not reapply a trend");
+        state.setRuntime((NBTTagCompound)state.n.copy());
         gregtech.common.misc.GlobalEnergyWorldSavedData.INSTANCE=new gregtech.common.misc.GlobalEnergyWorldSavedData();
         gregtech.common.misc.WirelessNetworkManager.strongCheckOrAddUser(owner);
         ((EnergyClock)state.worldObj).clock++;CriticalEnergyRuntime.tick(state,host);
-        check(!state.n.getBoolean("funded") && state.n.getInteger("turbineRunTicks")==400
-            &&state.n.getInteger("efficiency")==2000
+        check(!state.n.getBoolean("funded")
             && gregtech.common.misc.WirelessNetworkManager.getUserEU(owner).equals(fullHeat.divide(b(2))),
-            "400th tick settles saved frozen batch at original1x while rotor reached current warmth");
-        ((EnergyClock)state.worldObj).clock+=2;CriticalEnergyRuntime.idleTick(state);
-        check(state.n.getInteger("turbineRunTicks")==399,"missing paid work decays rotor warmth");
-        state.n=new NBTTagCompound();state.n.setBoolean("funded",true);state.n.setInteger("progress",399);
+            "restored paid receipt settles at original exact EU");
+        state.setRuntime(new NBTTagCompound());state.n.setBoolean("funded",true);state.n.setInteger("progress",399);
         state.n.setString("owner",owner.toString());state.n.setString("eu","12345678901234567890");
         state.n.setInteger("efficiency",1900);((EnergyClock)state.worldObj).clock++;
         BigInteger before=gregtech.common.misc.WirelessNetworkManager.getUserEU(owner);
@@ -1038,7 +1038,7 @@ class CriticalEnergyPolicyRuntime {
         check(gregtech.common.misc.WirelessNetworkManager.getUserEU(owner).subtract(before)
             .equals(new BigInteger("12345678901234567890")) && !state.n.hasKey("turbinePolicy"),
             "legacy already funded batch settles original BigInteger EU without policy migration");
-        state.n=new NBTTagCompound();state.n.setInteger("turbinePolicy",3);
+        state.setRuntime(new NBTTagCompound());state.n.setInteger("turbinePolicy",3);
         state.n.setInteger("turbineRunTicks",1800);state.n.setInteger("turbineTargetWarmupTicks",3600);
         state.n.setInteger("efficiency",1050);state.n.setBoolean("funded",true);state.n.setInteger("progress",398);
         state.n.setString("owner",owner.toString());state.n.setString("eu","9876543210123456789");
@@ -1061,64 +1061,22 @@ class CriticalEnergyPolicyRuntime {
             "old paid policy3 finishes exactly its frozen bill while progressing on the new400tick warmth scale");
         int migratedEfficiency=CriticalEnergyMath.runningEfficiency(202);
         fund.invoke(null,state,state.n,new ArrayList<>(),new ArrayList<>(),fullHeat,0);
-        check(state.n.getInteger("turbinePolicy")==4&&state.n.getInteger("turbineRunTicks")==202
+        check(state.n.getInteger("turbinePolicy")==5 && !state.n.hasKey("turbineRunTicks")
             &&new BigInteger(state.n.getString("eu")).equals(fullHeat.multiply(b(migratedEfficiency)).divide(b(200))),
-            "next fresh policy4 payment preserves migrated warmth fraction and freezes only its newly quoted EU");
-        EnergyState steady=(EnergyState)unsafe.allocateInstance(EnergyState.class);
-        EnergyState changing=(EnergyState)unsafe.allocateInstance(EnergyState.class);
-        for(EnergyState s:List.of(steady,changing)){
-            s.n=new NBTTagCompound();s.n.setString("owner",owner.toString());
-            s.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
+            "first new payment preserves earned efficiency from a previous policy");
+        state.setRuntime(new NBTTagCompound());state.n.setString("owner",owner.toString());
+        state.n.setString("lastRawHeat","2000");state.n.setInteger("efficiency",150);
+        check((boolean)fund.invoke(null,state,state.n,new ArrayList<>(),new ArrayList<>(),b(2400),0)
+            &&state.n.getString("eu").equals("1920") &&state.n.getInteger("efficiency")==160
+            &&state.n.getString("turbinePreviousHeat").equals("2000") &&state.n.getString("lastRawHeat").equals("2400"),
+            "1200 EU after 1000 EU uses the increased efficiency on the very same payment");
+        for(int t=0;t<400;t++){((EnergyClock)state.worldObj).clock++;CriticalEnergyRuntime.tick(state,host);}
+        for(int t=0;t<400;t++){
+            ((EnergyClock)state.worldObj).clock++;CriticalEnergyRuntime.idleTick(state);CriticalEnergyRuntime.idleTick(state);
         }
-        for(int batch=0;batch<2;batch++){
-            fund.invoke(null,steady,steady.n,new ArrayList<>(),new ArrayList<>(),fullHeat.multiply(b(10)),0);
-            fund.invoke(null,changing,changing.n,new ArrayList<>(),new ArrayList<>(),fullHeat.multiply(b(batch%2==0?10:9)),0);
-            for(int tick=0;tick<400;tick++) for(EnergyState s:List.of(steady,changing)){
-                ((EnergyClock)s.worldObj).clock++;CriticalEnergyRuntime.tick(s,host);
-            }
-            check(steady.n.getInteger("turbineRunTicks")==changing.n.getInteger("turbineRunTicks")
-                &&steady.n.getInteger("efficiency")==changing.n.getInteger("efficiency"),
-                "actual steady and100/90 oscillating funded batches have identical rotor warmth after batch"+batch);
-        }
-        check(steady.n.getInteger("turbineRunTicks")==400&&steady.n.getInteger("efficiency")==2000,
-            "actual400tick funded batch reaches20x in20seconds, no oscillation advantage");
-        fund.invoke(null,steady,steady.n,new ArrayList<>(),new ArrayList<>(),BigInteger.ONE,0);
-        String frozenLow=steady.n.getString("eu");
-        check(steady.n.getInteger("turbineTargetWarmupTicks")==0&&steady.n.getInteger("efficiency")==2000,
-            "switching a hot rotor to1L normal steam freezes current bill but sets absolute warmth target0");
-        boolean lowBillUnchanged=true;
-        for(int tick=0;tick<400;tick++){
-            lowBillUnchanged &= steady.n.getString("eu").equals(frozenLow);
-            ((EnergyClock)steady.worldObj).clock++;CriticalEnergyRuntime.tick(steady,host);
-        }
-        check(lowBillUnchanged,"all400 low-load decay ticks preserve the exact prepaid EU bill");
-        check(steady.n.getInteger("turbineRunTicks")==0,
-            "1L steam cannot maintain full rotor warmth and loses400ticks in one paid batch");
-        EnergyState cheap=(EnergyState)unsafe.allocateInstance(EnergyState.class);
-        cheap.n=new NBTTagCompound();cheap.n.setString("owner",owner.toString());
-        cheap.worldObj=(EnergyClock)unsafe.allocateInstance(EnergyClock.class);
-        for(int batch=0;batch<2;batch++){
-            fund.invoke(null,cheap,cheap.n,new ArrayList<>(),new ArrayList<>(),BigInteger.ONE,0);
-            for(int tick=0;tick<400;tick++){((EnergyClock)cheap.worldObj).clock++;CriticalEnergyRuntime.tick(cheap,host);}
-        }
-        check(cheap.n.getInteger("turbineRunTicks")==0&&cheap.n.getInteger("efficiency")==100,
-            "paid1L ordinary-steam batches cannot preheat a cold rotor or carry20x into giant steam");
-        for(EnergyState s:List.of(steady,changing)){
-            s.n=new NBTTagCompound();s.n.setString("owner",owner.toString());
-        }
-        for(int batch=0;batch<2;batch++){
-            fund.invoke(null,steady,steady.n,new ArrayList<>(),new ArrayList<>(),fullHeat.divide(b(2)),0);
-            fund.invoke(null,changing,changing.n,new ArrayList<>(),new ArrayList<>(),
-                fullHeat.multiply(b(batch%2==0?50:45)).divide(b(100)),0);
-            boolean neverBetter=true;
-            for(int tick=0;tick<400;tick++){
-                for(EnergyState s:List.of(steady,changing)){((EnergyClock)s.worldObj).clock++;CriticalEnergyRuntime.tick(s,host);}
-                neverBetter &= changing.n.getInteger("turbineRunTicks")<=steady.n.getInteger("turbineRunTicks");
-            }
-            check(neverBetter,"below-threshold100/90 heat oscillation never outwarms continuous higher heat, batch"+batch);
-        }
-        check(steady.n.getInteger("turbineRunTicks")==200&&changing.n.getInteger("turbineRunTicks")<=200,
-            "sub-threshold stable load converges to its200tick absolute target and cannot mint20x");
+        check(state.n.getInteger("efficiency")==160,"399 idle ticks after working do not decay twice");
+        ((EnergyClock)state.worldObj).clock++;CriticalEnergyRuntime.idleTick(state);
+        check(state.n.getInteger("efficiency")==150,"one complete idle period costs ten efficiency points");
     }
     static class EnergyState extends CriticalCompoundRuntime.FakeState {
         @Override public CriticalMachineKind getMachineKind(){return CriticalMachineKind.TURBINE;}

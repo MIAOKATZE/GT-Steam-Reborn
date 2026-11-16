@@ -44,14 +44,15 @@ public final class CriticalEnergyRuntime {
     private static final int CHEMICAL_POLICY_COMPOUND_V3 = 3;
     private static final int CHEMICAL_POLICY_CIRCUIT_V4 = 4;
     private static final int CHEMICAL_POLICY_REACTION_V5 = 5;
-    private static final int TURBINE_POLICY = 4;
+    private static final int TURBINE_POLICY = 5;
+    private static final int LAST_WARMUP_POLICY = 4;
     private static final int LEGACY_TURBINE_WARMUP_TICKS = 3600;
     private static final ItemStack[] NO_ITEMS = new ItemStack[0];
     private static final FluidStack[] NO_FLUIDS = new FluidStack[0];
 
     private CriticalEnergyRuntime() {}
 
-    /** Warmth tracks paid work ticks; idle ticks remove the same amount of warmth. */
+    /** Each full idle cycle costs one efficiency step; a tick cannot be counted twice. */
     public static void idleTick(CriticalMachineState state) {
         if (!adaptive(state)) return;
         NBTTagCompound data = state.mutableEnergyRuntimeData();
@@ -66,9 +67,13 @@ public final class CriticalEnergyRuntime {
             }
             return;
         }
-        int ticks = Math.max(0, data.getInteger("turbineRunTicks") - 1);
-        data.setInteger("turbineRunTicks", ticks);
-        data.setInteger("efficiency", CriticalEnergyMath.runningEfficiency(ticks));
+        int idle = data.getInteger("idleTicks") + 1;
+        if (idle >= CYCLE_TICKS) {
+            int efficiency = CriticalEnergyMath.efficiency(data.getInteger("efficiency"));
+            data.setInteger("efficiency", CriticalEnergyMath.efficiency(efficiency - CriticalEnergyMath.EFFICIENCY_STEP));
+            idle = 0;
+        }
+        data.setInteger("idleTicks", idle);
         state.markDirty();
     }
 
@@ -78,8 +83,8 @@ public final class CriticalEnergyRuntime {
 
     /** Preserve the old warmth fraction independently of every already-paid batch receipt. */
     private static void migrateTurbineWarmth(CriticalMachineState state, NBTTagCompound data) {
-        if (data.getInteger("turbineWarmthScale") == TURBINE_POLICY) return;
         int policy = data.getInteger("turbinePolicy");
+        if (policy < 2 || policy > LAST_WARMUP_POLICY || data.getInteger("turbineWarmthScale") == LAST_WARMUP_POLICY) return;
         int ticks = 0, target = 0;
         if (policy == 2 || policy == 3) {
             ticks = Math.max(0, Math.min(LEGACY_TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));
@@ -87,14 +92,14 @@ public final class CriticalEnergyRuntime {
                 : Math.max(0, Math.min(LEGACY_TURBINE_WARMUP_TICKS, data.getInteger("turbineTargetWarmupTicks")));
             ticks = ticks * CriticalEnergyMath.TURBINE_WARMUP_TICKS / LEGACY_TURBINE_WARMUP_TICKS;
             target = target * CriticalEnergyMath.TURBINE_WARMUP_TICKS / LEGACY_TURBINE_WARMUP_TICKS;
-        } else if (policy == TURBINE_POLICY) {
+        } else if (policy == LAST_WARMUP_POLICY) {
             ticks = Math.max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));
             target = Math
                 .max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineTargetWarmupTicks")));
         }
         data.setInteger("turbineRunTicks", ticks);
         data.setInteger("turbineTargetWarmupTicks", target);
-        data.setInteger("turbineWarmthScale", TURBINE_POLICY);
+        data.setInteger("turbineWarmthScale", LAST_WARMUP_POLICY);
         data.setInteger("efficiency", CriticalEnergyMath.runningEfficiency(ticks));
         state.markDirty();
     }
@@ -168,7 +173,7 @@ public final class CriticalEnergyRuntime {
             data.setInteger("progress", ++progress);
             data.setLong("lastWorkTick", state.worldObj.getTotalWorldTime());
             if (adaptive(state) && (data.getInteger("turbinePolicy") == 2 || data.getInteger("turbinePolicy") == 3
-                || data.getInteger("turbinePolicy") == TURBINE_POLICY)) {
+                || data.getInteger("turbinePolicy") == LAST_WARMUP_POLICY)) {
                 int ticks = Math
                     .max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));
                 int target = data.getInteger("turbinePolicy") != 2
@@ -597,18 +602,18 @@ public final class CriticalEnergyRuntime {
     private static boolean fundAdaptive(CriticalMachineState state, NBTTagCompound data,
         List<CriticalEnergyPorts.Debit> debits, List<FluidAmount> outputs, BigInteger heat, int waterRemainder) {
         migrateTurbineWarmth(state, data);
-        // Warmth migrates by fraction; only this fresh payment reads the current power policy.
-        int policy = data.getInteger("turbinePolicy");
-        int runTicks = policy >= 2 && policy <= TURBINE_POLICY ? data.getInteger("turbineRunTicks") : 0;
-        int efficiency = CriticalEnergyMath.runningEfficiency(runTicks);
+        BigInteger previous = number(data, "lastRawHeat");
+        int efficiency = CriticalEnergyMath.trendEfficiency(data.getInteger("efficiency"), previous, heat);
         // Common unit is half-EU; keep even fractional efficiency EU across batches (denominator 200).
         BigInteger[] energy = heat.multiply(BigInteger.valueOf(efficiency))
             .add(BigInteger.valueOf(data.getInteger("generationRemainder")))
             .divideAndRemainder(BigInteger.valueOf(200));
         if (!fund(state, data, debits, outputs, NO_ITEMS, energy[0], waterRemainder)) return false;
         data.setInteger("turbinePolicy", TURBINE_POLICY);
-        data.setInteger("turbineTargetWarmupTicks", CriticalEnergyMath.targetWarmupTicks(heat));
-        data.setInteger("turbineRunTicks", Math.max(0, Math.min(CriticalEnergyMath.TURBINE_WARMUP_TICKS, runTicks)));
+        data.setString("turbinePreviousHeat", previous.toString());
+        data.removeTag("turbineRunTicks");
+        data.removeTag("turbineTargetWarmupTicks");
+        data.removeTag("turbineWarmthScale");
         data.setInteger("nextGenerationRemainder", energy[1].intValue());
         data.setInteger("efficiency", efficiency);
         data.setInteger("idleTicks", 0);

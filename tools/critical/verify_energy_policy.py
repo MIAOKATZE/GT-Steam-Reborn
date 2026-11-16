@@ -25,8 +25,8 @@ def main():
         raise RuntimeError('Jar-only fixture directory contains production overlays; use a fresh --out')
     empty = out / 'empty'
     empty.mkdir(exist_ok=True)
-    gt = next((CACHE / 'com.github.GTNewHorizons/GT5-Unofficial/5.09.54.205').glob('*/*-dev.jar'))
-    ae = next((CACHE / 'com.github.GTNewHorizons/Applied-Energistics-2-Unofficial/rv3-beta-1080-GTNH').glob('*/*-dev.jar'))
+    gt = next((CACHE / 'com.github.GTNewHorizons/GT5-Unofficial/5.09.54.265').glob('*/*-dev.jar'))
+    ae = next((CACHE / 'com.github.GTNewHorizons/Applied-Energistics-2-Unofficial/rv3-beta-1095-GTNH').glob('*/*-dev.jar'))
     dependencies = sorted(p for p in CACHE.glob('*/*/*/*/*.jar')
         if '/GT5-Unofficial/' not in p.as_posix() and '/Applied-Energistics-2-Unofficial/' not in p.as_posix()
         and 'gtsr' not in p.name.lower())

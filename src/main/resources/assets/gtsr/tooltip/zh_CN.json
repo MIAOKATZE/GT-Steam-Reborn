@@ -1,0 +1,2278 @@
+{"machineIcons":{"14904":"CriticalLoom","15064":"ClusterUnitLogistics"},
+ "items":[
+    {"id":"machine.CriticalLoom","owner":{"machine":"CriticalLoom"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]织机：选型与施工管理"},
+        {"type":"line","text":"§b建造、修复与拆除临界机器§r：辐照锅炉、蒸汽脉冲动力核心、热化学核心和人工恒星。"},
+        {"type":"divider"},
+        {"type":"line","text":"§6开工§r：先搭织机，按所选机型的清单供料，点击“开始施工”。"},
+        {"type":"table","columns":["接入位置","供给／收取"],"rows":[["织机输入总线／输入仓","结构材料与施工流体"],["织机能源仓","建设与修复用电"],["织机输出端","拆除回收物"],["建成主机的仓口","生产原料与产物"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§6修复§r：主结构或主控制器缺失，从织机点击“修复结构”；织机本体和真实GT仓室须手动补齐。"},
+        {"type":"warning","text":"“施工启停”只控制工程；机器建好后，到主控制器开启生产。"},
+        {"type":"line","text":"§6拆除§r：点击“拆除目标”并确认；当前批次先交付。手搭织机、真实GT仓室和其中物品保留。"},
+        {"type":"line","text":"§7未安装物料全退；已安装主控至多返1个，其余已安装材料每种按10%取整回收；已消耗施工流体不退。旧工程的逐件回收概率以确认提示为准。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]织机：选型与施工管理"},
+        {"type":"line","text":"§b建设、修复与拆除临界机器。"},
+        {"type":"line","text":"材料、电力接织机，生产接主机。"},
+        {"type":"warning","text":"拆除只部分回收已安装材料，先看确认提示。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.CriticalTurbine","owner":{"machine":"CriticalTurbine"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：运行与输入／输出管理"},
+        {"type":"line","text":"六种蒸汽可混合输入，每 §e20 秒§r向团队无线电网送电一次。"},
+        {"type":"line","text":"§6本轮发电量＝输入总热值 × 本轮效率§r。首次运行效率 100%，上限 2,000%。"},
+        {"type":"table","columns":["本轮热值／上轮热值","本轮效率变化"],"rows":[["高于 110%","§a＋10 个百分点"],["90%～110%（含两端）","不变"],["低于 90%","§c−10 个百分点"]]},
+        {"type":"line","text":"停工每 20 秒效率下降 10 个百分点，最低 100%。"},
+        {"type":"divider"},
+        {"type":"line","text":"启动时收取仓内全部蒸汽；中途补入的蒸汽计入下一轮。"},
+        {"type":"line","text":"返流 [fluid:ic2distilledwater|蒸馏水]；出口堵塞时，排水后才送电。"},
+        {"type":"line","text":"§7由 [item:gregtech:gt.blockmachines@14904|拟态织机] 建造。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "detail":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：运行与输入／输出管理"},
+        {"type":"line","text":"六种蒸汽可混合输入，每 §e20 秒§r向团队无线电网送电一次。"},
+        {"type":"line","text":"§6本轮发电量＝输入总热值 × 本轮效率§r。首次运行效率 100%，上限 2,000%。"},
+        {"type":"table","columns":["本轮热值／上轮热值","本轮效率变化"],"rows":[["高于 110%","§a＋10 个百分点"],["90%～110%（含两端）","不变"],["低于 90%","§c−10 个百分点"]]},
+        {"type":"line","text":"例：上轮 1,000 EU、效率 150%；本轮输入 1,200 EU，按 160% 发出 1,920 EU。"},
+        {"type":"line","text":"停工每 20 秒效率下降 10 个百分点，最低 100%。"},
+        {"type":"divider"},
+        {"type":"table","columns":["工质（非致密）","热值（EU/L）","工质（致密）","热值（EU/L）"],"rows":[[" [fluid:steam|蒸汽] ","0.5"," [fluid:densesteam|致密蒸汽] ","500"],[" [fluid:ic2superheatedsteam|过热蒸汽] ","1.5"," [fluid:densesuperheatedsteam|致密过热蒸汽] ","1,500"],[" [fluid:supercriticalsteam|超临界蒸汽] ","2.5"," [fluid:densesupercriticalsteam|致密超临界蒸汽] ","2,500"]]},
+        {"type":"line","text":"每 160 L 工质返 [fluid:ic2distilledwater|蒸馏水]：非致密型 1 L，致密型 1,000 L。"},
+        {"type":"line","text":"启动时收取仓内全部蒸汽；中途补入的蒸汽计入下一轮。"},
+        {"type":"line","text":"返流 [fluid:ic2distilledwater|蒸馏水]；出口堵塞时，排水后才送电。"},
+        {"type":"line","text":"§7由 [item:gregtech:gt.blockmachines@14904|拟态织机] 建造。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：运行与输入／输出管理"},
+        {"type":"line","text":"六种蒸汽可混合输入，每 §e20 秒§r向团队无线电网送电一次。"},
+        {"type":"line","text":"比较相邻两轮的§e总热值§r：涨超 10% 加 10 个效率百分点，跌超 10% 减 10 个；其余不变。"},
+        {"type":"line","text":"本轮立即按新效率发电；效率 100%～2,000%，停工会回落。"},
+        {"type":"line","text":"返流 [fluid:ic2distilledwater|蒸馏水]；出口堵塞时，排水后才送电。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.CriticalProcessing","owner":{"machine":"CriticalProcessing"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：查看管理界面（机型未开放）"},
+        {"type":"line","text":"§e暂未开放§r · 保留旧存档；不能合成、新建或运行。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.CriticalEntangler","owner":{"machine":"CriticalEntangler"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：查看管理界面（机型未开放）"},
+        {"type":"line","text":"§e暂未开放§r · 保留旧存档；不能合成、新建或运行。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.CriticalSun","owner":{"machine":"CriticalSun"},"tiers":{
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：运行与输入／输出管理"},
+        {"type":"line","text":"以§b [fluid:helium-3|氦三] §r点燃并维持恒星，热态执行 GT 聚变；每 §e20 秒§r完成一次，最多 §a8,196 并行§r。"},
+        {"type":"line","text":"§e暂停聚变仍耗电和 [fluid:helium-3|氦三]；熄火才停止维持。§r"},
+        {"type":"line","text":" [fluid:helium-3|氦三] 半量转为 [fluid:plasma.helium|氦等离子体]。只缺聚变电力可续作，维持断供则须重新点火。"},
+        {"type":"line","text":"§7由 [item:gregtech:gt.blockmachines@14904|拟态织机] 建造。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：运行与输入／输出管理"},
+        {"type":"line","text":"以§b [fluid:helium-3|氦三] §r点燃并维持恒星，热态执行 GT 聚变；每 §e20 秒§r完成一次，最多 §a8,196 并行§r。"},
+        {"type":"table","columns":["阶段","供电（EU/t）"," [fluid:helium-3|氦三]（L/t）"],"rows":[["点火 · 20 秒","§c25,000,000,000","§b125,000"],["维持热态","§c1,000,000","§b100"]]},
+        {"type":"line","text":"主机能源仓同时供应§c维持用电＋聚变用电§r；每消耗 §b2 L [fluid:helium-3|氦三] §r另产 §d1 L [fluid:plasma.helium|氦等离子体]§r。"},
+        {"type":"divider"},
+        {"type":"table","columns":["操作／工况","结果"],"rows":[["暂停聚变／关闭主电源","暂停加工，继续维持恒星"],["仅加工供电不足","保留进度；补电后继续"],["熄火／维持断供／结构失效","停止维持，须重新点火"]]},
+        {"type":"line","text":"§7由 [item:gregtech:gt.blockmachines@14904|拟态织机] 建造。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "detail":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：运行与输入／输出管理"},
+        {"type":"line","text":"以§b [fluid:helium-3|氦三] §r点燃并维持恒星，热态执行 GT 聚变；每 §e20 秒§r完成一次，最多 §a8,196 并行§r。"},
+        {"type":"table","columns":["阶段","供电（EU/t）"," [fluid:helium-3|氦三]（L/t）"],"rows":[["点火 · 20 秒","§c25,000,000,000","§b125,000"],["维持热态","§c1,000,000","§b100"]]},
+        {"type":"line","text":"点火供电约 §c12 A MAX§r，总需 §c10 T EU§r、§b50,000,000 L [fluid:helium-3|氦三]§r；欠供会暂停点火进度。"},
+        {"type":"line","text":"维持与点火均将 [fluid:helium-3|氦三] 按半量转为§d [fluid:plasma.helium|氦等离子体]§r。热态可直接更换聚变配方。"},
+        {"type":"divider"},
+        {"type":"line","text":"固定 20 秒，不超频。§6聚变用电§r＝原 EU/t × 并行数 × 耗电比例，另付维持用电。"},
+        {"type":"line","text":"耗电比例＝原配方秒数 ÷ 400，最低 §a0.1%§r、最高 §a10%§r。"},
+        {"type":"table","columns":["聚变限制","上限"],"rows":[["原配方电压","UEV"],["原配方启动能量","20,480,000,000 EU"],["并行","8,196；受供电、原料及出口空间限制"]]},
+        {"type":"divider"},
+        {"type":"table","columns":["操作／工况","结果"],"rows":[["暂停聚变／关闭主电源","暂停加工，继续维持恒星"],["仅加工供电不足","保留进度；补电后继续"],["熄火／维持断供／结构失效","停止维持，须重新点火"]]},
+        {"type":"line","text":"§7由 [item:gregtech:gt.blockmachines@14904|拟态织机] 建造。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.CriticalDimension","owner":{"machine":"CriticalDimension"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：查看管理界面（机型未开放）"},
+        {"type":"line","text":"§e暂未开放§r · 保留旧存档；不能合成、新建或运行。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.CriticalBattery","owner":{"machine":"CriticalBattery"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：运行与输入／输出管理"},
+        {"type":"line","text":"每 §e20 秒§r消耗仓内全部流体，将§6复合燃料发电量§r存入团队无线电网。"},
+        {"type":"line","text":"§e电路编号＝组分数§r，电路留在输入总线。每组 128 种配方，比例见 NEI。"},
+        {"type":"divider"},
+        {"type":"table","columns":["电路／组分数","必需原料","峰值倍率"],"rows":[["2","无固定工业组分","×2～12"],["3"," [fluid:gasoline|汽油] ","×13～24"],["4"," [fluid:highoctanegasoline|高辛烷值汽油] ","×25～36"],["5"," [fluid:fluid.rocketfuelmixb|RP-1火箭燃料] ","×37～48"],["6"," [fluid:fluid.rocketfuelmixd|密集肼火箭燃料] ","×49～60"],["7"," [fluid:fluid.rocketfuelmixc|CN3H7O3火箭燃料] ","×61～72"],["8"," [fluid:fluid.rocketfuelmixa|H8N4C2O4火箭燃料] ","×73～86"],["9"," [fluid:fluid.rocketfuelmixa|H8N4C2O4火箭燃料]＋ [fluid:combustionpromotor|助燃剂] ","×87～100"]],"title":"配方分组"},
+        {"type":"line","text":"同种燃料在不同组合中的份数不变：燃料 §e2～5 份§r， [fluid:ozone|臭氧]、 [fluid:combustionpromotor|助燃剂] 各 §e1 份§r。可按比例放大；不匹配不扣料。"},
+        {"type":"divider"},
+        {"type":"line","text":"§6基础热量 × 实际倍率＝发电量§r。同编号匹配多种组合时，取发电量最高的一种。"},
+        {"type":"line","text":"实际倍率＝1＋（峰值－1）× 配方组分体积占比²；其他流体也计入总体积。"},
+        {"type":"line","text":"§7由 [item:gregtech:gt.blockmachines@14904|拟态织机] 建造。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：运行与输入／输出管理"},
+        {"type":"line","text":"按§b复合燃料的种类与体积比§r发电，每批§e20秒§r将电量送入团队无线电网。"},
+        {"type":"line","text":"电路2～9选择组分数；各组分按NEI比例供料，比例不符保留原料。"},
+        {"type":"line","text":"§7由 [item:gregtech:gt.blockmachines@14904|拟态织机] 建造。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.CriticalAssembly","owner":{"machine":"CriticalAssembly"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：查看管理界面（机型未开放）"},
+        {"type":"line","text":"§e暂未开放§r · 保留旧存档；不能合成、新建或运行。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.CriticalAccelerator","owner":{"machine":"CriticalAccelerator"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：查看管理界面（机型未开放）"},
+        {"type":"line","text":"§e暂未开放§r · 保留旧存档；不能合成、新建或运行。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.SteamCacheNode","owner":{"machine":"SteamCacheNode"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b [fluid:steam|蒸汽]§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"table","columns":["默认容量（L）","正面输出／枢纽传输上限（L/s）"],"rows":[["§616,000,000","§a2,000,000"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§e蒸汽枢纽§r装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型§r。"},
+        {"type":"table","columns":["手持／目标","按键","功能"],"rows":[["节点 → 枢纽","[right:右击]","绑定一个"],["节点 → 枢纽","[key-right:Alt+右击]","绑定整组"],[" [item:gtsr:HubTerminal@0|机器终端] → 节点","[right:右击]","设置方向、速率及容量"]]},
+        {"type":"line","text":"§7拆下后保留绑定。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b [fluid:steam|蒸汽]§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"§616,000,000 L§r 容量  §a2,000,000 L/s§r 传输上限"},
+        {"type":"line","text":"§e蒸汽枢纽§r装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型§r。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.ReinforcedSteamCacheNode","owner":{"machine":"ReinforcedSteamCacheNode"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b [fluid:steam|蒸汽] 或 [fluid:ic2superheatedsteam|过热蒸汽]§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"table","columns":["默认容量（L）","正面输出／枢纽传输上限（L/s）"],"rows":[["§664,000,000","§a8,000,000"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§e蒸汽枢纽§r装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型§r。"},
+        {"type":"line","text":"首次消耗 §61 个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]§r。"},
+        {"type":"table","columns":["手持／目标","按键","功能"],"rows":[["节点 → 枢纽","[right:右击]","绑定一个"],["节点 → 枢纽","[key-right:Alt+右击]","绑定整组"],[" [item:gtsr:HubTerminal@0|机器终端] → 节点","[right:右击]","设置方向、速率及容量"]]},
+        {"type":"line","text":"§7拆下后保留绑定。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b [fluid:steam|蒸汽] 或 [fluid:ic2superheatedsteam|过热蒸汽]§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"§664,000,000 L§r 容量  §a8,000,000 L/s§r 传输上限"},
+        {"type":"line","text":"§e蒸汽枢纽§r装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型§r。"},
+        {"type":"line","text":"首次消耗 §61 个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]§r。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.OverpressureHubStorageUnit","owner":{"machine":"OverpressureHubStorageUnit"},"tiers":{
+      "common":[
+        {"type":"line","text":"§e3 级枢纽阵列§r的扩容部件，按安装格数叠加。"},
+        {"type":"table","columns":["安装位置","每格增加容量（L）"],"rows":[["蒸汽枢纽阵列","§620,480,000,000"],["蓄水枢纽阵列","§620,480,000"]]},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.WaterCacheNode","owner":{"machine":"WaterCacheNode"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b任意单种流体§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"table","columns":["默认容量（L）","正面输出／枢纽传输上限（L/s）"],"rows":[["§62,000,000","§a64,000"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§e蓄水枢纽§r装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型§r。"},
+        {"type":"table","columns":["手持／目标","按键","功能"],"rows":[["节点 → 枢纽","[right:右击]","绑定一个"],["节点 → 枢纽","[key-right:Alt+右击]","绑定整组"],[" [item:gtsr:HubTerminal@0|机器终端] → 节点","[right:右击]","设置方向、速率及容量"]]},
+        {"type":"line","text":"§7拆下后保留绑定。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b任意单种流体§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"§62,000,000 L§r 容量  §a64,000 L/s§r 传输上限"},
+        {"type":"line","text":"§e蓄水枢纽§r装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型§r。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.ReinforcedWaterCacheNode","owner":{"machine":"ReinforcedWaterCacheNode"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b任意单种流体§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"table","columns":["默认容量（L）","正面输出／枢纽传输上限（L/s）"],"rows":[["§68,000,000","§a256,000"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§e蓄水枢纽§r装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型§r。"},
+        {"type":"table","columns":["手持／目标","按键","功能"],"rows":[["节点 → 枢纽","[right:右击]","绑定一个"],["节点 → 枢纽","[key-right:Alt+右击]","绑定整组"],[" [item:gtsr:HubTerminal@0|机器终端] → 节点","[right:右击]","设置方向、速率及容量"]]},
+        {"type":"line","text":"§7拆下后保留绑定。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b任意单种流体§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"§68,000,000 L§r 容量  §a256,000 L/s§r 传输上限"},
+        {"type":"line","text":"§e蓄水枢纽§r装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型§r。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.OverpressureWaterCacheNode","owner":{"machine":"OverpressureWaterCacheNode"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b任意单种流体§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"table","columns":["默认容量（L）","正面输出／枢纽传输上限（L/s）"],"rows":[["§632,000,000","§a2,000,000"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§e三级蓄水枢纽§r装§e [item:gtsr:ReinforcedHubSingularityChip@0|强化奇点枢纽升级芯片]§r。"},
+        {"type":"table","columns":["手持／目标","按键","功能"],"rows":[["节点 → 枢纽","[right:右击]","绑定一个"],["节点 → 枢纽","[key-right:Alt+右击]","绑定整组"],[" [item:gtsr:HubTerminal@0|机器终端] → 节点","[right:右击]","设置方向、速率及容量"]]},
+        {"type":"line","text":"§7拆下后保留绑定。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b任意单种流体§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"§632,000,000 L§r 容量  §a2,000,000 L/s§r 传输上限"},
+        {"type":"line","text":"§e三级蓄水枢纽§r装§e [item:gtsr:ReinforcedHubSingularityChip@0|强化奇点枢纽升级芯片]§r。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.SingularitySteamCompartment","owner":{"machine":"SingularitySteamCompartment"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的仓：传输设置"},
+        {"type":"line","text":"跨维度接收蒸汽，方向固定：§b蒸汽枢纽 → 本仓 → 主机§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"本地缓存 §68,000,000 L§r  传输上限 §a8,000,000 L/s§r"},
+        {"type":"line","text":"超临界及 [fluid:densesteam|致密蒸汽]：§e三级枢纽＋强化芯片§r。"},
+        {"type":"divider"},
+        {"type":"line","text":"枢纽需装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型。"},
+        {"type":"line","text":"首次绑定消耗 §61 个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]§r。"},
+        {"type":"table","columns":["手持本仓对准枢纽","绑定"],"rows":[["[right:右击]","一个"],["[key-right:Alt+右击]","整组"]]},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的仓：传输设置"},
+        {"type":"line","text":"跨维度接收蒸汽，方向固定：§b蒸汽枢纽 → 本仓 → 主机§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"超临界及 [fluid:densesteam|致密蒸汽]：§e三级枢纽＋强化芯片§r。"},
+        {"type":"line","text":"枢纽需装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型。"},
+        {"type":"line","text":"首次绑定消耗 §61 个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]§r。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.SingularitySteamOutputCompartment","owner":{"machine":"SingularitySteamOutputCompartment"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的仓：传输设置"},
+        {"type":"line","text":"跨维度送出蒸汽，方向固定：§b主机 → 本仓 → 蒸汽枢纽§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"本地缓存 §68,000,000 L§r  传输上限 §a8,000,000 L/s§r"},
+        {"type":"line","text":"超临界及 [fluid:densesteam|致密蒸汽]：§e三级枢纽＋强化芯片§r。"},
+        {"type":"divider"},
+        {"type":"line","text":"枢纽需装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型。"},
+        {"type":"line","text":"首次绑定消耗 §61 个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]§r。"},
+        {"type":"table","columns":["手持本仓对准枢纽","绑定"],"rows":[["[right:右击]","一个"],["[key-right:Alt+右击]","整组"]]},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的仓：传输设置"},
+        {"type":"line","text":"跨维度送出蒸汽，方向固定：§b主机 → 本仓 → 蒸汽枢纽§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"超临界及 [fluid:densesteam|致密蒸汽]：§e三级枢纽＋强化芯片§r。"},
+        {"type":"line","text":"枢纽需装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型。"},
+        {"type":"line","text":"首次绑定消耗 §61 个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]§r。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.SingularityFluidInputCompartment","owner":{"machine":"SingularityFluidInputCompartment"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的仓：传输设置"},
+        {"type":"line","text":"跨维度接收流体，方向固定：§b蓄水枢纽 → 本仓 → 主机§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"本地缓存 §6256,000 L§r  传输上限 §a256,000 L/s§r"},
+        {"type":"line","text":"枢纽同时只存§b一种流体§r，本仓须与之一致。"},
+        {"type":"divider"},
+        {"type":"line","text":"枢纽需装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型；绑定不消耗奇点。"},
+        {"type":"table","columns":["手持本仓对准枢纽","绑定"],"rows":[["[right:右击]","一个"],["[key-right:Alt+右击]","整组"]]},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的仓：传输设置"},
+        {"type":"line","text":"跨维度接收流体，方向固定：§b蓄水枢纽 → 本仓 → 主机§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"枢纽同时只存§b一种流体§r，本仓须与之一致。"},
+        {"type":"line","text":"枢纽需装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型；绑定不消耗奇点。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.SingularityFluidOutputCompartment","owner":{"machine":"SingularityFluidOutputCompartment"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的仓：传输设置"},
+        {"type":"line","text":"跨维度送出流体，方向固定：§b主机 → 本仓 → 蓄水枢纽§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"本地缓存 §6256,000 L§r  传输上限 §a256,000 L/s§r"},
+        {"type":"line","text":"枢纽同时只存§b一种流体§r，本仓须与之一致。"},
+        {"type":"divider"},
+        {"type":"line","text":"枢纽需装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型；绑定不消耗奇点。"},
+        {"type":"table","columns":["手持本仓对准枢纽","绑定"],"rows":[["[right:右击]","一个"],["[key-right:Alt+右击]","整组"]]},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的仓：传输设置"},
+        {"type":"line","text":"跨维度送出流体，方向固定：§b主机 → 本仓 → 蓄水枢纽§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"枢纽同时只存§b一种流体§r，本仓须与之一致。"},
+        {"type":"line","text":"枢纽需装§e [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] §r或强化型；绑定不消耗奇点。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.SingularityMinerNode","owner":{"machine":"SingularityMinerNode"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] 对空 [right:右击]：从历史打开已登记的节点"},
+        {"type":"line","text":"§b从节点周围地下矿层采矿，矿物交付枢纽输出总线。"},
+        {"type":"binding"},
+        {"type":"line","text":"§6接入§r：节点槽放 [item:IC2:blockMiningPipe@0|采矿管道]；手持节点[right:右击]奇点钻井枢纽绑定，随后放到作业地点。"},
+        {"type":"line","text":"§7[key-right:Alt+右击]绑定手持整组。每件首次绑定消耗1个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]，重新绑定不再消耗。"},
+        {"type":"line","text":"§6运行§r：枢纽开机并供 [fluid:ic2superheatedsteam|过热蒸汽]；下表是工作节点额外耗汽，枢纽自身维持另计。绑定后自动加载作业区块。"},
+        {"type":"divider"},
+        {"type":"table","columns":["等级","水平半径（格）","时运","周期（秒）","耗汽（L/s）"],"rows":[["基础","±32","VI","4","5,000"],["强化I","±48","VII","3","10,000"],["强化II","±64","VIII","2","20,000"],["强化III","±96","IX","1","80,000"],["强化IV","±144","X","0.5","240,000"]]},
+        {"type":"line","text":"§7范围以节点为中心并含两端：基础65×65格，满级289×289格；下管后扫描经过的地下矿层。"},
+        {"type":"line","text":"§6粉碎矿§r：螺丝刀[right:右击]切换；按矿石掉落及研磨配方实际主产物数，再乘1.5输出粉碎矿。"},
+        {"type":"line","text":"§6升级§r：节点界面逐级升级；相应钻井机与奇点从玩家背包扣取。"},
+        {"type":"table","columns":["升至","消耗钻井场","另耗 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]（个）"],"rows":[["强化I"," [item:gregtech:gt.blockmachines@1158|采矿场] ","16"],["强化II"," [item:gregtech:gt.blockmachines@1177|采矿场 II] ","32"],["强化III"," [item:gregtech:gt.blockmachines@1178|采矿场 III] ","64"],["强化IV"," [item:gregtech:gt.blockmachines@1179|采矿场 IV] ","256"]],"title":"§6逐级升级；每级均需实际支付"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] 对空 [right:右击]：从历史打开已登记的节点"},
+        {"type":"line","text":"§b远程采矿，物品交付奇点钻井枢纽。"},
+        {"type":"binding"},
+        {"type":"line","text":"节点槽放 [item:IC2:blockMiningPipe@0|采矿管道]；手持[right:右击]枢纽绑定，首次每件耗1个奇点。"},
+        {"type":"line","text":"基础65×65格、时运VI、4秒一轮、5,000 L/s [fluid:ic2superheatedsteam|过热蒸汽]。"},
+        {"type":"line","text":"绑定后自动加载作业区块；在节点界面逐级升级。"},
+        {"type":"line","text":"螺丝刀 [right:右击] 切换粉碎矿输出。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SingularityDrillingNode","owner":{"machine":"SingularityDrillingNode"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] 对空 [right:右击]：从历史打开已登记的节点"},
+        {"type":"line","text":"§b下管至基岩后抽取地下油藏，流体交付枢纽输出仓。"},
+        {"type":"binding"},
+        {"type":"line","text":"§6接入§r：节点槽放 [item:IC2:blockMiningPipe@0|采矿管道]；手持节点[right:右击]奇点钻井枢纽绑定，随后放到作业地点。"},
+        {"type":"line","text":"§7[key-right:Alt+右击]绑定手持整组。每件首次绑定消耗1个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]，重新绑定不再消耗。"},
+        {"type":"line","text":"§6运行§r：枢纽开机并供 [fluid:ic2superheatedsteam|过热蒸汽]；下表是工作节点额外耗汽，枢纽自身维持另计。绑定后自动加载作业区块。"},
+        {"type":"divider"},
+        {"type":"table","columns":["等级","区块边长","提取系数","耗汽（L/s）"],"rows":[["基础","1","10","2,000"],["强化I","2","12","6,000"],["强化II","4","15","12,000"],["强化III","8","18","20,000"]]},
+        {"type":"line","text":"§7每8秒抽一轮；范围从节点所在区块向X、Z正方向展开。单节点锁定一种油藏流体，实际产量随各区块储量变化。"},
+        {"type":"warning","text":"枢纽出口满时，保护模式保留已抽余液，交付前不再抽下一批；耗尽目标油藏后停止。"},
+        {"type":"line","text":"§6升级§r：节点界面逐级升级；相应钻井机与奇点从玩家背包扣取。"},
+        {"type":"table","columns":["升至","消耗钻井机","另耗 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]（个）"],"rows":[["强化I"," [item:gregtech:gt.blockmachines@141|流体钻机 II] ","16"],["强化II"," [item:gregtech:gt.blockmachines@142|流体钻机 III] ","32"],["强化III"," [item:gregtech:gt.blockmachines@149|流体钻机 IV] ","64"]],"title":"§6逐级升级；每级均需实际支付"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] 对空 [right:右击]：从历史打开已登记的节点"},
+        {"type":"line","text":"§b钻至基岩后抽地下油藏，流体交付枢纽。"},
+        {"type":"binding"},
+        {"type":"line","text":"节点槽放 [item:IC2:blockMiningPipe@0|采矿管道]；手持[right:右击]枢纽绑定，首次每件耗1个奇点。"},
+        {"type":"line","text":"基础1×1区块、8秒一轮、2,000 L/s [fluid:ic2superheatedsteam|过热蒸汽]。"},
+        {"type":"line","text":"绑定后自动加载作业区块；在节点界面逐级升级。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SteamSingularityEntangler","owner":{"machine":"SteamSingularityEntangler"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：纠缠状态与输入限额"},
+        {"type":"line","text":"§b把三种蒸汽聚成 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]；无需电力。"},
+        {"type":"line","text":"每秒只取§b最高品级§r的蒸汽，默认全取，可设上限。热量满 §e100%§r产出一颗。"},
+        {"type":"curve","title":"§a供汽收益（超限为0%）","xLabel":"实取蒸汽（L/s）","yLabel":"增热（百分点/秒）","xMax":1000000,"yMax":1,"xTicks":[0,200000,400000,600000,800000,1000000],"yTicks":[0,0.25,0.5,0.75,1],"series":[{"name":" [fluid:steam|蒸汽]","color":"#9cbbbc","model":"saturation","half":200000,"limit":0.25},{"name":" [fluid:ic2superheatedsteam|过热蒸汽]","color":"#61c9cc","model":"saturation","half":200000,"limit":0.5},{"name":" [fluid:supercriticalsteam|超临界蒸汽]","color":"#ffbf60","model":"saturation","half":200000,"limit":1}],"probe":200000},
+        {"type":"warning","text":"输出总线满仍会取汽、积热；腾出空间只交付1颗并清零，多余热量一并丢失。"},
+        {"type":"divider"},
+        {"type":"table","columns":["辅助流体","作用与过量后果"],"rows":[[" [fluid:pyrotheum|烈焰之炽焱] ","提高超限，放大增热"],[" [fluid:cryotheum|极寒之凛冰] ","降低失稳；降幅超过当前失稳会失温停机"]]},
+        {"type":"line","text":"§7结构完整且开启时，辅助流体每秒取用，空转也消耗；过量停机后持软锤 [right:右击]重新开启。"},
+        {"type":"table","columns":["条件","后果"],"rows":[["工作中超限>200%","失稳开始累积"],["超限>500%或失稳>100%","摧毁装置；失控黑奇点持续4分钟"]]},
+        {"type":"line","text":"§7停机或断汽：热量每秒−1个百分点；超限始终自然衰减。停机时失稳每秒−0.1个百分点。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "detail":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：纠缠状态与输入限额"},
+        {"type":"line","text":"§b把三种蒸汽聚成 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]；无需电力。"},
+        {"type":"line","text":"每秒只取§b最高品级§r的蒸汽，默认全取，可设上限。热量满 §e100%§r产出一颗。"},
+        {"type":"curve","title":"§a供汽收益（超限为0%）","xLabel":"实取蒸汽（L/s）","yLabel":"增热（百分点/秒）","xMax":1000000,"yMax":1,"xTicks":[0,200000,400000,600000,800000,1000000],"yTicks":[0,0.25,0.5,0.75,1],"series":[{"name":" [fluid:steam|蒸汽]","color":"#9cbbbc","model":"saturation","half":200000,"limit":0.25},{"name":" [fluid:ic2superheatedsteam|过热蒸汽]","color":"#61c9cc","model":"saturation","half":200000,"limit":0.5},{"name":" [fluid:supercriticalsteam|超临界蒸汽]","color":"#ffbf60","model":"saturation","half":200000,"limit":1}],"probe":200000},
+        {"type":"line","text":"超限每增加 100%，增热多一倍基础值。"},
+        {"type":"warning","text":"输出总线满仍会取汽、积热；腾出空间只交付1颗并清零，多余热量一并丢失。"},
+        {"type":"divider"},
+        {"type":"curve","title":"§a辅助流体调节","xLabel":"实取流体（L/s）","yLabel":"变化幅度（百分点/秒）","xMax":20000,"yMax":5,"xTicks":[0,5000,10000,15000,20000],"yTicks":[0,1,2,3,4,5],"probe":5000,"series":[{"name":"炽焱＋超限","color":"#ffbf60","model":"saturation","half":5000,"limit":5},{"name":"凛冰−失稳","color":"#61c9cc","model":"saturation","half":1000,"limit":1}]},
+        {"type":"line","text":" [fluid:pyrotheum|烈焰之炽焱] 提高超限； [fluid:cryotheum|极寒之凛冰] 的降幅超过当前失稳时停机。"},
+        {"type":"line","text":"空转也消耗辅助流体。过量停机后用软锤 [right:右击] 重启。"},
+        {"type":"divider"},
+        {"type":"table","columns":["条件","后果"],"rows":[["工作中超限>200%","失稳开始累积"],["超限>500%或失稳>100%","摧毁装置；失控黑奇点持续4分钟"]]},
+        {"type":"line","text":"超限自然衰减。停机或断汽时每秒损失 1 个百分点热量。"},
+        {"type":"line","text":"停机时每秒降低 0.1 个百分点失稳。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：纠缠状态与输入限额"},
+        {"type":"line","text":"§b三种蒸汽→ [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]；最高品级优先，100%热量产1颗。"},
+        {"type":"line","text":"§7 [item:gtsr:HubTerminal@0|机器终端] 可限量； [fluid:pyrotheum|烈焰之炽焱] 加速， [fluid:cryotheum|极寒之凛冰] 降失稳。"},
+        {"type":"line","text":"超限超过 200% 后逐渐失稳。"},
+        {"type":"warning","text":"超限>500%或失稳>100%会摧毁装置；辅助流体减量超过现值会停机。"},
+        {"type":"line","text":"输出堵塞仍耗汽积热；疏通后仅交付一颗。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.CriticalSingularityCompressor","owner":{"machine":"CriticalSingularityCompressor"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：纠缠状态与输入限额"},
+        {"type":"line","text":"§b把三种致密蒸汽聚成 [item:gtsr:CriticalSteamEntangledSingularity@0|临界蒸汽纠缠奇点]；无需电力。"},
+        {"type":"line","text":"每秒只取§b最高品级§r的蒸汽，默认全取，可设上限。热量满 §e100%§r产出一颗。"},
+        {"type":"curve","title":"§a供汽收益（超限、撕裂均为0%）","xLabel":"实取 [fluid:densesteam|致密蒸汽]（L/s）","yLabel":"增热（百分点/秒）","xMax":25000,"yMax":1,"xTicks":[0,5000,10000,15000,20000,25000],"yTicks":[0,0.25,0.5,0.75,1],"series":[{"name":" [fluid:densesteam|致密蒸汽]","color":"#9cbbbc","model":"saturation","half":5000,"limit":0.25},{"name":" [fluid:densesuperheatedsteam|致密过热蒸汽]","color":"#61c9cc","model":"saturation","half":5000,"limit":0.5},{"name":" [fluid:densesupercriticalsteam|致密超临界蒸汽]","color":"#ffbf60","model":"saturation","half":5000,"limit":1}],"probe":5000},
+        {"type":"warning","text":"输出总线满仍会取汽、积热；腾出空间只交付1颗并清零，多余热量一并丢失。"},
+        {"type":"divider"},
+        {"type":"table","columns":["辅助流体","作用与过量后果"],"rows":[[" [fluid:pyrotheum|烈焰之炽焱] ","提高超限，放大增热"],[" [fluid:cryotheum|极寒之凛冰] ","降低失稳；降幅超过当前失稳会失温停机"],[" [fluid:ic2uumatter|UU物质] ","降低撕裂；降幅超过当前撕裂会维度固化停机"]]},
+        {"type":"line","text":"§7结构完整且开启时，辅助流体每秒取用，空转也消耗；过量停机后持软锤 [right:右击]重新开启。"},
+        {"type":"table","columns":["条件","后果"],"rows":[["工作中超限>200%","失稳开始累积"],["工作中失稳>50%且超限>800%","撕裂开始累积，额外放大增热"],["超限≥1,000%或失稳>100%","摧毁装置；失控黑奇点持续4分钟"],["撕裂>100%","摧毁装置；失控黑奇点持续20分钟"]]},
+        {"type":"line","text":"§7停机或断汽：热量每秒−1个百分点；超限始终自然衰减。停机时失稳与撕裂每秒−0.1个百分点。"},
+        {"type":"line","text":"§7 [fluid:densesteam|致密蒸汽] 不返冷却流体；GUI与红石仓可读超限、失稳和撕裂。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "detail":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：纠缠状态与输入限额"},
+        {"type":"line","text":"§b把三种致密蒸汽聚成 [item:gtsr:CriticalSteamEntangledSingularity@0|临界蒸汽纠缠奇点]；无需电力。"},
+        {"type":"line","text":"每秒只取§b最高品级§r的蒸汽，默认全取，可设上限。热量满 §e100%§r产出一颗。"},
+        {"type":"curve","title":"§a供汽收益（超限、撕裂均为0%）","xLabel":"实取 [fluid:densesteam|致密蒸汽]（L/s）","yLabel":"增热（百分点/秒）","xMax":25000,"yMax":1,"xTicks":[0,5000,10000,15000,20000,25000],"yTicks":[0,0.25,0.5,0.75,1],"series":[{"name":" [fluid:densesteam|致密蒸汽]","color":"#9cbbbc","model":"saturation","half":5000,"limit":0.25},{"name":" [fluid:densesuperheatedsteam|致密过热蒸汽]","color":"#61c9cc","model":"saturation","half":5000,"limit":0.5},{"name":" [fluid:densesupercriticalsteam|致密超临界蒸汽]","color":"#ffbf60","model":"saturation","half":5000,"limit":1}],"probe":5000},
+        {"type":"line","text":"超限每增加 100%，增热多一倍基础值。撕裂按同样比例再乘算。"},
+        {"type":"warning","text":"输出总线满仍会取汽、积热；腾出空间只交付1颗并清零，多余热量一并丢失。"},
+        {"type":"divider"},
+        {"type":"curve","title":"§a辅助流体调节","xLabel":"实取流体（L/s）","yLabel":"变化幅度（百分点/秒）","xMax":20000,"yMax":5,"xTicks":[0,5000,10000,15000,20000],"yTicks":[0,1,2,3,4,5],"probe":5000,"series":[{"name":"炽焱＋超限","color":"#ffbf60","model":"saturation","half":5000,"limit":5},{"name":"凛冰−失稳","color":"#61c9cc","model":"saturation","half":1000,"limit":1}]},
+        {"type":"line","text":" [fluid:pyrotheum|烈焰之炽焱] 提高超限； [fluid:cryotheum|极寒之凛冰] 的降幅超过当前失稳时停机。"},
+        {"type":"line","text":"每 1,000 L [fluid:ic2uumatter|UU 物质] 降低 1 个百分点撕裂；过量则停机。"},
+        {"type":"line","text":"空转也消耗辅助流体。过量停机后用软锤 [right:右击] 重启。"},
+        {"type":"divider"},
+        {"type":"table","columns":["条件","后果"],"rows":[["工作中超限>200%","失稳开始累积"],["工作中失稳>50%且超限>800%","撕裂开始累积，额外放大增热"],["超限≥1,000%或失稳>100%","摧毁装置；失控黑奇点持续4分钟"],["撕裂>100%","摧毁装置；失控黑奇点持续20分钟"]]},
+        {"type":"line","text":"超限自然衰减。停机或断汽时每秒损失 1 个百分点热量。"},
+        {"type":"line","text":"停机时每秒降低 0.1 个百分点失稳与撕裂。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：纠缠状态与输入限额"},
+        {"type":"line","text":"§b三种致密蒸汽→ [item:gtsr:CriticalSteamEntangledSingularity@0|临界蒸汽纠缠奇点]；最高品级优先，100%热量产1颗。"},
+        {"type":"line","text":"§7 [item:gtsr:HubTerminal@0|机器终端] 可限量； [fluid:pyrotheum|烈焰之炽焱] 加速， [fluid:cryotheum|极寒之凛冰] 降失稳， [fluid:ic2uumatter|UU物质] 降撕裂。"},
+        {"type":"line","text":"超限超过 200% 后逐渐失稳。失稳超过 50% 且超限超过 800% 后累积撕裂。"},
+        {"type":"warning","text":"超限≥1,000%或失稳、撕裂>100%会摧毁装置；辅助流体减量超过现值会停机。"},
+        {"type":"line","text":"输出堵塞仍耗汽积热；疏通后仅交付一颗。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SpacetimeCalibration","owner":{"machine":"SpacetimeCalibration"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b维持通往繁荣维度的入口；从正面入口接近核心，玩家接触核心后传送。"},
+        {"type":"table","columns":["阶段","时长","耗电（EU/t）"],"rows":[["预热","30秒","30,720"],["维持入口","持续","15,360"]]},
+        {"type":"line","text":"§6准备§r：至少IV级能源仓；保持维护完好、结构完整，整机覆盖区块持续加载。"},
+        {"type":"divider"},
+        {"type":"line","text":"§6通过§r：正面通道把实体引向核心；只牵引实体，不破坏方块。非玩家实体只受牵引，不随玩家传送。"},
+        {"type":"line","text":"§a避开牵引§r：按[key:Shift]潜行；骑乘、被骑乘或创造飞行时也不参与。"},
+        {"type":"warning","text":"断电、关闭、维护故障、结构破损或部分区块卸载，都会关闭入口并清空预热；恢复后重新预热30秒。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b接触核心进入繁荣维度；先预热30秒。"},
+        {"type":"line","text":"预热30,720 EU/t，维持15,360 EU/t；至少IV能源仓、整机持续加载。"},
+        {"type":"line","text":"[key:Shift]潜行避开牵引；停机后须重新预热。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.DenseStateManipulator","owner":{"machine":"DenseStateManipulator"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b压缩或解压三种蒸汽，保持 [fluid:steam|蒸汽]／ [fluid:ic2superheatedsteam|过热蒸汽]／ [fluid:supercriticalsteam|超临界蒸汽] 的原品级。"},
+        {"type":"line","text":"§6投料§r：输入总线放奇点；压缩输入非致密汽，解压输入致密汽。每轮只抽尽最高品级，低品级留待后续。"},
+        {"type":"table","columns":["奇点模式","压缩：普通→致密","解压：致密→普通"],"rows":[[" [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点] ","1,000 L→0.8 L","1 L→800 L"],[" [item:gtsr:CriticalSteamEntangledSingularity@0|临界蒸汽纠缠奇点] ","1,000 L→1 L","1 L→1,000 L"]],"title":"§6同品级体积换算"},
+        {"type":"line","text":"§7普通奇点每次转换损失20%产出，临界奇点无损。"},
+        {"type":"divider"},
+        {"type":"line","text":"§6燃料时间§r：每颗奇点200秒，优先使用临界奇点。关机时倒计时继续；只在工作需要时补耗下一颗。"},
+        {"type":"line","text":"§a输出§r：不足1 L的产物继续累计；出口放不下的部分保留，腾出空间后再交付。"},
+        {"type":"warning","text":"螺丝刀[right:右击]切换压缩／解压，默认压缩。切换会清空奇点剩余时间和累计产物，先排空再切。"},
+        {"type":"line","text":"§7无需维护仓。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b同品级蒸汽压缩／解压；临界奇点按1,000:1无损转换。"},
+        {"type":"line","text":"普通奇点输出损失20%；每颗200秒，关机仍计时。"},
+        {"type":"warning","text":"螺丝刀[right:右击]切模式会清空时间与累计产物。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SteamHubArray","owner":{"machine":"SteamHubArray"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]枢纽：节点管理"},
+        {"type":"line","text":"§b集中储存与远程分发蒸汽。同一枢纽同时只存一种，排空后可换种。"},
+        {"type":"line","text":"§6收发§r：管道接枢纽专用输入／输出仓；远端接已绑定缓存节点或奇点仓，可跨维度传输。"},
+        {"type":"table","columns":["等级","匹配存储单元","每格基础容量（L）"],"rows":[["1","枢纽存储单元","320,000,000"],["2","加固枢纽存储单元","1,280,000,000"],["3","超压枢纽存储单元","20,480,000,000"]],"title":"§6扩容"},
+        {"type":"line","text":"§7总容量＝实际存储单元数×每格基础容量×芯片倍率；加高阵列可增加存储位。"},
+        {"type":"divider"},
+        {"type":"table","columns":["控制器槽","容量倍率","远程绑定"],"rows":[["无芯片","×1","关闭"],[" [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] ","×5","基础／加固节点、奇点仓"],[" [item:gtsr:ReinforcedHubSingularityChip@0|强化奇点枢纽升级芯片] ","×20","上述全部＋超压节点"]],"title":"§6强化芯片仅等级3生效"},
+        {"type":"line","text":"§6绑定§r：手持对应节点／奇点仓[right:右击]控制器绑定一件；[key-right:Alt+右击]绑定手持整组。"},
+        {"type":"line","text":"§6管理§r：可在已绑节点列表调整方向、速率与容量。"},
+        {"type":"line","text":"§a蒸汽品级§r： [fluid:steam|蒸汽]／ [fluid:ic2superheatedsteam|过热蒸汽] 可直接接收；等级3加强化芯片后，才接收 [fluid:supercriticalsteam|超临界蒸汽] 及三种致密蒸汽。"},
+        {"type":"line","text":"§7首次绑定消耗：基础缓存不消耗奇点；加固缓存与奇点蒸汽仓各1个奇点；超压缓存8个。重新绑定不再消耗。"},
+        {"type":"warning","text":"螺丝刀[right:右击]切换溢流输入：开启后满仓仍收液，超出容量的流体直接销毁。"},
+        {"type":"divider"},
+        {"type":"line","text":"§6结构扩展§r：1～30组叠加层，每组25个存储位；总高3～32格。"},
+        {"type":"line","text":"§7全息投影的[height]设1～30选择叠加层数，[casing]选择统一材质档位；未设时按触发物堆叠数。"},
+        {"type":"line","text":"§7等级1青铜、等级2钢、等级3钨钢；机壳、管道、框架及齿轮箱按结构页统一。无需维护仓。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]枢纽：节点管理"},
+        {"type":"line","text":"§b蒸汽集中缓存与跨维度收发；同时只存一种。"},
+        {"type":"line","text":"管道接专用枢纽仓；装芯片后手持节点[right:右击]绑定。"},
+        {"type":"line","text":"普通芯片容量×5；等级3强化芯片×20。"},
+        {"type":"warning","text":"开启溢流输入后，多余流体直接销毁。"},
+        {"type":"line","text":" [fluid:steam|蒸汽]、 [fluid:ic2superheatedsteam|过热蒸汽] 可直接接收； [fluid:supercriticalsteam|超临界蒸汽] 与三种致密蒸汽须三级枢纽装强化芯片。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.WaterHubArray","owner":{"machine":"WaterHubArray"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]枢纽：节点管理"},
+        {"type":"line","text":"§b集中储存与远程分发任意流体。同一枢纽同时只存一种，排空后可换种。"},
+        {"type":"line","text":"§6收发§r：管道接枢纽专用输入／输出仓；远端接已绑定缓存节点或奇点仓，可跨维度传输。"},
+        {"type":"table","columns":["等级","匹配存储单元","每格基础容量（L）"],"rows":[["1","枢纽存储单元","1,280,000"],["2","加固枢纽存储单元","5,120,000"],["3","超压枢纽存储单元","20,480,000"]],"title":"§6扩容"},
+        {"type":"line","text":"§7总容量＝实际存储单元数×每格基础容量×芯片倍率；加高阵列可增加存储位。"},
+        {"type":"divider"},
+        {"type":"table","columns":["控制器槽","容量倍率","远程绑定"],"rows":[["无芯片","×1","关闭"],[" [item:gtsr:HubSingularityChip@0|枢纽奇点升级芯片] ","×5","基础／加固节点、奇点仓"],[" [item:gtsr:ReinforcedHubSingularityChip@0|强化奇点枢纽升级芯片] ","×20","上述全部＋超压节点"]],"title":"§6强化芯片仅等级3生效"},
+        {"type":"line","text":"§6绑定§r：手持对应节点／奇点仓[right:右击]控制器绑定一件；[key-right:Alt+右击]绑定手持整组。"},
+        {"type":"line","text":"§6管理§r：可在已绑节点列表调整方向、速率与容量。"},
+        {"type":"line","text":"§7流体缓存节点和奇点流体仓绑定不消耗奇点；已有流体时，另一种流体不能混入。"},
+        {"type":"warning","text":"螺丝刀[right:右击]切换溢流输入：开启后满仓仍收液，超出容量的流体直接销毁。"},
+        {"type":"divider"},
+        {"type":"line","text":"§6结构扩展§r：1～30组叠加层，每组9个存储位；总高2～31格。"},
+        {"type":"line","text":"§7全息投影的[height]设1～30选择叠加层数，[casing]选择统一材质档位；未设时按触发物堆叠数。"},
+        {"type":"line","text":"§7等级1青铜、等级2钢、等级3钨钢；机壳、管道、框架按结构页统一。无需维护仓。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]枢纽：节点管理"},
+        {"type":"line","text":"§b通用流体集中缓存与跨维度收发；同时只存一种。"},
+        {"type":"line","text":"管道接专用枢纽仓；装芯片后手持节点[right:右击]绑定。"},
+        {"type":"line","text":"普通芯片容量×5；等级3强化芯片×20。"},
+        {"type":"warning","text":"开启溢流输入后，多余流体直接销毁。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SteamHubInputHatch","owner":{"machine":"SteamHubInputHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b蒸汽枢纽阵列§r的输入口，直接注入阵列，无独立缓存。"},
+        {"type":"line","text":" [fluid:steam|蒸汽]、 [fluid:ic2superheatedsteam|过热蒸汽] 可直接输入；§e三级阵列＋强化芯片§r可接收全部六种蒸汽。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.SteamHubOutputHatch","owner":{"machine":"SteamHubOutputHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"直接从§b蒸汽枢纽阵列§r输出当前存储的流体，无独立缓存。"},
+        {"type":"line","text":"自动输出上限 §a20,000,000 L/s§r。"},
+        {"type":"line","text":"螺丝刀 [right:右击] 切换§e溢流输出§r：储量达到容量的 §e90%§r 才输出。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.WaterHubInputHatch","owner":{"machine":"WaterHubInputHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b蓄水枢纽阵列§r的输入口，直接注入阵列，无独立缓存。"},
+        {"type":"line","text":"可输入§a任意一种流体§r；同一阵列不能混存。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.WaterHubOutputHatch","owner":{"machine":"WaterHubOutputHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"直接从§b蓄水枢纽阵列§r输出当前存储的流体，无独立缓存。"},
+        {"type":"line","text":"自动输出上限 §a1,280,000 L/s§r。"},
+        {"type":"line","text":"螺丝刀 [right:右击] 切换§e溢流输出§r：储量达到容量的 §e90%§r 才输出。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.OverpressureTurbineInputHatch","owner":{"machine":"OverpressureTurbineInputHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b六种蒸汽§r共用的输入仓，容量 §62,000,000,000 L§r。"},
+        {"type":"line","text":"仅用于§e巨型蒸汽轮机机组§r和§e蒸汽奇点纠缠装置§r。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.HubStorageUnit","owner":{"machine":"HubStorageUnit"},"tiers":{
+      "common":[
+        {"type":"line","text":"§e1 级枢纽阵列§r的扩容部件，按安装格数叠加。"},
+        {"type":"table","columns":["安装位置","每格增加容量（L）"],"rows":[["蒸汽枢纽阵列","§6320,000,000"],["蓄水枢纽阵列","§61,280,000"]]},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.ReinforcedHubStorageUnit","owner":{"machine":"ReinforcedHubStorageUnit"},"tiers":{
+      "common":[
+        {"type":"line","text":"§e2 级枢纽阵列§r的扩容部件，按安装格数叠加。"},
+        {"type":"table","columns":["安装位置","每格增加容量（L）"],"rows":[["蒸汽枢纽阵列","§61,280,000,000"],["蓄水枢纽阵列","§65,120,000"]]},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.OverpressureSteamCacheNode","owner":{"machine":"OverpressureSteamCacheNode"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b六种蒸汽§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"table","columns":["默认容量（L）","正面输出／枢纽传输上限（L/s）"],"rows":[["§6256,000,000","§a64,000,000"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§e三级蒸汽枢纽§r装§e [item:gtsr:ReinforcedHubSingularityChip@0|强化奇点枢纽升级芯片]§r。"},
+        {"type":"line","text":"首次消耗 §68 个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]§r。"},
+        {"type":"table","columns":["手持／目标","按键","功能"],"rows":[["节点 → 枢纽","[right:右击]","绑定一个"],["节点 → 枢纽","[key-right:Alt+右击]","绑定整组"],[" [item:gtsr:HubTerminal@0|机器终端] → 节点","[right:右击]","设置方向、速率及容量"]]},
+        {"type":"line","text":"§7拆下后保留绑定。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]已绑定的节点：节点设置"},
+        {"type":"line","text":"独立储存§b六种蒸汽§r，向正面自动输出；绑定后可§b跨维度收发§r。"},
+        {"type":"binding"},
+        {"type":"line","text":"§6256,000,000 L§r 容量  §a64,000,000 L/s§r 传输上限"},
+        {"type":"line","text":"§e三级蒸汽枢纽§r装§e [item:gtsr:ReinforcedHubSingularityChip@0|强化奇点枢纽升级芯片]§r。"},
+        {"type":"line","text":"首次消耗 §68 个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]§r。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.LargeSolarOverpressureArray","owner":{"machine":"LargeSolarOverpressureArray"},"tiers":{
+      "common":[
+        {"type":"line","text":"晴天聚热制汽，顶面遮挡减产；夜间或恶劣天气靠余热产汽。"},
+        {"type":"table","columns":["档位／材料","蒸汽","基础（L/s）","最高（L/s）"],"rows":[["1 金／青铜"," [fluid:steam|蒸汽] ","120,000","480,000"],["2 镍／钢"," [fluid:steam|蒸汽] ","180,000","720,000"],["3 银／钢"," [fluid:ic2superheatedsteam|过热蒸汽] ","240,000","960,000"]],"title":"§a顶面全部见天、无垢、足 [fluid:water|水] "},
+        {"type":"divider"},
+        {"type":"line","text":"§6控制器槽§r最多放 64 个锅炉；按数量增幅，与超压相加。"},
+        {"type":"table","columns":["控制器槽","100% 热量","200% 超压"],"rows":[["空槽","×1","×2"],["64 个 [item:gregtech:gt.blockmachines@105|简易太阳能锅炉] ","§a×2","×3"],["64 个 [item:gregtech:gt.blockmachines@114|高级太阳能锅炉] ","§a×3","§6×4"]],"title":"§a产汽倍率"},
+        {"type":"line","text":"每个简易锅炉加基础产量的 §e1/64§r，高级加 §e2/64§r。"},
+        {"type":"line","text":"满热后用螺丝刀 [right:右击] 切换超压；低于 §e100%§r 自动退出。"},
+        {"type":"line","text":"超压时升温速度为平时的 1/5，降温速度为 2 倍。"},
+        {"type":"divider"},
+        {"type":"line","text":" [fluid:ic2distilledwater|蒸馏水] 不结垢；空手 [key-right:Shift+右击] 控制器除垢。"},
+        {"type":"line","text":" [fluid:water|普通水] 运行 1 小时后开始结垢；超压时立即结垢，增量 ×20。"},
+        {"type":"line","text":"满垢仅剩 §e1%§r 产量。每 1 L [fluid:water|水] 产 160 L 蒸汽。"},
+        {"type":"warning","text":"缺水停机，补水后须重启；出口放不下的蒸汽会丢失。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"日照聚热制汽，遮挡减产；夜间靠余热，三级产 [fluid:ic2superheatedsteam|过热蒸汽]。"},
+        {"type":"line","text":"控制器放满 64 个锅炉：简易 §a×2§r，高级 §a×3§r（满热）。"},
+        {"type":"line","text":"满热后螺丝刀 [right:右击] 开超压，再加一倍基础产量，最高 §6×4§r。"},
+        {"type":"line","text":"低于 100% 热量退出超压；超压使 [fluid:water|普通水] 加速结垢。"},
+        {"type":"line","text":" [fluid:ic2distilledwater|蒸馏水] 不结垢；空手 [key-right:Shift+右击] 控制器除垢。"},
+        {"type":"line","text":"缺水后须重启；堵出口会丢蒸汽。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.LargeGeothermalSteamBoiler","owner":{"machine":"LargeGeothermalSteamBoiler"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b烧 [fluid:lava|熔岩] 升热，把 [fluid:water|水] 持续变成蒸汽，并随每批 [fluid:lava|熔岩] 抽取矿物副产。"},
+        {"type":"line","text":"§6热量循环§r：每批耗1,000 L [fluid:lava|熔岩]；连续运行升温，闲置降温。热量越高，产汽越多，每批 [fluid:lava|熔岩] 也烧得越久。"},
+        {"type":"table","columns":["配置","蒸汽（L/s）"," [fluid:lava|熔岩] 批时（秒）"],"rows":[["青铜","60,000","10"],["钢","149,920","约5"],["钢＋ [item:gtsr:GeothermalOverheatChip@0|地热过热芯片] ","149,920（过热）","4"]],"title":"§a100%热量、无垢、足 [fluid:water|水] "},
+        {"type":"line","text":"§6芯片§r：放入钢级控制器槽，改产 [fluid:ic2superheatedsteam|过热蒸汽]，并增加 [item:gregtech:gt.metaitem.01@2021|磷粉]、 [item:gregtech:gt.metaitem.01@2375|金红石粉]、 [item:gregtech:gt.metaitem.01@2910|白钨矿粉] 的抽取机会；青铜不生效。"},
+        {"type":"divider"},
+        {"type":"line","text":"§6超压§r：100%热量后，螺丝刀[right:右击]开启，热量上限200%；升温速度降为1/5，降温加倍，跌破100%自动退出。"},
+        {"type":"line","text":"§6防垢§r：1 L [fluid:water|水] 产160 L蒸汽； [fluid:ic2distilledwater|蒸馏水] 免垢。满垢只剩1%产量，每10分钟提醒所有者；空手[key-right:Shift+右击]除垢。"},
+        {"type":"warning","text":" [fluid:water|普通水] 在超压时会更快结垢。缺水后须补水并重新开机；出口放不下的蒸汽会丢失。"},
+        {"type":"line","text":"§7无需维护仓。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "detail":[
+        {"type":"line","text":"§b烧 [fluid:lava|熔岩] 升热，把 [fluid:water|水] 持续变成蒸汽，并随每批 [fluid:lava|熔岩] 抽取矿物副产。"},
+        {"type":"line","text":"§6热量循环§r：每批耗1,000 L [fluid:lava|熔岩]；连续运行升温，闲置降温。热量越高，产汽越多，每批 [fluid:lava|熔岩] 也烧得越久。"},
+        {"type":"table","columns":["配置","蒸汽（L/s）"," [fluid:lava|熔岩] 批时（秒）"],"rows":[["青铜","60,000","10"],["钢","149,920","约5"],["钢＋ [item:gtsr:GeothermalOverheatChip@0|地热过热芯片] ","149,920（过热）","4"]],"title":"§a100%热量、无垢、足 [fluid:water|水] "},
+        {"type":"line","text":"§6芯片§r：放入钢级控制器槽，改产 [fluid:ic2superheatedsteam|过热蒸汽]，并增加 [item:gregtech:gt.metaitem.01@2021|磷粉]、 [item:gregtech:gt.metaitem.01@2375|金红石粉]、 [item:gregtech:gt.metaitem.01@2910|白钨矿粉] 的抽取机会；青铜不生效。"},
+        {"type":"divider"},
+        {"type":"line","text":"§6超压§r：100%热量后，螺丝刀[right:右击]开启，热量上限200%；升温速度降为1/5，降温加倍，跌破100%自动退出。"},
+        {"type":"line","text":"§6防垢§r：1 L [fluid:water|水] 产160 L蒸汽； [fluid:ic2distilledwater|蒸馏水] 免垢。满垢只剩1%产量，每10分钟提醒所有者；空手[key-right:Shift+右击]除垢。"},
+        {"type":"warning","text":" [fluid:water|普通水] 在超压时会更快结垢。缺水后须补水并重新开机；出口放不下的蒸汽会丢失。"},
+        {"type":"divider"},
+        {"type":"table","columns":["配置","100%→200%产汽（L/s）"," [fluid:lava|熔岩] 批时（秒）"],"rows":[["青铜","60,000→120,000","10→17"],["钢","149,920→299,840","4.95→6.95"],["钢＋芯片","149,920→299,840","4→4.95"]],"title":"§a100%后开超压并升至200%；足 [fluid:water|水]、无垢"},
+        {"type":"line","text":"§7冷态每批 [fluid:lava|熔岩] 仅3秒；热起来既增加产汽，也降低 [fluid:lava|熔岩] 平均耗速。蒸汽由工作 [fluid:water|水] 独立结算。"},
+        {"type":"line","text":"§b产汽（L/s）=160×floor[基础水量×热量/100×(1−0.99×结垢/100)]。"},
+        {"type":"line","text":"§7基础水量：青铜375 L/s，钢937 L/s；用水先整升取整，再换算蒸汽。"},
+        {"type":"divider"},
+        {"type":"table","columns":["副产物","每批独立概率（%）"],"rows":[["黑曜石","20"],["灰烬","10"],[" [item:gregtech:gt.metaitem.01@2022|硫粉] ","8"],[" [item:gregtech:gt.metaitem.01@2921|钽铁矿粉] ","4"],[" [item:gregtech:gt.metaitem.01@2697|氧化铝粉] ","6"],[" [item:gregtech:gt.metaitem.01@10035|铜锭] ","2"],[" [item:gregtech:gt.metaitem.01@10057|锡锭] ","1"],[" [item:gregtech:gt.metaitem.01@10054|银锭] ","0.5"],[" [item:minecraft:gold_ingot@0|金锭] ","0.35"],[" [item:gregtech:gt.metaitem.01@2021|磷粉]（芯片）","0.1"],[" [item:gregtech:gt.metaitem.01@2375|金红石粉]（芯片）","0.05"],[" [item:gregtech:gt.metaitem.01@2910|白钨矿粉]（芯片）","0.02"]],"title":"§6每批 [fluid:lava|熔岩] 独立抽取，产物交付输出总线"},
+        {"type":"line","text":"§7 [fluid:water|普通水] 常态运行1小时后开始结垢；超压跳过延迟，单次结垢增量×20。 [fluid:ic2distilledwater|蒸馏水] 始终免垢。"},
+        {"type":"line","text":"§7无需维护仓。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b [fluid:lava|熔岩] 升热、 [fluid:water|水] 转蒸汽；越热产汽越多、每桶 [fluid:lava|熔岩] 越耐烧。"},
+        {"type":"line","text":"每轮 [fluid:lava|熔岩] 均可产矿物副产；钢级装芯片改产 [fluid:ic2superheatedsteam|过热蒸汽]，并增加三种矿粉。"},
+        {"type":"line","text":"满热后螺丝刀 [right:右击] 开超压，热量上限 200%； [fluid:water|普通水] 更快结垢。"},
+        {"type":"line","text":" [fluid:ic2distilledwater|蒸馏水] 防垢；空手[key-right:Shift+右击]除垢。"},
+        {"type":"warning","text":"缺水须重开；堵出口会丢蒸汽。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.HeavySteamTurbine","owner":{"machine":"HeavySteamTurbine"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b紧凑蒸汽发电机组：机壳、管道、齿轮与框架统一青铜或钢，不可叠加。"},
+        {"type":"table","columns":["供汽工况","额定汽耗（L/s）","满暖功率（EU/t）","热值（EU/L）","效率上限"],"rows":[["青铜 [fluid:steam|蒸汽] ","10,240","320","0.5","125%"],["钢 [fluid:steam|蒸汽] ","40,960","1,536","0.5","150%"],["钢 [fluid:ic2superheatedsteam|过热蒸汽] ","20,480","2,048","1","200%"]],"title":"§a额定供汽量、暖至效率上限"},
+        {"type":"line","text":"§6先暖机§r：冷启动0%；累计工作每秒＋2个百分点至100%，之后持续达到额定供汽量每秒＋1个百分点，才达到上表功率。"},
+        {"type":"line","text":"§7欠供按实际耗汽降功率，未送出的整 EU 保留在机内。"},
+        {"type":"divider"},
+        {"type":"table","columns":["输入","工作返流"],"rows":[[" [fluid:steam|蒸汽] ","每160 L返1 L [fluid:ic2distilledwater|蒸馏水] "],["钢级 [fluid:ic2superheatedsteam|过热蒸汽] ","等量返 [fluid:steam|蒸汽] "]],"title":"§6返流必须留出口"},
+        {"type":"line","text":"支持普通、多安培及激光动力仓；供汽、动力仓输出能力和返流空间共同限制功率。"},
+        {"type":"warning","text":"负载不足额定时，生效效率最多100%，但保留已积累暖机效率；消除供汽或出口瓶颈后自动恢复。"},
+        {"type":"line","text":"§7停工每秒−10个百分点；100%以下短暂断汽保留累计暖机进度。"},
+        {"type":"line","text":"§7无需维护仓。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b独立蒸汽发电，需要持续供汽暖机，不可叠加。"},
+        {"type":"line","text":"满暖：青铜 [fluid:steam|蒸汽] 320、钢 [fluid:steam|蒸汽] 1,536、钢 [fluid:ic2superheatedsteam|过热蒸汽] 2,048 EU/t。"},
+        {"type":"line","text":" [fluid:steam|蒸汽] 160:1返 [fluid:water|水]， [fluid:ic2superheatedsteam|过热蒸汽] 等量返 [fluid:steam|蒸汽]；动力仓和返流出口保持畅通。"},
+        {"type":"line","text":"欠载时效率最多 100%；恢复额定负载后沿用已积累的暖机效率。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SteamFluidDrill","owner":{"machine":"SteamFluidDrill"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b用蒸汽直接产出水介质，无需消耗地下油藏；青铜仅产 [fluid:water|水]，钢可切四种流体。"},
+        {"type":"line","text":"§6连续运转§r：效率决定产量；青铜约5分钟、钢约1小时暖至满效。默认 [fluid:water|水] 模式，缺汽或切换模式都会清空效率。"},
+        {"type":"table","columns":[" [fluid:steam|蒸汽] 工况","青铜产量（L/s）","钢产量（L/s）","耗汽（L/s）"],"rows":[[" [fluid:water|水] ","200～2,000","200～8,000","1,000"],[" [fluid:ic2distilledwater|蒸馏水] ","不可用","40～1,600","1,000"],[" [fluid:saltwater|盐水] ","不可用","20～800","4,000"],[" [fluid:lava|岩浆]：下界","不可用","10～400","4,000"],[" [fluid:lava|岩浆]：其他维度","不可用","1～40","4,000"]],"title":"§a冷机→满效； [fluid:steam|蒸汽]／ [fluid:ic2superheatedsteam|过热蒸汽] 耗量相同"},
+        {"type":"line","text":"§7钢级以 [fluid:water|水] 产量为基数： [fluid:ic2distilledwater|蒸馏水] 20%、 [fluid:saltwater|盐水] 10%、下界 [fluid:lava|岩浆] 5%、其他维度 [fluid:lava|岩浆] 0.5%。"},
+        {"type":"divider"},
+        {"type":"line","text":"§6选模式§r：钢级螺丝刀[right:右击]按 [fluid:water|水]→ [fluid:ic2distilledwater|蒸馏水]→ [fluid:saltwater|盐水]→ [fluid:lava|岩浆] 轮换；切换后须重新积累效率。"},
+        {"type":"line","text":"§a回收§r：装蒸汽冷却仓可回收 [fluid:steam|蒸汽] 凝水；装耐压蒸汽冷却仓回收 [fluid:ic2superheatedsteam|过热蒸汽] 返出的 [fluid:steam|蒸汽]。"},
+        {"type":"warning","text":"输出仓满时等待。改用 [fluid:ic2superheatedsteam|过热蒸汽] 不会额外加速，也不提高本机耗汽量。"},
+        {"type":"line","text":"§7无需维护仓。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b蒸汽直接产 [fluid:water|水]；钢级另可产 [fluid:ic2distilledwater|蒸馏水]、 [fluid:saltwater|盐水] 和 [fluid:lava|岩浆]。"},
+        {"type":"line","text":"青铜／钢满效产 [fluid:water|水] 2,000／8,000 L/s；暖机约5分钟／1小时。"},
+        {"type":"line","text":"钢级螺丝刀[right:右击]切模式，缺汽或切换重置效率。"},
+        {"type":"line","text":" [fluid:water|水]／ [fluid:ic2distilledwater|蒸馏水] 耗汽1,000 L/s； [fluid:saltwater|盐水]／ [fluid:lava|岩浆] 4,000 L/s。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.CrustSteamBorer","owner":{"machine":"CrustSteamBorer"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b持续供汽，从主世界或下界的矿池随机采矿。"},
+        {"type":"line","text":"§7只支持主世界与下界；直接产矿，不挖掘地形。"},
+        {"type":"divider"},
+        {"type":"line","text":"§7§b [fluid:steam|蒸汽] §r§7耗量§62,000§r§7 L/s；改供§b [fluid:ic2superheatedsteam|过热蒸汽] §r§7后耗量与速度都变为§64§r§7倍。"},
+        {"type":"line","text":"§7连续运行会暖机：采矿间隔由§625§r§7秒逐渐缩至§612.5§r§7秒，再叠加供汽加速；停机会很快失去温度。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"在主世界、下界的矿池采矿，不挖地形。"},
+        {"type":"line","text":"持续供汽暖机提速，停机降温；改用 [fluid:ic2superheatedsteam|过热蒸汽]，耗量与速度均 ×4。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.CrustMatterAggregator","owner":{"machine":"CrustMatterAggregator"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：选矿设置"},
+        {"type":"line","text":"以维度展示物品选矿池；空槽用当前维度。§a启动即满产§r，增加维度槽不会增加每周期抽矿次数。"},
+        {"type":"table","columns":["蒸汽状态","周期（秒）","基准耗汽（L/s）"],"rows":[["普通","20","24,000"],["致密","5","240"]]},
+        {"type":"heat","title":"抽矿次数","rowTitle":"蒸汽等级","columnTitle":"奇点模式","rows":[" [fluid:steam|蒸汽] "," [fluid:ic2superheatedsteam|过热蒸汽] "," [fluid:supercriticalsteam|超临界蒸汽] "],"columns":["无奇点","纠缠奇点","临界奇点"],"values":[[2.5,10,25],[5,20,50],[10,40,100]],"unit":"次/周期"},
+        {"type":"line","text":"奇点放输入总线，每颗工作 §e200 秒§r；不足一次的抽取量留到下轮。"},
+        {"type":"divider"},
+        {"type":"table","columns":["模式","产出范围","额外成本"],"rows":[["筛选","排除不想要的矿","过滤越多越耗汽"],["定向","选中且未过滤的矿","稀有矿更耗汽，另耗 [fluid:ic2uumatter|UU物质] "]]},
+        {"type":"line","text":"螺丝刀 [right:右击] 或用终端切换模式：§e停机并清空奇点模式§r，两份矿单保留。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "detail":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：选矿设置"},
+        {"type":"line","text":"以维度展示物品选矿池；空槽用当前维度。§a启动即满产§r，增加维度槽不会增加每周期抽矿次数。"},
+        {"type":"table","columns":["蒸汽状态","周期（秒）","基准耗汽（L/s）"],"rows":[["普通","20","24,000"],["致密","5","240"]]},
+        {"type":"heat","title":"抽矿次数","rowTitle":"蒸汽等级","columnTitle":"奇点模式","rows":[" [fluid:steam|蒸汽] "," [fluid:ic2superheatedsteam|过热蒸汽] "," [fluid:supercriticalsteam|超临界蒸汽] "],"columns":["无奇点","纠缠奇点","临界奇点"],"values":[[2.5,10,25],[5,20,50],[10,40,100]],"unit":"次/周期"},
+        {"type":"line","text":"奇点放输入总线，每颗工作 §e200 秒§r；不足一次的抽取量留到下轮。"},
+        {"type":"divider"},
+        {"type":"table","columns":["条件","形态时运倍率"],"rows":[["原矿／粗矿／粉碎矿","×1／×2／×3"],["时运III起每升2级","在上述倍率上＋0.5，XV时＋3"],["无／纠缠／临界奇点","时运上限VII／XI／XV"]],"title":"形态与时运"},
+        {"type":"line","text":"原矿不受时运加成；粗矿、粉碎矿按实际掉落计数。"},
+        {"type":"divider"},
+        {"type":"table","columns":["选矿条件","筛选","定向"],"rows":[["产出范围","未过滤的矿","选中且未过滤的矿"],["维度倍率","1＋20%×额外槽数","3＋20%×额外槽数"],["选矿倍率","1＋[过滤权重和＋2.5k(k−1)]/100","1＋25/S"],[" [fluid:ic2uumatter|UU物质]（L/s）","—","形态时运倍率×选矿倍率"]],"title":"筛选与定向"},
+        {"type":"line","text":"§6耗汽＝基准耗量 × 形态时运倍率 × 维度倍率 × 选矿倍率§r。重复维度也占槽。"},
+        {"type":"line","text":"k＝排除矿种数；S＝选中条目中最低三项权重之和（不足三项则全计）。"},
+        {"type":"line","text":"螺丝刀 [right:右击] 或用终端切换模式：§e停机并清空奇点模式§r，两份矿单保留。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：选矿设置"},
+        {"type":"line","text":"维度展示物品选矿池，空槽取当前维度。致密汽缩短周期，蒸汽品级与奇点决定抽矿次数。"},
+        {"type":"line","text":"筛选排除矿种；定向只产选中且未过滤的矿，另耗 [fluid:ic2uumatter|UU 物质]。"},
+        {"type":"line","text":"投入奇点持续 200 秒。螺丝刀 [right:右击] 切模式会停机并清空奇点模式，矿单保留。"},
+        {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
+      ]
+    }},
+    {"id":"machine.VeinSteamPyrolyzer","owner":{"machine":"VeinSteamPyrolyzer"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b向已有地下流体矿脉注汽富集，提高每抽流量。"},
+        {"type":"line","text":"§7适用于原油、 [fluid:water|水]、天然气等地下流体；无法在空白区块创造矿脉。"},
+        {"type":"table","columns":["结构"," [fluid:steam|蒸汽]（L/s）","周期（秒）","每周期每抽增量（L）","每抽上限（L）"],"rows":[["§7青铜","§7§61,000§r§7","§7§6360§r§7","§7§62§r§7","§7§6500§r§7"],["§7钢","§7§64,000§r§7","§7§6180§r§7","§7§65§r§7","§7§62,000§r§7"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§7建在有地下流体的区块上；仅富集范围内同种、尚未枯竭的矿脉，范围芯片可扩大覆盖区块。"},
+        {"type":"line","text":"§7§b [fluid:ic2superheatedsteam|过热蒸汽] §r§7耗量与速度都为§64§r§7倍；达到每抽上限后继续供汽不能再提高储量。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"向地下流体矿脉注汽，提高每抽流量；仅作用于同种、未枯竭的矿脉。"},
+        {"type":"line","text":"控制器装范围芯片可覆盖邻近区块。 [fluid:ic2superheatedsteam|过热蒸汽] 的速度与耗量均 ×4。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.LargeSteamFurnace","owner":{"machine":"LargeSteamFurnace"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b同时熔炼多份物料；钢结构更快、更省汽。"},
+        {"type":"table","columns":["结构","并行上限","配方用时","耗汽率倍率"],"rows":[["§7青铜","§7§624§r§7","§7×§60.4§r§7","§7×§60.6§r§7"],["§7钢","§7§648§r§7","§7×§60.2§r§7","§7×§60.4§r§7"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§7实际耗汽随配方和同时加工的份数变化；装冷却仓可收回使用蒸汽后的 [fluid:water|水] 或返汽。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"蒸汽并行熔炼：青铜最多 24 份，钢最多 48 份且更快、更省汽。"},
+        {"type":"line","text":"实际耗汽随配方和并行变化，冷却仓可回收凝水或返汽。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.AirCompressor","owner":{"machine":"AirCompressor"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b消耗蒸汽，持续收集所在环境的气体。"},
+        {"type":"line","text":"§7普通地区产 [fluid:air|空气]，下界产 [fluid:netherair|下界空气]；繁荣维度按群系改变产物，选址前先确认所需气体。"},
+        {"type":"divider"},
+        {"type":"table","columns":["结构"," [fluid:steam|蒸汽]（L/s）","气体产量（L/s）"],"rows":[["§7青铜","§7§6400§r§7","§7§6800§r§7"],["§7钢","§7§61,200§r§7","§7§63,200§r§7"]]},
+        {"type":"line","text":"§7§b [fluid:ic2superheatedsteam|过热蒸汽] §r§7使耗量与产速均为§64§r§7倍；§e输出空间不足§r§7时等待。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"用蒸汽采集环境气体：普通地区产 [fluid:air|空气]，下界产 [fluid:netherair|下界空气]，繁荣维度按群系选气体。"},
+        {"type":"line","text":" [fluid:ic2superheatedsteam|过热蒸汽] 的耗量与产速均 ×4；出口满时等待。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.AtmosphericCentrifuge","owner":{"machine":"AtmosphericCentrifuge"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b将 [fluid:air|空气] 分离为多种气体；钢结构可深度提取稀有气体。"},
+        {"type":"line","text":"普通分离以 [fluid:air|空气] 制 [fluid:oxygen|氧气]、 [fluid:nitrogen|氮气]。钢级装 [item:gtsr:RareGasSeparationChip@0|稀有气体分离芯片]，可从 [fluid:air|空气] 额外提取 [fluid:argon|氩气]、 [fluid:neon|氖气]、 [fluid:krypton|氪气] 和 [fluid:helium|氦气]。"},
+        {"type":"line","text":"§7芯片改变可用配方：深度分离与常规分离互斥，恢复常规加工前先取下芯片。"},
+        {"type":"divider"},
+        {"type":"table","columns":["配置","并行上限","标示基础耗汽（L/s）"],"rows":[["§7青铜，无有效芯片","§7§64§r§7","§7§62,000§r§7"],["§7钢，无芯片","§7§616§r§7","§7§62,000§r§7"],["§7钢， [item:gtsr:RareGasSeparationChip@0|稀有气体芯片] ","§7§616§r§7","§7§680,000§r§7"]]},
+        {"type":"line","text":"§7所需 [fluid:air|空气] 及各气体产量看对应配方；§b [fluid:ic2superheatedsteam|过热蒸汽] §r§7使加工速度与耗量均为§64§r§7倍。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"用蒸汽分离 [fluid:air|空气]。钢级装 [item:gtsr:RareGasSeparationChip@0|稀有气体芯片] 改用深度分离配方，取出恢复常规分离。"},
+        {"type":"line","text":" [fluid:ic2superheatedsteam|过热蒸汽] 的速度与耗量均 ×4。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.KineticProcessingArray","owner":{"machine":"KineticProcessingArray"},"tiers":{
+      "common":[
+        {"type":"line","text":"§bGT单方块机器放控制器，以电力和 [fluid:ic2superheatedsteam|过热蒸汽] 集中加工。"},
+        {"type":"line","text":"§7多放机器可增加并行：上限=§61§r§7+§62§r§7×机器等级+机器数量；能做的配方还受标准机械壳电压等级限制。"},
+        {"type":"line","text":"§7机壳、管道、齿轮与框架须同档；玻璃不低于标准机械壳。钨钢档使用本模组钨钢齿轮箱。"},
+        {"type":"table","columns":["统一材质","配方用时","配方耗电"," [fluid:ic2superheatedsteam|过热蒸汽]（L/EU）"],"rows":[["§7钢","§7×§60.5§r§7","§7×§60.6§r§7","§7§64§r§7"],["§7钛","§7×§60.4§r§7","§7×§60.4§r§7","§7§62§r§7"],["§7钨钢","§7×§61§r§7/§63§r§7","§7×§60.3§r§7","§7§61§r§7"]]},
+        {"type":"line","text":"§7§b [fluid:ic2superheatedsteam|过热蒸汽] §r§7流量=实际用电量×表内耗汽系数；并行和超频增加实际电耗时，供汽也须一起扩容。"},
+        {"type":"line","text":"§7配方电压上限取§69块标准机械壳§r§7与内置机器可用等级的较低值；能源仓等级不额外限制配方电压。"},
+        {"type":"warning","text":"§c每消耗§61§r§c L§b [fluid:ic2superheatedsteam|过热蒸汽] §r§c会返回§61§r§c L§b [fluid:steam|蒸汽]§r§c；供电、供汽和返汽出口都要能跟上。"},
+        {"type":"line","text":"§7手持 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点][right:右击]消耗§61§r§7颗，§61200§r§7秒内提高内置机器的配方电压上限一级，仍受机械壳限制。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"控制器放 GT 单方块机器，供电和 [fluid:ic2superheatedsteam|过热蒸汽] 加工；数量与等级决定并行。"},
+        {"type":"line","text":"配方电压取机械壳与内置机器中的低者。用 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点] [right:右击] 可将内置机器提一级，持续 1,200 秒。"},
+        {"type":"line","text":" [fluid:ic2superheatedsteam|过热蒸汽] 等量返为 [fluid:steam|蒸汽]，须接通返汽出口。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SingularityDrillingHub","owner":{"machine":"SingularityDrillingHub"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]枢纽：节点管理"},
+        {"type":"line","text":"§b为远程采矿／钻井节点供汽，集中收集资源。"},
+        {"type":"line","text":"维持需 §e8,000 L/s§r [fluid:ic2superheatedsteam|过热蒸汽]，另加工作节点的耗汽。"},
+        {"type":"divider"},
+        {"type":"table","columns":["手持节点操作","行为"],"rows":[["§7[right:右击]控制器","§7绑定§61§r§7个节点；已绑定本枢纽时解除整组绑定"],["[key-right:Alt+右击]控制器","§7绑定手中整组节点"]]},
+        {"type":"line","text":"§7每个首次绑定的节点消耗§61§r§7颗 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]；节点放置后才能为枢纽工作。"},
+        {"type":"table","columns":["工作节点","基础","强化 I","II","III","IV"],"rows":[["钻井","2","6","12","20","—"],["采矿","5","10","20","80","240"]],"title":"§a单节点耗汽（千 L/s）"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]枢纽：节点管理"},
+        {"type":"line","text":"为远程采矿／钻井节点供 [fluid:ic2superheatedsteam|过热蒸汽]，集中收集产物；维持需 8,000 L/s，工作节点另计。"},
+        {"type":"line","text":"手持节点 [right:右击] 绑定一个，[key-right:Alt+右击] 绑定整组；首次每个耗一颗 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]。"},
+        {"type":"line","text":"已绑定本枢纽时 [right:右击] 解绑整组。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.LargeCokeOven","owner":{"machine":"LargeCokeOven"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b原木／煤干馏成 [item:minecraft:coal@1|木炭]／ [item:Railcraft:fuel.coke@0|焦炭] 与杂酚油，无需外部能源。"},
+        {"type":"table","columns":["结构","并行上限","冷机用时","满温用时"],"rows":[["§7青铜","§7§624§r§7","§7原配方×§61§r§7","§7×§60.5§r§7"],["§7钢","§7§664§r§7","§7原配方×§60.75§r§7","§7×§60.25§r§7"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§7每批开始时按当时炉温确定时长；运行升温§60.01%§r§7/秒，停机降温§60.1%§r§7/秒。"},
+        {"type":"line","text":"§7炉温减时随炉温线性增加：§60～100%§r§7炉温对应§60～50%§r§7减时，与钢结构的§625%§r§7相加；本批开始后的温度变化只影响下一批。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"原木、煤干馏为 [item:minecraft:coal@1|木炭]、 [item:Railcraft:fuel.coke@0|焦炭]，并产杂酚油，无需外部能源。"},
+        {"type":"line","text":"连续运行升温，缩短后续周期；升级钢结构再提速并增加并行。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SiemensMartinFurnace","owner":{"machine":"SiemensMartinFurnace"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b预热至100%后用 [fluid:ic2superheatedsteam|过热蒸汽] 和 [fluid:air|空气] 炼钢，连续运行可到200%。"},
+        {"type":"line","text":"§7更热时收益更高：并行由§6128§r§7升至§6256§r§7，用时由配方的§637.5%§r§7缩至§618.75%§r§7，耗汽还会降低。"},
+        {"type":"divider"},
+        {"type":"table","columns":["阶段"," [fluid:ic2superheatedsteam|过热蒸汽]（L/s）"," [fluid:air|空气]（L/s）"],"rows":[["§7预热或等待原料","§7§66,000§r§7","§7§60§r§7"],["§7加工，未满§6200%§r§7","§7§63,000§r§7","§7§61,000§r§7"],["§7加工，§6200%§r§7","§7§61,500§r§7","§7§61,000§r§7"]]},
+        {"type":"warning","text":"§c运行中缺汽或缺 [fluid:air|空气] 会中断当前配方；等待物料也会消耗保温蒸汽，请保持原料和供汽连续。"},
+        {"type":"line","text":"§7§6100%§r§7以下预热每秒升温§60.5%§r§7；§6100%§r§7以上仅加工时每秒再升§60.01%§r§7，停机高温部分每秒降§61%§r§7。"},
+        {"type":"line","text":"§7 [item:gregtech:gt.metaitem.01@2535|煤粉] 位置可用等量 [item:minecraft:coal@1|木炭] 或 [item:gregtech:gt.metaitem.01@2536|木炭粉] 替代。"},
+        {"type":"line","text":"§7不产生污染。§6100%§r§7以上每增加§61个百分点§r§7炉温，再减少§60.5%§r§7基础加工时间。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"先用 [fluid:ic2superheatedsteam|过热蒸汽] 预热至 100%，再供 [fluid:air|空气] 炼钢。连续加工可到 200%，并行提高、用时和耗汽降低。"},
+        {"type":"line","text":"待机仍耗汽保温；加工缺汽或缺 [fluid:air|空气] 会中断。 [item:gregtech:gt.metaitem.01@2535|煤粉] 可用等量 [item:minecraft:coal@1|木炭] 或 [item:gregtech:gt.metaitem.01@2536|木炭粉] 代替。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ReinforcedBrickBlastFurnace","owner":{"machine":"ReinforcedBrickBlastFurnace"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b不耗电的批量原始高炉；边炼边升温，提高后续加工的并行与速度。"},
+        {"type":"line","text":"§7并行上限＝§61＋round(3×炉温百分数÷100)§r§7，最高§64§r§7；配方用时＝原时长÷(§61＋炉温百分数÷200§r§7)。"},
+        {"type":"table","columns":["炉温","并行上限","加工速度"],"rows":[["0%","1","×1"],["50%","3","×1.25"],["100%","4","×1.5"]]},
+        {"type":"line","text":"§7运行每秒升温§60.01%§r§7，闲置每秒降温§61%§r§7；尽量连续供料，停机很快丢失热量。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"无需电力的批量原始高炉。连续加工升温，满温最多 4 并行、速度 ×1.5；闲置时降温。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.AmmoniaPlant","owner":{"machine":"AmmoniaPlant"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b [fluid:gas_gas|炼油气] 供氢，与 [fluid:nitrogen|氮气] 合成 [fluid:ammonia|氨]，并副产 [fluid:ic2superheatedsteam|过热蒸汽]。"},
+        {"type":"line","text":"§6工作耗汽（L/s）＝12,000＋16,000 × 并行上限 ÷ 周期（秒）§r。并行未满时耗汽不变。"},
+        {"type":"table","columns":["阶段"," [fluid:steam|蒸汽]（L/s）","用途"],"rows":[["预热","8,000","催化床升温"],["待机","12,000","满温保温"],["制氨","见下表","等量转为 [fluid:ic2superheatedsteam|过热蒸汽] "]]},
+        {"type":"line","text":"§7另需 [fluid:gas_gas|炼油气] §e200 L/s§r。"},
+        {"type":"divider"},
+        {"type":"table","columns":["控制器催化剂","并行上限","周期（秒）","耗汽（L/s）"],"rows":[["未装","64","64","28,000"],[" [item:gtsr:AmmoniaCatalystNickel@0|镍基] ","80","64","32,000"],[" [item:gtsr:AmmoniaCatalystPlatinum@0|铂基] ","96","48","44,000"],[" [item:gtsr:AmmoniaCatalystUranium@0|铀基] ","128","32","76,000"],[" [item:gtsr:AmmoniaCatalystOsmium@0|锇基] ","192","24","140,000"],[" [item:gtsr:AmmoniaCatalystFeCo@0|铁钴基] ","256","16","268,000"],[" [item:gtsr:AmmoniaCatalystRuthenium@0|钌基] ","256","8","524,000"],[" [item:gtsr:AmmoniaCatalystQuantum@0|量子基] ","256","1","4,108,000"]]},
+        {"type":"warning","text":"§c [fluid:ammonia|氨] 与§b [fluid:ic2superheatedsteam|过热蒸汽] §r§c分开出料； [fluid:ic2superheatedsteam|过热蒸汽] 接§b耐压蒸汽输出仓§r§c，或锁定§b [fluid:ic2superheatedsteam|过热蒸汽] §r§c的流体输出仓。"},
+        {"type":"line","text":"§7预热约§61000§r§7秒；供给不足会暂停推进。启用流体产物保护后，未排出的§b [fluid:ic2superheatedsteam|过热蒸汽] §r§7会保存在机器中，重新加载后继续排出。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"用 [fluid:gas_gas|炼油气] 和 [fluid:steam|蒸汽] 预热催化床；满温后用 [fluid:nitrogen|氮气] 制氨， [fluid:steam|蒸汽] 等量转为 [fluid:ic2superheatedsteam|过热蒸汽]。"},
+        {"type":"line","text":"控制器可装催化剂：提高并行或缩短周期，同时提高工作耗汽；并行未满也不减耗。"},
+        {"type":"line","text":" [fluid:ammonia|氨] 与 [fluid:ic2superheatedsteam|过热蒸汽] 分开输出。供给不足暂停，满温待机仍耗汽。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.GearSteamCompressor","owner":{"machine":"GearSteamCompressor"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b [fluid:steam|蒸汽] 按4:1压缩为 [fluid:ic2superheatedsteam|过热蒸汽]，并回收 [fluid:ic2distilledwater|蒸馏水]。"},
+        {"type":"line","text":"§7无需供电；升级整套结构可提高处理量。"},
+        {"type":"table","columns":["同档结构"," [fluid:steam|蒸汽] 输入（L/s）"," [fluid:ic2superheatedsteam|过热蒸汽] 输出（L/s）"," [fluid:ic2distilledwater|蒸馏水]（L/s）"],"rows":[["§7青铜","§7§66,400§r§7","§7§61,600§r§7","§7§630§r§7"],["§7钢","§7§625,600§r§7","§7§66,400§r§7","§7§6120§r§7"]]},
+        {"type":"divider"},
+        {"type":"line","text":"§7机壳、管道、齿轮和框架须§e同档§r§7。§b [fluid:ic2superheatedsteam|过热蒸汽] §r§7接流体输出仓，§b [fluid:ic2distilledwater|蒸馏水] §r§7可接§b普通蒸汽冷却仓§r§7。"},
+        {"type":"warning","text":"§c§b耐压蒸汽冷却仓§r§c会优先接走压缩产物并转成§b [fluid:steam|蒸汽]§r§c；想收§b [fluid:ic2superheatedsteam|过热蒸汽] §r§c时不要装它。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [fluid:steam|蒸汽] 以 4∶1 压缩为 [fluid:ic2superheatedsteam|过热蒸汽]，同时回收 [fluid:ic2distilledwater|蒸馏水]，无需供电。"},
+        {"type":"line","text":"结构升级增加处理量。 [fluid:ic2superheatedsteam|过热蒸汽] 接流体输出仓；耐压冷却仓会将其冷却成 [fluid:steam|蒸汽]。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SteamInputHatchGeneric","owner":{"machine":"SteamInputHatchGeneric"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b蒸汽多方块的通用流体入口，可输入配方需要的任意流体。"},
+        {"type":"line","text":"§7容量§616,000§r§7 L；须安装在该机器允许的流体输入仓位置。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SteamOutputHatchGeneric","owner":{"machine":"SteamOutputHatchGeneric"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b将蒸汽多方块产出的流体送往外部管道，接收任意流体产物。"},
+        {"type":"line","text":"§7容量§616,000§r§7 L，主动输出最高§616,000§r§7 L/s；外部管道不能向仓内灌入流体。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.PressureSteamHatch","owner":{"machine":"PressureSteamHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b为蒸汽多方块供汽，可装 [fluid:steam|蒸汽]、 [fluid:ic2superheatedsteam|过热蒸汽]、 [fluid:supercriticalsteam|超临界蒸汽] 及各自的致密变体。"},
+        {"type":"line","text":"§7容量§6512,000§r§7 L，一次只存一种；机器还须支持所供蒸汽的种类与等级。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.PressureSteamOutputHatch","owner":{"machine":"PressureSteamOutputHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b大流量输出 [fluid:steam|蒸汽] 或 [fluid:ic2superheatedsteam|过热蒸汽]。"},
+        {"type":"line","text":"§7容量§61,024,000§r§7 L，主动输出最高§61,024,000§r§7 L/s；仅接机器产物，§e不能从外部灌入§r§7。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SteamOutputHatch","owner":{"machine":"SteamOutputHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b输出机器产生的 [fluid:steam|蒸汽]； [fluid:ic2superheatedsteam|过热蒸汽] 请用耐压蒸汽输出仓。"},
+        {"type":"line","text":"§7容量§6128,000§r§7 L，主动输出最高§6128,000§r§7 L/s；§e不能从外部灌入§r§7。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.SteamCoolingHatch","owner":{"machine":"SteamCoolingHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b收回主机使用 [fluid:steam|蒸汽] 后产生的 [fluid:ic2distilledwater|蒸馏水]，接回供水管线可减少补水。"},
+        {"type":"line","text":"§7每消耗§6160§r§7 L§b [fluid:steam|蒸汽] §r§7可回收§61§r§7 L§b [fluid:ic2distilledwater|蒸馏水]§r§7，由主机送入；本仓容量§664,000§r§7 L，主动输出最高§664,000§r§7 L/s。"},
+        {"type":"line","text":"§7§e不能从外部灌入§r§7；§b [fluid:ic2superheatedsteam|过热蒸汽] §r§7的返汽请用§b耐压蒸汽冷却仓§r§7。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.PressureSteamCoolingHatch","owner":{"machine":"PressureSteamCoolingHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b收回主机使用 [fluid:ic2superheatedsteam|过热蒸汽] 后返回的 [fluid:steam|蒸汽]，方便再次利用。"},
+        {"type":"line","text":"§7容量§61,024,000§r§7 L，主动输出最高§61,024,000§r§7 L/s；只存§b [fluid:steam|蒸汽]§r§7，§e不能从外部灌入§r§7。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.MegaAirInputHatch","owner":{"machine":"MegaAirInputHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b为大量用气的多方块机器缓冲气体，容量100,000,000 L。"},
+        {"type":"line","text":"§7接收 [fluid:air|空气]、 [fluid:netherair|下界空气]，以及繁荣维度的 [fluid:wastesigh|荒原叹息]、 [fluid:thickgrease|浓稠油污]、 [fluid:metalgrit|金属风沙]、 [fluid:umbralmire|至暗泥泞]、 [fluid:sanzu_residual_steam|三途余汽] 与 [fluid:withered_breath|枯竭气息]。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.DistilledWaterHatch","owner":{"machine":"DistilledWaterHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b自动补给 [fluid:ic2distilledwater|蒸馏水]，安装后即可为兼容机器持续供水。"},
+        {"type":"line","text":"§7容量§610,000,000§r§7 L；放置或重新加载后立即补满，此后每§625§r§7秒补满一次。"},
+        {"type":"line","text":"§7§b [fluid:ic2distilledwater|蒸馏水] §r§7不会引起钙化，可用于太阳能阵列与地热锅炉等机器。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.RedstoneHatch","owner":{"machine":"RedstoneHatch"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b把机器的温度、效率或运行状态等数值转为红石信号，用于自动控制。"},
+        {"type":"line","text":"§7[right:右击]设置监测值、阈值、反向逻辑与更新周期；超过阈值时向六面输出§615§r§7级强红石，否则输出§60§r§7级。"},
+        {"type":"line","text":"§7勾选反向后交换两种结果；能监测哪些数值取决于所连接的机器。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.CriticalInputHatchME","owner":{"machine":"CriticalInputHatchME"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b从ME网络为临界机器供应大量流体，可逐槽限制一次可用的数量。"},
+        {"type":"line","text":"§7先设置槽位过滤，再设数量上限；§60§r§7禁用该槽，默认不额外限量。"},
+        {"type":"line","text":"§7每槽最多§69,223,372,036,854,775,807§r§7 L；也可用于普通机器，普通配方仍受其自身数量限制。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.CriticalInputBusME","owner":{"machine":"CriticalInputBusME"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b从ME网络为临界机器供应大量物品，可逐槽限制一次可用的数量。"},
+        {"type":"line","text":"§7先设置槽位过滤，再设数量上限；§60§r§7禁用该槽，默认不额外限量。"},
+        {"type":"line","text":"§7每槽最多§69,223,372,036,854,775,807§r§7 件；也可用于普通机器，普通配方仍受其自身数量限制。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.CriticalOutputHatchME","owner":{"machine":"CriticalOutputHatchME"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b将机器的流体产物存入ME网络；网络离线时暂存在本仓，联网后自动送出。"},
+        {"type":"line","text":"§7全部产物共享§69,223,372,036,854,775,807§r§7 L缓存；兼容普通机器，使用时仍须保持§bME网络§r§7供电和存储空间。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.CriticalOutputBusME","owner":{"machine":"CriticalOutputBusME"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b将机器的物品产物存入ME网络；网络离线时暂存在本仓，联网后自动送出。"},
+        {"type":"line","text":"§7全部产物共享§69,223,372,036,854,775,807§r§7 件缓存；兼容普通机器，使用时仍须保持§bME网络§r§7供电和存储空间。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterController","owner":{"machine":"ClusterController"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]总控：集群管理"},
+        {"type":"line","text":"§b把独立模块连成多条自动矿物加工链。"},
+        {"type":"table","columns":["选择模块","决定加工能力"],"rows":[["§7加工","§7提供粉碎、洗矿等工序；同类§6N台§r§7使该工序用时§6÷N§r§7、耗汽§6×N§r§7"],["§7物流","§7在终端编排加工顺序；每台独立进出料并执行一条链"],["§7增幅","§7消耗专用流体，换取并行、速度、产物或节汽"]]},
+        {"type":"line","text":"§7各模块须与主控§e同档§r§7；持续供汽与§b [fluid:lubricant|润滑油] §r§7预热§630§r§7秒，§e满温后§r§7加工。"},
+        {"type":"divider"},
+        {"type":"line","text":"§7延伸结构可装更多模块，最多§620§r§7段；每加§61§r§7段，固定保温蒸汽、主控和工作§b [item:gregtech:gt.blockmachines@15064|物流模块] §r§7润滑均增加基础量的§610%§r§7。"},
+        {"type":"line","text":"§7运行还需额外承担各条加工链的耗汽；扩模块前同时扩供汽、润滑与§b增幅液§r§7。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "detail":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]总控：集群管理"},
+        {"type":"line","text":"§b把独立模块连成多条自动矿物加工链。"},
+        {"type":"table","columns":["选择模块","决定加工能力"],"rows":[["§7加工","§7提供粉碎、洗矿等工序；同类§6N台§r§7使该工序用时§6÷N§r§7、耗汽§6×N§r§7"],["§7物流","§7在终端编排加工顺序；每台独立进出料并执行一条链"],["§7增幅","§7消耗专用流体，换取并行、速度、产物或节汽"]]},
+        {"type":"line","text":"§7各模块须与主控§e同档§r§7；持续供汽与§b [fluid:lubricant|润滑油] §r§7预热§630§r§7秒，§e满温后§r§7加工。"},
+        {"type":"divider"},
+        {"type":"line","text":"§7延伸结构可装更多模块，最多§620§r§7段；每加§61§r§7段，固定保温蒸汽、主控和工作§b [item:gregtech:gt.blockmachines@15064|物流模块] §r§7润滑均增加基础量的§610%§r§7。"},
+        {"type":"line","text":"§7运行还需额外承担各条加工链的耗汽；扩模块前同时扩供汽、润滑与§b增幅液§r§7。"},
+        {"type":"divider"},
+        {"type":"table","columns":["结构","固定 [fluid:steam|蒸汽] 当量（L/s）","主控 [fluid:lubricant|润滑油]（L/s）","允许供汽"],"rows":[["§7青铜","§7§68,000§r§7","§7§620§r§7","§7六种蒸汽"],["§7钢","§7§632,000§r§7","§7§680§r§7","§7 [fluid:ic2superheatedsteam|过热蒸汽]／ [fluid:supercriticalsteam|超临界蒸汽] 及其致密变体"],["§7钛","§7§6128,000§r§7","§7§6500§r§7","§7 [fluid:ic2superheatedsteam|过热蒸汽]／ [fluid:supercriticalsteam|超临界蒸汽] 及其致密变体"],["§7钨钢","§7§6384,000§r§7","§7§61,000§r§7","§7超临界及 [fluid:densesupercriticalsteam|致密超临界] "]]},
+        {"type":"line","text":"§7上表为无延伸段的基础量；§619§r§7个延伸段时均为×§62.9§r§7，工作§b [item:gregtech:gt.blockmachines@15064|物流模块] §r§7的润滑另加。"},
+        {"type":"line","text":"§7供汽体积=所需§b [fluid:steam|蒸汽] §r§7当量÷蒸汽折算倍数； [fluid:steam|蒸汽]／ [fluid:ic2superheatedsteam|过热蒸汽]／ [fluid:supercriticalsteam|超临界蒸汽] 依次为§61§r§7／§62§r§7／§64§r§7，致密变体再乘§61,000§r§7。"},
+        {"type":"line","text":"§7同类已启用§b加工模块§r§7共同分担该工序时间，工序耗汽同时按台数增加；各工序按所需时间加权计算整链耗汽。"},
+        {"type":"table","columns":["结构","加工模块耗时除数","加工模块耗汽倍率"],"rows":[["§7青铜","§7§61§r§7","§7§61§r§7"],["§7钢","§7§68§r§7","§7§616§r§7"],["§7钛","§7§632§r§7","§7§6128§r§7"],["§7钨钢","§7§664§r§7","§7§6512§r§7"]]},
+        {"type":"line","text":"§7集群等级还使工作时间依次乘§61§r§7／§60.8§r§7／§60.6§r§7／§60.4§r§7；速度增幅只缩短加工时间，物流时间另算。节汽增幅只降低加工链耗汽，不减固定保温。"},
+        {"type":"line","text":"§7每段各有加工、增幅、物流挂点§61§r§7个；主段深§620§r§7格，每个延伸段再加§68§r§7格。"},
+        {"type":"table","columns":["全息投影设置","行为"],"rows":[["§7tier信道§61§r§7–§64§r§7／构造触发器数量","§7选择青铜、钢、钛、钨钢预览材质"],["§7length信道§61§r§7–§620§r§7","§7设定包含主段在内的总段数，未设时按手持数量"]]},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]总控：集群管理"},
+        {"type":"line","text":"将同档加工、物流和增幅模块连成加工链；每台 [item:gregtech:gt.blockmachines@15064|物流模块] 独立执行一条链。"},
+        {"type":"line","text":"供汽和 [fluid:lubricant|润滑油] 预热 30 秒。延伸段增加挂点，也增加固定耗汽与润滑；加工链另耗蒸汽。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterUnitCrusher","owner":{"machine":"ClusterUnitCrusher"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b为同档集群提供粉碎与锤击工序。"},
+        {"type":"line","text":"§7粉碎保留的§b副产物§r§7比例随集群升级：青铜§610%§r§7，钢§650%§r§7，钛及以上§6100%§r§7；重视§b副产物§r§7时优先升级。"},
+        {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["粉碎","6","2,000"],["锤击","0.2","8,000"]]},
+        {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率"],"rows":[["青铜","1","×1"],["钢","8","×16"],["钛","32","×128"],["钨钢","64","×512"]]},
+        {"type":"line","text":"§7基准还须计入集群等级与增幅；同类分工后的单个工序最低§60.01秒§r§7，再计算速度增幅与物流时间。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b为同档集群提供粉碎与锤击工序。"},
+        {"type":"line","text":"集群升级可提高粉碎副产物保留率。"},
+        {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterUnitOreWasher","owner":{"machine":"ClusterUnitOreWasher"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b为同档集群提供洗矿、化学浸浴与简易清洗。"},
+        {"type":"line","text":"§7清洗液接§b [item:gregtech:gt.blockmachines@15064|物流模块] §r§7的流体输入仓，按实际配方消耗；没有额外固定用水。"},
+        {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["洗矿","8","200"],["化学浸浴","12","1,000"],["简易清洗","0.2","200"]]},
+        {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率"],"rows":[["青铜","1","×1"],["钢","8","×16"],["钛","32","×128"],["钨钢","64","×512"]]},
+        {"type":"line","text":"§7基准还须计入集群等级与增幅；同类分工后的单个工序最低§60.01秒§r§7，再计算速度增幅与物流时间。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b为同档集群提供洗矿、化学浸浴与简易清洗。"},
+        {"type":"line","text":"清洗液从 [item:gregtech:gt.blockmachines@15064|物流模块] 输入，按配方消耗。"},
+        {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterUnitCentrifuge","owner":{"machine":"ClusterUnitCentrifuge"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b为同档集群提供离心分离工序。"},
+        {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["离心分离","8","3,000"]]},
+        {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率"],"rows":[["青铜","1","×1"],["钢","8","×16"],["钛","32","×128"],["钨钢","64","×512"]]},
+        {"type":"line","text":"§7基准还须计入集群等级与增幅；同类分工后的单个工序最低§60.01秒§r§7，再计算速度增幅与物流时间。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b为同档集群提供离心分离工序。"},
+        {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterUnitThermalCentrifuge","owner":{"machine":"ClusterUnitThermalCentrifuge"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b为同档集群提供热力离心工序，另需持续供电。"},
+        {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["热力离心","6","1,000"]]},
+        {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率","持续供电（EU/t）"],"rows":[["青铜","1","×1","96"],["钢","8","×16","192"],["钛","32","×128","768"],["钨钢","64","×512","1,536"]]},
+        {"type":"line","text":"§7基准还须计入集群等级与增幅；同类分工后的单个工序最低§60.01秒§r§7，再计算速度增幅与物流时间。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b为同档集群提供热力离心工序，另需持续供电。"},
+        {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterUnitSifter","owner":{"machine":"ClusterUnitSifter"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b为同档集群提供筛分，获得适用矿物的晶体与副产物。"},
+        {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["筛分","32","1,000"]]},
+        {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率"],"rows":[["青铜","1","×1"],["钢","8","×16"],["钛","32","×128"],["钨钢","64","×512"]]},
+        {"type":"line","text":"§7基准还须计入集群等级与增幅；同类分工后的单个工序最低§60.01秒§r§7，再计算速度增幅与物流时间。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b为同档集群提供筛分，获得适用矿物的晶体与副产物。"},
+        {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterUnitMagneticSeparator","owner":{"machine":"ClusterUnitMagneticSeparator"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b为同档集群提供磁选工序，另需持续供电。"},
+        {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["磁选","2","100"]]},
+        {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率","持续供电（EU/t）"],"rows":[["青铜","1","×1","32"],["钢","8","×16","64"],["钛","32","×128","256"],["钨钢","64","×512","512"]]},
+        {"type":"line","text":"§7基准还须计入集群等级与增幅；同类分工后的单个工序最低§60.01秒§r§7，再计算速度增幅与物流时间。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b为同档集群提供磁选工序，另需持续供电。"},
+        {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterUnitFurnace","owner":{"machine":"ClusterUnitFurnace"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b为同档集群提供全部熔炼或仅主产物熔炼。"},
+        {"type":"line","text":"§7选择仅§b主产物§r§7时，前序配方的第§61§r§7项产物继续熔炼，§b副产物§r§7保持原形排出；熔炼不享受主／§b副产物§r§7增幅。"},
+        {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["全部／仅主产物熔炼","2","2,000"]]},
+        {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率"],"rows":[["青铜","1","×1"],["钢","8","×16"],["钛","32","×128"],["钨钢","64","×512"]]},
+        {"type":"line","text":"§7基准还须计入集群等级与增幅；同类分工后的单个工序最低§60.01秒§r§7，再计算速度增幅与物流时间。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b为同档集群提供全部熔炼或仅主产物熔炼。"},
+        {"type":"line","text":"仅主产物模式下副产物原样排出；熔炼不享受主、副产增幅。"},
+        {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterBoosterParallel","owner":{"machine":"ClusterBoosterParallel"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b为每个 [item:gregtech:gt.blockmachines@15064|物流模块] 增加并行上限，多台相加。"},
+        {"type":"line","text":"§7各台并行增益相加；队列模式等待增幅后的并行上限。"},
+        {"type":"table","columns":["模块结构","并行增益"," [fluid:nitricacid|硝酸] 基础用量（L/轮）","链耗汽倍率","其他模块耗液加成"],"rows":[["§7青铜","§7+§68§r§7","§7§65§r§7","×1.2","5%"],["§7钢","§7+§616§r§7","§7§620§r§7","×1.4","10%"],["§7钛","§7+§648§r§7","§7§6100§r§7","×1.8","30%"],["§7钨钢","§7+§696§r§7","§7§6200§r§7","×2","40%"]]},
+        {"type":"line","text":"§7需接入§e同档§r§7集群，并把 [fluid:nitricacid|硝酸] 接入本模块输入仓；开始加工时一次扣除所需流体，§e供应不足§r§7则本模块无增益、也不增加耗汽。"},
+        {"type":"line","text":"§7供液生效的模块逐台连乘链耗汽倍率。"},
+        {"type":"line","text":"§7本批用液＝基础用量×[1＋(同类供液模块数−1)×10%]×[1＋其他速度／并行模块耗液加成之和]×计费轮数，最后向上取整。"},
+        {"type":"line","text":"§7普通加工计§61轮§r§7；批处理计费轮数＝本批物料数÷首次同时处理数，向上取整。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b为每个 [item:gregtech:gt.blockmachines@15064|物流模块] 增加并行上限，多台相加。"},
+        {"type":"line","text":"多台并行相加；队列模式需攒满增幅后的并行。"},
+        {"type":"line","text":"接入同档集群，向本模块供应§b [fluid:nitricacid|硝酸]§r。生效时整链耗汽提高，缺液则无增益。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterBoosterSpeed","owner":{"machine":"ClusterBoosterSpeed"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b加快集群加工，物流等待时间不变。"},
+        {"type":"line","text":"§7多台速度增益相加，加工用时÷(§61§r§7+总速度增益)；物流时间较长时，继续加速的收益会变小。"},
+        {"type":"table","columns":["模块结构","速度增益"," [fluid:hydrochloricacid_gt5u|氢氯酸] 基础用量（L/轮）","链耗汽倍率","其他模块耗液加成"],"rows":[["§7青铜","§7+§65%§r§7","§7§66§r§7","×1.2","5%"],["§7钢","§7+§610%§r§7","§7§630§r§7","×1.4","10%"],["§7钛","§7+§630%§r§7","§7§6150§r§7","×1.8","30%"],["§7钨钢","§7+§640%§r§7","§7§6300§r§7","×2","40%"]]},
+        {"type":"line","text":"§7需接入§e同档§r§7集群，并把 [fluid:hydrochloricacid_gt5u|氢氯酸] 接入本模块输入仓；开始加工时一次扣除所需流体，§e供应不足§r§7则本模块无增益、也不增加耗汽。"},
+        {"type":"line","text":"§7供液生效的模块逐台连乘链耗汽倍率。"},
+        {"type":"line","text":"§7本批用液＝基础用量×[1＋(同类供液模块数−1)×10%]×[1＋其他速度／并行模块耗液加成之和]×计费轮数，最后向上取整。"},
+        {"type":"line","text":"§7普通加工计§61轮§r§7；批处理计费轮数＝本批物料数÷首次同时处理数，向上取整。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b加快集群加工，物流等待时间不变。"},
+        {"type":"line","text":"多台加速相加，物流等待时间不变。"},
+        {"type":"line","text":"接入同档集群，向本模块供应§b [fluid:hydrochloricacid_gt5u|氢氯酸]§r。生效时整链耗汽提高，缺液则无增益。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterBoosterPrimary","owner":{"machine":"ClusterBoosterPrimary"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b集中在选定工序增加主产物产量。"},
+        {"type":"line","text":"§7增益在有效峰值工序全额生效，其余加工工序只取§610%§r§7；熔炼不生效。"},
+        {"type":"table","columns":["模块结构","主产物增益"," [fluid:sulfuricacid|硫酸] 基础用量（L/轮）","链耗汽倍率"],"rows":[["§7青铜","§7+§65%§r§7","§7§68§r§7","×1.2"],["§7钢","§7+§610%§r§7","§7§640§r§7","×1.4"],["§7钛","§7+§615%§r§7","§7§6200§r§7","×1.8"],["§7钨钢","§7+§620%§r§7","§7§6400§r§7","×2"]]},
+        {"type":"line","text":"§7需接入§e同档§r§7集群，并把 [fluid:sulfuricacid|硫酸] 接入本模块输入仓；开始加工时一次扣除所需流体，§e供应不足§r§7则本模块无增益、也不增加耗汽。"},
+        {"type":"line","text":"§7供液生效的模块逐台连乘链耗汽倍率。"},
+        {"type":"line","text":"§7增益与原配方概率相加；每满§6100%§r§7必出整份，余数作为额外产出概率，不以100%封顶。"},
+        {"type":"line","text":"§7在物流链指定峰值位置；向后取首个能实际加工的工序，若均不适用则回到全链首个可用工序。"},
+        {"type":"line","text":"§7本批用液＝基础用量×[1＋(同类供液模块数−1)×50%]×[1＋其他速度／并行模块耗液加成之和]×计费轮数，最后向上取整。"},
+        {"type":"line","text":"§7每台速度／并行模块按青铜／钢／钛／钨钢向其他模块加§65%／10%／30%／40%§r§7耗液；加总后作为上式倍率。"},
+        {"type":"line","text":"§7普通加工计§61轮§r§7；批处理计费轮数＝本批物料数÷首次同时处理数，向上取整。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b集中在选定工序增加主产物产量。"},
+        {"type":"line","text":"峰值工序全额生效，其余只取 10%；熔炼无效。"},
+        {"type":"line","text":"接入同档集群，向本模块供应§b [fluid:sulfuricacid|硫酸]§r。生效时整链耗汽提高，缺液则无增益。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterBoosterSecondary","owner":{"machine":"ClusterBoosterSecondary"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b提高配方各项副产物的额外产出概率。"},
+        {"type":"line","text":"§7多台增益直接相加，作用于各个§b副产物§r§7位置；熔炼不生效。"},
+        {"type":"table","columns":["模块结构","副产物增益"," [fluid:ammonium chloride|氯化铵] 基础用量（L/轮）","链耗汽倍率"],"rows":[["§7青铜","§7+§61%§r§7","§7§62§r§7","×1.2"],["§7钢","§7+§62%§r§7","§7§68§r§7","×1.4"],["§7钛","§7+§64%§r§7","§7§630§r§7","×1.8"],["§7钨钢","§7+§65%§r§7","§7§650§r§7","×2"]]},
+        {"type":"line","text":"§7需接入§e同档§r§7集群，并把 [fluid:ammonium chloride|氯化铵] 接入本模块输入仓；开始加工时一次扣除所需流体，§e供应不足§r§7则本模块无增益、也不增加耗汽。"},
+        {"type":"line","text":"§7供液生效的模块逐台连乘链耗汽倍率。"},
+        {"type":"line","text":"§7增益与原配方概率相加；每满§6100%§r§7必出整份，余数作为额外产出概率，不以100%封顶。"},
+        {"type":"line","text":"§7本批用液＝基础用量×[1＋(同类供液模块数−1)×50%]×[1＋其他速度／并行模块耗液加成之和]×计费轮数，最后向上取整。"},
+        {"type":"line","text":"§7每台速度／并行模块按青铜／钢／钛／钨钢向其他模块加§65%／10%／30%／40%§r§7耗液；加总后作为上式倍率。"},
+        {"type":"line","text":"§7普通加工计§61轮§r§7；批处理计费轮数＝本批物料数÷首次同时处理数，向上取整。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b提高配方各项副产物的额外产出概率。"},
+        {"type":"line","text":"各项副产物分别叠加概率，超过 100% 可额外产出整份；熔炼无效。"},
+        {"type":"line","text":"接入同档集群，向本模块供应§b [fluid:ammonium chloride|氯化铵]§r。生效时整链耗汽提高，缺液则无增益。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterBoosterSteamSaver","owner":{"machine":"ClusterBoosterSteamSaver"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b降低加工链耗汽，固定保温蒸汽不变。"},
+        {"type":"line","text":"§7多台节省比例相加，最多§648%§r§7；§64§r§7台钨钢模块已达上限，继续加装只会增加冷却液需求。"},
+        {"type":"table","columns":["模块结构","节汽增益","冷却液基础用量（L/轮）"],"rows":[["§7青铜","§7§62%§r§7","§7§61§r§7"],["§7钢","§7§64%§r§7","§7§65§r§7"],["§7钛","§7§68%§r§7","§7§620§r§7"],["§7钨钢","§7§612%§r§7","§7§640§r§7"]]},
+        {"type":"line","text":"§7需接入§e同档§r§7集群，并把冷却液接入本模块输入仓；开始加工时一次扣除所需流体，§e供应不足§r§7则本模块无增益、也不增加耗汽。"},
+        {"type":"line","text":"§7本批用液＝基础用量×[1＋(同类供液模块数−1)×10%]×[1＋其他速度／并行模块耗液加成之和]×计费轮数，最后向上取整。"},
+        {"type":"line","text":"§7每台速度／并行模块按青铜／钢／钛／钨钢向其他模块加§65%／10%／30%／40%§r§7耗液；加总后作为上式倍率。"},
+        {"type":"line","text":"§7普通加工计§61轮§r§7；批处理计费轮数＝本批物料数÷首次同时处理数，向上取整。"},
+        {"type":"line","text":"§7本模块不额外提高耗汽；使用 [fluid:ic2coolant|IC2冷却液]，未注册该流体时改用 [fluid:supercoolant|超级冷却液]。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b降低加工链耗汽，固定保温蒸汽不变。"},
+        {"type":"line","text":"多台合计最多节汽 48%，保温耗汽不变。"},
+        {"type":"line","text":"接入同档集群，向本模块供应§b冷却液§r。供液不足则无增益。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.ClusterUnitLogistics","owner":{"machine":"ClusterUnitLogistics"},"tiers":{
+      "common":[
+        {"type":"line","text":"§b集群的进出料与执行端；每台独立运行一条加工链。"},
+        {"type":"line","text":"§7在终端设置本模块的加工链，再接好原料和产物管线。"},
+        {"type":"line","text":"§7须与主控§e同档§r§7，并备齐物品输入／输出总线、流体输入／输出仓；普通与ME仓室均可。"},
+        {"type":"table","columns":["结构","基础并行","物流时间（秒）","工作 [fluid:lubricant|润滑油]（L/s）"],"rows":[["§7青铜","§7§624§r§7","§7§65§r§7","§7§620§r§7"],["§7钢","§7§648§r§7","§7§62§r§7","§7§660§r§7"],["§7钛","§7§664§r§7","§7§61§r§7","§7§6300§r§7"],["§7钨钢","§7§6128§r§7","§7§60§r§7","§7§6500§r§7"]]},
+        {"type":"line","text":"§7物流时间加在加工用时后，不受速度增幅影响；仅工作中消耗 [fluid:lubricant|润滑油]，每个延伸段再加§610%§r§7基础量。"},
+        {"type":"line","text":"§7本批完成后排出产物，未排空前等待。加工链最多§616步§r§7，须有且只有一个终态产物；原矿和可继续加工的矿石中间产物均可输入。"},
+        {"type":"table","columns":["操作","行为"],"rows":[["§7软锤[right:右击]","§7启停模块，默认开启"],["§7螺丝刀[right:右击]","§7切换队列模式：攒满当前并行数的同种输入再加工"]]},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"每台独立执行一条加工链。终端编排工序，物品与流体均从本模块进出，工作时消耗 [fluid:lubricant|润滑油]。"},
+        {"type":"line","text":"一条链最多 16 步、一个终态产物。产物未排空时等待；物流时间不受加工加速影响。"},
+        {"type":"line","text":"软锤 [right:右击] 启停；螺丝刀 [right:右击] 切换队列，攒满同种输入再加工。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"machine.TcdsController","owner":{"machine":"TcdsController"},"tiers":{
+      "common":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：供汽设置"},
+        {"type":"line","text":"§b燃烧燃气与燃油制汽，两类可同时燃烧；各类自动选当前可用的最高热值燃料。"},
+        {"type":"line","text":"§b [fluid:steam|蒸汽] 当量（L/t）=Σ[各类实际燃料流量×热值×效率η]×2×热量%÷100。"},
+        {"type":"line","text":"§7图示每类足额供给时的F×η；燃料、热量相同时与产汽量成正比。效率按目标流量F计算，燃料短缺不会恢复效率。"},
+        {"type":"curve","title":"§a同燃料、同热量，足额供给","xLabel":"每类目标流量（L/t）","yLabel":"有效供热流量（L/t）","xMax":5000,"yMax":1500,"xTicks":[0,500,1000,2000,3000,4000,5000],"yTicks":[0,500,1000,1500],"series":[{"name":"有效流量","color":"#61c9cc","model":"plateauPower","riseEnd":500,"plateauEnd":1000,"exponent":0.5693}],"probe":1000},
+        {"type":"line","text":"§7终端设置每类目标流量，默认100 L/t；实际用量取目标与供给的较小值。没有燃料，或 [fluid:air|空气]、 [fluid:ic2distilledwater|蒸馏水] 不足时停机。"},
+        {"type":"warning","text":"热量>100%时缺 [fluid:ic2distilledwater|蒸馏水] 会爆炸。"},
+        {"type":"divider"},
+        {"type":"line","text":"§7连续燃烧会升温，热量越高产汽越多；100%以下每秒＋0.5个百分点，以上每秒＋0.01个百分点；停机每秒−1个百分点。"},
+        {"type":"table","columns":["产物与条件","结果"],"rows":[["燃气热值≥350 EU/L；燃油≥450 EU/L"," [fluid:ic2superheatedsteam|过热蒸汽]；两类同烧须同时达标"],["控制器槽装 [item:gtsr:TcdsBoostChip@0|致密蒸汽芯片] ","输出对应 [fluid:densesteam|致密蒸汽]，体积为1/1,000"]]},
+        {"type":"line","text":"§7螺丝刀 [key-right:Shift+右击]轮换输出档位，改变基础热量上限；流量也会改变上限。降档或减流使上限低于当前热量时，先停机降温。"},
+        {"type":"line","text":"§7内置缓冲连续分摊到输出仓；缓冲满暂停燃烧并降温。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "detail":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：供汽设置"},
+        {"type":"line","text":"§b燃烧燃气与燃油制汽，两类可同时燃烧；各类自动选当前可用的最高热值燃料。"},
+        {"type":"line","text":"§b [fluid:steam|蒸汽] 当量（L/t）=Σ[各类实际燃料流量×热值×效率η]×2×热量%÷100。"},
+        {"type":"line","text":"§7图示每类足额供给时的F×η；燃料、热量相同时与产汽量成正比。效率按目标流量F计算，燃料短缺不会恢复效率。"},
+        {"type":"curve","title":"§a同燃料、同热量，足额供给","xLabel":"每类目标流量（L/t）","yLabel":"有效供热流量（L/t）","xMax":5000,"yMax":1500,"xTicks":[0,500,1000,2000,3000,4000,5000],"yTicks":[0,500,1000,1500],"series":[{"name":"有效流量","color":"#61c9cc","model":"plateauPower","riseEnd":500,"plateauEnd":1000,"exponent":0.5693}],"probe":1000},
+        {"type":"line","text":"§7终端设置每类目标流量，默认100 L/t；实际用量取目标与供给的较小值。没有燃料，或 [fluid:air|空气]、 [fluid:ic2distilledwater|蒸馏水] 不足时停机。"},
+        {"type":"warning","text":"热量>100%时缺 [fluid:ic2distilledwater|蒸馏水] 会爆炸。"},
+        {"type":"divider"},
+        {"type":"line","text":"§7主公式的燃料流量用L/t、热值用EU/L，每类结果分别四舍五入后相加。 [fluid:air|空气] 需求=实际燃料总流量×100 L/t； [fluid:ic2distilledwater|蒸馏水] 需求= [fluid:steam|蒸汽] 当量÷160 L/t，每tick四舍五入。"},
+        {"type":"table","columns":["目标流量F（L/t）","燃烧效率η","热量上限系数"],"rows":[["F<100","1","max(0.5，F/100)"],["100≤F≤500","1","1＋0.5(F−100)/400"],["500<F≤1,000","500/F","1.5"],["F>1,000","0.5(1,000/F)^0.4307","1.5"]]},
+        {"type":"line","text":"§7运行时热量<100%每秒＋0.5个百分点，随后每秒＋0.01个百分点，最高到热量上限；停机每秒−1个百分点。"},
+        {"type":"table","columns":["产物与条件","结果"],"rows":[["燃气热值≥350 EU/L；燃油≥450 EU/L"," [fluid:ic2superheatedsteam|过热蒸汽]；两类同烧须同时达标"],["控制器槽装 [item:gtsr:TcdsBoostChip@0|致密蒸汽芯片] ","输出对应 [fluid:densesteam|致密蒸汽]，体积为1/1,000"]]},
+        {"type":"line","text":"§7螺丝刀 [key-right:Shift+右击]轮换输出档位；终端设置每类目标流量。实际热量上限=基础上限×流量系数；当前热量高于新上限时，停机降温后恢复。"},
+        {"type":"table","columns":["输出档位（%）","基础热量上限（%）"],"rows":[["100 / 80 / 60 / 40 / 20","200 / 160 / 120 / 80 / 40"],["10 / 5 / 2 / 1","10 / 5 / 2 / 1"]]},
+        {"type":"line","text":"§7内置缓冲容量840,000,000 L [fluid:steam|蒸汽] 当量，连续分摊到输出仓；满时暂停燃烧并降温。控制器槽放错物品时界面提示。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]主控：供汽设置"},
+        {"type":"line","text":"§b燃气、燃油可同时制汽；终端设置每类目标流量，缺燃料自动减量。"},
+        {"type":"line","text":"§7热量越高产汽越多；用螺丝刀 [key-right:Shift+右击]换档， [item:gtsr:TcdsBoostChip@0|致密蒸汽芯片] 将产物体积压至1/1,000。"},
+        {"type":"warning","text":"热量>100%时缺 [fluid:ic2distilledwater|蒸馏水] 会爆炸； [fluid:air|空气] 或 [fluid:ic2distilledwater|蒸馏水] 不足时停机。"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.CriticalSteamEntangledSingularity","owner":{"item":"gtsr:CriticalSteamEntangledSingularity","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6用于更高级的合成与增幅§7，也可作为§b [item:gtsr:PortableSingularity@0|奇点控制器] §7的临界弹药。§r"},
+        {"type":"line","text":"§7由§b临界纠缠奇点稳定装置§7合成。§r"},
+        {"type":"line","text":"§d传说其能够彻底撕开维度的限制......§r"},
+        {"type":"warning","text":"§c掉落物会爆炸！请勿丢弃。§7丢出 §e3 秒§7后炸毁附近方块，伤害可波及 §c160 格§7。§r"},
+        {"type":"warning","text":"§7还会抛出 §e4–12 个§7普通奇点，在 §e4–10 秒§7后连锁爆炸。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.GeothermalOverheatChip","owner":{"item":"gtsr:GeothermalOverheatChip","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7装入§b钢级大型地热蒸汽锅炉§7的§6控制器槽§7，切换 [fluid:ic2superheatedsteam|过热蒸汽]。§r"},
+        {"type":"table","columns":["钢级 · 普通模式","未装","本芯片"],"rows":[["产物流体"," [fluid:steam|蒸汽] ","§b [fluid:ic2superheatedsteam|过热蒸汽] "],["升温（%/s）","0.006","§e0.004"],[" [fluid:water|普通水] 结垢速率","×1","§c×2"]]},
+        {"type":"line","text":"§7每轮 [fluid:lava|熔岩] 额外独立抽取§e [item:gregtech:gt.metaitem.01@2021|磷粉]、 [item:gregtech:gt.metaitem.01@2375|金红石粉]、 [item:gregtech:gt.metaitem.01@2910|白钨矿粉]§7；满热时 [fluid:lava|熔岩] 周期也更短。§r"},
+        {"type":"warning","text":"§7同热量、同结垢程度下§e蒸汽体积不变§7。§b [fluid:ic2distilledwater|蒸馏水] §7免结垢；青铜级不生效。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"钢级地热锅炉装入后改产等量 [fluid:ic2superheatedsteam|过热蒸汽]，额外产 [item:gregtech:gt.metaitem.01@2021|磷粉]、 [item:gregtech:gt.metaitem.01@2375|金红石粉]、 [item:gregtech:gt.metaitem.01@2910|白钨矿粉]。"},
+        {"type":"line","text":"升温减慢，满热 [fluid:lava|熔岩] 周期缩短； [fluid:water|普通水] 结垢速度 ×2， [fluid:ic2distilledwater|蒸馏水] 免垢。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.HubSingularityChip","owner":{"item":"gtsr:HubSingularityChip","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7装入§b蒸汽／蓄水枢纽阵列§7的§6控制器槽§7，各级结构均可使用。§r"},
+        {"type":"table","columns":["能力","未装","本芯片"],"rows":[["总容量","基础 ×1","§e基础 ×5"],["普通／强化节点、奇点仓","关闭","§a开启"]]},
+        {"type":"line","text":"§7手持任一种枢纽芯片 [right:右击] 枢纽，查看已绑节点的坐标与方向。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"装入蒸汽或蓄水枢纽，容量 §e×5§r，可绑定普通、强化节点和奇点仓。"},
+        {"type":"line","text":"手持芯片 [right:右击] 枢纽可查节点坐标与方向。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.HubTerminal","owner":{"item":"gtsr:HubTerminal","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7机器的§b随身管理界面§7；记住最近成功打开的 §e32 台§7。§r"},
+        {"type":"table","columns":["操作","打开"],"rows":[["[right:右击]控制器","§b该机器的专属界面"],["[right:右击]已绑定缓存节点","§b节点编辑"],["[right:右击]空气","§b机器历史与远程管理"]]},
+        {"type":"line","text":"§7支持织机、临界机器、§b蒸汽／通用流体／奇点钻采枢纽§7、缓存节点、矿物处理物流集群。§r"},
+        {"type":"line","text":"§7也支持热化学致密蒸汽发生器、地壳物质聚集器、§b纠缠／稳定装置§7与远程钻采节点。§r"},
+        {"type":"warning","text":"§7可§b跨维度§7访问；目标须§e已加载、有权限§7。操作时持续手持此终端，放下即结束。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§7[right:右击]机器管理；[right:右击]空气，远程访问最近 §e32 台§7。§r"},
+        {"type":"warning","text":"§7目标须§e已加载、有权限§7，并持续手持此终端。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ItemBlockSpacetimeSingularity","owner":{"item":"gtsr:SpacetimeSingularity","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§b稳定奇点的时空变体§7：竖直吸积盘，无闪电。§r"},
+        {"type":"line","text":"§7由§b时空奇点校准工程§7维持；机器激活传送时牵引并传送实体。§r"},
+        {"type":"line","text":"§8停机即关闭；单独放置不会开启传送。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.RareGasSeparationChip","owner":{"item":"gtsr:RareGasSeparationChip","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7装入§b钢级大气离心机§7的§6控制器槽§7，将§a普通分离切换为稀有气体分离§7。§r"},
+        {"type":"line","text":"§7取出后恢复普通配方。青铜级不可用。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ReinforcedHubSingularityChip","owner":{"item":"gtsr:ReinforcedHubSingularityChip","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7装入§b三级蒸汽／蓄水枢纽阵列§7的§6控制器槽§7，替换普通奇点芯片。§r"},
+        {"type":"table","columns":["能力","普通芯片","本芯片"],"rows":[["总容量","基础 ×5","§e基础 ×20"],["超压节点绑定","关闭","§a开启"],["蒸汽枢纽可存品位"," [fluid:steam|蒸汽]／ [fluid:ic2superheatedsteam|过热蒸汽] ","§b另加 [fluid:supercriticalsteam|超临界蒸汽] 和三种致密蒸汽"]]},
+        {"type":"line","text":"§7两类枢纽均保留原节点／奇点仓绑定；蓄水枢纽的流体范围不因芯片改变。§r"},
+        {"type":"line","text":"§7手持芯片 [right:右击] 枢纽，查看已绑节点的坐标与方向。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"三级枢纽装入后容量为基础 §e20 倍§r，可绑定超压节点。蒸汽枢纽可接收全部六种蒸汽。"},
+        {"type":"line","text":"手持芯片 [right:右击] 枢纽可查节点坐标与方向。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.SingularityTuningWand","owner":{"item":"gtsr:SingularityTuningWand","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6创造模式／管理员§7调试工具：奇点词条、 [item:gregtech:gt.blockmachines@14904|拟态织机] 的§b施工与修复§7。§r"},
+        {"type":"table","columns":["操作","调试"],"rows":[["[key-right:Alt+右击]控制器","§b配置机器方案"],["[right:右击]控制器","§a应用方案"],["[key-right:Shift+右击]控制器","§e反向调整／取消施工"],["[key-right:Shift+右击]空气","§b选择能力、词条与增量"]]},
+        {"type":"line","text":"§7奇点词条：§d超限／失稳／撕裂§7；增量 §e1～1,000§7。§r"},
+        {"type":"profiles"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§6创造／管理员调试§7：[key-right:Alt+右击]配置，[right:右击]应用。§r"},
+        {"type":"line","text":"§7[key-right:Shift+右击]控制器反向或取消；对空气选择能力与增量。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.SpacetimeAnchorBeacon","owner":{"item":"gtsr:SpacetimeAnchorBeacon"},"tiers":{
+      "common":[
+        {"type":"line","text":"§bHV 级导航与返航信标§7；导航§a不耗电§7。§r"},
+        {"type":"line","text":"§7主世界：指向首次确认的最近§6有效祭坛§7，搜寻期间指针静止。§r"},
+        {"type":"line","text":"§7繁荣维度：指向最近的§6已生成结构§7。§r"},
+        {"type":"table","columns":["操作","返航"],"rows":[["[key-right:Alt+右击]","§b标记当前位置、维度与朝向"],["持续 [key-right:Shift+右击] §e3 秒","§a跨维度返回标记点"]]},
+        {"type":"charge"},
+        {"type":"line","text":"§7每次成功返航耗 §e320,000 EU§7，冷却 §e30 秒§7；满电 §e5 次§7。§r"},
+        {"type":"warning","text":"§7返航须有§e安全落点§7；骑乘或被骑乘时不能使用。§r"},
+        {"type":"anchor"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§b免费导航§7；[key-right:Alt+右击]标记，持续 [key-right:Shift+右击] §e3 秒§7返航。§r"},
+        {"type":"line","text":"§7返航耗 §e320,000 EU§7，冷却 §e30 秒§7；须有安全落点且未骑乘。§r"},
+        {"type":"anchor"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.SteamEntangledSingularity","owner":{"item":"gtsr:SteamEntangledSingularity","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6用于高级的合成与增幅§7，也可作为§b [item:gtsr:PortableSingularity@0|奇点控制器] §7的普通弹药。§r"},
+        {"type":"line","text":"§7由§b蒸汽奇点纠缠装置§7合成；也可打碎天然失控节点或搜寻箱子取得。§r"},
+        {"type":"warning","text":"§c掉落物会爆炸！请勿丢弃。§7通常丢出 §e5 秒§7后爆炸，伤害可波及 §c16 格§7。§r"},
+        {"type":"line","text":"§7天然节点掉落的倒计时为 §e10–20 秒§7，请及时拾取。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.SteamTurbineCycleOverlimitChip","owner":{"item":"gtsr:SteamTurbineCycleOverlimitChip","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"装入§b巨型蒸汽轮机机组§r控制器槽，需 §e4 个额外环组§r。"},
+        {"type":"table","columns":["蒸汽（含致密）","原蒸汽倍率","装片后"],"rows":[[" [fluid:steam|蒸汽] ","0.5","0.5"],[" [fluid:ic2superheatedsteam|过热蒸汽] ","1","§e1.5"],[" [fluid:supercriticalsteam|超临界蒸汽] ","1","§e2.5"]]},
+        {"type":"line","text":"§7 [fluid:ic2superheatedsteam|过热蒸汽]／ [fluid:supercriticalsteam|超临界蒸汽] 及其致密变体，冷却时§a直接产 [fluid:ic2distilledwater|蒸馏水]§7。§r"},
+        {"type":"line","text":"§7同种蒸汽的耗量不变。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"巨型蒸汽轮机机组建满 4 个额外环组后装入控制器。"},
+        {"type":"line","text":" [fluid:ic2superheatedsteam|过热蒸汽] 倍率 §e1.5§r、 [fluid:supercriticalsteam|超临界蒸汽] §e2.5§r，含致密型。耗汽不变，直接返 [fluid:ic2distilledwater|蒸馏水]。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.TCDSDenseSteamChip","owner":{"item":"gtsr:TcdsBoostChip","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7装入§b热化学致密蒸汽发生系统§7的§6控制器槽§7，压缩输出体积。§r"},
+        {"type":"table","columns":["运行档","未装产物","装片产物"],"rows":[["普通"," [fluid:steam|蒸汽] ","§b [fluid:densesteam|致密蒸汽] "],["过热"," [fluid:ic2superheatedsteam|过热蒸汽] ","§b [fluid:densesuperheatedsteam|致密过热蒸汽] "]]},
+        {"type":"line","text":"§7两档均按 §e1,000∶1§7 压缩，蒸汽当量不变；不足 §e1 L§7 的致密余量留在机内。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_old_crown","owner":{"item":"gtsr:ProsperityRelic_old_crown","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7第一信物。王冠已经沉默，根脉仍记得它的重量。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_brass_chronicle","owner":{"item":"gtsr:ProsperityRelic_brass_chronicle","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7风沙磨去了年份，却没有磨去工匠的刻痕。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7六件基础见证之一；集齐记入§6「六位证人」§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_patina_seal","owner":{"item":"gtsr:ProsperityRelic_patina_seal","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7供汽巡检者的旧印。如今只留下责任的形状。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7六件基础见证之一；集齐记入§6「六位证人」§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_sigh_glass","owner":{"item":"gtsr:ProsperityRelic_sigh_glass","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7锈草原的风被封进了一道裂纹。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7六件基础见证之一；集齐记入§6「六位证人」§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_mire_memory","owner":{"item":"gtsr:ProsperityRelic_mire_memory","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7泥泞深处，一片叶子仍保有那天的阳光。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7六件基础见证之一；集齐记入§6「六位证人」§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_royal_sap","owner":{"item":"gtsr:ProsperityRelic_royal_sap","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7巨树凝成的玉色树脂，像一个未说出口的诺言。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7六件基础见证之一；集齐记入§6「六位证人」§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_broken_edict","owner":{"item":"gtsr:ProsperityRelic_broken_edict","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7只剩最后几个字：我仍在此。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7六件基础见证之一；集齐记入§6「六位证人」§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_switchyard_key","owner":{"item":"gtsr:ProsperityRelic_switchyard_key","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7铜柄的磨损都留在同一侧，仿佛持钥的人总在回家以前扳动最后一道岔轨。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_pump_valve_core","owner":{"item":"gtsr:ProsperityRelic_pump_valve_core","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7一圈垢痕留着旧 [fluid:water|水] 线。它曾替整片街区守住看不见的压力。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_cold_furnace_ember","owner":{"item":"gtsr:ProsperityRelic_cold_furnace_ember","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7黑炭心里的一点暗红已经凉了，仍像最后一班人留下的目光。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_shelter_workbadge","owner":{"item":"gtsr:ProsperityRelic_shelter_workbadge","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7缺角铜牌没有写职位。危机来临时，先写下一个人的名字也许更有用。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_trench_medic_badge","owner":{"item":"gtsr:ProsperityRelic_trench_medic_badge","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7深红布片缝着一枚铜扣，泥痕盖不住反复穿针留下的孔。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_bridge_pass","owner":{"item":"gtsr:ProsperityRelic_bridge_pass","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7钉孔穿过古铜边沿。它曾准许人跨过桥，却没能让桥免于崩塌。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_webbed_shuttle","owner":{"item":"gtsr:ProsperityRelic_webbed_shuttle","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7暗丝绕住根木梭，一根也没有整齐断开。修补的人似乎总想再试一次。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_cracked_sighting_lens","owner":{"item":"gtsr:ProsperityRelic_cracked_sighting_lens","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7裂纹把视野分成两半。守望者仍相信其中一半能看见归来的人。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_resonant_clapper","owner":{"item":"gtsr:ProsperityRelic_resonant_clapper","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7弯铜上有一条平滑亮痕。钟声消失以后，敲击的位置还记得声音。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_foundry_heart_fragment","owner":{"item":"gtsr:ProsperityRelic_foundry_heart_fragment","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7耐火砖夹着一块铜心。工厂停下来以前，多少人的晚饭曾依赖它不熄。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_hive_memory_knot","owner":{"item":"gtsr:ProsperityRelic_hive_memory_knot","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7根纤维与灰茧收紧成一枚结。它保留的也许是一个街区，而非一个人的梦。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_sky_ritual_foil","owner":{"item":"gtsr:ProsperityRelic_sky_ritual_foil","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7透孔的薄金片只在某个角度显出完整的纹路，像地面从未拥有过的窗。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_mire_sounding_weight","owner":{"item":"gtsr:ProsperityRelic_mire_sounding_weight","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7铜坠与短绳留下不同深浅的泥色。丈量的人想知道，下一步是否仍有地面。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_sealed_archive_tube","owner":{"item":"gtsr:ProsperityRelic_sealed_archive_tube","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7铜箍收紧暗木筒，封条上只剩一笔没有写完的日期。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_rail_repair_token","owner":{"item":"gtsr:ProsperityRelic_rail_repair_token","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7铁灰刻牌上留下工具的轮廓，像旧维修队留给下一班人的清单。§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_pressure_witness","owner":{"item":"gtsr:ProsperityRelic_future_pressure_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7印章记录停机指令曾被拒绝§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_recovery_witness","owner":{"item":"gtsr:ProsperityRelic_future_recovery_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7它证明撤离者曾被当作材料回收§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_weft_witness","owner":{"item":"gtsr:ProsperityRelic_future_weft_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7缺班姓名成为世界仍能被记住的证据§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_canal_witness","owner":{"item":"gtsr:ProsperityRelic_future_canal_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7没有销账的税票保留末次撤离航程§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_lens_witness","owner":{"item":"gtsr:ProsperityRelic_future_lens_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7视标把误认的归来者重新指认为人§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_oath_witness","owner":{"item":"gtsr:ProsperityRelic_future_oath_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7正反两面同时保留守备令与撤离令§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_ash_witness","owner":{"item":"gtsr:ProsperityRelic_future_ash_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7每一行姓名都拒绝事故中的匿名销毁§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_sound_witness","owner":{"item":"gtsr:ProsperityRelic_future_sound_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7正确的节拍证明撤离命令从未被取消§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_road_witness","owner":{"item":"gtsr:ProsperityRelic_future_road_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7路标将失踪者与他们的家重新连接§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_anchor_witness","owner":{"item":"gtsr:ProsperityRelic_future_anchor_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7坐标使遗忘中的地名重新成为可指认的对象§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_city_address_witness","owner":{"item":"gtsr:ProsperityRelic_future_city_address_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§b繁荣维度的结构罗盘§7；[right:右击]登记并打开导航，查询§e最近入口坐标§7。§r"},
+        {"type":"line","text":"§7可选结构随§6自己的探索进度§7解锁。§r"},
+        {"type":"line","text":"§8进入繁荣维度时，背包没有便补发一枚。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.ProsperityRelic_future_city_return_witness","owner":{"item":"gtsr:ProsperityRelic_future_city_return_witness","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7虚构扩大工程内，阅读扩建校准记录后开启工程见证箱获得§r"},
+        {"type":"line","text":"§b纪年见证§7 · 手持 [right:右击]登记，§a不消耗§7物品，§c不解除遭遇封印§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"weapon.lm12","owner":{"item":"gtsr:PortableLM12","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§bLM12 转膛机枪§7 · 预转后加速，[key:C]切换§6普通／压制§7。§r"},
+        {"type":"table","columns":["模式","首发预转","最快射速","持续射击"],"rows":[["§6普通","§e1 秒","§e20 发/秒","§c会过热锁定"],["§b压制","§e0.5 秒","§e10 发/秒","§a不受过热限制"]]},
+        {"type":"damage","text":"§7伤害 §e%s§7；忽略护甲 §e%s 点§7。§r"},
+        {"type":"line","text":"§7使用§b7.62mm 弹药包§7；装弹链需 §e2.5 秒§7，开火时扣弹。§r"},
+        {"type":"line","text":"§8停火 1 秒后散热；热量降至 25% 解除锁定。§r"},
+        {"type":"line","text":"§7持续 [left:左击]开火、[right:右击]聚焦；[key:R]装填，[key:V]选择普通／拟态弹药包。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§bLM12§7 · [key:C]切模式：§6普通§7射速最高 §e20 发/秒§7；§b压制§7最高 §e10 发/秒§7、无过热锁定。§r"},
+        {"type":"line","text":"§77.62mm 弹药包；[key:R]装填，[key:V]选弹药。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"ammo.lm12.normal","owner":{"item":"gtsr:Ammo762Pack"},"tiers":{
+      "common":[
+        {"type":"line","text":"§bLM12 专用§7 7.62mm §6便携式弹药包§7。§r"},
+        {"type":"ammo"},
+        {"type":"line","text":"§8耗尽后空包消失。§r"},
+        {"type":"line","text":"§7持 LM12，用 [key:V]选此类弹药、[key:R]装填。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"ammo.lm12.mimic","owner":{"item":"gtsr:MimicAmmo762Pack"},"tiers":{
+      "common":[
+        {"type":"line","text":"§bLM12 专用§7 7.62mm §d拟态弹药包§7。§r"},
+        {"type":"ammo"},
+        {"type":"line","text":"§7随身携带，停火 §e5 秒§7后每 §e2 秒§7恢复 §a10 发§7；空包保留。§r"},
+        {"type":"line","text":"§7持 LM12，用 [key:V]选此类弹药、[key:R]装填。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"weapon.t20","owner":{"item":"gtsr:PortableT20","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§bT20 便携机炮§7 · [key:C]切换§6普通／空爆§7，射速 §e2.5 发/秒§7。§r"},
+        {"type":"table","columns":["模式","基础伤害","爆炸半径"],"rows":[["§6普通","§e10","§e1 格"],["§b空爆","§e8","§e2.5 格"]]},
+        {"type":"line","text":"§7空爆弹接近实体 §e1.5 格§7内提前引爆；两种模式均§a不破坏方块§7。§r"},
+        {"type":"damage","text":"§7当前普通模式伤害 §e%s§7；忽略护甲 §e%s 点§7。§r"},
+        {"type":"line","text":"§7使用§b20mm 弹药包§7；装弹链需 §e2.5 秒§7，开火时扣弹。§r"},
+        {"type":"warning","text":"§7连续射击会§c过热锁定§7；停火 §e1 秒§7后散热，降至 §e25%§7解除。§r"},
+        {"type":"line","text":"§7持续 [left:左击]开火、[right:右击]聚焦；[key:R]装填，[key:V]选择普通／拟态弹药包。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§bT20§7 · [key:C]切模式：§6普通§7伤害较高；§b空爆§7近敌引爆、范围更大。§r"},
+        {"type":"line","text":"§7两种模式均不破坏方块；§c会过热§7。20mm 弹药包，[key:R]装填。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"ammo.t20.normal","owner":{"item":"gtsr:Ammo20Pack"},"tiers":{
+      "common":[
+        {"type":"line","text":"§bT20 专用§7 20mm §6便携式弹药包§7。§r"},
+        {"type":"ammo"},
+        {"type":"line","text":"§8耗尽后空包消失。§r"},
+        {"type":"line","text":"§7持 T20，用 [key:V]选此类弹药、[key:R]装填。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"ammo.t20.mimic","owner":{"item":"gtsr:MimicAmmo20Pack"},"tiers":{
+      "common":[
+        {"type":"line","text":"§bT20 专用§7 20mm §d拟态弹药包§7。§r"},
+        {"type":"ammo"},
+        {"type":"line","text":"§7随身携带，停火 §e5 秒§7后每 §e2 秒§7恢复 §a3 发§7；空包保留。§r"},
+        {"type":"line","text":"§7持 T20，用 [key:V]选此类弹药、[key:R]装填。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"weapon.qlz04","owner":{"item":"gtsr:PortableQLZ04","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§bQLZ04 便携榴弹发射器§7 · [key:C]切换§6三种模式§7，§a无过热限制§7。§r"},
+        {"type":"table","columns":["模式","弹夹","射速","用途"],"rows":[["§6普通","§e12 发","§e1.67 发/秒","§7半径 §e2 格§7的范围爆炸"],["§b霰榴弹","§e12 发","§e1.67 发/秒","§7近敌分裂为 §e30 枚§7破片"],["§d轮毂","§e8 发","§e5 发/秒","§7同普通爆炸，集中速射"]]},
+        {"type":"damage","text":"§7普通／轮毂伤害 §e%s§7；忽略护甲 §e%s 点§7。§r"},
+        {"type":"line","text":"§7霰榴弹向前探测 §e4 格§7触发分裂，每枚破片基础伤害 §e2§7。§r"},
+        {"type":"line","text":"§7使用§b35mm 弹药包§7；装填 §e2 秒§7，只扣实际装入的弹药。§r"},
+        {"type":"line","text":"§8切模式会退回余弹并重新装填。§r"},
+        {"type":"line","text":"§7持续 [left:左击]开火、[right:右击]聚焦；[key:R]装填，[key:V]选择普通／拟态弹药包。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§bQLZ04§7 · [key:C]切模式：§6普通§7范围爆炸，§b霰榴弹§7近敌散射，§d轮毂§7高速连发。§r"},
+        {"type":"line","text":"§7无过热；35mm 弹药包，[key:R]装填 §e2 秒§7。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"ammo.qlz04.normal","owner":{"item":"gtsr:Ammo35Pack"},"tiers":{
+      "common":[
+        {"type":"line","text":"§bQLZ04 专用§7 35mm §6便携式弹药包§7。§r"},
+        {"type":"ammo"},
+        {"type":"line","text":"§8耗尽后空包消失。§r"},
+        {"type":"line","text":"§7持 QLZ04，用 [key:V]选此类弹药、[key:R]装填。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"ammo.qlz04.mimic","owner":{"item":"gtsr:MimicAmmo35Pack"},"tiers":{
+      "common":[
+        {"type":"line","text":"§bQLZ04 专用§7 35mm §d拟态弹药包§7。§r"},
+        {"type":"ammo"},
+        {"type":"line","text":"§7随身携带，停火 §e5 秒§7后每 §e2 秒§7恢复 §a1 发§7；空包保留。§r"},
+        {"type":"line","text":"§7持 QLZ04，用 [key:V]选此类弹药、[key:R]装填。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"weapon.singularity","owner":{"item":"gtsr:PortableSingularity","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§d107工程— [item:gtsr:PortableSingularity@0|奇点控制器]§7 · 慢速抛物线投射，[key:C]切换§6普通／失稳§7。§r"},
+        {"type":"table","columns":["模式","发射方式","命中或遥爆后"],"rows":[["§6普通","§7[left:左击]发射","§b牵引 §e8 秒§7后爆炸"],["§c失稳","§7[left:左击]蓄力 §e5 秒§7后松开","§c立即爆炸§7；半径、伤害 §e×2"]]},
+        {"type":"line","text":"§7飞行中再次 [left:左击]，§e0.5 秒§7后遥爆。单发装填 §e5 秒§7。§r"},
+        {"type":"table","columns":["未附魔·普通模式","普通奇点","临界奇点"],"rows":[["§7牵引半径（格）","§e5","§e10"],["§7牵引每秒伤害","§e2","§e5"],["§7爆炸半径（格）","§e3","§e6"],["§7爆炸伤害（物理＋魔法）","§e20＋5","§e50＋15"]]},
+        {"type":"line","text":"§7[key:R]装填；[key:V]选择§b [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]／ [item:gtsr:CriticalSteamEntangledSingularity@0|临界蒸汽纠缠奇点]§7。§r"},
+        {"type":"warning","text":"§c会波及队友与其他玩家§7，射手免疫；§d破坏附魔§7会拆除范围内方块。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§d [item:gtsr:PortableSingularity@0|奇点控制器]§7 · [key:C]切模式：§6普通§7先牵引后爆炸；§c失稳§7蓄力后立即爆炸、半径与伤害 §e×2§7。§r"},
+        {"type":"line","text":"§7[key:R]装填，[key:V]切普通／临界奇点；飞行中再 [left:左击]遥爆。§r"},
+        {"type":"warning","text":"§c会伤及队友§7；破坏附魔会拆除方块。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.IrradiatedMoonDust","owner":{"item":"gtsr:IrradiatedMoonDust","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7 [item:dreamcraft:MoonStoneDust@0|月石粉] 经§d临界辐照§7后的产物；§8当前尚无后续消耗配方。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.IrradiatedStoneDust","owner":{"item":"gtsr:IrradiatedStoneDust","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7 [item:gregtech:gt.metaitem.01@2299|石粉] 经§d临界辐照§7后的产物；§8当前尚无后续消耗配方。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.VeinPyrolyzerChipT1","owner":{"item":"gtsr:VeinPyrolyzerChipT1","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7装入§b地脉蒸汽热解机§7的§6控制器槽§7，扩大地下流体富集范围。§r"},
+        {"type":"table","columns":["配置","富集范围（区块）"],"rows":[["未装","1×1"],["T1","§e2×2"]]},
+        {"type":"line","text":"§7两级机器均可使用。区域按边长对齐，只富集§b已锁定流体§7且§e仍有储量§7的区块。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.VeinPyrolyzerChipT2","owner":{"item":"gtsr:VeinPyrolyzerChipT2","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7装入§b地脉蒸汽热解机§7的§6控制器槽§7，扩大地下流体富集范围。§r"},
+        {"type":"table","columns":["配置","富集范围（区块）"],"rows":[["未装","1×1"],["T2","§e4×4"]]},
+        {"type":"line","text":"§7两级机器均可使用。区域按边长对齐，只富集§b已锁定流体§7且§e仍有储量§7的区块。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.VeinPyrolyzerChipT3","owner":{"item":"gtsr:VeinPyrolyzerChipT3","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7装入§b地脉蒸汽热解机§7的§6控制器槽§7，扩大地下流体富集范围。§r"},
+        {"type":"table","columns":["配置","富集范围（区块）"],"rows":[["未装","1×1"],["T3","§e8×8"]]},
+        {"type":"line","text":"§7两级机器均可使用。区域按边长对齐，只富集§b已锁定流体§7且§e仍有储量§7的区块。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.AmmoniaCatalystNickel","owner":{"item":"gtsr:AmmoniaCatalystNickel","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"装入§b制氨工厂§r控制器槽，催化剂不消耗。"},
+        {"type":"table","columns":["催化剂","并行上限","周期（秒）","耗汽（L/s）"],"rows":[["未装","64","64","28,000"],[" [item:gtsr:AmmoniaCatalystNickel@0|镍基] ","§e80","64","§e32,000"]]},
+        {"type":"line","text":"§7并行未满时，耗汽量不变。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.AmmoniaCatalystPlatinum","owner":{"item":"gtsr:AmmoniaCatalystPlatinum","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"装入§b制氨工厂§r控制器槽，催化剂不消耗。"},
+        {"type":"table","columns":["催化剂","并行上限","周期（秒）","耗汽（L/s）"],"rows":[["未装","64","64","28,000"],[" [item:gtsr:AmmoniaCatalystPlatinum@0|铂基] ","§e96","§e48","§e44,000"]]},
+        {"type":"line","text":"§7并行未满时，耗汽量不变。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.AmmoniaCatalystUranium","owner":{"item":"gtsr:AmmoniaCatalystUranium","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"装入§b制氨工厂§r控制器槽，催化剂不消耗。"},
+        {"type":"table","columns":["催化剂","并行上限","周期（秒）","耗汽（L/s）"],"rows":[["未装","64","64","28,000"],[" [item:gtsr:AmmoniaCatalystUranium@0|铀基] ","§e128","§e32","§e76,000"]]},
+        {"type":"line","text":"§7并行未满时，耗汽量不变。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.AmmoniaCatalystOsmium","owner":{"item":"gtsr:AmmoniaCatalystOsmium","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"装入§b制氨工厂§r控制器槽，催化剂不消耗。"},
+        {"type":"table","columns":["催化剂","并行上限","周期（秒）","耗汽（L/s）"],"rows":[["未装","64","64","28,000"],[" [item:gtsr:AmmoniaCatalystOsmium@0|锇基] ","§e192","§e24","§e140,000"]]},
+        {"type":"line","text":"§7并行未满时，耗汽量不变。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.AmmoniaCatalystFeCo","owner":{"item":"gtsr:AmmoniaCatalystFeCo","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"装入§b制氨工厂§r控制器槽，催化剂不消耗。"},
+        {"type":"table","columns":["催化剂","并行上限","周期（秒）","耗汽（L/s）"],"rows":[["未装","64","64","28,000"],[" [item:gtsr:AmmoniaCatalystFeCo@0|铁钴基] ","§e256","§e16","§e268,000"]]},
+        {"type":"line","text":"§7并行未满时，耗汽量不变。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.AmmoniaCatalystRuthenium","owner":{"item":"gtsr:AmmoniaCatalystRuthenium","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"装入§b制氨工厂§r控制器槽，催化剂不消耗。"},
+        {"type":"table","columns":["催化剂","并行上限","周期（秒）","耗汽（L/s）"],"rows":[["未装","64","64","28,000"],[" [item:gtsr:AmmoniaCatalystRuthenium@0|钌基] ","§e256","§e8","§e524,000"]]},
+        {"type":"line","text":"§7并行未满时，耗汽量不变。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.AmmoniaCatalystQuantum","owner":{"item":"gtsr:AmmoniaCatalystQuantum","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"装入§b制氨工厂§r控制器槽，催化剂不消耗。"},
+        {"type":"table","columns":["催化剂","并行上限","周期（秒）","耗汽（L/s）"],"rows":[["未装","64","64","28,000"],[" [item:gtsr:AmmoniaCatalystQuantum@0|量子基] ","§e256","§e1","§e4,108,000"]]},
+        {"type":"line","text":"§7并行未满时，耗汽量不变。"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.AbyssalObsessionBucket","owner":{"item":"gtsr:AbyssalObsessionBucket","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§b繁荣维度河湖中的 [fluid:abyssal_obsession|深渊执念]§7 · §e1,000 mB§7。§r"},
+        {"type":"line","text":"§7[right:右击]方块表面倒出并返还 [item:minecraft:bucket@0|空桶]； [item:minecraft:bucket@0|空桶] 可舀取§b源块§7。§r"},
+        {"type":"line","text":"§8工业处理见 NEI 配方。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.ProsperityHistory","owner":{"item":"gtsr:ProsperityHistory","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7黄铜装订的纪年。未竟之章等待王的终局。§r"},
+        {"type":"line","text":"§7[right:右击]阅读；章节按§6自己的探索记录§7解锁。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"registeredItem.ProsperityRelic_oath_fragment","owner":{"item":"gtsr:ProsperityRelic_oath_fragment","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7残誓兵留下的誓纹：岗位可以无人，誓言不可无人。§r"},
+        {"type":"line","text":"§7在对应遭遇区域 [right:右击]，短暂指引至§c尚存残誓兵§7。§r"},
+        {"type":"line","text":"§7可重复使用，间隔 §e1 秒§7；区域外或敌人已清空时无目标。§r"},
+        {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.RunawaySingularity.natural","owner":{"item":"gtsr:RunawaySingularity","meta":1},"tiers":{
+      "common":[
+        {"type":"line","text":"§7自然奇点不参与机器的停机回收。§r"},
+        {"type":"line","text":"§7直接放置仅显示§b奇点光效§7，§e30 秒§7后消散。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.RunawaySingularity.stable","owner":{"item":"gtsr:RunawaySingularity","meta":2},"tiers":{
+      "common":[
+        {"type":"line","text":"§7机器生成的稳定奇点受停机回收与自愈管理。§r"},
+        {"type":"line","text":"§7直接放置仅显示§b奇点光效§7，§e30 秒§7后消散。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"item.RunawaySingularity.runaway","owner":{"item":"gtsr:RunawaySingularity","meta":3},"tiers":{
+      "common":[
+        {"type":"line","text":"§7失控奇点独立存在，到时自行消散。§r"},
+        {"type":"line","text":"§7直接放置仅显示§b奇点光效§7，§e30 秒§7后消散。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_ceramic_armor","owner":{"item":"gtsr:critical_v2_ceramic_armor","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6织机自动施工§r · §7§b人造恒星隔热层§7与§b基座绝缘环§7§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_carbon_frame","owner":{"item":"gtsr:critical_v2_carbon_frame","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6织机自动施工§r · §7支撑§b人造恒星内腔§7与大型构件§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_violet_phase_glass","owner":{"item":"gtsr:critical_v2_violet_phase_glass","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6织机自动施工§r · §7§b高阶基座悬相腔§7的观察窗§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_fuel_socket","owner":{"item":"gtsr:critical_v2_fuel_socket","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6织机自动施工§r · §7§b人造恒星§7的燃料输送结构§r §e（发光）§r"},
+        {"type":"line","text":"§7燃料从§b输入舱§7接入。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_heat_grille","owner":{"item":"gtsr:critical_v2_heat_grille","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6织机自动施工§r · §7§b临界机器§7的机壳与维护区§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_loom_spool","owner":{"item":"gtsr:critical_v2_loom_spool","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6手动搭建§r · §7§b[item:gregtech:gt.blockmachines@14904|拟态织机] §7的送料机构§r"},
+        {"type":"line","text":"§7施工材料放入§b输入总线§7。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_loom_guide","owner":{"item":"gtsr:critical_v2_loom_guide","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6手动搭建§r · §7§b[item:gregtech:gt.blockmachines@14904|拟态织机] §7的施工导轨§r §e（发光）§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_stellar_lens","owner":{"item":"gtsr:critical_v2_stellar_lens","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6织机自动施工§r · §7§b人造恒星§7的能量导出结构§r §e（发光）§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_stellar_plasma_skin","owner":{"item":"gtsr:critical_v2_stellar_plasma_skin","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6织机自动施工§r · §7§b人造恒星§7的反应内腔§r §e（发光）§r"},
+        {"type":"line","text":"§7外围须由§b约束环§7与§b隔热结构§7包围。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_coolant_channel","owner":{"item":"gtsr:critical_v2_coolant_channel","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6织机自动施工§r · §7§b人造恒星§7的约束场冷却结构§r §e（发光）§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_gt_bus","owner":{"item":"gtsr:critical_v2_gt_bus","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6手动搭建§r · §7§b[item:gregtech:gt.blockmachines@14904|拟态织机] §7的物料接口§r"},
+        {"type":"line","text":"§7供料须接§b实际输入总线§7；此结构件不能代替总线。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"material.v2_thermal_confinement_coil","owner":{"item":"gtsr:critical_v2_thermal_confinement_coil","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§6织机自动施工§r · §7§b人造恒星内腔§7的热场耦合环§r §e（发光）§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.TungstenSteelGearbox","owner":{"item":"gtsr:TungstenSteelGearbox","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7用于§b巨型蒸汽涡轮阵列§7与§b动力处理阵列§7。§r"},
+        {"type":"line","text":"§7提供§e3 级§7齿轮箱；同一通道的结构件须同级。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.AbyssalFluid","owner":{"item":"gtsr:AbyssalFluid","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7繁荣维度河湖中的§b [fluid:abyssal_obsession|深渊执念]§7，可作工业原料。§r"},
+        {"type":"line","text":"§7手持§b [item:minecraft:bucket@0|空桶]§e[right:右击]§7源头，获得§b [item:gtsr:AbyssalObsessionBucket@0|深渊执念桶]§7。§r"},
+        {"type":"line","text":"§7在§b繁荣维度§7倒出水桶，也会变为此液体。§r"},
+        {"type":"line","text":"§7工业处理方式可查§bNEI 配方§7。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.SealedChest","owner":{"item":"gtsr:SealedChest","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7封存着遭遇或遗址的§b奖励§7。§r"},
+        {"type":"line","text":"§e[right:右击]§7尝试解封；未满足条件会提示所需目标。§r"},
+        {"type":"line","text":"§7满足条件后仍需§e[right:右击]§7，等待§e3 秒§7解除封印。§r"},
+        {"type":"line","text":"§7封印期间无法挖走，也无法自动抽取。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§e[right:右击]§7查看解封条件；达成后等待§e3 秒§7开启。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.UnsealedChest","owner":{"item":"gtsr:UnsealedChest","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§e[right:右击]§7领取解封后的§b奖励§7；上方须留空。§r"},
+        {"type":"line","text":"§7拆除会散落内容物，§c不掉落箱体§7。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.RuinMechanism","owner":{"item":"gtsr:RuinMechanism","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§e[right:右击]§7阅读遗址留下的§b记忆或线索§7。§r"},
+        {"type":"line","text":"§7旧式机关目前停用，无法再推进机关目标。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.SpacetimeAltarCore","owner":{"item":"gtsr:SpacetimeAltarCore","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7激活§b时空祭坛§7，通往§b繁荣维度§7。§r"},
+        {"type":"table","columns":["操作","结果"],"rows":[["§7持§b法杖§e[right:右击]§7核心§r","§7消耗六种原始要素§e各 50 vis§r"],["§7等待§e10 秒§7后靠近环心","§7牵引入坛并传送§r"],["§e[key:Shift]§7潜行","§7避开祭坛牵引§r"]]},
+        {"type":"line","text":"§7仅在主世界的原祭坛核心生效。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§7手持§b法杖§e[right:右击]§7核心，消耗原始要素§e各 50 vis§7。§r"},
+        {"type":"line","text":"§7等待§e10 秒§7后靠近环心传送；§e[key:Shift]§7避开牵引。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.draft_pressure_console","owner":{"item":"gtsr:draft_pressure_console","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§e[right:右击]§7阅读遗址的§b现场记录§7。§r"},
+        {"type":"line","text":"§7阅读会记入个人探索进度。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.draft6_spawner_fragile","owner":{"item":"gtsr:draft6_spawner_fragile","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7在遗址中不断生成§c旧日回响§7。§r"},
+        {"type":"table","columns":["参数","数值"],"rows":[["§7每次至多§r","§e2 只§r"],["§7生成间隔§r","§e10–40 秒§r"],["§7每轮生成额度§r","§e10 只§r"]]},
+        {"type":"line","text":"§7存活玩家进入§e16 格内§7触发，创造玩家除外。§r"},
+        {"type":"line","text":"§7达到生成额度即停刷，§e2 秒§7后更易挖除。§r"},
+        {"type":"line","text":"§7未挖除则在§e10 分钟§7后恢复；§e[right:右击]§7查看进度。§r"},
+        {"type":"warning","text":"§c回响可能获得力量、抗性、生命提升或再生。§r"},
+        {"type":"line","text":"§7挖除后§c不掉落笼体§7。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§7玩家进入§e16 格内§7刷怪，累计生成§e10 只§7后停刷。§r"},
+        {"type":"line","text":"§7停刷§e2 秒§7后更易挖除；留存§e10 分钟§7后恢复。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.draft6_spawner_stable","owner":{"item":"gtsr:draft6_spawner_stable","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7在遗址中不断生成§c旧日回响§7。§r"},
+        {"type":"table","columns":["参数","数值"],"rows":[["§7每次至多§r","§e4 只§r"],["§7生成间隔§r","§e10–40 秒§r"],["§7每轮生成额度§r","§e24 只§r"]]},
+        {"type":"line","text":"§7存活玩家进入§e16 格内§7触发，创造玩家除外。§r"},
+        {"type":"line","text":"§7达到生成额度即停刷，§e2 秒§7后更易挖除。§r"},
+        {"type":"line","text":"§7未挖除则在§e10 分钟§7后恢复；§e[right:右击]§7查看进度。§r"},
+        {"type":"warning","text":"§c回响可能获得力量、抗性、生命提升或再生。§r"},
+        {"type":"line","text":"§7挖除后§c不掉落笼体§7。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§7玩家进入§e16 格内§7刷怪，累计生成§e24 只§7后停刷。§r"},
+        {"type":"line","text":"§7停刷§e2 秒§7后更易挖除；留存§e10 分钟§7后恢复。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.draft6_spawner_runaway","owner":{"item":"gtsr:draft6_spawner_runaway","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7在遗址中不断生成§c旧日回响§7。§r"},
+        {"type":"table","columns":["参数","数值"],"rows":[["§7每次至多§r","§e6 只§r"],["§7生成间隔§r","§e10–40 秒§r"],["§7每轮生成额度§r","§e45 只§r"]]},
+        {"type":"line","text":"§7存活玩家进入§e16 格内§7触发，创造玩家除外。§r"},
+        {"type":"line","text":"§7达到生成额度即停刷，§e2 秒§7后更易挖除。§r"},
+        {"type":"line","text":"§7未挖除则在§e10 分钟§7后恢复；§e[right:右击]§7查看进度。§r"},
+        {"type":"warning","text":"§c回响可能获得力量、抗性、生命提升或再生。§r"},
+        {"type":"line","text":"§7挖除后§c不掉落笼体§7。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§7玩家进入§e16 格内§7刷怪，累计生成§e45 只§7后停刷。§r"},
+        {"type":"line","text":"§7停刷§e2 秒§7后更易挖除；留存§e10 分钟§7后恢复。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.fiction_starter","owner":{"item":"gtsr:fiction_starter","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7阅读§b终局工程记录§7，开启最后的见证。§r"},
+        {"type":"line","text":"§e[right:右击]§7阅读；缺失的信物与来源会列出。§r"},
+        {"type":"line","text":"§7首次启动前，须填满现场§e15 座§b见证信物基座§7。§r"},
+        {"type":"line","text":"§7本世界已完成见证时，凭个人信物记录补全进度。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§e[right:右击]§7阅读；首次启动须填满§e15 座§b信物基座§7。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }},
+    {"id":"block.fiction_witness_pedestal","owner":{"item":"gtsr:fiction_witness_pedestal","meta":0},"tiers":{
+      "common":[
+        {"type":"line","text":"§7向§b终局工程§7献上指定的§b见证信物§7。§r"},
+        {"type":"table","columns":["操作","结果"],"rows":[["§7空手§e[right:右击]§r","§7查看所需信物与来源§r"],["§7手持指定信物§e[right:右击]§r","§7提交§e1 个§7并永久记录§r"]]},
+        {"type":"line","text":"§7每座只接受§e一次§7提交。§r"},
+        {"type":"warning","text":"§c提交会消耗信物，无法取回。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ],
+      "quick":[
+        {"type":"line","text":"§7持指定信物§e[right:右击]§7，消耗§e1 个§7并永久记录。§r"},
+        {"type":"warning","text":"§c提交后无法取回。§r"},
+        {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
+      ]
+    }}
+ ]
+}
