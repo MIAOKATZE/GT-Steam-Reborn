@@ -80,6 +80,7 @@ public final class TestLabCatalog {
         tasks.add(new TestLabAmmoniaNaturalTask(false));
         tasks.add(new TestLabAmmoniaNaturalTask(true));
         tasks.add(new TestLabSingularityProfile());
+        tasks.add(new TestLabStoneBreakers());
         return Collections.unmodifiableList(tasks);
     }
 

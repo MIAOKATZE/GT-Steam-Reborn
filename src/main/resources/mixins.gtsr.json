@@ -20,6 +20,8 @@
     "MTEHatchSteamBusInputMixin",
     "MTEHatchSteamBusOutputMixin",
     "MTERockBreakerRecipeBuilderMixin",
+    "MTERockBreakerVoltageMixin",
+    "IndustrialStoneRecipeValidationMixin",
     "MTEHatchInputMixin",
     "MTEHatchAirIntakeMixin",
     "MTEHatchFluidGeneratorMixin",

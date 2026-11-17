@@ -9,7 +9,7 @@
     "betterquesting:10": {
       "autoClaim:1": 0,
       "countAsQuest:1": 1,
-      "desc:8": "Keep glowstone dust as a catalyst. In both the rock breaker and industrial stone maker, recipes that call for it leave it in place. Supply the other ingredients normally.",
+      "desc:8": "Use circuit 6 to make netherrack in either stone maker. In the Nether, one glowstone dust stays in the input for repeated runs. In every other dimension each block costs one glowstone dust.",
       "globalShare:1": 0,
       "icon:10": {
         "Count:3": 1,

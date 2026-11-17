@@ -10,12 +10,23 @@ import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTOreDictUnificator;
-import gregtech.api.util.GTRecipe;
+import gregtech.api.util.GTRecipeBuilder;
 import gregtech.api.util.GTUtility;
 
+/** Attach the outside-Nether rule only to the original paid, circuit-6 netherrack recipe. */
 public final class RockBreakerCatalysts {
 
     private RockBreakerCatalysts() {}
+
+    public static StoneBreakerRule paidRule(ItemStack input, boolean consumed, int program, ItemStack output, int eut) {
+        if (!consumed || program != 6
+            || input == null
+            || input.stackSize != 1
+            || output == null
+            || output.stackSize != 1
+            || !GTUtility.areStacksEqual(output, new ItemStack(Blocks.netherrack))) return null;
+        return isGlowstoneDust(input) ? new StoneBreakerRule(StoneSite.OUTSIDE_NETHER, eut, input, program) : null;
+    }
 
     public static boolean isGlowstoneDust(ItemStack input) {
         if (input == null) return false;
@@ -24,30 +35,26 @@ public final class RockBreakerCatalysts {
     }
 
     public static void registerIndustrialRule() {
-        // GT++ supplies its industrial recipes in postInit. Transform only this map, before indexing and NEI.
-        RecipeMaps.multiblockRockBreakerRecipes.appendRecipeTransformer(RockBreakerCatalysts::keepIndustrialDust);
+        RecipeMaps.multiblockRockBreakerRecipes.appendBuilderTransformer(RockBreakerCatalysts::markPaid);
     }
 
-    private static void keepIndustrialDust(GTRecipe recipe) {
-        ItemStack[] inputs = recipe.mInputs;
-        // The GT++ netherrack recipe uses plain item inputs. Leave packs' alternate ingredients,
-        // extra products, fluids and other circuit recipes alone (including its Thaumic Bases circuit 6).
-        if (recipe instanceof GTRecipe.GTRecipe_WithAlt || inputs.length != 2
-            || recipe.mOutputs.length != 1
-            || recipe.mFluidInputs.length != 0
-            || recipe.mFluidOutputs.length != 0
-            || !GTUtility.areStacksEqual(recipe.mOutputs[0], new ItemStack(Blocks.netherrack))
-            || recipe.mOutputs[0].stackSize != 1) return;
-        for (int i = 0; i < inputs.length; i++) {
-            ItemStack dust = inputs[i];
-            if (dust == null || dust.stackSize != 1 || !isGlowstoneDust(dust)) continue;
+    private static void markPaid(GTRecipeBuilder builder) {
+        ItemStack[] inputs = builder.getItemInputsBasic();
+        ItemStack[] outputs = builder.getItemOutputs();
+        if (inputs == null || inputs.length != 2
+            || outputs == null
+            || outputs.length != 1
+            || builder.getItemInputsOreDict() != null
+            || builder.getMetadata(StoneBreakerRule.KEY) != null
+            || (builder.getFluidInputs() != null && builder.getFluidInputs().length != 0)
+            || (builder.getFluidOutputs() != null && builder.getFluidOutputs().length != 0)) return;
+        for (int i = 0; i < 2; i++) {
             ItemStack circuit = inputs[1 - i];
             if (circuit == null || circuit.stackSize != 0
-                || !GTUtility.areStacksEqual(circuit, GTUtility.getIntegratedCircuit(6))) return;
-            ItemStack[] changed = inputs.clone();
-            changed[i] = GTUtility.copyAmount(0, dust);
-            recipe.setInputs(changed);
-            return;
+                || !GTUtility.areStacksEqual(circuit, GTUtility.getIntegratedCircuit(6))) continue;
+            StoneBreakerRule rule = paidRule(inputs[i], true, 6, outputs[0], builder.getEUt());
+            if (rule != null) builder.metadata(StoneBreakerRule.KEY, rule)
+                .ignoreCollision();
         }
     }
 }
