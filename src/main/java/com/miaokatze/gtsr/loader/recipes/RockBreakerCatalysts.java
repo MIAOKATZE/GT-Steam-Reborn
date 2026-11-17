@@ -5,11 +5,15 @@ package com.miaokatze.gtsr.loader.recipes;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
 
+import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.recipe.RecipeMaps;
+import gregtech.api.recipe.check.SingleRecipeCheck;
 import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTRecipeBuilder;
 import gregtech.api.util.GTUtility;
 
@@ -36,6 +40,41 @@ public final class RockBreakerCatalysts {
 
     public static void registerIndustrialRule() {
         RecipeMaps.multiblockRockBreakerRecipes.appendBuilderTransformer(RockBreakerCatalysts::markPaid);
+    }
+
+    public static boolean isNetherrackLock(SingleRecipeCheck lock) {
+        return lock != null && lock.getRecipeMap() == RecipeMaps.multiblockRockBreakerRecipes
+            && isNetherrackVariant(lock.getRecipe());
+    }
+
+    private static boolean isNetherrackVariant(GTRecipe recipe) {
+        StoneBreakerRule rule = recipe.getMetadata(StoneBreakerRule.KEY);
+        if (rule == null || (rule.site != StoneSite.OUTSIDE_NETHER && rule.site != StoneSite.NETHER)
+            || recipe.mInputs.length != 2
+            || recipe.mOutputs.length != 1
+            || !GTUtility.areStacksEqual(recipe.mOutputs[0], new ItemStack(Blocks.netherrack))) return false;
+        for (int i = 0; i < 2; i++) {
+            if (isGlowstoneDust(recipe.mInputs[i])
+                && GTUtility.areStacksEqual(recipe.mInputs[1 - i], GTUtility.getIntegratedCircuit(6))) return true;
+        }
+        return false;
+    }
+
+    public static SingleRecipeCheck restoreNetherrackLock(SingleRecipeCheck saved, World world) {
+        // GT restores the recipe and itemCost separately. Rebuild both from the same local variant,
+        // including for pre-v2.1.51 locks whose saved glowstone cost was zero in every dimension.
+        for (GTRecipe recipe : saved.getRecipeMap()
+            .getAllRecipes()) {
+            if (isNetherrackVariant(recipe) && recipe.getMetadata(StoneBreakerRule.KEY).site.allows(world)) {
+                return SingleRecipeCheck.builder(saved.getRecipeMap())
+                    .setRecipe(recipe)
+                    .setBefore(recipe.mInputs, GTValues.emptyFluidStackArray)
+                    .setAfter(GTValues.emptyItemStackArray, GTValues.emptyFluidStackArray)
+                    .build();
+            }
+        }
+        // If a pack removed the local variant, normal dimension validation rejects the other one.
+        return saved;
     }
 
     private static void markPaid(GTRecipeBuilder builder) {
