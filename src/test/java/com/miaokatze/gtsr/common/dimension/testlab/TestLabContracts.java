@@ -77,7 +77,9 @@ public final class TestLabContracts {
     private static void catalogSelection() {
         List<TestLabTask> tasks = TestLabCatalog.tasks();
         require(tasks.size() == 106, "machine catalog coverage changed: " + tasks.size());
-        require(TestLabCatalog.isExplicitRegression("rock_breaker_sites"), "stone maker checks require explicit selection");
+        require(
+            TestLabCatalog.isExplicitRegression("rock_breaker_sites"),
+            "stone maker checks require explicit selection");
         int defaults = 0, representatives = 0;
         for (TestLabTask task : tasks) {
             if (task instanceof TestLabSingularityProfile) require(
