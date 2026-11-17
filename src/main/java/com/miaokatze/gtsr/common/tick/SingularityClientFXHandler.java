@@ -35,37 +35,41 @@ public class SingularityClientFXHandler {
     private final Map<TileRunawaySingularity, GTSRBeamFX[]> beams = new HashMap<TileRunawaySingularity, GTSRBeamFX[]>();
     /** 每奇点 1 个常驻辉光，实例防重复生成 */
     private final Map<TileRunawaySingularity, GTSRGlowFX> glows = new HashMap<TileRunawaySingularity, GTSRGlowFX>();
-    /** 上一帧见过的奇点 TE → 坐标 hash（消散检测；TE 引用失效时触发一次消散） */
-    private final Map<TileRunawaySingularity, Integer> lastSeen = new HashMap<TileRunawaySingularity, Integer>();
+    /** Retained sets avoid copying all tracked tile references on every client tick. */
+    private final Set<TileRunawaySingularity> lastSeen = new HashSet<>();
+    private final Set<TileRunawaySingularity> current = new HashSet<>();
     private World lastWorld;
+
+    void retireEffects(TileRunawaySingularity tile) {
+        GTSRBeamFX[] group = this.beams.remove(tile);
+        if (group != null) for (GTSRBeamFX beam : group) if (beam != null) beam.setDead();
+        GTSRGlowFX glow = this.glows.remove(tile);
+        if (glow != null) glow.setDead();
+        this.arcCooldowns.remove(tile);
+    }
+
+    void resetForWorld(World world) {
+        for (GTSRBeamFX[] group : this.beams.values()) for (GTSRBeamFX beam : group) if (beam != null) beam.setDead();
+        for (GTSRGlowFX glow : this.glows.values()) if (glow != null) glow.setDead();
+        this.beams.clear();
+        this.glows.clear();
+        this.arcCooldowns.clear();
+        this.lastSeen.clear();
+        this.current.clear();
+        this.lastWorld = world;
+    }
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        World world = Minecraft.getMinecraft().theWorld;
-        if (world == null) {
-            return;
-        }
-        if (world != this.lastWorld) {
-            // 切换维度/世界：清空旧世界状态，避免跨世界误触发消散与残留特效
-            for (GTSRBeamFX[] beamGroup : this.beams.values()) {
-                for (GTSRBeamFX beam : beamGroup) {
-                    beam.setDead();
-                }
-            }
-            this.beams.clear();
-            for (GTSRGlowFX glow : this.glows.values()) {
-                glow.setDead();
-            }
-            this.glows.clear();
-            this.arcCooldowns.clear();
-            this.lastSeen.clear();
-            this.lastWorld = world;
-        }
-        Set<TileRunawaySingularity> prev = new HashSet<TileRunawaySingularity>(this.lastSeen.keySet());
-        Set<TileRunawaySingularity> current = new HashSet<TileRunawaySingularity>();
+        Minecraft mc = Minecraft.getMinecraft();
+        World world = mc.theWorld;
+        // A disconnect is also a world boundary; do not retain the previous world's long-lived particles.
+        if (world != this.lastWorld) resetForWorld(world);
+        if (world == null || mc.isGamePaused()) return;
+        this.current.clear();
         for (Object obj : world.loadedTileEntityList) {
             if (obj == null || !(obj instanceof TileRunawaySingularity)) {
                 continue;
@@ -77,26 +81,24 @@ public class SingularityClientFXHandler {
             boolean altar = t instanceof com.miaokatze.gtsr.common.dimension.prosperity.altar.TileSpacetimeAltar;
             boolean spacetime = t instanceof TileSpacetimeSingularity || altar;
             if (spacetime && !altar && t.getActiveFactor() <= 0) continue;
-            current.add(t);
-            float[] rgb = t.getColorRGB();
-            this.lastSeen.put(t, (t.xCoord & 0xFFFF) << 16 | (t.zCoord & 0xFFFF));
-            double af = t.getActiveFactor();
-            float darkScale = 0.05F + 0.95F * (float) af;
-            double effRange = t.getRange() * af;
-            // 光效基准（辉光半径基数）：fxRadius 默认 10 → 辉光 2 格；光片 = 1.5×辉光；吸积盘 = 6+辉光
-            double glowBase = t.getFxRadius() * 0.2D;
+            this.current.add(t);
+            this.lastSeen.add(t);
             double cx = t.xCoord + 0.5D;
             double cy = t.yCoord + 0.5D;
             double cz = t.zCoord + (altar ? 0.9D : 0.5D);
             // 距离裁剪（对齐原渲染侧 64/100 格裁剪；粒子管道无渲染侧裁剪，改在生成侧限制）：
             // 玩家超过 100 格不维护该奇点 FX（仅记录 lastSeen，防消散误判）
-            float playerDist = 10000.0F;
-            if (Minecraft.getMinecraft().thePlayer != null) {
-                playerDist = (float) Minecraft.getMinecraft().thePlayer.getDistance(cx, cy, cz);
-            }
-            if (playerDist > 100.0F) {
+            if (mc.thePlayer == null || mc.thePlayer.getDistanceSq(cx, cy, cz) > 10000.0D) {
+                // Culling spawning alone leaves 10,000-tick beams/glows updating in EffectRenderer.
+                retireEffects(t);
                 continue;
             }
+            float[] rgb = t.getColorRGB();
+            double af = t.getActiveFactor();
+            float darkScale = 0.05F + 0.95F * (float) af;
+            double effRange = t.getRange() * af;
+            // 光效基准（辉光半径基数）：fxRadius 默认 10 → 辉光 2 格；光片 = 1.5×辉光；吸积盘 = 6+辉光
+            double glowBase = t.getFxRadius() * 0.2D;
             // 吸积盘（vanilla 传统管道）：概率生成 × 活性系数（af→0 概率趋零，消散时不再中心冒泡），随活性系数变暗。
             // 概率公式基于 effRange（吸收范围）不变；生成半径 = 6 + 当前辉光（fxRadius 默认 10 → 8 格）；
             // nullplus（attributeId=-3）吸积盘更收敛：3 + 当前辉光（仅取消电弧，粒子/光片/辉光保留）
@@ -179,6 +181,8 @@ public class SingularityClientFXHandler {
                 }
             }
             if (!beamOk) {
+                // One expired sheet must not leave its still-live sibling behind when rebuilding the pair.
+                if (beamGroup != null) for (GTSRBeamFX beam : beamGroup) if (beam != null) beam.setDead();
                 beamGroup = new GTSRBeamFX[2];
                 for (int i = 0; i < 2; i++) {
                     beamGroup[i] = GTSRBeamFX.add(
@@ -216,25 +220,18 @@ public class SingularityClientFXHandler {
             glow.updateColor(rgb[0], rgb[1], rgb[2]);
         }
         // 消散检测：上帧活跃但本帧消失的奇点 → 特效随衰减系数收缩、变暗直至消失（无亮闪爆发）
-        for (TileRunawaySingularity gone : prev) {
-            if (current.contains(gone)) {
+        Iterator<TileRunawaySingularity> seen = this.lastSeen.iterator();
+        while (seen.hasNext()) {
+            TileRunawaySingularity gone = seen.next();
+            if (this.current.contains(gone)) {
                 continue;
             }
-            this.lastSeen.remove(gone);
-            this.arcCooldowns.remove(gone);
-            GTSRBeamFX[] goneBeams = this.beams.remove(gone);
-            if (goneBeams != null) {
-                for (GTSRBeamFX b : goneBeams) {
-                    b.setDead();
-                }
-            }
-            GTSRGlowFX goneGlow = this.glows.remove(gone);
-            if (goneGlow != null) {
-                goneGlow.setDead();
-            }
+            seen.remove();
+            retireEffects(gone);
             double tx = gone.xCoord + 0.5D;
             double ty = gone.yCoord + 0.5D;
             double tz = gone.zCoord + 0.5D;
+            if (mc.thePlayer == null || mc.thePlayer.getDistanceSq(tx, ty, tz) > 10000.0D) continue;
             // 暗色收缩过渡辉光：颜色接近黑、随 shrinkPerTick 收缩、随寿命渐出
             GTSRGlowFX fade = GTSRGlowFX.spawn(world, tx, ty, tz, 1.0F, 0.1F, 0.1F, 0.12F, 10);
             fade.setShrinkPerTick(0.1F);
@@ -255,6 +252,7 @@ public class SingularityClientFXHandler {
                 }
             }
             if (anyDead) {
+                for (GTSRBeamFX beam : beamGroup) if (beam != null) beam.setDead();
                 beamIt.remove();
             }
         }

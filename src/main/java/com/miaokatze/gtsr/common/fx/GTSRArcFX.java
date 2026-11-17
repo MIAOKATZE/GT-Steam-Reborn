@@ -224,12 +224,12 @@ public class GTSRArcFX extends GTSRFXParticle {
         }
     }
 
-    private static GTSRFXVec getRelativeViewVector(GTSRFXVec pos) {
+    private static float getRelativeViewDistance(GTSRFXVec pos) {
         EntityClientPlayerMP renderentity = Minecraft.getMinecraft().thePlayer;
-        return new GTSRFXVec(
-            (double) ((float) renderentity.posX - pos.x),
-            (double) ((float) renderentity.posY - pos.y),
-            (double) ((float) renderentity.posZ - pos.z));
+        float dx = (float) renderentity.posX - pos.x;
+        float dy = (float) renderentity.posY - pos.y;
+        float dz = (float) renderentity.posZ - pos.z;
+        return (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
     @Override
@@ -280,12 +280,12 @@ public class GTSRArcFX extends GTSRFXParticle {
                 / (float) ((int) (this.length * 3.0F))
                 * (float) this.numsegments0);
         }
+        GTSRFXVec cross1 = new GTSRFXVec(0, 0, 0), cross2 = new GTSRFXVec(0, 0, 0);
         Iterator<Segment> iterator = this.segments.iterator();
         while (iterator.hasNext()) {
             Segment rendersegment = iterator.next();
             if (rendersegment.segmentno <= renderlength) {
-                float width = this.width
-                    * (getRelativeViewVector(rendersegment.startpoint.point).length() / 5.0F + 1.0F)
+                float width = this.width * (getRelativeViewDistance(rendersegment.startpoint.point) / 5.0F + 1.0F)
                     * (1.0F + rendersegment.light)
                     * 0.5F;
                 float sinp = rendersegment.sinprev;
@@ -298,16 +298,16 @@ public class GTSRArcFX extends GTSRFXParticle {
                 }
                 // 宽度方向单位化：叉积归一后乘 width/sinp，任意视角下电弧宽度恒定（修复俯仰角接近 ±90° 时
                 // playery 爆炸导致的全屏巨块）；叉积退化为零（视向量与段方向平行）时取任意垂直向量兜底
-                GTSRFXVec cross1 = GTSRFXVec.crossProduct(playervec, rendersegment.prevdiff);
+                cross1.setCrossProduct(playervec, rendersegment.prevdiff);
                 if (cross1.lengthPow2() < 1.0E-6F) {
-                    cross1 = GTSRFXVec.getPerpendicular(rendersegment.prevdiff);
+                    cross1.setPerpendicular(rendersegment.prevdiff);
                 } else {
                     cross1.normalize();
                 }
                 GTSRFXVec diff1 = cross1.multiply(width / sinp);
-                GTSRFXVec cross2 = GTSRFXVec.crossProduct(playervec, rendersegment.nextdiff);
+                cross2.setCrossProduct(playervec, rendersegment.nextdiff);
                 if (cross2.lengthPow2() < 1.0E-6F) {
-                    cross2 = GTSRFXVec.getPerpendicular(rendersegment.nextdiff);
+                    cross2.setPerpendicular(rendersegment.nextdiff);
                 } else {
                     cross2.normalize();
                 }

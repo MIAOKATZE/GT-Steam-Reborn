@@ -71,7 +71,9 @@ class NEIItemOrderingRuntime {
         Item shared = GTSRItemList.SteamCacheNode.getItem();
         if (ItemOrderCatalog.view().entry(new ItemStack(shared, 1, 1)) != null)
             throw new AssertionError("Claimed unrelated shared GT machine meta");
-        for (int meta = 0; meta < 4; meta++) {
+        if (index(ordered, new ItemStack(com.miaokatze.gtsr.common.blocks.BlocksGTSR.runawaySingularity, 1, 0)) >= 0)
+            throw new AssertionError("Retired singularity metadata zero visible");
+        for (int meta = 1; meta <= 3; meta++) {
             ItemStack variant = new ItemStack(com.miaokatze.gtsr.common.blocks.BlocksGTSR.runawaySingularity, 1, meta);
             if (index(ordered, variant) < 0) throw new AssertionError("Missing singularity meta " + meta);
         }

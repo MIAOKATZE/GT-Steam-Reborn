@@ -13,20 +13,14 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * 失控奇点方块物品（四 meta 变体，单一方块 ID 不扩注册）：
- * <ul>
- * <li>damage 0 = 失控节点[OLD]（旧存档兼容口径）：保持旧版物品行为——放置后不写 type，
- * 走 TileRunawaySingularity 字段缺省/attribute 派生（attr=-1 → STABLE），与旧版一致；</li>
- * <li>damage 1 = 自然节点（放置 → NATURAL）；damage 2 = 稳定节点（放置 → STABLE）；
- * damage 3 = 失控节点（放置 → RUNAWAY）——分型由 {@link BlockRunawaySingularity#onBlockPlacedBy}
- * 按 meta 显式落 NBT。</li>
- * </ul>
- * 四变体共用同一图标与节点参数（属性可相同），仅名称与分型词条不同。
+ * Three current metadata variants share one block registration: 1 natural, 2 stable, 3 runaway.
+ * Metadata zero is retired and cannot be placed. Item NBT cannot override the declared classification.
  * 方块本体在世界中透明无贴图（原版全透明贴图），物品栏图标单独使用物品贴图，
  * 否则 ItemBlock 默认渲染方块图标会在创造物品栏中不可见。
  * 注意：ItemBlock.registerIcons 覆写不调 super，Item.itemIcon 永不填充，须自持 IIcon。
@@ -39,8 +33,7 @@ public class ItemBlockRunawaySingularity extends ItemBlock {
     public static final int META_STABLE = 2;
     public static final int META_RUNAWAY = 3;
 
-    /** 变体数（名称/分型词条键尾段；越界 meta 钳到 OLD） */
-    private static final String[] VARIANT_KEYS = { "old", "natural", "stable", "runaway" };
+    private static final String[] VARIANT_KEYS = { "", "natural", "stable", "runaway" };
 
     private IIcon singularityIcon;
 
@@ -49,16 +42,48 @@ public class ItemBlockRunawaySingularity extends ItemBlock {
         this.setHasSubtypes(true);
     }
 
-    /** 变体名（item.RunawaySingularity.<variant>.name；越界 meta 钳到 0=OLD） */
+    /** Current variants alone have a classified name. Retired/invalid stacks retain the ordinary block fallback. */
     @Override
     public String getUnlocalizedName(ItemStack stack) {
-        return "item.RunawaySingularity." + VARIANT_KEYS[variantIndex(stack)];
+        int variant = variantIndex(stack);
+        return variant == 0 ? super.getUnlocalizedName(stack) : "item.RunawaySingularity." + VARIANT_KEYS[variant];
     }
 
-    /** 变体钳位（0..3） */
+    /** 1/2/3 are current identities; zero is an invalid sentinel, never a natural alias. */
     public static int variantIndex(ItemStack stack) {
+        if (stack == null) return 0;
         int meta = stack.getItemDamage();
-        return Math.max(0, Math.min(VARIANT_KEYS.length - 1, meta));
+        return meta >= META_NATURAL && meta <= META_RUNAWAY ? meta : 0;
+    }
+
+    public static int metadataForType(TileRunawaySingularity.SingularityType type) {
+        return switch (type) {
+            case NATURAL -> META_NATURAL;
+            case STABLE -> META_STABLE;
+            case RUNAWAY -> META_RUNAWAY;
+        };
+    }
+
+    @Override
+    public int getMetadata(int damage) {
+        return damage >= META_NATURAL && damage <= META_RUNAWAY ? damage : 0;
+    }
+
+    @Override
+    public boolean onItemUse(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
+        float hitX, float hitY, float hitZ) {
+        if (getClass() != ItemBlockRunawaySingularity.class)
+            return super.onItemUse(stack, player, world, x, y, z, side, hitX, hitY, hitZ);
+        return variantIndex(stack) != 0 && super.onItemUse(stack, player, world, x, y, z, side, hitX, hitY, hitZ);
+    }
+
+    @Override
+    public boolean placeBlockAt(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
+        float hitX, float hitY, float hitZ, int metadata) {
+        if (getClass() != ItemBlockRunawaySingularity.class)
+            return super.placeBlockAt(stack, player, world, x, y, z, side, hitX, hitY, hitZ, metadata);
+        int variant = variantIndex(stack);
+        return variant != 0 && super.placeBlockAt(stack, player, world, x, y, z, side, hitX, hitY, hitZ, variant);
     }
 
     /**
@@ -68,10 +93,10 @@ public class ItemBlockRunawaySingularity extends ItemBlock {
     @SideOnly(Side.CLIENT)
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void addInformation(ItemStack stack, EntityPlayer player, List lines, boolean advanced) {
+        if (variantIndex(stack) == 0) return;
         lines.add(
             EnumChatFormatting.AQUA
                 + StatCollector.translateToLocal("gtsr.tooltip.node." + VARIANT_KEYS[variantIndex(stack)]));
-        lines.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.node.common"));
     }
 
     @SideOnly(Side.CLIENT)

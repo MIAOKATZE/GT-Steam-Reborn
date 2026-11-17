@@ -79,6 +79,7 @@ public final class TestLabCatalog {
         tasks.add(new TestLabFollowupTask("gtnl_hooks"));
         tasks.add(new TestLabAmmoniaNaturalTask(false));
         tasks.add(new TestLabAmmoniaNaturalTask(true));
+        tasks.add(new TestLabSingularityProfile());
         return Collections.unmodifiableList(tasks);
     }
 

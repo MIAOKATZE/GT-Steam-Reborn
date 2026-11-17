@@ -8,11 +8,14 @@ import java.util.ArrayList;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 
 import com.miaokatze.gtsr.common.util.SingularityDropExplosion;
@@ -21,11 +24,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * 失控奇点方块
- * 不可破坏的透明方块骨架，业务逻辑由 TileRunawaySingularity 承载。
- * 物品形态四 meta 变体（0=OLD/1=自然/2=稳定/3=失控，见 ItemBlockRunawaySingularity）：
- * 玩家放置时按 meta 显式落分型（meta 0 不写 type，保持旧版字段缺省派生行为）；
- * 世界生成/机器/命令/爆炸链等直接 spawn 路径不经过本钩子，分型由各调用点自带。
+ * Natural nodes can be harvested; stable and runaway nodes cannot. Tile identity is authoritative in existing worlds.
+ * Current item metadata 1/2/3 explicitly declares natural/stable/runaway placement; metadata zero is retired.
  */
 public class BlockRunawaySingularity extends BlockContainer {
 
@@ -39,48 +39,13 @@ public class BlockRunawaySingularity extends BlockContainer {
 
     @Override
     public TileEntity createNewTileEntity(World world, int meta) {
-        return new TileRunawaySingularity();
+        TileRunawaySingularity node = new TileRunawaySingularity();
+        initializePlacedNode(node, meta);
+        return node;
     }
 
-    /**
-     * 位置感知硬度：nature 奇点（自然生成专用）硬度 4，空手可破；其余奇点仍为 bedrock 级不可破（构造 setHardness(-1)）。
-     */
-    @Override
-    public float getBlockHardness(World world, int x, int y, int z) {
-        TileEntity te = world.getTileEntity(x, y, z);
-        if (te instanceof TileRunawaySingularity
-            && ((TileRunawaySingularity) te).getAttributeId() == TileRunawaySingularity.ATTRIBUTE_NATURE) {
-            return 4.0F;
-        }
-        return blockHardness;
-    }
-
-    /**
-     * nature 奇点被玩家挖掉时触发爆炸（TNT 视觉、不破坏方块、不伤 HP、只击退、产 0-1 个蒸汽纠缠奇点）；
-     * 其余奇点不可破坏，不会进入此分支的爆炸逻辑。
-     */
-    @Override
-    public boolean removedByPlayer(World world, EntityPlayer player, int x, int y, int z, boolean willHarvest) {
-        TileEntity te = world.getTileEntity(x, y, z);
-        if (!world.isRemote && te instanceof TileRunawaySingularity
-            && ((TileRunawaySingularity) te).getAttributeId() == TileRunawaySingularity.ATTRIBUTE_NATURE) {
-            SingularityDropExplosion.explodeNature(world, x + 0.5D, y + 0.5D, z + 0.5D);
-        }
-        return super.removedByPlayer(world, player, x, y, z, willHarvest);
-    }
-
-    /**
-     * 玩家放置四变体物品时按 meta 落分型：1=自然 2=稳定 3=失控；meta 0（旧版物品）不写 type，
-     * 保持与旧版放置行为一致（字段缺省 attr=-1 → STABLE 派生）。
-     */
-    @Override
-    public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
-        TileEntity te = world.getTileEntity(x, y, z);
-        if (!(te instanceof TileRunawaySingularity) || stack == null) {
-            return;
-        }
-        TileRunawaySingularity node = (TileRunawaySingularity) te;
-        switch (ItemBlockRunawaySingularity.variantIndex(stack)) {
+    private static void initializePlacedNode(TileRunawaySingularity node, int meta) {
+        switch (meta) {
             case ItemBlockRunawaySingularity.META_NATURAL:
                 node.setType(TileRunawaySingularity.SingularityType.NATURAL);
                 break;
@@ -91,8 +56,79 @@ public class BlockRunawaySingularity extends BlockContainer {
                 node.setType(TileRunawaySingularity.SingularityType.RUNAWAY);
                 break;
             default:
-                break; // META_OLD：不写 type，旧版派生口径
+                break; // Existing world/NBT semantics are left intact; retired items cannot place this metadata.
         }
+    }
+
+    private boolean isNatural(World world, int x, int y, int z) {
+        return world.getBlock(x, y, z) == this && world.getTileEntity(x, y, z) instanceof TileRunawaySingularity node
+            && node.getType() == TileRunawaySingularity.SingularityType.NATURAL;
+    }
+
+    /**
+     * 位置感知硬度：nature 奇点（自然生成专用）硬度 4，空手可破；其余奇点仍为 bedrock 级不可破（构造 setHardness(-1)）。
+     */
+    @Override
+    public float getBlockHardness(World world, int x, int y, int z) {
+        if (isNatural(world, x, y, z)) {
+            return 4.0F;
+        }
+        return blockHardness;
+    }
+
+    /**
+     * Emit the nature effect and its 1-2 timed item entities only after a successful survival removal.
+     * The normal harvest path returns no additional drops, including Silk Touch and explosions.
+     */
+    @Override
+    public boolean removedByPlayer(World world, EntityPlayer player, int x, int y, int z, boolean willHarvest) {
+        boolean natural = isNatural(world, x, y, z);
+        if (!natural && (player == null || !player.capabilities.isCreativeMode)) return false;
+        boolean removed = super.removedByPlayer(world, player, x, y, z, willHarvest);
+        if (removed && natural && !world.isRemote && player != null && !player.capabilities.isCreativeMode) {
+            SingularityDropExplosion.explodeNature(world, x + 0.5D, y + 0.5D, z + 0.5D);
+        }
+        return removed;
+    }
+
+    /**
+     * Current item placement owns its metadata classification and safe defaults. No item can inject tile coordinates,
+     * machine ownership or a conflicting type through NBT. Direct spawn paths retain their explicit parameters.
+     */
+    @Override
+    public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (!(te instanceof TileRunawaySingularity) || stack == null) {
+            return;
+        }
+        initializePlacedNode((TileRunawaySingularity) te, ItemBlockRunawaySingularity.variantIndex(stack));
+        te.markDirty();
+        world.markBlockForUpdate(x, y, z);
+    }
+
+    @Override
+    public int getDamageValue(World world, int x, int y, int z) {
+        if (getClass() != BlockRunawaySingularity.class) return super.getDamageValue(world, x, y, z);
+        return world.getTileEntity(x, y, z) instanceof TileRunawaySingularity node
+            ? ItemBlockRunawaySingularity.metadataForType(node.getType())
+            : super.getDamageValue(world, x, y, z);
+    }
+
+    @Override
+    public ItemStack getPickBlock(MovingObjectPosition target, World world, int x, int y, int z) {
+        return new ItemStack(this, 1, getDamageValue(world, x, y, z));
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public void getSubBlocks(Item item, CreativeTabs tab, java.util.List variants) {
+        if (getClass() != BlockRunawaySingularity.class) {
+            super.getSubBlocks(item, tab, variants);
+            return;
+        }
+        for (int meta = ItemBlockRunawaySingularity.META_NATURAL; meta
+            <= ItemBlockRunawaySingularity.META_RUNAWAY; meta++) variants.add(new ItemStack(item, 1, meta));
     }
 
     @Override
@@ -128,6 +164,11 @@ public class BlockRunawaySingularity extends BlockContainer {
     @Override
     public ArrayList<ItemStack> getDrops(World world, int x, int y, int z, int metadata, int fortune) {
         return new ArrayList<ItemStack>();
+    }
+
+    @Override
+    protected boolean canSilkHarvest() {
+        return false;
     }
 
     @Override

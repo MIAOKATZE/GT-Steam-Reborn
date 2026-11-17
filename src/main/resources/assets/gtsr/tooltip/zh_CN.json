@@ -1528,9 +1528,9 @@
     {"id":"item.SteamEntangledSingularity","owner":{"item":"gtsr:SteamEntangledSingularity","meta":0},"tiers":{
       "common":[
         {"type":"line","text":"§6用于高级的合成与增幅§7，也可作为§b [item:gtsr:PortableSingularity@0|奇点控制器] §7的普通弹药。§r"},
-        {"type":"line","text":"§7由§b蒸汽奇点纠缠装置§7合成；也可打碎天然失控节点或搜寻箱子取得。§r"},
+        {"type":"line","text":"§7由§b蒸汽奇点纠缠装置§7合成；也可挖掉自然奇点或搜寻箱子取得。§r"},
         {"type":"warning","text":"§c掉落物会爆炸！请勿丢弃。§7通常丢出 §e5 秒§7后爆炸，伤害可波及 §c16 格§7。§r"},
-        {"type":"line","text":"§7天然节点掉落的倒计时为 §e10–20 秒§7，请及时拾取。§r"},
+        {"type":"line","text":"§7自然奇点掉落的倒计时为 §e10–20 秒§7，请及时拾取。§r"},
         {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ]
     }},
@@ -2039,22 +2039,23 @@
     }},
     {"id":"item.RunawaySingularity.natural","owner":{"item":"gtsr:RunawaySingularity","meta":1},"tiers":{
       "common":[
-        {"type":"line","text":"§7自然奇点不参与机器的停机回收。§r"},
-        {"type":"line","text":"§7直接放置仅显示§b奇点光效§7，§e30 秒§7后消散。§r"},
+        {"type":"line","text":"§7生存模式下挖掉自然奇点，掉落 §e1–2 个 [item:gtsr:SteamEntangledSingularity@0|蒸汽纠缠奇点]§7。§r"},
+        {"type":"line","text":"§7请及时拾取：掉落后 §e10–20 秒§7会爆炸。§r"},
+        {"type":"line","text":"§7手动放置只显示光效，§e30 秒§7后消散。§r"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ]
     }},
     {"id":"item.RunawaySingularity.stable","owner":{"item":"gtsr:RunawaySingularity","meta":2},"tiers":{
       "common":[
-        {"type":"line","text":"§7机器生成的稳定奇点受停机回收与自愈管理。§r"},
-        {"type":"line","text":"§7直接放置仅显示§b奇点光效§7，§e30 秒§7后消散。§r"},
+        {"type":"line","text":"§7不会吸收方块。机器停机或拆除时可回收其稳定奇点。§r"},
+        {"type":"line","text":"§7手动放置只显示光效，§e30 秒§7后消散。§r"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ]
     }},
     {"id":"item.RunawaySingularity.runaway","owner":{"item":"gtsr:RunawaySingularity","meta":3},"tiers":{
       "common":[
-        {"type":"line","text":"§7失控奇点独立存在，到时自行消散。§r"},
-        {"type":"line","text":"§7直接放置仅显示§b奇点光效§7，§e30 秒§7后消散。§r"},
+        {"type":"line","text":"§7不受机器管理；有时限的失控奇点会自行消散。§r"},
+        {"type":"line","text":"§7手动放置只显示光效，§e30 秒§7后消散。§r"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ]
     }},

@@ -1241,7 +1241,7 @@ gtsr.tooltip.critical_compressor.nei_use=Obtained via the Critical Singularity S
 
 # Singularity tooltip extended lines (inserted after the first line)
 gtsr.tooltip.singularity.craft=Synthesized via the Steam Singularity Entangler.
-gtsr.tooltip.singularity.source=Can also be obtained by shattering natural runaway nodes or from chests.
+gtsr.tooltip.singularity.source=Mining a natural singularity yields 1–2. Also found in loot chests.
 gtsr.tooltip.critical_singularity.craft=Synthesized via the Critical Singularity Stabilizer.
 gtsr.tooltip.critical_singularity.legend=Legend says it can tear apart the very limits of dimensions...
 
@@ -1264,7 +1264,7 @@ gtsr.gui.reinforced_brick_blast_furnace.parallel=Parallels:
 gtsr.gui.reinforced_brick_blast_furnace.speed=Speed:
 
 # Runaway Singularity
-tile.RunawaySingularity.name=Runaway Singularity
+tile.RunawaySingularity.name=Singularity
 death.attack.gtsrSingularity=%1$s was consumed by a runaway singularity
 # ===== v1.10.61 new/split keys (per plan/review/lang修改清单.md) =====
 gtsr.tooltip.steam_hub.desc2_2=Hold a Steam Cache Node or a Singularity Steam (Output) Compartment and right-click to bind for remote steam transfer.
@@ -2123,15 +2123,12 @@ gtsr.wand.ui.done=Done
 gtsr.wand.no_tear=This machine does not support Dimensional Tear (Critical Singularity Compressor only)
 
 # Singularity node item variants (damage 0=OLD/1=Natural/2=Stable/3=Runaway; params may match, only name & type line differ)
-item.RunawaySingularity.old.name=Runaway Node [OLD]
-item.RunawaySingularity.natural.name=Natural Node
-item.RunawaySingularity.stable.name=Stable Node
-item.RunawaySingularity.runaway.name=Runaway Node
-gtsr.tooltip.node.old=Legacy singularity (save compat): placed nodes derive type by legacy rules
-gtsr.tooltip.node.natural=Natural singularity: worldgen caliber, machine management never touches it
-gtsr.tooltip.node.stable=Stable singularity: machine-managed, subject to self-heal/reclaim
-gtsr.tooltip.node.runaway=Runaway singularity: unmanaged, survives independently until duration expires
-gtsr.tooltip.node.common=Variants differ only in name & type line; node params may match; command spawns are always Runaway
+item.RunawaySingularity.natural.name=Natural Singularity
+item.RunawaySingularity.stable.name=Stable Singularity
+item.RunawaySingularity.runaway.name=Runaway Singularity
+gtsr.tooltip.node.natural=Mining a natural singularity in survival drops 1–2 Steam Entangled Singularities. Pick them up before they explode in 10–20 seconds.
+gtsr.tooltip.node.stable=Never absorbs blocks. Its machine can remove it when shut down or dismantled.
+gtsr.tooltip.node.runaway=Independent of machines. A runaway singularity with a time limit dissipates when it expires.
 
 # Dimension prosperity-ruins: biomes (dim1 S2; keys follow biome.<biomeName>.name from setBiomeName)
 biome.Rusted Steppe.name=Rusted Steppe
