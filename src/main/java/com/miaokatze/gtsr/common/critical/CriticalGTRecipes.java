@@ -16,6 +16,7 @@ import net.minecraftforge.fluids.FluidStack;
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.critical.recipe.RecipeMatch;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
+import com.miaokatze.gtsr.loader.recipes.StoneBreakerRule;
 
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
@@ -275,6 +276,12 @@ public final class CriticalGTRecipes {
             .iterator();
         while (candidates.hasNext()) {
             GTRecipe recipe = candidates.next();
+            StoneBreakerRule stone = recipe.getMetadata(StoneBreakerRule.KEY);
+            if (stone != null && !stone.canStart(
+                host.getBaseMetaTileEntity()
+                    .getWorld(),
+                voltage,
+                items)) continue;
             int maxParallel = Integer.MAX_VALUE;
             if (map == GTVersionCompat.requireGppRecipeMap("quantumForceTransformerRecipes")) {
                 maxParallel = CriticalAdvancedRecipes.qftCatalysts(recipe, items);

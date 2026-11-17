@@ -17,6 +17,7 @@ import com.miaokatze.gtsr.loader.recipes.MultiblockMachineRecipes;
 import com.miaokatze.gtsr.loader.recipes.NodeAndHubRecipes;
 import com.miaokatze.gtsr.loader.recipes.ProcessingMachineRecipes;
 import com.miaokatze.gtsr.loader.recipes.ProsperityAirCompressorRecipes;
+import com.miaokatze.gtsr.loader.recipes.SampledStoneRecipes;
 import com.miaokatze.gtsr.loader.recipes.SpacetimeMachineRecipes;
 
 /**
@@ -83,6 +84,7 @@ public class GTSRRecipeLoader implements Runnable {
                                                               // （GTUDK 用户规格）：eut 30/32=LV、128=MV，磁选与筛选为 MV
         registerGroup("ProsperityIndustrial", ProsperityIndustrialRecipes::registerAll);
         registerGroup("AbyssalObsession", AbyssalObsessionRecipes::register);
+        registerGroup("SampledStone", SampledStoneRecipes::register);
         registerGroup("SpacetimeEngineering", SpacetimeMachineRecipes::register);
         registerGroup("PortableWeapons", com.miaokatze.gtsr.loader.recipes.PortableWeaponRecipes::register);
     }

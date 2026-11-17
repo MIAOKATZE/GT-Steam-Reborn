@@ -16,6 +16,7 @@ final class TestLabMetadata {
     private static final Set<String> REGRESSIONS = Collections.unmodifiableSet(
         new LinkedHashSet<>(
             Arrays.asList(
+                "rock_breaker_sites",
                 "cluster_unit_furnace_output_split",
                 "cluster_unit_ore_washer_water_bulk",
                 "cluster_unit_ore_washer_residual_distilled_bulk",
