@@ -3,7 +3,10 @@
 
 package com.miaokatze.gtsr.common.util;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -22,6 +25,7 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.ChunkPosition;
 import net.minecraft.world.Explosion;
 import net.minecraft.world.World;
+import net.minecraftforge.event.ForgeEventFactory;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 
@@ -303,18 +307,19 @@ public final class SingularityDropExplosion {
 
     /**
      * nature 奇点挖掘爆炸：TNT 强度（4.0）视觉动画，不破坏方块，不伤害实体 HP，只击退实体，
-     * 产 0-1 个蒸汽纠缠奇点（各带 10-20 秒/200-400 tick 倒计时）。由 BlockRunawaySingularity.removedByPlayer 触发。
+     * 产 1-2 个蒸汽纠缠奇点（各带 10-20 秒/200-400 tick 倒计时）。由 BlockRunawaySingularity.removedByPlayer 触发。
      */
     public static void explodeNature(World world, double x, double y, double z) {
         if (world.isRemote) {
             return;
         }
         Explosion exp = new Explosion(world, null, x, y, z, NATURE_VISUAL_SIZE);
-        exp.doExplosionA();
+        // doExplosionA applies real entity damage before rendering. Nature harvesting needs only its visual packet.
         exp.isSmoking = false;
         exp.affectedBlockPositions.clear(); // 不破坏方块（同普通奇点：清空列表避免客户端假破坏）
-        broadcastExplosion(world, exp);
         knockbackEntities(world, exp, x, y, z, NATURE_KNOCKBACK_SIZE); // 只击退不伤 HP
+        exp.affectedBlockPositions.clear();
+        broadcastExplosion(world, exp);
         spawnNatureSingularityDrops(world, x, y, z);
     }
 
@@ -334,8 +339,10 @@ public final class SingularityDropExplosion {
                 y + range + 1.0D,
                 z + range + 1.0D));
         Vec3 center = Vec3.createVectorHelper(x, y, z);
+        ForgeEventFactory.onExplosionDetonate(world, exp, entities, range);
+        Set<Entity> handled = Collections.newSetFromMap(new IdentityHashMap<>());
         for (Entity entity : entities) {
-            if (entity instanceof EntityItem) {
+            if (entity instanceof EntityItem || !handled.add(entity)) {
                 continue; // 跳过掉落物（source 在 nature 场景是 null，无需判 source）
             }
             double d9 = entity.getDistance(x, y, z) / (double) range;
@@ -360,12 +367,17 @@ public final class SingularityDropExplosion {
             entity.motionX += dx * knockback;
             entity.motionY += dy * knockback;
             entity.motionZ += dz * knockback;
+            if (entity instanceof EntityPlayer player) {
+                // Match patched MC 1.7.10: S27 carries the raw density-scaled impulse; armour modifies server motion.
+                exp.func_77277_b()
+                    .put(player, Vec3.createVectorHelper(dx * d12, dy * d12, dz * d12));
+            }
         }
     }
 
-    /** nature 爆炸产出 0-1 个蒸汽纠缠奇点，各带 10-20 秒（200-400 tick）随机爆炸倒计时 */
+    /** nature 爆炸产出 1-2 个蒸汽纠缠奇点，各带 10-20 秒（200-400 tick）随机爆炸倒计时 */
     private static void spawnNatureSingularityDrops(World world, double x, double y, double z) {
-        int count = world.rand.nextInt(2); // 0 或 1
+        int count = 1 + world.rand.nextInt(2);
         for (int i = 0; i < count; ++i) {
             double angle = world.rand.nextDouble() * Math.PI * 2.0D;
             double dist = 1.0D + world.rand.nextDouble() * 3.0D;

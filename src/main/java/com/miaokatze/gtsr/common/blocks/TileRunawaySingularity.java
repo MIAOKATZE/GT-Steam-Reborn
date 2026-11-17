@@ -3,9 +3,6 @@
 
 package com.miaokatze.gtsr.common.blocks;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -142,6 +139,7 @@ public class TileRunawaySingularity extends TileEntity {
     private boolean destroyBlocks = true; // 自然生成奇点是否吸收破坏方块（absorbScan 方块吸收），NBT 缺省默认 true（向后兼容）；仅服务端逻辑字段
     private int elapsedTicks = 0; // 服务端与客户端各自递增
     private SingularityType type = SingularityType.STABLE; // 三分类；字段缺省 STABLE，旧档加载时按 attribute 派生覆盖
+    private long[] absorbTargets = SingularityScanOrder.EMPTY;
 
     @Override
     public void readFromNBT(NBTTagCompound tag) {
@@ -385,13 +383,21 @@ public class TileRunawaySingularity extends TileEntity {
      */
     public static void spawnSingularity(World world, int x, int y, int z, double range, double speed, double damage,
         int duration, int attributeId, String color, double fxRadius, boolean destroyBlocks, SingularityType type) {
-        world.setBlock(x, y, z, BlocksGTSR.runawaySingularity);
+        SingularityType declaredType = type == null ? SingularityType.STABLE : type;
+        world.setBlock(
+            x,
+            y,
+            z,
+            BlocksGTSR.runawaySingularity,
+            ItemBlockRunawaySingularity.metadataForType(declaredType),
+            3);
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileRunawaySingularity) {
             TileRunawaySingularity teSingularity = (TileRunawaySingularity) te;
-            teSingularity.setParams(range, speed, damage, duration, attributeId, color, fxRadius);
             teSingularity.setDestroyBlocks(destroyBlocks);
-            teSingularity.setType(type);
+            teSingularity.setType(declaredType);
+            // setParams schedules the complete description NBT only after ownership and policy are final.
+            teSingularity.setParams(range, speed, damage, duration, attributeId, color, fxRadius);
             te.markDirty();
         }
     }
@@ -432,25 +438,29 @@ public class TileRunawaySingularity extends TileEntity {
      * 所指的 absorbRays 为死代码（全库零调用，B2-05 删除），该说法不成立。
      */
     private void absorbScan(double effRange, double factor) {
+        if (type == SingularityType.STABLE) return;
         if (worldObj.getWorldTime() % SCAN_INTERVAL != 0) {
             return;
         }
         double scanRange = Math.min(effRange, 48.0D);
         int r = (int) Math.ceil(scanRange);
         double rangeSq = scanRange * scanRange;
-        List<int[]> targets = new ArrayList<int[]>();
+        SingularityBlockLookup blocks = new SingularityBlockLookup(worldObj, xCoord, zCoord, r);
+        int targetCount = 0;
         for (int dx = -r; dx <= r; dx++) {
+            int dxSquared = dx * dx;
             for (int dy = -r; dy <= r; dy++) {
+                int xySquared = dxSquared + dy * dy;
                 for (int dz = -r; dz <= r; dz++) {
-                    double d2 = (double) dx * dx + (double) dy * dy + (double) dz * dz;
+                    int d2 = xySquared + dz * dz;
                     if (d2 > rangeSq) {
                         continue;
                     }
                     int wx = xCoord + dx;
                     int wy = yCoord + dy;
                     int wz = zCoord + dz;
-                    Block block = worldObj.getBlock(wx, wy, wz);
-                    if (block.isAir(worldObj, wx, wy, wz) || block == Blocks.air) {
+                    Block block = blocks.getBlock(wx, wy, wz);
+                    if (block == Blocks.air || block.isAir(worldObj, wx, wy, wz)) {
                         continue;
                     }
                     if (block == BlocksGTSR.runawaySingularity) {
@@ -460,44 +470,38 @@ public class TileRunawaySingularity extends TileEntity {
                     if (h < 0.0F) {
                         continue; // 硬度 -1 不可吸收
                     }
-                    targets.add(new int[] { wx, wy, wz });
+                    absorbTargets = SingularityScanOrder.reserve(absorbTargets, targetCount);
+                    absorbTargets[targetCount++] = SingularityScanOrder.pack(dx, dy, dz, d2);
                 }
             }
         }
-        if (targets.isEmpty()) {
+        if (targetCount == 0) {
+            if (absorbTargets.length > 8192) absorbTargets = SingularityScanOrder.EMPTY;
             return;
         }
-        Collections.sort(targets, new Comparator<int[]>() {
-
-            @Override
-            public int compare(int[] a, int[] b) {
-                int da2 = (a[0] - xCoord) * (a[0] - xCoord) + (a[1] - yCoord) * (a[1] - yCoord)
-                    + (a[2] - zCoord) * (a[2] - zCoord);
-                int db2 = (b[0] - xCoord) * (b[0] - xCoord) + (b[1] - yCoord) * (b[1] - yCoord)
-                    + (b[2] - zCoord) * (b[2] - zCoord);
-                return da2 - db2;
-            }
-        });
+        SingularityScanOrder.sort(absorbTargets, targetCount);
         int cap = Math.max(1, (int) Math.round(speed * SCAN_INTERVAL / 20.0D)); // speed=每20tick方块数；speed=1 →
                                                                                 // 每4tick期望0.2块
         int count = 0;
-        for (int[] t : targets) {
-            double dx = t[0] - xCoord;
-            double dy = t[1] - yCoord;
-            double dz = t[2] - zCoord;
-            double d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        for (int i = 0; i < targetCount; i++) {
+            long target = absorbTargets[i];
+            int wx = xCoord + SingularityScanOrder.x(target);
+            int wy = yCoord + SingularityScanOrder.y(target);
+            int wz = zCoord + SingularityScanOrder.z(target);
+            double d = Math.sqrt(SingularityScanOrder.distanceSquared(target));
             double f = speedFactor(d, scanRange);
             double jitter = 0.5D + worldObj.rand.nextDouble();
             double p = Math.min(1.0D, speed * factor * f * jitter * SCAN_INTERVAL / 20.0D);
             if (worldObj.rand.nextDouble() < p) {
-                worldObj.setBlockToAir(t[0], t[1], t[2]);
-                GTSRFXNet.sendAbsorb(worldObj, t[0], t[1], t[2], xCoord, yCoord, zCoord);
+                worldObj.setBlockToAir(wx, wy, wz);
+                GTSRFXNet.sendAbsorb(worldObj, wx, wy, wz, xCoord, yCoord, zCoord);
                 count++;
                 if (count >= cap) {
                     break;
                 }
             }
         }
+        if (absorbTargets.length > 8192) absorbTargets = SingularityScanOrder.EMPTY;
     }
 
     /**
@@ -512,7 +516,9 @@ public class TileRunawaySingularity extends TileEntity {
         double cz = zCoord + 0.5D;
         AxisAlignedBB box = AxisAlignedBB
             .getBoundingBox(cx - effRange, cy - effRange, cz - effRange, cx + effRange, cy + effRange, cz + effRange);
-        List<Entity> list = worldObj.getEntitiesWithinAABB(Entity.class, box);
+        List<? extends Entity> list;
+        if (nature) list = worldObj.getEntitiesWithinAABB(EntityItem.class, box);
+        else list = worldObj.getEntitiesWithinAABB(Entity.class, box);
         int inRange = 0;
         int players = 0;
         int itemsVanish = 0;

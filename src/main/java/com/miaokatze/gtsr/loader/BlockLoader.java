@@ -49,9 +49,8 @@ public class BlockLoader {
         GameRegistry
             .registerBlock(BlocksGTSR.runawaySingularity, ItemBlockRunawaySingularity.class, "RunawaySingularity");
         GameRegistry.registerTileEntity(TileRunawaySingularity.class, "gtsr.runawaySingularity");
-        CreativeTabManager.addItemToTabFirst(new ItemStack(BlocksGTSR.runawaySingularity));
-        // 节点三新变体（1=自然/2=稳定/3=失控；0=OLD 保持首位，见 ItemBlockRunawaySingularity）
-        CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.runawaySingularity, 1, 1));
+        // Only the three current identities are exposed; retired metadata zero has no usable catalogue entry.
+        CreativeTabManager.addItemToTabFirst(new ItemStack(BlocksGTSR.runawaySingularity, 1, 1));
         CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.runawaySingularity, 1, 2));
         CreativeTabManager.addItemToTab(new ItemStack(BlocksGTSR.runawaySingularity, 1, 3));
 

@@ -81,6 +81,27 @@ public class GTSRFXVec {
             (double) (vec1.x * vec2.y - vec1.y * vec2.x));
     }
 
+    /** Reuses render scratch storage; inputs may alias this vector. */
+    public GTSRFXVec setCrossProduct(GTSRFXVec vec1, GTSRFXVec vec2) {
+        float nextX = vec1.y * vec2.z - vec1.z * vec2.y;
+        float nextY = vec1.z * vec2.x - vec1.x * vec2.z;
+        float nextZ = vec1.x * vec2.y - vec1.y * vec2.x;
+        this.x = nextX;
+        this.y = nextY;
+        this.z = nextZ;
+        return this;
+    }
+
+    public GTSRFXVec setPerpendicular(GTSRFXVec vec) {
+        float nextX = vec.z == 0.0F ? -vec.y : 0.0F;
+        float nextY = vec.z == 0.0F ? vec.x : vec.z;
+        float nextZ = vec.z == 0.0F ? 0.0F : -vec.y;
+        this.x = nextX;
+        this.y = nextY;
+        this.z = nextZ;
+        return this;
+    }
+
     public static GTSRFXVec xCrossProduct(GTSRFXVec vec) {
         return new GTSRFXVec(0.0D, (double) vec.z, (double) (-vec.y));
     }

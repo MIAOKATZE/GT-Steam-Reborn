@@ -22,7 +22,7 @@ public final class TestLabContracts {
         requestCorrelation();
         if (args.length > 0) exportDeclaredCases(java.nio.file.Paths.get(args[0]));
         System.out.println(
-            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 104/95/119 catalog, performance selection, independent report retry, request correlation");
+            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 105/95/119 catalog, performance selection, independent report retry, request correlation");
     }
 
     private static void bootstrapWithoutImplementation() throws Exception {
@@ -76,9 +76,12 @@ public final class TestLabContracts {
 
     private static void catalogSelection() {
         List<TestLabTask> tasks = TestLabCatalog.tasks();
-        require(tasks.size() == 104, "machine catalog coverage changed: " + tasks.size());
+        require(tasks.size() == 105, "machine catalog coverage changed: " + tasks.size());
         int defaults = 0, representatives = 0;
         for (TestLabTask task : tasks) {
+            if (task instanceof TestLabSingularityProfile) require(
+                !TestLabMetadata.defaultIncluded(task),
+                "explicit singularity benchmark must not join default run all");
             if (TestLabMetadata.defaultIncluded(task)) defaults++;
             if (TestLabMetadata.performanceRepresentative(task)) {
                 representatives++;
