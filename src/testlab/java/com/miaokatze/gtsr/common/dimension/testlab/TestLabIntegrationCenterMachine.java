@@ -21,6 +21,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
+import com.miaokatze.gtsr.main.GTSteamReborn;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.items.CenterModuleItems;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
@@ -30,6 +31,7 @@ import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.SteamGrade;
 
+import gregtech.api.GregTechAPI;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
@@ -39,6 +41,7 @@ import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 
 /** Natural world ticks with owned structure, assembled packs and ordinary GT hatches. */
 final class TestLabIntegrationCenterMachine implements TestLabTask {
@@ -56,7 +59,7 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
     private MTESteamCoolingHatch cooling;
     private long expectedWater;
     private ItemStack ore, product;
-    private FluidStack withheld;
+    private FluidStack withheld, coolingAtCheckpoint;
     private NBTTagCompound checkpoint;
 
     @Override
@@ -98,6 +101,11 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
 
     @Override
     public TestLabReport.Result tick(WorldServer world, int elapsedTicks) {
+        if (controller != null && elapsedTicks % 200 == 0) {
+            GTSteamReborn.LOG.info("Ore center machine phase={}, formed={}, shutdown={}, enabled={}, GT startup={}",
+                phase, center.mMachine, controller.getLastShutDownReason().getKey(), controller.isAllowedToWork(),
+                center.getmStartUpCheck());
+        }
         if (phase == 0) {
             int end = Math.min(positions.size(), cursor + 1024);
             while (cursor < end) {
@@ -106,22 +114,41 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             }
             if (cursor == positions.size()) {
                 controller = TestLabFixtures.machine(world, x, y, z, GTSRItemList.OreIntegrationCenter.get(1).getItemDamage());
-                controller.disableWorking();
                 center = (MTEMineralIntegrationCenter) controller.getMetaTileEntity();
-                long begin = System.nanoTime();
-                center.construct(GTSRItemList.OreIntegrationCenter.get(1), false);
-                buildNanos = System.nanoTime() - begin;
-                input = place(world, 5, ItemList.Hatch_Input_Bus_LV);
-                output = place(world, -5, ItemList.Hatch_Output_Bus_LV);
-                ordinaryInput = (MTEHatchInput) place(world, 3, ItemList.Hatch_Input_IV).getMetaTileEntity();
-                place(world, -3, ItemList.Hatch_Output_LV);
-                steam = (MTEHatchInput) TestLabFixtures.machine(world, x + 7, y, z,
-                    GTSRItemList.SteamInputHatchGeneric.get(1).getItemDamage()).getMetaTileEntity();
-                cooling = (MTESteamCoolingHatch) TestLabFixtures.machine(world, x - 7, y, z,
-                    GTSRItemList.SteamCoolingHatch.get(1).getItemDamage()).getMetaTileEntity();
-                input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
-                phase = 1;
+                controller.disableWorking();
+                phase = 7;
             }
+        } else if (phase == 7 && center.getmStartUpCheck() < 0) {
+            require(!center.mMachine && (center.getErrorDisplayID() & 64) != 0,
+                "An unbuilt controller did not report missing structure");
+            center.stopMachine(ShutDownReasonRegistry.STRUCTURE_INCOMPLETE);
+            require(failedStructure(), "GT did not record the structure stop reason");
+            long begin = System.nanoTime();
+            center.construct(GTSRItemList.OreIntegrationCenter.get(1), false);
+            buildNanos = System.nanoTime() - begin;
+            input = place(world, 5, ItemList.Hatch_Input_Bus_LV);
+            output = place(world, -5, ItemList.Hatch_Output_Bus_LV);
+            ordinaryInput = (MTEHatchInput) place(world, 3, ItemList.Hatch_Input_IV).getMetaTileEntity();
+            place(world, -3, ItemList.Hatch_Output_LV);
+            phase = 8;
+        } else if (phase == 8 && center.operationStatus().getInteger("Sectors") != 0) {
+            assertFormedWithFourPorts();
+            require(world.setBlock(x - 3, y, z, GregTechAPI.sBlockCasings3, 10, 3),
+                "Failed to replace the output hatch with its original casing");
+            phase = 9;
+        } else if (phase == 9 && !center.mMachine) {
+            require(!center.operationStatus().getBoolean("Formed") && (center.getErrorDisplayID() & 64) != 0,
+                "Removing a required fluid output did not update both GUIs");
+            place(world, -3, ItemList.Hatch_Output_LV);
+            phase = 10;
+        } else if (phase == 10 && center.mMachine) {
+            assertFormedWithFourPorts();
+            steam = (MTEHatchInput) TestLabFixtures.machine(world, x + 7, y, z,
+                GTSRItemList.SteamInputHatchGeneric.get(1).getItemDamage()).getMetaTileEntity();
+            cooling = (MTESteamCoolingHatch) TestLabFixtures.machine(world, x - 7, y, z,
+                GTSRItemList.SteamCoolingHatch.get(1).getItemDamage()).getMetaTileEntity();
+            input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
+            phase = 1;
         } else if (phase == 1 && center.installModuleFromBus(1)) {
             require(input.getStackInSlot(0) == null, "Crusher pack was not charged through real input bus");
             input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.LOGISTICS, 1));
@@ -142,6 +169,8 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             require(quantity(output, product) == 0, "Outputs appeared before recipe completion");
             checkpoint = new NBTTagCompound();
             center.saveNBTData(checkpoint);
+            FluidStack water = cooling.getFluid();
+            coolingAtCheckpoint = water == null ? null : water.copy();
             require(checkpoint.getInteger("CenterSteamKind") == SteamGrade.DENSE_STEAM.ordinal(),
                 "The ordinary input displaced the dedicated steam hatch");
             require(ordinaryInput.getFluid().amount == STEAM_FILL, "Ordinary input unexpectedly drained");
@@ -153,6 +182,8 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
         } else if (phase == 4 && elapsedTicks >= pauseAt + 8) {
             require(center.batchProgress() == checkpoint.getInteger("CenterElapsed"), "Discontinuous steam advanced progress");
             center.loadNBTData(checkpoint);
+            // Restore the paired tank too: cooling can drain its backlog during a stalled batch.
+            cooling.setFillableStack(coolingAtCheckpoint);
             require(center.batchSequence() == initialSequence + 1, "NBT restore changed batch identity");
             require(center.batchProgress() == checkpoint.getInteger("CenterElapsed"), "NBT restore lost saved progress");
             steam.setFillableStack(withheld);
@@ -171,23 +202,41 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
         } else if (phase == 6) {
             outputCount = quantity(output, product);
             FluidStack water = cooling.getFluid();
-            if (outputCount == expected && water != null && water.amount == expectedWater) {
-                require(water.getFluid() == FluidRegistry.getFluid("ic2distilledwater"), "Invalid condensate");
+            int waterAmount = water == null ? 0 : water.amount;
+            require(waterAmount <= expectedWater, "Condensate was duplicated: " + waterAmount + "/" + expectedWater);
+            if (outputCount == expected && waterAmount == expectedWater) {
+                require(water == null || water.getFluid() == FluidRegistry.getFluid("ic2distilledwater"), "Invalid condensate");
                 Map<String, Object> report = new LinkedHashMap<>();
+                report.put("fourRequiredPortsFormed", true);
+                report.put("nativeFormationAndTerminalAgreeAfterRemovalAndRestore", true);
+                report.put("clearedStaleStructureShutdownWithPowerSwitchOff", true);
                 report.put("ore", ORE_COUNT);
                 report.put("nativeOutput", expected);
                 report.put("actualOutput", outputCount);
                 report.put("steamAtCheckpoint", steamAtPause);
-                report.put("condensedDistilledWater", water.amount);
+                report.put("condensedDistilledWater", waterAmount);
                 report.put("footprintSamples", positions.size());
                 report.put("constructNanos", buildNanos);
-                report.put("restoreScope", "live controller NBT save/load");
+                report.put("restoreScope", "live controller NBT and paired cooling tank checkpoint");
                 return new TestLabReport.Result(TestLabReport.Status.PASS,
                     "Live assembly, steam stall, in-place NBT restoration and unblocking the output", report);
             }
             require(outputCount <= expected, "Output was duplicated");
         }
         return null;
+    }
+
+    private boolean failedStructure() {
+        return ShutDownReasonRegistry.STRUCTURE_INCOMPLETE.getKey().equals(controller.getLastShutDownReason().getKey());
+    }
+
+    private void assertFormedWithFourPorts() {
+        NBTTagCompound state = center.operationStatus();
+        require(center.mMachine && state.getBoolean("Formed") && (center.getErrorDisplayID() & 64) == 0,
+            "GT and center did not agree that the four required ports are enough");
+        require(state.getLong("Power") == 0, "Fixture must have no energy hatch at formation");
+        require(!failedStructure() && !controller.isAllowedToWork(),
+            "Recovery should clear the stale structure reason and preserve the off switch");
     }
 
     private IGregTechTileEntity place(WorldServer world, int offset, ItemList item) {
@@ -240,7 +289,8 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
     @Override
     public String debug(WorldServer world) {
         return "ore center machine phase=" + phase + " journal=" + cursor
-            + " progress=" + (center == null ? 0 : center.batchProgress()) + " output=" + outputCount;
+            + " progress=" + (center == null ? 0 : center.batchProgress()) + " output=" + outputCount
+            + " condensate=" + (cooling == null ? 0 : cooling.getFluidAmount()) + "/" + expectedWater;
     }
 
     private static void require(boolean condition, String text) {

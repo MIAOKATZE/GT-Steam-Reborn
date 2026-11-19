@@ -55,6 +55,8 @@ import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.shutdown.ShutDownReason;
+import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 
 /**
  * The controller owns inventory, payment, progress and all rolled output. Module buildings display its configuration.
@@ -166,8 +168,31 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     @Override
     public void checkMachine(IGregTechTileEntity te, ItemStack stack, List<StructureError> errors) {
         bindHatches(te);
-        if (structure.sectorMask(te) == 0 || !hasRequiredPorts())
+        if (structure.sectorMask(te) == 0) {
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
+            return;
+        }
+        checkHasInputBus(errors);
+        checkHasOutputBus(errors);
+        checkHasInputHatch(errors);
+        checkHasOutputHatch(errors);
+    }
+
+    @Override
+    protected void onStructureCheckFinished(IGregTechTileEntity te) {
+        super.onStructureCheckFinished(te);
+        if (mMachine && ShutDownReasonRegistry.STRUCTURE_INCOMPLETE.getKey().equals(te.getLastShutDownReason().getKey())) {
+            te.setShutDownReason(ShutDownReasonRegistry.NONE);
+            te.setShutdownStatus(false);
+        }
+    }
+
+    @Override
+    public void stopMachine(ShutDownReason reason) {
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        if (reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE && te != null
+            && (debugBuild != null || structure.isCheckingFormation(te))) return;
+        super.stopMachine(reason);
     }
 
     private void bindHatches(IGregTechTileEntity te) {
@@ -335,7 +360,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         int sectors = structure.sectorMask(te);
         tag.setInteger("Tier", structure.tier(te));
         tag.setInteger("Sectors", sectors);
-        tag.setBoolean("Formed", sectors != 0 && hasRequiredPorts());
+        tag.setBoolean("Formed", mMachine);
         tag.setBoolean("Active", te.isActive());
         int installed = 0;
         for (int i = 0; i < grades.length; i++) if (grades[i] > 0 && (sectors & 1 << i / 6) != 0) installed++;
@@ -493,6 +518,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
 
     @Override
     public void onPostTick(IGregTechTileEntity te, long tick) {
+        if (te.isServerSide() && debugBuild == null) refreshFormation(te, tick);
         long measured = CenterTickTiming.begin();
         try {
             super.onPostTick(te, tick);
@@ -505,31 +531,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             runDebugBuild(te);
             return;
         }
-        measured = CenterTickTiming.begin();
-        try {
-            structure.tick(te);
-        } finally {
-            CenterTickTiming.end(te, CenterTickTiming.Stage.STRUCTURE, measured);
-        }
-        int mask = structure.sectorMask(te);
-        int tier = structure.tier(te);
-        if (textureTier != tier) {
-            textureTier = tier;
-            te.issueTileUpdate();
-        }
-        if (mask == 0 || tier < 0) {
-            planning = null;
-            te.setActive(false);
-            return;
-        }
-        if ((tick % 20) == 0 || tier != plannedTier || mask != plannedMask) {
-            if (tier != plannedTier || mask != plannedMask) planning = null;
-            plannedTier = tier;
-            plannedMask = mask;
-            bindHatches(te);
-        }
-        if ((tick % 20) == 0) drainCooling(te);
-        if (!hasRequiredPorts()) {
+        if ((tick % 20) == 0 && plannedMask != 0) drainCooling(te);
+        if (!mMachine) {
             planning = null;
             te.setActive(false);
             return;
@@ -556,10 +559,34 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         long start = System.nanoTime();
         measured = CenterTickTiming.begin();
         try {
-            planTick(te, tick, tier, mask);
+            planTick(te, tick, plannedTier, plannedMask);
         } finally {
             workInTick += System.nanoTime() - start;
             CenterTickTiming.end(te, CenterTickTiming.Stage.PLANNING, measured);
+        }
+    }
+
+    private void refreshFormation(IGregTechTileEntity te, long tick) {
+        long measured = CenterTickTiming.begin();
+        try {
+            structure.tick(te);
+            int mask = structure.sectorMask(te);
+            int tier = structure.tier(te);
+            if (textureTier != tier) {
+                textureTier = tier;
+                te.issueTileUpdate();
+            }
+            if (tier != plannedTier || mask != plannedMask) {
+                planning = null;
+                plannedTier = tier;
+                plannedMask = mask;
+                checkStructure(true, te);
+            } else if (mask != 0 && tick % 20 == 0) {
+                bindHatches(te);
+                if (mMachine != hasRequiredPorts()) checkStructure(true, te);
+            }
+        } finally {
+            CenterTickTiming.end(te, CenterTickTiming.Stage.STRUCTURE, measured);
         }
     }
 
