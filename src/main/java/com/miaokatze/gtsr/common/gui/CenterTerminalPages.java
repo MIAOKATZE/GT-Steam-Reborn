@@ -417,7 +417,15 @@ final class CenterTerminalPages {
 
         private String caption;
         private int color;
-        private final IDrawable text = CenterGraphGui.compact(() -> caption, () -> color, Alignment.CenterLeft);
+        private final IDrawable text;
+
+        Surface() {
+            this(Alignment.CenterLeft);
+        }
+
+        Surface(Alignment alignment) {
+            text = CenterGraphGui.compact(() -> caption, () -> color, alignment);
+        }
 
         void text(ModularGuiContext context, String value, int x, int y, int width, int height, boolean active) {
             caption = value;
@@ -503,6 +511,7 @@ final class CenterTerminalPages {
         private int visibleMask, halfWidth, halfHeight;
 
         Miniature() {
+            super(Alignment.Center);
             CenterStructure.visitAssemblyPads((pad, x, z) -> {
                 px[pad] = x;
                 pz[pad] = z;
@@ -537,8 +546,8 @@ final class CenterTerminalPages {
             GuiDraw.drawCircle(cx - hub, cy - hub, hub * 2, 0xFF718891, 24);
             GuiDraw.drawCircle(cx - hub + 2, cy - hub + 2, hub * 2 - 4, 0xFF263742, 24);
             TerminalUiStyle.CHIP_NORMAL.draw(context, Math.round(cx) - 14, Math.round(cy) - 7, 28, 14, theme.getTheme());
-            text(context, tier() < 0 ? "—" : tr("terminal.tier." + tier()), Math.round(cx) - 12,
-                Math.round(cy) - 7, 24, 14, built != 0);
+            text(context, tier() < 0 ? "—" : tr("terminal.tier." + tier()), Math.round(cx) - 14,
+                Math.round(cy) - 7, 28, 14, built != 0);
 
             float scale = radius / 110f;
             halfWidth = Math.max(6, Math.min(18, Math.round(scale * 8)));
@@ -553,34 +562,41 @@ final class CenterTerminalPages {
                 (selectedPad ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)
                     .draw(context, x, y, 2 * halfWidth, 2 * halfHeight, theme.getTheme());
                 int stripe = formed ? 0xFF68808C : 0xFF3A4953;
+                int labelInset = 2;
                 if (g > 0) {
                     CenterModule module = MODULES[value("Modules", i)];
                     stripe = usedInBatch(module) ? 0xFF83DDBC : 0xFFDEAC6A;
-                    if (halfWidth >= 12) item(context, pack(module, g), x + 2, y + 1, 2 * halfHeight - 2);
+                    if (halfWidth >= 12) {
+                        int iconSize = Math.min(2 * halfHeight - 2, halfWidth - 2);
+                        item(context, pack(module, g), x + 2, sy[i] - iconSize / 2, iconSize);
+                        labelInset += iconSize;
+                    }
                 }
                 GuiDraw.drawRect(x + 1, y + 2, 1, 2 * halfHeight - 4, stripe);
-                int textLeft = g > 0 && halfWidth >= 12 ? 2 * halfHeight + 1 : 3;
-                text(context, SLOT_CODES[i % 6], x + textLeft, y, 2 * halfWidth - textLeft - 1, 2 * halfHeight, selectedPad);
+                text(context, SLOT_CODES[i % 6], x + labelInset, y, 2 * halfWidth - labelInset - 2,
+                    2 * halfHeight, selectedPad);
             }
             markTooltipDirty();
         }
 
         private void drawSectors(float cx, float cy, float radius, int built, int selectedSector) {
+            float halfGap = Math.min(2.5f, radius * .055f);
+            float border = Math.max(1, radius * .022f);
             Platform.setupDrawColor();
             Platform.startDrawing(Platform.DrawMode.QUADS, Platform.VertexFormat.POS_COLOR, buffer -> {
                 for (int sector = 0; sector < 6; sector++) {
                     if ((visibleMask & 1 << sector) == 0) continue;
                     double angle = bearing(sector);
                     boolean present = (built & 1 << sector) != 0;
-                    band(buffer, cx, cy, radius * .22f, radius, angle, .48,
+                    band(buffer, cx, cy, radius * .22f, radius, angle, halfGap,
                         present ? sector == selectedSector ? 0xFFDBAC72 : 0xFF6B8592 : 0xFF3E515C);
-                    band(buffer, cx, cy, radius * .24f, radius * .977f, angle, .456,
+                    band(buffer, cx, cy, radius * .22f + border, radius - border, angle, halfGap + border,
                         present ? 0xFF324653 : 0xFF222F3A);
-                    band(buffer, cx, cy, radius * .47f, radius * .48f, angle, .456,
+                    band(buffer, cx, cy, radius * .47f, radius * .48f, angle, halfGap + border,
                         present ? 0xFF7C7770 : 0xFF41515B);
-                    band(buffer, cx, cy, radius * .725f, radius * .74f, angle, .456,
+                    band(buffer, cx, cy, radius * .725f, radius * .74f, angle, halfGap + border,
                         present ? 0xFF718C97 : 0xFF41515B);
-                    band(buffer, cx, cy, radius * .93f, radius * .95f, angle, .456,
+                    band(buffer, cx, cy, radius * .93f, radius * .95f, angle, halfGap + border,
                         present ? 0xFF5B818B : 0xFF344952);
                 }
             });
@@ -588,13 +604,16 @@ final class CenterTerminalPages {
         }
 
         private void band(BufferBuilder buffer, float cx, float cy, float inner, float outer, double angle,
-            double half, int color) {
+            float halfGap, int color) {
+            // Both endpoints lie the same distance from the radial divider, giving parallel sides to adjacent sectors.
+            double innerHalf = Math.PI / 6 - Math.asin(halfGap / inner);
+            double outerHalf = Math.PI / 6 - Math.asin(halfGap / outer);
             for (int t = 0; t < 8; t++) {
-                double a = angle - half + half * t / 4, b = a + half / 4;
-                vertex(buffer, cx, cy, inner, a, color);
-                vertex(buffer, cx, cy, inner, b, color);
-                vertex(buffer, cx, cy, outer, b, color);
-                vertex(buffer, cx, cy, outer, a, color);
+                double from = t / 4.0 - 1, to = (t + 1) / 4.0 - 1;
+                vertex(buffer, cx, cy, inner, angle + innerHalf * from, color);
+                vertex(buffer, cx, cy, inner, angle + innerHalf * to, color);
+                vertex(buffer, cx, cy, outer, angle + outerHalf * to, color);
+                vertex(buffer, cx, cy, outer, angle + outerHalf * from, color);
             }
         }
 
