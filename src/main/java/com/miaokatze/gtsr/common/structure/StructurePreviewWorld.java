@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Additional terms: see AGPL-ADDITIONAL-TERMS.md in the project root.
 
-package com.miaokatze.gtsr.client.nei;
+package com.miaokatze.gtsr.common.structure;
 
 /** Optional preview-world marker; contains no client or BlockRenderer types. */
-public interface CriticalPreviewWorld {
+public interface StructurePreviewWorld {
 
-    void gtsr$markCriticalPreview();
+    void gtsr$markStructurePreview();
 
-    boolean gtsr$isCriticalPreview();
+    boolean gtsr$isStructurePreview();
 
     long gtsr$previewRevision();
 }

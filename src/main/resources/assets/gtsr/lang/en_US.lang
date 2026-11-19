@@ -5187,6 +5187,12 @@ gtsr.tooltip.reviewed.anchor=§7Recall mark: dimension %s @ %s, %s, %s; facing %
 
 # Ore Processing Integration Center modules
 gt.blockmachines.gtsr.ore_integration_center.name=Mineral Processing Integration Center
+gtsr.ore_center.tooltip.type=Mineral Processing
+gtsr.structurelib.channel.ore_center_sectors.desc=Mineral Processing Integration Center sector count (1–6)
+gtsr.ore_center.structure.tier=Main channel 1–4 selects Bronze, Steel, Titanium or Tungstensteel. Higher values show Tungstensteel.
+gtsr.ore_center.structure.sectors=Subchannel ore_center_sectors selects 1–6 sectors. The default is one sector.
+gtsr.ore_center.structure.required_ports=Use at least one fluid input, fluid output, item input and item output. Mount them at the front ports or in exposed base casings.
+gtsr.ore_center.structure.optional_ports=Dedicated steam hatches take priority. A steam cooling hatch recovers distilled water. Connect energy hatches for powered processes. Port counts depend on available positions.
 item.ore_integration_module.shell-1.name=Steel Module Crate Shell I
 item.ore_integration_module.crusher-1.name=Crusher Expansion Module Pack I
 item.ore_integration_module.washer-1.name=Ore Washer Expansion Module Pack I

@@ -383,8 +383,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         selection.setInteger("previewControllerZ", current.getControllerZ());
         World world = tile.getWorld();
         if (world == previewWorld && selection.equals(previewSelection)) return;
-        if (world instanceof com.miaokatze.gtsr.client.nei.CriticalPreviewWorld preview)
-            preview.gtsr$markCriticalPreview();
+        if (world instanceof com.miaokatze.gtsr.common.structure.StructurePreviewWorld preview)
+            preview.gtsr$markStructurePreview();
         CriticalStructures.construct(this, trigger, false);
         previewWorld = world;
         previewSelection = selection;

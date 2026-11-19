@@ -23,6 +23,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.items.CenterModuleItems;
+import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
@@ -44,14 +45,16 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
 
     static final String ID = "ore_integration_center.machine";
     private static final String PREFIX = "/assets/gtsr/orecenter/";
-    private static final int ORE_COUNT = 8, STEAM_FILL = 4096;
+    private static final int ORE_COUNT = 8, STEAM_FILL = 4096, COOLING_Z = 4;
 
     private final List<int[]> positions = new ArrayList<>();
     private int x, y, z, cursor, phase, pauseAt, steamAtPause, expected, outputCount;
     private long buildNanos, initialSequence;
     private IGregTechTileEntity controller, input, output;
     private MTEMineralIntegrationCenter center;
-    private MTEHatchInput steam;
+    private MTEHatchInput steam, ordinaryInput;
+    private MTESteamCoolingHatch cooling;
+    private long expectedWater;
     private ItemStack ore, product;
     private FluidStack withheld;
     private NBTTagCompound checkpoint;
@@ -110,7 +113,12 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                 buildNanos = System.nanoTime() - begin;
                 input = place(world, -5, ItemList.Hatch_Input_Bus_LV);
                 output = place(world, -3, ItemList.Hatch_Output_Bus_LV);
-                steam = (MTEHatchInput) place(world, -1, ItemList.Hatch_Input_IV).getMetaTileEntity();
+                ordinaryInput = (MTEHatchInput) place(world, -1, ItemList.Hatch_Input_IV).getMetaTileEntity();
+                place(world, 1, ItemList.Hatch_Output_LV);
+                steam = (MTEHatchInput) TestLabFixtures.machine(world, x + 3, y, z + 1,
+                    GTSRItemList.SteamInputHatchGeneric.get(1).getItemDamage()).getMetaTileEntity();
+                cooling = (MTESteamCoolingHatch) TestLabFixtures.machine(world, x, y, z + COOLING_Z,
+                    GTSRItemList.SteamCoolingHatch.get(1).getItemDamage()).getMetaTileEntity();
                 input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
                 phase = 1;
             }
@@ -134,6 +142,9 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             require(quantity(output, product) == 0, "Outputs appeared before recipe completion");
             checkpoint = new NBTTagCompound();
             center.saveNBTData(checkpoint);
+            require(checkpoint.getInteger("CenterSteamKind") == SteamGrade.DENSE_STEAM.ordinal(),
+                "The ordinary input displaced the dedicated steam hatch");
+            require(ordinaryInput.getFluid().amount == STEAM_FILL, "Ordinary input unexpectedly drained");
             steamAtPause = steam.getFillableStack().amount;
             withheld = steam.getFillableStack().copy();
             steam.setFillableStack(null);
@@ -154,23 +165,27 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             long paid = STEAM_FILL - steam.getFillableStack().amount;
             int density = SteamGrade.DENSE_STEAM.getDivisor();
             require(paid == (checkpoint.getLong("CenterSteam") + density - 1) / density, "Steam paid is not the frozen batch total");
+            expectedWater = paid * density / 160;
             for (int i = 0; i < output.getSizeInventory(); i++) output.setInventorySlotContents(i, null);
             phase = 6;
         } else if (phase == 6) {
             outputCount = quantity(output, product);
-            if (outputCount == expected) {
+            FluidStack water = cooling.getFluid();
+            if (outputCount == expected && water != null && water.amount == expectedWater) {
+                require(water.getFluid() == FluidRegistry.getFluid("ic2distilledwater"), "Invalid condensate");
                 Map<String, Object> report = new LinkedHashMap<>();
                 report.put("ore", ORE_COUNT);
                 report.put("nativeOutput", expected);
                 report.put("actualOutput", outputCount);
                 report.put("steamAtCheckpoint", steamAtPause);
+                report.put("condensedDistilledWater", water.amount);
                 report.put("footprintSamples", positions.size());
                 report.put("constructNanos", buildNanos);
                 report.put("restoreScope", "live controller NBT save/load");
                 return new TestLabReport.Result(TestLabReport.Status.PASS,
                     "Live assembly, steam stall, in-place NBT restoration and unblocking the output", report);
             }
-            require(outputCount < expected, "Output was duplicated");
+            require(outputCount <= expected, "Output was duplicated");
         }
         return null;
     }
@@ -181,7 +196,11 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
 
     private void supply() {
         FluidStack dense = FluidRegistry.getFluidStack(SteamGrade.DENSE_STEAM.getFluidName(), STEAM_FILL);
-        require(dense != null && steam.fill(ForgeDirection.UNKNOWN, dense, true) == STEAM_FILL, "Native input hatch rejected dense steam");
+        FluidStack higher = FluidRegistry.getFluidStack(SteamGrade.DENSE_SUPERHEATED_STEAM.getFluidName(), STEAM_FILL);
+        require(dense != null && steam.fill(ForgeDirection.UNKNOWN, dense, true) == STEAM_FILL,
+            "Dedicated hatch rejected dense steam");
+        require(higher != null && ordinaryInput.fill(ForgeDirection.UNKNOWN, higher, true) == STEAM_FILL,
+            "Ordinary input rejected dense superheated steam");
     }
 
     private void addOwnership(String key, int ox, int oy, int oz, int rotation, boolean module) throws IOException {

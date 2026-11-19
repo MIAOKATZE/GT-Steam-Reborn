@@ -173,7 +173,7 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
         }
         if (cursor != footprint.size()) return;
         checkTerrain(world, machine.x, machine.y, machine.z);
-        for (int shift : new int[] { -5, -3, -1 }) checkTerrain(world, machine.x + shift, machine.y, machine.z + 1);
+        for (int shift : new int[] { -5, -3, -1, 1 }) checkTerrain(world, machine.x + shift, machine.y, machine.z + 1);
         machine.place(world);
     }
 
@@ -250,6 +250,7 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
             input = place(world, -5, ItemList.Hatch_Input_Bus_LV);
             output = place(world, -3, ItemList.Hatch_Output_Bus_LV);
             steam = (MTEHatchInput) place(world, -1, ItemList.Hatch_Input_IV).getMetaTileEntity();
+            place(world, 1, ItemList.Hatch_Output_LV);
             input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
         }
 

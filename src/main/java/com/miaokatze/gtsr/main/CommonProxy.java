@@ -221,6 +221,10 @@ public class CommonProxy {
 
     private static void registerStructureChannels() {
         StructureLibAPI.registerChannelDescription("tier", "gtsr", "gtsr.structurelib.channel.tier.desc");
+        StructureLibAPI.registerChannelDescription(
+            com.miaokatze.gtsr.common.machine.orecenter.CenterStructure.SECTOR_CHANNEL,
+            "gtsr",
+            "gtsr.structurelib.channel.ore_center_sectors.desc");
         StructureLibAPI.registerChannelDescription("gear", "gtsr", "gtsr.structurelib.channel.gear.desc");
         for (int tier = 1; tier <= 2; tier++) {
             ItemStack indicator = new ItemStack(GregTechAPI.sBlockCasings2, 1, tier + 1);

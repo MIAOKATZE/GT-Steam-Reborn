@@ -19,9 +19,9 @@ import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import com.miaokatze.gtsr.client.nei.CriticalPreviewCache;
-import com.miaokatze.gtsr.client.nei.CriticalPreviewTessellatorSupport;
-import com.miaokatze.gtsr.client.nei.CriticalPreviewWorld;
+import com.miaokatze.gtsr.client.nei.StructurePreviewMaterials;
+import com.miaokatze.gtsr.common.structure.StructurePreviewWorld;
+import com.miaokatze.miaokatzecore.client.preview.PreviewGeometryCache;
 
 import it.unimi.dsi.fastutil.longs.LongCollection;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -42,7 +42,7 @@ public abstract class CriticalPreviewSceneMixin {
     @Unique
     private World gtsr$previewWorld;
     @Unique
-    private CriticalPreviewCache gtsr$previewCache;
+    private PreviewGeometryCache gtsr$previewCache;
 
     @Inject(method = "<init>", at = @At("RETURN"), require = 1)
     private void gtsr$rememberWorld(@Coerce World world, CallbackInfo callback) {
@@ -50,10 +50,11 @@ public abstract class CriticalPreviewSceneMixin {
     }
 
     @Unique
-    private CriticalPreviewCache gtsr$cache() {
-        if (!(gtsr$previewWorld instanceof CriticalPreviewWorld preview) || !preview.gtsr$isCriticalPreview())
+    private PreviewGeometryCache gtsr$cache() {
+        if (!(gtsr$previewWorld instanceof StructurePreviewWorld preview) || !preview.gtsr$isStructurePreview())
             return null;
-        if (gtsr$previewCache == null) gtsr$previewCache = new CriticalPreviewCache(gtsr$previewWorld);
+        if (gtsr$previewCache == null) gtsr$previewCache = new PreviewGeometryCache(
+            gtsr$previewWorld, preview::gtsr$previewRevision, StructurePreviewMaterials::isCacheable);
         return gtsr$previewCache;
     }
 
@@ -67,8 +68,8 @@ public abstract class CriticalPreviewSceneMixin {
         CallbackInfo callback) {
         if (faded || positions != renderedBlocks
             || positions.isEmpty()
-            || !CriticalPreviewTessellatorSupport.allows(tessellator)) return;
-        CriticalPreviewCache cache = gtsr$cache();
+            || !PreviewGeometryCache.supports(tessellator)) return;
+        PreviewGeometryCache cache = gtsr$cache();
         if (cache == null || !cache.prepare(positions)) return;
         Minecraft minecraft = Minecraft.getMinecraft();
         int ambientOcclusion = minecraft.gameSettings.ambientOcclusion;

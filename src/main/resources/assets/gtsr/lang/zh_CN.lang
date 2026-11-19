@@ -5183,6 +5183,12 @@ gtsr.tooltip.reviewed.anchor=§7返航点：维度 %s @ %s, %s, %s；朝向 %s°
 
 # Ore Processing Integration Center modules
 gt.blockmachines.gtsr.ore_integration_center.name=矿物加工集成中心
+gtsr.ore_center.tooltip.type=矿物加工
+gtsr.structurelib.channel.ore_center_sectors.desc=矿物加工集成中心分片数（1–6）
+gtsr.ore_center.structure.tier=主信道 1–4 依次为青铜、钢、钛、钨钢。超过 4 按钨钢显示。
+gtsr.ore_center.structure.sectors=子信道 ore_center_sectors 选择 1–6 个扇区。未设置时显示一扇。
+gtsr.ore_center.structure.required_ports=输入仓、输出仓、输入总线、输出总线各至少一个。塔前仓位和外露基座的对应外壳可装仓。
+gtsr.ore_center.structure.optional_ports=优先使用蒸汽仓类。蒸汽冷却仓回收蒸馏水。耗电工序接能源仓。各类仓室无独立数量上限。
 item.ore_integration_module.shell-1.name=钢模块箱壳 I 级
 item.ore_integration_module.crusher-1.name=粉碎机拓展模块包 I 级
 item.ore_integration_module.washer-1.name=洗矿机拓展模块包 I 级

@@ -15,6 +15,7 @@ import java.util.function.Consumer;
 import java.util.zip.GZIPInputStream;
 
 import net.minecraft.block.Block;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
@@ -24,6 +25,7 @@ import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.gtnewhorizon.structurelib.structure.IStructureElement.PlaceResult;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureUtility;
+import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.critical.CriticalBlockProtection;
 import com.miaokatze.gtsr.common.critical.CriticalStructureAlignment;
 import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor;
@@ -31,11 +33,14 @@ import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor.Sample;
 import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor.Status;
 
 import cpw.mods.fml.common.registry.GameRegistry;
+import gregtech.api.GregTechAPI;
+import gregtech.api.enums.ItemList;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 
 /** Sparse, controller-relative block lists exported by tools/ore-center/compile.cjs. */
 public final class CenterStructure {
 
+    public static final String SECTOR_CHANNEL = "ore_center_sectors";
     static final int[][] SLOTS = { { -19, 18, 33, 0 }, { -46, 9, 49, 0 }, { -19, 9, 64, 0 }, { -76, 1, 66, 3 },
         { -50, 1, 86, 0 }, { -19, 1, 99, 0 }, { 19, 18, 33, 0 }, { 19, 9, 64, 0 }, { 46, 9, 49, 0 }, { 19, 1, 99, 0 },
         { 50, 1, 86, 0 }, { 76, 1, 66, 1 }, { 38, 18, 0, 1 }, { 65, 9, 15, 1 }, { 65, 9, -15, 1 }, { 95, 1, 33, 1 },
@@ -56,6 +61,7 @@ public final class CenterStructure {
     private int anchorIndex = -1;
     private boolean attachClaims = true;
     private int survivalCursor, survivalTier = -1, survivalMask;
+    private static int[] plinthPorts;
 
     public CenterStructure() {
         for (int i = 0; i < sectors.length; i++) sectors[i] = new CriticalStructureMonitor();
@@ -72,11 +78,76 @@ public final class CenterStructure {
 
     public void collectHatches(IGregTechTileEntity te, Consumer<IGregTechTileEntity> accept) {
         Frame frame = new Frame(te);
-        for (int x : HATCH_X) {
-            int wx = frame.x(x, 1), wz = frame.z(x, 1);
-            if (!frame.loaded(wx, wz)) continue;
-            TileEntity tile = frame.world.getTileEntity(wx, frame.y, wz);
-            if (tile instanceof IGregTechTileEntity gt) accept.accept(gt);
+        for (int x : HATCH_X) visitHatch(frame, x, 1, accept);
+        Shape tower = shape("tower-0");
+        for (int i : plinthPorts(tower)) visitHatch(frame, tower.x[i], tower.z[i] + 19, accept);
+    }
+
+    private static synchronized int[] plinthPorts(Shape tower) {
+        if (plinthPorts == null) {
+            plinthPorts = java.util.stream.IntStream.range(0, tower.count())
+                .filter(i -> plinthCasing(tower, i))
+                .filter(i -> outside(tower, tower.x[i] - 1, tower.z[i])
+                    || outside(tower, tower.x[i] + 1, tower.z[i])
+                    || outside(tower, tower.x[i], tower.z[i] - 1)
+                    || outside(tower, tower.x[i], tower.z[i] + 1))
+                .toArray();
+        }
+        return plinthPorts;
+    }
+
+    private static boolean outside(Shape tower, int x, int z) {
+        tower.prepareLookup();
+        return tower.lookup(x, 2, z) < 0 && tower.lookup(x, 3, z) < 0;
+    }
+
+    private static boolean plinthCasing(Shape shape, int index) {
+        if (!shape.tower || shape.y[index] != 2) return false;
+        Block block = shape.block(index);
+        return block == GregTechAPI.sBlockCasings3 || block == GregTechAPI.sBlockCasings4;
+    }
+
+    private static void visitHatch(Frame frame, int x, int z, Consumer<IGregTechTileEntity> accept) {
+        int wx = frame.x(x, z), wz = frame.z(x, z);
+        if (!frame.loaded(wx, wz) || frame.world.getBlock(wx, frame.y, wz) != GregTechAPI.sBlockMachines) return;
+        if (frame.world.getTileEntity(wx, frame.y, wz) instanceof IGregTechTileEntity gt) accept.accept(gt);
+    }
+
+    private static boolean substitutedPort(Shape shape, int i, Frame frame, int wx, int wy, int wz) {
+        if (!plinthCasing(shape, i) || frame.world.getBlock(wx, wy, wz) != GregTechAPI.sBlockMachines) return false;
+        Shape base = shape("tower-0");
+        int[] ports = plinthPorts(base);
+        if (java.util.Arrays.binarySearch(ports, base.lookup(shape.x[i], 2, shape.z[i])) < 0) return false;
+        return frame.world.getTileEntity(wx, wy, wz) instanceof IGregTechTileEntity gt
+            && MTEMineralIntegrationCenter.acceptsPort(gt.getMetaTileEntity());
+    }
+
+    void showPreviewPorts(IGregTechTileEntity te) {
+        Frame frame = new Frame(te);
+        ItemStack[] examples = { ItemList.Hatch_Input_LV.get(1), ItemList.Hatch_Output_LV.get(1),
+            ItemList.Hatch_Input_Bus_LV.get(1), ItemList.Hatch_Output_Bus_LV.get(1),
+            GTSRItemList.SteamInputHatchGeneric.get(1), GTSRItemList.SteamCoolingHatch.get(1) };
+        for (int i = 0; i < examples.length; i++) previewPort(frame, HATCH_X[i], 1, examples[i]);
+        Shape base = shape("tower-0");
+        int best = -1, distance = Integer.MAX_VALUE;
+        for (int i : plinthPorts(base)) {
+            int offset = Math.abs(base.x[i]) + Math.abs(base.z[i] + 18);
+            if (offset < distance) {
+                best = i;
+                distance = offset;
+            }
+        }
+        if (best >= 0) previewPort(frame, base.x[best], base.z[best] + 19, ItemList.Hatch_Energy_LV.get(1));
+    }
+
+    private static void previewPort(Frame frame, int x, int z, ItemStack stack) {
+        short id = (short) stack.getItemDamage();
+        int wx = frame.x(x, z), wz = frame.z(x, z);
+        frame.world.setBlock(wx, frame.y, wz, GregTechAPI.sBlockMachines,
+            GregTechAPI.METATILEENTITIES[id].getTileEntityBaseType(), 2);
+        if (frame.world.getTileEntity(wx, frame.y, wz) instanceof IGregTechTileEntity hatch) {
+            hatch.setInitialValuesAsNBT(null, id);
+            hatch.setFrontFacing(frame.facing);
         }
     }
 
@@ -173,6 +244,7 @@ public final class CenterStructure {
         Shape first = shape("tower-0");
         if (anchorIndex < 0) {
             for (int i = 0; i < first.count(); i++) {
+                if (plinthCasing(first, i)) continue;
                 int index = i;
                 boolean allDifferent = true;
                 for (int j = 0; j < 4; j++) for (int k = j + 1; k < 4; k++) {
@@ -211,8 +283,9 @@ public final class CenterStructure {
         int xx = frame.x(rx, rz), yy = frame.y + y + shape.y[i] - 2 - (module ? 64 : 0), zz = frame.z(rx, rz);
         if (yy < 0 || yy >= frame.world.getHeight()) return Sample.BROKEN;
         if (!frame.loaded(xx, zz)) return Sample.UNLOADED;
-        return frame.world.getBlock(xx, yy, zz) == shape.block(i)
-            && frame.world.getBlockMetadata(xx, yy, zz) == shape.metadata(i) ? Sample.MATCH : Sample.BROKEN;
+        return (frame.world.getBlock(xx, yy, zz) == shape.block(i)
+            && frame.world.getBlockMetadata(xx, yy, zz) == shape.metadata(i))
+            || !module && substitutedPort(shape, i, frame, xx, yy, zz) ? Sample.MATCH : Sample.BROKEN;
     }
 
     private static String moduleKey(int slot, CenterModule module, int grade) {
@@ -400,6 +473,7 @@ public final class CenterStructure {
             }
             if (frame.world.getBlock(xx, yy, zz) == piece.block(i)
                 && frame.world.getBlockMetadata(xx, yy, zz) == piece.metadata(i)) continue;
+            if (substitutedPort(piece, i, frame, xx, yy, zz)) continue;
             if (piece.block(i) == null || yy < 0
                 || yy >= frame.world.getHeight()
                 || CriticalBlockProtection.protects(frame.world, xx, yy, zz)) {
@@ -431,8 +505,9 @@ public final class CenterStructure {
             int wx = frame.x(rx, rz), wy = frame.y + shape.y[i] - 2, wz = frame.z(rx, rz);
             if (shape.block(i) == null || wy < 0
                 || wy >= frame.world.getHeight()
-                || !frame.loaded(wx, wz)
-                || frame.world.getTileEntity(wx, wy, wz) != null) return false;
+                || !frame.loaded(wx, wz)) return false;
+            if (substitutedPort(shape, i, frame, wx, wy, wz)) continue;
+            if (frame.world.getTileEntity(wx, wy, wz) != null) return false;
             if (CriticalBlockProtection.protects(frame.world, wx, wy, wz)) return false;
         }
         return true;
@@ -445,7 +520,7 @@ public final class CenterStructure {
             if (shape.block(i) == null || !frame.loaded(wx, wz)) continue;
             boolean matches = frame.world.getBlock(wx, wy, wz) == shape.block(i)
                 && frame.world.getBlockMetadata(wx, wy, wz) == shape.metadata(i);
-            if (matches) continue;
+            if (matches || substitutedPort(shape, i, frame, wx, wy, wz)) continue;
             if (hints && hintCount++ < 512)
                 StructureLibAPI.hintParticle(frame.world, wx, wy, wz, shape.block(i), shape.metadata(i));
             if (!hints) frame.world.setBlock(wx, wy, wz, shape.block(i), shape.metadata(i), 2);
@@ -476,6 +551,7 @@ public final class CenterStructure {
                 metas[i] = in.readByte();
             }
             Shape result = new Shape(
+                key.startsWith("tower-"),
                 blocks,
                 metas,
                 new short[count],
@@ -525,13 +601,15 @@ public final class CenterStructure {
 
     static final class Shape {
 
+        final boolean tower;
         final Block[] blocks;
         final byte[] metas;
         final short[] x, z;
         final byte[] y, ids;
         private long[] lookup;
 
-        Shape(Block[] blocks, byte[] metas, short[] x, byte[] y, short[] z, byte[] ids) {
+        Shape(boolean tower, Block[] blocks, byte[] metas, short[] x, byte[] y, short[] z, byte[] ids) {
+            this.tower = tower;
             this.blocks = blocks;
             this.metas = metas;
             this.x = x;
