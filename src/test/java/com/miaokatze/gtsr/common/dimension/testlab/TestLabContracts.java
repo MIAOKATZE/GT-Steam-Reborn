@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 
 /** Executable contracts: no server, client, GL context or world is created. */
@@ -22,7 +23,7 @@ public final class TestLabContracts {
         requestCorrelation();
         if (args.length > 0) exportDeclaredCases(java.nio.file.Paths.get(args[0]));
         System.out.println(
-            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 106/95/119 catalog, performance selection, independent report retry, request correlation");
+            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 110/95/120 catalog, performance selection, independent report retry, request correlation");
     }
 
     private static void bootstrapWithoutImplementation() throws Exception {
@@ -76,10 +77,24 @@ public final class TestLabContracts {
 
     private static void catalogSelection() {
         List<TestLabTask> tasks = TestLabCatalog.tasks();
-        require(tasks.size() == 106, "machine catalog coverage changed: " + tasks.size());
+        require(tasks.size() == 110, "machine catalog coverage changed: " + tasks.size());
         require(
             TestLabCatalog.isExplicitRegression("rock_breaker_sites"),
             "stone maker checks require explicit selection");
+        for (String id : Arrays.asList(
+            TestLabIntegrationCenter.PLANNER,
+            TestLabIntegrationCenter.PRESSURE,
+            TestLabIntegrationCenterMachine.ID,
+            TestLabIntegrationCenterEntityPressure.ID)) {
+            require(TestLabCatalog.isExplicitRegression(id), "ore-center check requires explicit selection: " + id);
+            require(
+                new TestLabSupport().cases()
+                    .stream()
+                    .anyMatch(
+                        entry -> entry.id()
+                            .equals(id)),
+                "ore-center check absent from the unified catalog: " + id);
+        }
         int defaults = 0, representatives = 0;
         for (TestLabTask task : tasks) {
             if (task instanceof TestLabSingularityProfile) require(
@@ -112,10 +127,21 @@ public final class TestLabContracts {
         require(representatives == 6, "explicit performance representatives changed: " + representatives);
         require(
             TestLabUiProbes.tasks()
-                .size() == 119,
+                .size() == 120,
             "UI catalog lost cases");
+        require(
+            TestLabUiProbes.tasks()
+                .stream()
+                .anyMatch(
+                    task -> task.id()
+                        .equals("ui.ore_integration_center")),
+            "Missing generic controller UI probe for the registered ore integration center");
+        require(
+            new TestLabSupport().cases().stream().anyMatch(entry -> entry.id().equals(CenterGraphTcpFixture.CASE_ID)
+                && entry.lane().equals("client-server") && !entry.defaultSuite() && entry.requiresRealActor()),
+            "Ore-center graph TCP must be an explicit dual-instance case");
         List<TestLabTask> performance = TestLabPerformanceTasks.select("all", null);
-        require(performance.size() == 139, "performance plan changed: " + performance.size());
+        require(performance.size() == 140, "performance plan changed: " + performance.size());
         for (TestLabTask task : performance) require(
             !task.id()
                 .contains("followup_"),

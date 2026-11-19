@@ -84,6 +84,11 @@ public final class CriticalStructureMonitor {
     }
 
     public boolean tickSamples(int total, IntFunction<Sample> samples) {
+        return tickSamples(total, 1, samples);
+    }
+
+    /** A multiplexing caller reports how often the monitor receives a server-thread slice. */
+    public boolean tickSamples(int total, int elapsedTicks, IntFunction<Sample> samples) {
         lastChecks = 0;
         if (total <= 0) {
             reset();
@@ -101,7 +106,7 @@ public final class CriticalStructureMonitor {
             budget = MAX_INITIAL_CHECKS_PER_TICK;
             deadline = System.nanoTime() + INITIAL_SCAN_NANOS;
         } else {
-            credit += count;
+            credit += count * Math.min(64, Math.max(1, elapsedTicks));
             budget = Math.min(MAX_CHECKS_PER_TICK, credit / ROUND_TICKS);
             credit %= ROUND_TICKS;
         }

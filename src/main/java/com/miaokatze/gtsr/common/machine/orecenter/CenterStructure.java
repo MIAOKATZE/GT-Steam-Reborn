@@ -1,0 +1,593 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Additional terms: see AGPL-ADDITIONAL-TERMS.md in the project root.
+
+package com.miaokatze.gtsr.common.machine.orecenter;
+
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.zip.GZIPInputStream;
+
+import net.minecraft.block.Block;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.World;
+import net.minecraftforge.common.util.ForgeDirection;
+
+import com.gtnewhorizon.structurelib.StructureLibAPI;
+import com.gtnewhorizon.structurelib.structure.IStructureElement.PlaceResult;
+import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
+import com.gtnewhorizon.structurelib.structure.StructureUtility;
+import com.miaokatze.gtsr.common.critical.CriticalBlockProtection;
+import com.miaokatze.gtsr.common.critical.CriticalStructureAlignment;
+import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor;
+import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor.Sample;
+import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor.Status;
+
+import cpw.mods.fml.common.registry.GameRegistry;
+import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+
+/** Sparse, controller-relative block lists exported by tools/ore-center/compile.cjs. */
+public final class CenterStructure {
+
+    static final int[][] SLOTS = { { -19, 18, 33, 0 }, { -46, 9, 49, 0 }, { -19, 9, 64, 0 }, { -76, 1, 66, 3 },
+        { -50, 1, 86, 0 }, { -19, 1, 99, 0 }, { 19, 18, 33, 0 }, { 19, 9, 64, 0 }, { 46, 9, 49, 0 }, { 19, 1, 99, 0 },
+        { 50, 1, 86, 0 }, { 76, 1, 66, 1 }, { 38, 18, 0, 1 }, { 65, 9, 15, 1 }, { 65, 9, -15, 1 }, { 95, 1, 33, 1 },
+        { 99, 1, 0, 1 }, { 95, 1, -33, 1 }, { 19, 18, -33, 2 }, { 46, 9, -49, 2 }, { 19, 9, -64, 2 }, { 76, 1, -66, 1 },
+        { 50, 1, -86, 2 }, { 19, 1, -99, 2 }, { -19, 18, -33, 2 }, { -19, 9, -64, 2 }, { -46, 9, -49, 2 },
+        { -19, 1, -99, 2 }, { -50, 1, -86, 2 }, { -76, 1, -66, 3 }, { -38, 18, 0, 3 }, { -65, 9, -15, 3 },
+        { -65, 9, 15, 3 }, { -95, 1, -33, 3 }, { -99, 1, 0, 3 }, { -95, 1, 33, 3 }, };
+    private static final int[] HATCH_X = { -5, -3, -1, 1, 3, 5 };
+    private static final Map<String, Shape> SHAPES = new HashMap<>();
+    private final CriticalStructureMonitor tower = new CriticalStructureMonitor();
+    private final CriticalStructureMonitor[] sectors = new CriticalStructureMonitor[6];
+    private final ModuleCheck[] modules = new ModuleCheck[36];
+    private ForgeDirection facing = ForgeDirection.UNKNOWN;
+    private int towerTier = -1;
+    private int formedSectors;
+    private int scanCursor;
+    private final long[] lastScan = new long[43];
+    private int anchorIndex = -1;
+    private boolean attachClaims = true;
+    private int survivalCursor, survivalTier = -1, survivalMask;
+
+    public CenterStructure() {
+        for (int i = 0; i < sectors.length; i++) sectors[i] = new CriticalStructureMonitor();
+    }
+
+    public int tier(IGregTechTileEntity te) {
+        return facing == te.getFrontFacing() && tower.getStatus() == Status.VALID ? towerTier : -1;
+    }
+
+    /** Raw formed wings still require the tower to become valid before operation. */
+    public int sectorMask(IGregTechTileEntity te) {
+        return tier(te) < 0 ? 0 : formedSectors;
+    }
+
+    public void collectHatches(IGregTechTileEntity te, Consumer<IGregTechTileEntity> accept) {
+        Frame frame = new Frame(te);
+        for (int x : HATCH_X) {
+            int wx = frame.x(x, 1), wz = frame.z(x, 1);
+            if (!frame.loaded(wx, wz)) continue;
+            TileEntity tile = frame.world.getTileEntity(wx, frame.y, wz);
+            if (tile instanceof IGregTechTileEntity gt) accept.accept(gt);
+        }
+    }
+
+    public void tick(IGregTechTileEntity te) {
+        if (te == null || te.getWorld().isRemote) return;
+        World world = te.getWorld();
+        CenterClaims claims = CenterClaims.get(world);
+        if (!claims.allowsScan(this, world.getTotalWorldTime())) return;
+        long started = System.nanoTime();
+        try {
+            scanStructure(te, new Frame(te), claims);
+        } finally {
+            claims.countScan(System.nanoTime() - started);
+        }
+    }
+
+    private void scanStructure(IGregTechTileEntity te, Frame frame, CenterClaims claims) {
+        if (attachClaims) {
+            for (int slot = 0; slot < modules.length; slot++)
+                if (modules[slot] != null) claims.attach(frame, slot, this);
+            attachClaims = false;
+        }
+        if (te.getFrontFacing() != facing) {
+            claims.track(frame, this);
+            facing = te.getFrontFacing();
+            towerTier = -1;
+            tower.reset();
+            for (CriticalStructureMonitor sector : sectors) sector.reset();
+            for (ModuleCheck module : modules) if (module != null) module.monitor.reset();
+            formedSectors = 0;
+            survivalCursor = 0;
+        }
+        int found = detectTier(frame);
+        if (found != towerTier) {
+            towerTier = found;
+            tower.reset();
+        }
+        if (towerTier < 0) return;
+
+        // A single monitor gets a slice per tick. Missing wings and unused pads don't consume a slice.
+        if (tower.getStatus() == Status.PENDING) {
+            scan(tower, shape("tower-" + towerTier), frame, 0, 0, 0, 0, false, elapsed(frame, 0));
+            return;
+        }
+        for (int attempts = 0; attempts < lastScan.length; attempts++) {
+            int monitor = scanCursor;
+            scanCursor = (scanCursor + 1) % lastScan.length;
+            if (monitor == 0) {
+                scan(tower, shape("tower-" + towerTier), frame, 0, 0, 0, 0, false, elapsed(frame, 0));
+                return;
+            }
+            int i = monitor - 1;
+            if (i < sectors.length) {
+                Shape piece = shape("sector-" + i);
+                Sample marker = sample(piece, 0, frame, 0, 0, 0, 0, false);
+                if (marker != Sample.MATCH) {
+                    sectors[i].reset();
+                    if (marker == Sample.BROKEN) sectors[i].invalidate();
+                    else sectors[i].pauseUnloaded();
+                    formedSectors &= ~(1 << i);
+                    continue;
+                }
+                if (scan(sectors[i], piece, frame, 0, 0, 0, 0, false, elapsed(frame, monitor))) formedSectors |= 1 << i;
+                else formedSectors &= ~(1 << i);
+                return;
+            }
+            int slot = i - sectors.length;
+            ModuleCheck module = modules[slot];
+            if (module == null) continue;
+            int[] at = SLOTS[slot];
+            claims.attach(frame, slot, this);
+            scan(
+                module.monitor,
+                shape(module.resource),
+                frame,
+                at[0],
+                at[1],
+                at[2],
+                at[3],
+                true,
+                elapsed(frame, monitor));
+            if (module.monitor.hasKnownDamage()) module.damaged = true;
+            return;
+        }
+    }
+
+    private int elapsed(Frame frame, int monitor) {
+        long now = frame.world.getTotalWorldTime(), prev = lastScan[monitor];
+        lastScan[monitor] = now;
+        return (int) Math.max(1, Math.min(64, now - prev));
+    }
+
+    private int detectTier(Frame frame) {
+        Shape first = shape("tower-0");
+        if (anchorIndex < 0) {
+            for (int i = 0; i < first.count(); i++) {
+                int index = i;
+                boolean allDifferent = true;
+                for (int j = 0; j < 4; j++) for (int k = j + 1; k < 4; k++) {
+                    Shape a = shape("tower-" + j), b = shape("tower-" + k);
+                    if (a.block(index) == b.block(index) && a.metadata(index) == b.metadata(index))
+                        allDifferent = false;
+                }
+                if (allDifferent) {
+                    anchorIndex = i;
+                    break;
+                }
+            }
+            if (anchorIndex < 0) throw new IllegalStateException("No ore center tier key");
+        }
+        for (int i = 0; i < 4; i++)
+            if (sample(shape("tower-" + i), anchorIndex, frame, 0, 0, 0, 0, false) == Sample.MATCH) return i;
+        return -1;
+    }
+
+    private static boolean scan(CriticalStructureMonitor monitor, Shape shape, Frame frame, int x, int y, int z,
+        int rotation, boolean module, int elapsed) {
+        return monitor.tickSamples(shape.count(), elapsed, i -> sample(shape, i, frame, x, y, z, rotation, module));
+    }
+
+    static int rotateX(int x, int z, int dir) {
+        return dir == 1 ? -z : dir == 2 ? -x : dir == 3 ? z : x;
+    }
+
+    static int rotateZ(int x, int z, int dir) {
+        return dir == 1 ? x : dir == 2 ? -z : dir == 3 ? -x : z;
+    }
+
+    private static Sample sample(Shape shape, int i, Frame frame, int x, int y, int z, int rotation, boolean module) {
+        int rx = x + rotateX(shape.x[i], shape.z[i], rotation);
+        int rz = z + rotateZ(shape.x[i], shape.z[i], rotation) + 19;
+        int xx = frame.x(rx, rz), yy = frame.y + y + shape.y[i] - 2 - (module ? 64 : 0), zz = frame.z(rx, rz);
+        if (yy < 0 || yy >= frame.world.getHeight()) return Sample.BROKEN;
+        if (!frame.loaded(xx, zz)) return Sample.UNLOADED;
+        return frame.world.getBlock(xx, yy, zz) == shape.block(i)
+            && frame.world.getBlockMetadata(xx, yy, zz) == shape.metadata(i) ? Sample.MATCH : Sample.BROKEN;
+    }
+
+    private static String moduleKey(int slot, CenterModule module, int grade) {
+        String id = module.key.toLowerCase(Locale.ROOT);
+        if (id.equals("primary")) id = "yield";
+        return "module-" + slot % 6 + "-" + id + "-" + grade;
+    }
+
+    public boolean moduleLoaded(IGregTechTileEntity te, int slot, CenterModule module, int grade) {
+        ModuleCheck check = checkModule(slot, module, grade);
+        return check != null && (check.damaged || check.monitor.getStatus() == Status.VALID
+            || check.monitor.getStatus() == Status.BROKEN);
+    }
+
+    public boolean moduleIntact(IGregTechTileEntity te, int slot, CenterModule module, int grade) {
+        ModuleCheck check = checkModule(slot, module, grade);
+        return check != null && !check.damaged && check.monitor.getStatus() == Status.VALID;
+    }
+
+    private ModuleCheck checkModule(int slot, CenterModule module, int grade) {
+        if (slot < 0 || slot >= 36 || grade < 1 || grade > 3 || module == null) return null;
+        String key = moduleKey(slot, module, grade);
+        return modules[slot] != null && modules[slot].resource.equals(key) ? modules[slot] : null;
+    }
+
+    public boolean install(IGregTechTileEntity te, int slot, CenterModule module, int grade) {
+        if (slot < 0 || slot >= 36
+            || grade < 1
+            || grade > 3
+            || module == null
+            || (sectorMask(te) & 1 << (slot / 6)) == 0
+            || modules[slot] != null && !modules[slot].damaged) return false;
+        String key = moduleKey(slot, module, grade);
+        Shape piece = optionalShape(key);
+        if (piece == null) return false;
+        Frame frame = new Frame(te);
+        if (frame.world.isRemote) return false;
+        CenterClaims claims = CenterClaims.get(frame.world);
+        // A different package may not release the old package's surviving, free decorative blocks.
+        if (claims.hasRemainingDifferent(frame, slot, key) || !writeModule(frame, slot, piece, false)) return false;
+        modules[slot] = new ModuleCheck(key);
+        claims.claim(frame, slot, key, piece);
+        claims.attach(frame, slot, this);
+        return true;
+    }
+
+    public boolean remove(IGregTechTileEntity te, int slot, CenterModule module, int grade) {
+        ModuleCheck check = checkModule(slot, module, grade);
+        if (check == null || te.getWorld().isRemote || !moduleIntact(te, slot, module, grade)) return false;
+        Frame frame = new Frame(te);
+        if (!writeModule(frame, slot, shape(check.resource), true)) return false;
+        CenterClaims.get(frame.world)
+            .release(frame, slot);
+        modules[slot] = null;
+        return true;
+    }
+
+    private static boolean writeModule(Frame frame, int slot, Shape shape, boolean remove) {
+        int[] at = SLOTS[slot];
+        int n = shape.count();
+        int[] xs = new int[n], ys = new int[n], zs = new int[n];
+        Block[] previous = new Block[n];
+        byte[] metadata = new byte[n];
+        boolean[] change = new boolean[n];
+        CenterClaims claims = CenterClaims.get(frame.world);
+        for (int i = 0; i < n; i++) {
+            int rx = at[0] + rotateX(shape.x[i], shape.z[i], at[3]);
+            int rz = at[2] + rotateZ(shape.x[i], shape.z[i], at[3]) + 19;
+            int x = xs[i] = frame.x(rx, rz), y = ys[i] = frame.y + at[1] + shape.y[i] - 66, z = zs[i] = frame.z(rx, rz);
+            if (shape.block(i) == null || y < 0
+                || y >= frame.world.getHeight()
+                || !frame.loaded(x, z)
+                || frame.world.getTileEntity(x, y, z) != null) return false;
+            if (!remove && CriticalBlockProtection.protects(frame.world, x, y, z) && !claims.owns(frame, slot, x, y, z))
+                return false;
+            previous[i] = frame.world.getBlock(x, y, z);
+            metadata[i] = (byte) frame.world.getBlockMetadata(x, y, z);
+            boolean expected = previous[i] == shape.block(i) && metadata[i] == shape.metadata(i);
+            // Voluntary dismantling only refunds a whole intact module.
+            if (remove && !expected) return false;
+            change[i] = remove || !expected;
+        }
+        for (int i = 0; i < n; i++) if (change[i]) {
+            Block block = remove ? net.minecraft.init.Blocks.air : shape.block(i);
+            int meta = remove ? 0 : shape.metadata(i);
+            if (!frame.world.setBlock(xs[i], ys[i], zs[i], block, meta, 2)) {
+                for (int j = i - 1; j >= 0; j--)
+                    if (change[j]) frame.world.setBlock(xs[j], ys[j], zs[j], previous[j], metadata[j], 2);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    boolean permitsExternalRemoval(int slot) {
+        return towerTier < 0 || tower.getStatus() == Status.BROKEN
+            || (formedSectors & 1 << (slot / 6)) == 0 && sectors[slot / 6].getStatus() == Status.BROKEN;
+    }
+
+    void invalidateModule(int slot) {
+        if (modules[slot] == null) return;
+        modules[slot].monitor.invalidate();
+        modules[slot].damaged = true;
+    }
+
+    void changed(int x, int y, int z) {
+        if (towerTier >= 0 && y >= 0 && y <= 64 && x >= -22 && x <= 22 && z >= -22 && z <= 22) {
+            Shape body = shape("tower-" + towerTier);
+            body.prepareLookup();
+            if (body.lookup(x, y, z) >= 0) {
+                tower.invalidate();
+                tower.requestFastSweep();
+                return;
+            }
+        }
+        for (int i = 0; i < sectors.length; i++) if ((formedSectors & 1 << i) != 0) {
+            Shape wing = shape("sector-" + i);
+            wing.prepareLookup();
+            if (wing.lookup(x, y, z) < 0) continue;
+            sectors[i].invalidate();
+            sectors[i].requestFastSweep();
+            formedSectors &= ~(1 << i);
+            return;
+        }
+    }
+
+    public void save(NBTTagCompound tag) {
+        NBTTagCompound app = new NBTTagCompound();
+        for (int i = 0; i < modules.length; i++) if (modules[i] != null) {
+            app.setString(Integer.toString(i), modules[i].resource);
+            if (modules[i].damaged) app.setBoolean("d" + i, true);
+        }
+        tag.setTag("oreCenterStructure", app);
+    }
+
+    public void load(NBTTagCompound tag) {
+        NBTTagCompound app = tag.getCompoundTag("oreCenterStructure");
+        for (int i = 0; i < modules.length; i++) {
+            String key = app.getString(Integer.toString(i));
+            modules[i] = key.matches("module-" + i % 6 + "-[a-z]+-[123]") ? new ModuleCheck(key) : null;
+            if (modules[i] != null) modules[i].damaged = app.getBoolean("d" + i);
+        }
+        attachClaims = true;
+    }
+
+    public boolean construct(IGregTechTileEntity te, int tier, int mask, boolean hintsOnly) {
+        if (tier < 0 || tier > 3 || mask < 1 || mask > 63) return false;
+        Frame frame = new Frame(te);
+        if (!hintsOnly && frame.world.isRemote) return false;
+        List<Shape> blueprints = pieces(tier, mask);
+        if (!hintsOnly) for (Shape piece : blueprints) if (!canConstruct(frame, piece)) return false;
+        for (Shape piece : blueprints) buildPiece(frame, piece, hintsOnly);
+        tower.requestFastSweep();
+        for (CriticalStructureMonitor sector : sectors) sector.requestFastSweep();
+        return true;
+    }
+
+    private static List<Shape> pieces(int tier, int mask) {
+        List<Shape> result = new ArrayList<>(7);
+        result.add(shape("tower-" + tier));
+        if (mask == 63) result.add(shape("outer-full"));
+        else for (int i = 0; i < 6; i++) if ((mask & 1 << i) != 0) result.add(shape("outer-" + i));
+        return result;
+    }
+
+    public int survivalConstruct(IGregTechTileEntity te, int tier, int mask, int budget,
+        ISurvivalBuildEnvironment env) {
+        if (te.getWorld().isRemote || tier < 0 || tier > 3 || mask < 1 || mask > 63 || budget <= 0) return 0;
+        Frame frame = new Frame(te);
+        int placed = 0, index = 0, scanned = 0;
+        if (survivalTier != tier || survivalMask != mask) survivalCursor = 0;
+        survivalTier = tier;
+        survivalMask = mask;
+        for (Shape piece : pieces(tier, mask)) for (int i = 0; i < piece.count(); i++, index++) {
+            if (index < survivalCursor) continue;
+            if (++scanned > 1024 || placed >= budget) {
+                survivalCursor = index;
+                return placed;
+            }
+            int xx = frame.x(piece.x[i], piece.z[i] + 19), yy = frame.y + piece.y[i] - 2,
+                zz = frame.z(piece.x[i], piece.z[i] + 19);
+            if (!frame.loaded(xx, zz)) {
+                survivalCursor = index;
+                return placed;
+            }
+            if (frame.world.getBlock(xx, yy, zz) == piece.block(i)
+                && frame.world.getBlockMetadata(xx, yy, zz) == piece.metadata(i)) continue;
+            if (piece.block(i) == null || yy < 0
+                || yy >= frame.world.getHeight()
+                || CriticalBlockProtection.protects(frame.world, xx, yy, zz)) {
+                survivalCursor = index;
+                return placed;
+            }
+            PlaceResult result = StructureUtility.survivalPlaceBlock(
+                piece.block(i),
+                piece.metadata(i),
+                frame.world,
+                xx,
+                yy,
+                zz,
+                env.getSource(),
+                env.getActor());
+            if (result == PlaceResult.REJECT || result == PlaceResult.STOP) {
+                survivalCursor = index;
+                return placed;
+            }
+            if (result == PlaceResult.ACCEPT || result == PlaceResult.ACCEPT_STOP) placed++;
+        }
+        survivalCursor = 0;
+        return placed == 0 ? -1 : placed;
+    }
+
+    private static boolean canConstruct(Frame frame, Shape shape) {
+        for (int i = 0; i < shape.count(); i++) {
+            int rx = shape.x[i], rz = shape.z[i] + 19;
+            int wx = frame.x(rx, rz), wy = frame.y + shape.y[i] - 2, wz = frame.z(rx, rz);
+            if (shape.block(i) == null || wy < 0
+                || wy >= frame.world.getHeight()
+                || !frame.loaded(wx, wz)
+                || frame.world.getTileEntity(wx, wy, wz) != null) return false;
+            if (CriticalBlockProtection.protects(frame.world, wx, wy, wz)) return false;
+        }
+        return true;
+    }
+
+    private static void buildPiece(Frame frame, Shape shape, boolean hints) {
+        for (int i = 0, hintCount = 0; i < shape.count(); i++) {
+            int rx = shape.x[i], rz = shape.z[i] + 19;
+            int wx = frame.x(rx, rz), wy = frame.y + shape.y[i] - 2, wz = frame.z(rx, rz);
+            if (shape.block(i) == null || !frame.loaded(wx, wz)) continue;
+            boolean matches = frame.world.getBlock(wx, wy, wz) == shape.block(i)
+                && frame.world.getBlockMetadata(wx, wy, wz) == shape.metadata(i);
+            if (matches) continue;
+            if (hints && hintCount++ < 512)
+                StructureLibAPI.hintParticle(frame.world, wx, wy, wz, shape.block(i), shape.metadata(i));
+            if (!hints) frame.world.setBlock(wx, wy, wz, shape.block(i), shape.metadata(i), 2);
+        }
+    }
+
+    private static Shape shape(String key) {
+        Shape shape = optionalShape(key);
+        if (shape == null) throw new IllegalStateException("Missing ore center layout " + key);
+        return shape;
+    }
+
+    static synchronized Shape optionalShape(String key) {
+        Shape cached = SHAPES.get(key);
+        if (cached != null) return cached;
+        InputStream resource = CenterStructure.class.getResourceAsStream("/assets/gtsr/orecenter/" + key + ".gz");
+        if (resource == null) return null;
+        try (DataInputStream in = new DataInputStream(new GZIPInputStream(resource))) {
+            int colors = in.readUnsignedShort(), count = in.readInt();
+            if (colors < 1 || colors > 255 || count < 1 || count > 200000) throw new IOException("Invalid block count");
+            Block[] blocks = new Block[colors];
+            byte[] metas = new byte[colors];
+            for (int i = 0; i < colors; i++) {
+                byte[] name = new byte[in.readUnsignedByte()];
+                in.readFully(name);
+                String[] id = new String(name, java.nio.charset.StandardCharsets.UTF_8).split(":", 2);
+                blocks[i] = GameRegistry.findBlock(id[0], id[1]);
+                metas[i] = in.readByte();
+            }
+            Shape result = new Shape(
+                blocks,
+                metas,
+                new short[count],
+                new byte[count],
+                new short[count],
+                new byte[count]);
+            for (int i = 0; i < count; i++) {
+                result.x[i] = in.readShort();
+                result.y[i] = in.readByte();
+                result.z[i] = in.readShort();
+                result.ids[i] = in.readByte();
+            }
+            SHAPES.put(key, result);
+            return result;
+        } catch (IOException e) {
+            throw new IllegalStateException("Invalid ore center layout " + key, e);
+        }
+    }
+
+    static final class Frame {
+
+        final World world;
+        final int x, y, z;
+        final ForgeDirection facing;
+
+        Frame(IGregTechTileEntity te) {
+            world = te.getWorld();
+            x = te.getXCoord();
+            y = te.getYCoord();
+            z = te.getZCoord();
+            facing = CriticalStructureAlignment.horizontal(te.getFrontFacing());
+        }
+
+        int x(int x, int z) {
+            return this.x + CriticalStructureAlignment.rotateX(x, z, facing);
+        }
+
+        int z(int x, int z) {
+            return this.z + CriticalStructureAlignment.rotateZ(x, z, facing);
+        }
+
+        boolean loaded(int x, int z) {
+            return world.getChunkProvider()
+                .chunkExists(x >> 4, z >> 4);
+        }
+    }
+
+    static final class Shape {
+
+        final Block[] blocks;
+        final byte[] metas;
+        final short[] x, z;
+        final byte[] y, ids;
+        private long[] lookup;
+
+        Shape(Block[] blocks, byte[] metas, short[] x, byte[] y, short[] z, byte[] ids) {
+            this.blocks = blocks;
+            this.metas = metas;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.ids = ids;
+        }
+
+        int count() {
+            return x.length;
+        }
+
+        Block block(int i) {
+            return blocks[Byte.toUnsignedInt(ids[i])];
+        }
+
+        int metadata(int i) {
+            return Byte.toUnsignedInt(metas[Byte.toUnsignedInt(ids[i])]);
+        }
+
+        void prepareLookup() {
+            if (lookup != null) return;
+            long[] values = new long[count()];
+            for (int i = 0; i < values.length; i++) values[i] = ((long) cell(x[i], y[i], z[i]) << 16) | i;
+            java.util.Arrays.sort(values);
+            lookup = values;
+        }
+
+        int lookup(int x, int y, int z) {
+            if (x < -128 || x > 128 || z < -128 || z > 128 || y < 0 || y > 127) return -1;
+            int key = cell(x, y, z);
+            int lo = 0, hi = lookup.length - 1;
+            while (lo <= hi) {
+                int mid = (lo + hi) >>> 1;
+                long entry = lookup[mid];
+                int found = (int) (entry >>> 16);
+                if (found == key) return (int) (entry & 0xFFFF);
+                if (found < key) lo = mid + 1;
+                else hi = mid - 1;
+            }
+            return -1;
+        }
+
+        private static int cell(int x, int y, int z) {
+            return ((x + 128) << 17) | ((z + 128) << 8) | y;
+        }
+    }
+
+    private static final class ModuleCheck {
+
+        final String resource;
+        final CriticalStructureMonitor monitor = new CriticalStructureMonitor();
+        boolean damaged;
+
+        ModuleCheck(String resource) {
+            this.resource = resource;
+        }
+    }
+}

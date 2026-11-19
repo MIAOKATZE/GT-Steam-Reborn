@@ -116,6 +116,7 @@ public enum GTSRItemList implements IItemContainer {
     HubTerminal,
 
     // 集群段（蒸汽动力矿物处理物流工程集群：总控/工作/增幅/物流）
+    OreIntegrationCenter,
     ClusterController,
     ClusterUnitCrusher,
     ClusterUnitOreWasher,

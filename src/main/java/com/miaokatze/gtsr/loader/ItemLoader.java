@@ -6,6 +6,7 @@ package com.miaokatze.gtsr.loader;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.items.AmmoniaCatalyst;
+import com.miaokatze.gtsr.common.items.CenterModuleItems;
 import com.miaokatze.gtsr.common.items.CriticalSteamEntangledSingularity;
 import com.miaokatze.gtsr.common.items.GeothermalOverheatChip;
 import com.miaokatze.gtsr.common.items.HubSingularityChip;
@@ -34,6 +35,7 @@ public class ItemLoader {
         registerRareGasSeparationChip();
         registerAmmoniaCatalysts();
         registerSteamEntangledSingularity();
+        CenterModuleItems.register();
         registerCriticalSteamEntangledSingularity();
         GTSRItemList.IrradiatedMoonDust
             .setAndRegister(new com.miaokatze.gtsr.common.items.IrradiatedDust(true), "IrradiatedMoonDust", true);

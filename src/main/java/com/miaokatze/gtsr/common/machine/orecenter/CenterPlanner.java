@@ -1,0 +1,514 @@
+package com.miaokatze.gtsr.common.machine.orecenter;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
+import java.util.regex.Pattern;
+
+import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
+
+import gregtech.api.enums.ItemList;
+import gregtech.api.recipe.RecipeMap;
+import gregtech.api.util.GTRecipe;
+import gregtech.api.util.GTRecipeConstants;
+
+public final class CenterPlanner {
+
+    private static final int MAX_INPUTS = 128, MAX_WORK = 4096, MAX_OUTPUTS = 512, MAX_CANDIDATES = 32;
+    private static final int[] STEAM = { 4000, 24000, 112000, 384000 }, WIDTH = { 24, 48, 64, 128 },
+        SETUP = { 100, 40, 20, 10 }, VOLTAGE = { 32, 128, 512, 2048 }, CONTROL_EU = { 0, 32, 128, 512 };
+    private static final double[] TIME = { 1, .8, .6, .4 }, GRADE_TIME = { 1, 1.35, 1.8 },
+        GRADE_STEAM = { 1, 1.45, 2.1 }, GRADE_EU = { 1, 1.07, 1.15 };
+    private static final CenterModule[] MODULES = CenterModule.values();
+    private static final Pattern RAW = Pattern.compile("(?:ore|rawOre|variantOre)[A-Z0-9].*");
+    private static final Pattern FEED = Pattern
+        .compile("(?:ore|rawOre|variantOre|crushed|dustImpure|dustPure)[A-Z0-9].*");
+
+    public static final class Batch {
+
+        public final List<ItemStack> consumed, outputs;
+        public final List<FluidStack> consumedFluids, outputFluids;
+        public final int ticks;
+        public final long steam, energy;
+
+        private Batch(Session plan, int ticks, long steam, long energy) {
+            this.consumed = plan.consumed;
+            this.outputs = plan.outputs;
+            this.consumedFluids = plan.consumedFluids;
+            this.outputFluids = plan.outputFluids;
+            this.ticks = ticks;
+            this.steam = steam;
+            this.energy = energy;
+        }
+    }
+
+    private static final class Lot {
+
+        final ItemStack stack;
+        final boolean incoming, primary;
+
+        Lot(ItemStack stack, boolean incoming, boolean primary) {
+            this.stack = stack;
+            this.incoming = incoming;
+            this.primary = primary;
+        }
+    }
+
+    private static final class WorkGraph {
+
+        final CenterGraph graph;
+        final List<List<Lot>> input;
+        final double[] path;
+
+        WorkGraph(CenterGraph graph) {
+            this.graph = graph;
+            input = new ArrayList<>();
+            path = new double[graph.nodes.size()];
+            for (int i = 0; i < graph.nodes.size(); i++) input.add(new ArrayList<>());
+        }
+    }
+
+    public static Batch plan(List<CenterGraph> graphs, ItemStack[] items, FluidStack[] fluids, int[] grades, int tier,
+        int sectors, long voltage, long availableEUt, int heat, long seed) {
+        Session planner = start(graphs, items, fluids, grades, tier, sectors, voltage, availableEUt, heat, seed);
+        while (!planner.advance(32, Long.MAX_VALUE)) {
+            // Offline/test entry point. The controller resumes one bounded slice per server tick.
+        }
+        return planner.batch();
+    }
+
+    public static Session start(List<CenterGraph> graphs, ItemStack[] items, FluidStack[] fluids, int[] grades,
+        int tier, int sectors, long voltage, long availableEUt, int heat, long seed) {
+        int[][] counts = new int[MODULES.length][3];
+        for (int i = 0; i < grades.length && i < counts.length; i++) {
+            int grade = grades[i];
+            if (grade >= 1 && grade <= 3) counts[i][grade - 1] = 1;
+        }
+        return new Session(graphs, items, fluids, counts, tier, sectors, voltage, availableEUt, heat, seed);
+    }
+
+    static final class Boost {
+
+        final String fluid;
+        final double[] gain, steam, eu;
+        final int[] price;
+        final double cap;
+
+        Boost(String fluid, double[] gain, int[] price, double[] steam, double[] eu, double cap) {
+            this.fluid = fluid;
+            this.gain = gain;
+            this.price = price;
+            this.steam = steam;
+            this.eu = eu;
+            this.cap = cap;
+        }
+    }
+
+    private static final Boost[] BOOSTS = {
+        new Boost(
+            "hydrochloricacid",
+            new double[] { 5, 10, 20 },
+            new int[] { 4, 14, 45 },
+            new double[] { .05, .12, .24 },
+            new double[] { .03, .07, .14 },
+            50),
+        new Boost(
+            "nitricacid",
+            new double[] { 4, 8, 16 },
+            new int[] { 4, 12, 36 },
+            new double[] { .04, .10, .20 },
+            new double[] { .02, .06, .12 },
+            48),
+        new Boost(
+            "sulfuricacid",
+            new double[] { .5, 1, 2 },
+            new int[] { 8, 24, 75 },
+            new double[] { .08, .16, .30 },
+            new double[] { .04, .09, .18 },
+            8),
+        new Boost(
+            "ammoniumchloride",
+            new double[] { 1, 2.5, 5 },
+            new int[] { 3, 10, 30 },
+            new double[] { .05, .12, .22 },
+            new double[] { .03, .07, .14 },
+            20) };
+
+    public static final class Session {
+
+        private final List<WorkGraph> graphs = new ArrayList<>();
+        private final List<ItemStack> consumed = new ArrayList<>(), outputs = new ArrayList<>();
+        private final List<FluidStack> consumedFluids = new ArrayList<>(), outputFluids = new ArrayList<>();
+        private final List<ItemStack> auxiliary = new ArrayList<>();
+        private final List<FluidStack> available = new ArrayList<>();
+        private final List<ItemStack> inputs = new ArrayList<>();
+        private final int[][] counts;
+        private final int[] best = new int[MODULES.length];
+        private final double[] weight = new double[MODULES.length], gain = new double[4];
+        private final int[] boostPrice = new int[4];
+        private final int tier, sectors, heat;
+        private final long voltage, maxEUt;
+        private final Random random;
+        private int graphIndex, nodeIndex, lotIndex, inputIndex, selected, executions, rootPaid, proposedRoots;
+        private double workTicks, critical, workSteam, recipeEU, steamMultiplier = 1, euMultiplier = 1;
+        private boolean finished, failed, boostConfigured;
+        private Batch result;
+
+        Session(List<CenterGraph> configured, ItemStack[] items, FluidStack[] fluids, int[][] counts, int tier,
+            int sectors, long voltage, long maxEUt, int heat, long seed) {
+            if (tier < 0 || tier > 3 || sectors < 1 || sectors > 6 || configured.size() > CenterGraph.MAX_GRAPHS) {
+                throw new IllegalArgumentException("Invalid center configuration");
+            }
+            this.tier = tier;
+            this.sectors = sectors;
+            this.voltage = voltage;
+            this.maxEUt = maxEUt;
+            this.heat = heat;
+            this.random = new Random(seed);
+            this.counts = counts;
+            for (CenterModule module : MODULES) {
+                int id = module.ordinal();
+                for (int g = 0; g < 3; g++) if (counts[id][g] > 0 && module.acceptsGrade(g + 1, tier)) best[id] = g + 1;
+                if (best[id] > 0) weight[id] = .10;
+            }
+            for (FluidStack fluid : fluids)
+                if (fluid != null && fluid.amount > 0) mergeFluid(available, fluid, fluid.amount);
+            List<CenterGraph> sorted = new ArrayList<>(configured);
+            sorted.sort(
+                Comparator.comparingInt((CenterGraph g) -> g.priority)
+                    .reversed());
+            for (CenterGraph graph : sorted) {
+                if (!graph.enabled || graph.nodes.stream()
+                    .anyMatch(n -> !n.process.installed(best))) continue;
+                graphs.add(new WorkGraph(graph));
+                for (CenterGraph.Node node : graph.nodes) weight[node.process.module.ordinal()] = .20;
+            }
+            for (ItemStack stack : items) if (stack != null && stack.stackSize > 0) inputs.add(stack.copy());
+        }
+
+        private void prepare(ItemStack stack) {
+            String[] tags = CenterGraph.tags(stack);
+            WorkGraph graph = pick(stack, tags);
+            if (graph != null && selected < MAX_INPUTS && proposedRoots < MAX_WORK) {
+                int quantity = Math.min(stack.stackSize, MAX_WORK - proposedRoots);
+                boolean raw = anyTag(tags, RAW);
+                stack.stackSize = quantity;
+                addLot(graph.input.get(0), stack, true, raw);
+                proposedRoots += quantity;
+                selected++;
+            } else if (graph == null && auxiliary.size() < MAX_INPUTS) {
+                merge(auxiliary, stack, stack.stackSize);
+            }
+        }
+
+        private WorkGraph pick(ItemStack stack, String[] rules) {
+            WorkGraph fallback = null;
+            for (WorkGraph graph : graphs) {
+                if (!graph.graph.fallback() && graph.graph.matches(stack, rules)) return graph;
+                if (fallback == null && graph.graph.fallback() && anyTag(rules, FEED)) fallback = graph;
+            }
+            return fallback;
+        }
+
+        private void configureBoosts() {
+            for (int i = 0; i < BOOSTS.length; i++) {
+                Boost b = BOOSTS[i];
+                int module = CenterModule.SPEED.ordinal() + i;
+                for (int g = 0; g < best[module]; g++) {
+                    int required = proposedRoots * b.price[g];
+                    for (int repeat = 0; repeat < counts[module][g] && required > 0; repeat++) {
+                        FluidStack fluid = FluidRegistry.getFluidStack(b.fluid, required);
+                        if (fluid == null || !useFluid(available, fluid, required)) break;
+                        mergeFluid(consumedFluids, fluid, required);
+                        boostPrice[i] += b.price[g];
+                        gain[i] = Math.min(b.cap, gain[i] + b.gain[g]);
+                        steamMultiplier += b.steam[g];
+                        euMultiplier += b.eu[g];
+                    }
+                }
+            }
+        }
+
+        public Batch batch() {
+            return result;
+        }
+
+        public boolean advance(int queryBudget, long timeBudgetNanos) {
+            if (finished) return true;
+            long start = System.nanoTime();
+            int used = 0;
+            while (inputIndex < inputs.size()) {
+                if (used >= queryBudget || used > 0 && System.nanoTime() - start >= timeBudgetNanos) return false;
+                prepare(inputs.get(inputIndex++));
+                used++;
+            }
+            if (!boostConfigured) {
+                configureBoosts();
+                boostConfigured = true;
+            }
+            while (graphIndex < graphs.size() && !failed) {
+                if (used >= queryBudget || used > 0 && System.nanoTime() - start >= timeBudgetNanos) return false;
+                WorkGraph work = graphs.get(graphIndex);
+                if (nodeIndex == work.graph.nodes.size()) {
+                    graphIndex++;
+                    nodeIndex = lotIndex = 0;
+                    continue;
+                }
+                List<Lot> lots = work.input.get(nodeIndex);
+                if (lotIndex == lots.size()) {
+                    nodeIndex++;
+                    lotIndex = 0;
+                    continue;
+                }
+                Lot lot = lots.get(lotIndex++);
+                if (lot.stack.stackSize > 0) {
+                    try {
+                        process(work, work.graph.nodes.get(nodeIndex), lot);
+                    } catch (ArithmeticException overflow) {
+                        failed = true;
+                    }
+                    used++;
+                }
+            }
+            finished = true;
+            if (!failed && rootPaid > 0) result = conclude();
+            return true;
+        }
+
+        private void process(WorkGraph work, CenterGraph.Node node, Lot lot) {
+            int index = node.process.module.ordinal();
+            long recipeVoltage = node.process.module.standbyEU == 0 ? VOLTAGE[tier] : voltage;
+            RecipeMap<?> map = node.process.recipes();
+            var candidates = new ArrayList<ItemStack>();
+            candidates.add(lot.stack.copy());
+            if (node.process == CenterProcess.REACTOR || node.process == CenterProcess.FURNACE) {
+                for (ItemStack stack : auxiliary) if (stack.stackSize > 0) candidates.add(stack.copy());
+            }
+            if (node.circuit != 0) candidates.add(ItemList.Circuit_Integrated.getWithDamage(0, node.circuit));
+            ItemStack[] itemStocks = candidates.toArray(new ItemStack[0]);
+            FluidStack[] fluidStocks = available.stream()
+                .filter(f -> f.amount > 0)
+                .map(FluidStack::copy)
+                .toArray(FluidStack[]::new);
+            GTRecipe recipe = null;
+            if (map != null) {
+                List<GTRecipe> found = new ArrayList<>();
+                map.findRecipeQuery()
+                    .items(itemStocks)
+                    .fluids(fluidStocks)
+                    .voltage(recipeVoltage)
+                    .caching(false)
+                    .filter(r -> !r.mFakeRecipe && r.mEnabled && !r.mHidden)
+                    .filter(
+                        r -> !r.getMetadataOrDefault(GTRecipeConstants.CLEANROOM, false)
+                            && !r.getMetadataOrDefault(GTRecipeConstants.LOW_GRAVITY, false)
+                            && r.getMetadataOrDefault(GTRecipeConstants.COIL_HEAT, 0) <= heat)
+                    .filter(r -> ordinaryInputs(r))
+                    .findAll()
+                    .limit(MAX_CANDIDATES + 1L)
+                    .forEach(found::add);
+                if (found.size() <= MAX_CANDIDATES && !found.isEmpty()) recipe = found.get(0);
+            }
+            int times = 0;
+            if (recipe != null) {
+                int limit = Math.min(lot.stack.stackSize, MAX_WORK - executions);
+                // Binary search exact native quantities using copies, then consume the matched run once.
+                int lo = 0, hi = limit;
+                while (lo < hi) {
+                    int mid = (lo + hi + 1) >>> 1;
+                    if (recipe.isRecipeInputEqual(false, false, mid, fluidStocks, itemStocks)) lo = mid;
+                    else hi = mid - 1;
+                }
+                if (lo > 0 && recipe.isRecipeInputEqual(true, false, lo, fluidStocks, itemStocks)
+                    && itemStocks[0].stackSize < lot.stack.stackSize) times = lo;
+            }
+            if (times == 0) {
+                if (!lot.incoming) send(lot.stack, false);
+                return;
+            }
+            int paid = lot.stack.stackSize - itemStocks[0].stackSize;
+            if (lot.incoming) {
+                merge(consumed, lot.stack, paid);
+                rootPaid += paid;
+            } else if (itemStocks[0].stackSize > 0) send(itemStocks[0], false);
+            for (int i = 1, j = 0; i < itemStocks.length - (node.circuit == 0 ? 0 : 1); i++) {
+                while (auxiliary.get(j).stackSize <= 0) j++;
+                ItemStack original = auxiliary.get(j++);
+                int spent = original.stackSize - itemStocks[i].stackSize;
+                if (spent > 0) {
+                    merge(consumed, original, spent);
+                    original.stackSize -= spent;
+                }
+            }
+            for (int i = 0, j = 0; i < fluidStocks.length; i++) {
+                while (available.get(j).amount <= 0) j++;
+                FluidStack original = available.get(j++);
+                int spent = original.amount - fluidStocks[i].amount;
+                if (spent > 0) {
+                    mergeFluid(consumedFluids, original, spent);
+                    original.amount -= spent;
+                }
+            }
+            executions += times;
+            if (executions >= MAX_WORK) failed = true;
+            weight[index] = 1;
+            int grade = best[index] - 1;
+            double duration = Math
+                .max(1, recipe.mDuration * (node.process.module.standbyEU == 0 ? .25 : 1) / GRADE_TIME[grade]);
+            workTicks += duration * times;
+            workSteam += duration * times * node.process.module.steamRate * GRADE_STEAM[grade];
+            double path = work.path[nodeIndex] + duration;
+            critical = Math.max(critical, path);
+            if (node.process.module.standbyEU > 0)
+                recipeEU += (double) times * recipe.mDuration * Math.abs((long) recipe.mEUt) * GRADE_EU[grade];
+            for (int slot = 0; slot < recipe.mOutputs.length; slot++) {
+                ItemStack original = recipe.mOutputs[slot];
+                if (original == null || original.stackSize <= 0) continue;
+                double chance = recipe.getOutputChance(slot) / 10000.0;
+                int ordinary = sample(times, chance);
+                int extra = 0;
+                if (slot > 0 && node.process.mineralYield && chance > 0 && chance < 1) {
+                    extra = sample(times - ordinary, Math.min(1 - chance, chance * gain[3] / 100) / (1 - chance));
+                }
+                int target = node.target(slot, original);
+                boolean primary = slot == 0 && lot.primary && node.process.mineralYield;
+                if (target >= 0) work.path[target] = Math.max(work.path[target], path);
+                produce(work, target, original, (long) ordinary * original.stackSize, primary);
+                produce(work, target, original, (long) extra * original.stackSize, false);
+            }
+            for (int i = 0; i < recipe.mFluidOutputs.length; i++) {
+                FluidStack f = recipe.mFluidOutputs[i];
+                if (f != null && f.amount > 0) {
+                    int amount = Math.multiplyExact(f.amount, sample(times, recipe.getFluidOutputChance(i) / 10000.0));
+                    if (amount > 0) mergeFluid(outputFluids, f, amount);
+                }
+            }
+            if (outputs.size() + outputFluids.size() > MAX_OUTPUTS) failed = true;
+        }
+
+        private void produce(WorkGraph graph, int target, ItemStack stack, long quantity, boolean primary) {
+            if (quantity <= 0) return;
+            ItemStack out = stack.copy();
+            out.stackSize = Math.toIntExact(quantity);
+            if (target < 0) send(out, primary);
+            else {
+                List<Lot> queue = graph.input.get(target);
+                addLot(queue, out, false, primary);
+                if (queue.size() > MAX_INPUTS) failed = true;
+            }
+        }
+
+        private void send(ItemStack stack, boolean eligible) {
+            int quantity = stack.stackSize;
+            if (eligible && gain[2] > 0) quantity = Math.addExact(quantity, sample(quantity, gain[2] / 100));
+            merge(outputs, stack, quantity);
+        }
+
+        private int sample(int n, double p) {
+            if (p <= 0 || n == 0) return 0;
+            if (p >= 1) return n;
+            if (p > .5) return n - sample(n, 1 - p);
+            // Geometric gaps are exact and avoid thousands of missed rare-output rolls.
+            double log = Math.log1p(-p);
+            int hits = 0;
+            long position = -1;
+            while (position < n) {
+                double gap = 1 + Math.floor(Math.log1p(-random.nextDouble()) / log);
+                if (gap >= n - position) break;
+                position += (long) gap;
+                hits++;
+            }
+            return hits;
+        }
+
+        private Batch conclude() {
+            for (int i = 0; i < BOOSTS.length; i++) {
+                int refund = (proposedRoots - rootPaid) * boostPrice[i];
+                if (refund > 0) useFluid(consumedFluids, FluidRegistry.getFluidStack(BOOSTS[i].fluid, refund), refund);
+            }
+            consumedFluids.removeIf(f -> f.amount <= 0);
+            double scale = 1 + .06 * (sectors - 1) + .025 * Math.max(0, graphs.size() - 1);
+            int ticks = Math.max(
+                20,
+                (int) Math.ceil(
+                    SETUP[tier]
+                        + TIME[tier] * Math.max(workTicks / (WIDTH[tier] + gain[1]), critical) / (1 + gain[0] / 100)));
+            double idleEU = 0, hold = 0;
+            for (CenterModule module : MODULES) {
+                int i = module.ordinal();
+                for (int g = 0; g < best[i]; g++) {
+                    hold += weight[i] * module.steamRate * GRADE_STEAM[g] * counts[i][g] * .20;
+                    idleEU += weight[i] * module.standbyEU * counts[i][g];
+                }
+            }
+            if (idleEU > 0) idleEU += CONTROL_EU[tier];
+            double net = maxEUt - idleEU * scale * euMultiplier;
+            if (recipeEU > 0 && net <= 0) return null;
+            if (recipeEU > 0) ticks = Math.max(ticks, (int) Math.ceil(recipeEU * scale * euMultiplier / net));
+            if (ticks > 24000) return null;
+            long energy = (long) Math.ceil(scale * euMultiplier * (recipeEU + idleEU * ticks));
+            if (energy > maxEUt * ticks) return null;
+            long steam = (long) Math.ceil(
+                scale * (STEAM[tier] * (1 + .1 * (sectors - 1)) * ticks / 20
+                    + steamMultiplier * (hold * ticks / 20 + workSteam / (20 * WIDTH[tier]))));
+            return new Batch(this, ticks, steam, energy);
+        }
+    }
+
+    static boolean equal(ItemStack left, ItemStack right) {
+        return left.getItem() == right.getItem() && left.getItemDamage() == right.getItemDamage()
+            && ItemStack.areItemStackTagsEqual(left, right);
+    }
+
+    private static boolean anyTag(String[] tags, Pattern pattern) {
+        for (String tag : tags) if (pattern.matcher(tag)
+            .matches()) return true;
+        return false;
+    }
+
+    private static boolean ordinaryInputs(GTRecipe recipe) {
+        if (recipe.mInputChances != null) for (int chance : recipe.mInputChances) if (chance != 10000) return false;
+        if (recipe.mFluidInputChances != null)
+            for (int chance : recipe.mFluidInputChances) if (chance != 10000) return false;
+        return true;
+    }
+
+    private static void addLot(List<Lot> lots, ItemStack item, boolean incoming, boolean primary) {
+        for (Lot lot : lots) if (lot.primary == primary && equal(lot.stack, item)) {
+            lot.stack.stackSize = Math.addExact(lot.stack.stackSize, item.stackSize);
+            return;
+        }
+        lots.add(new Lot(item, incoming, primary));
+    }
+
+    private static void merge(List<ItemStack> stacks, ItemStack item, int amount) {
+        for (ItemStack stack : stacks) if (equal(stack, item)) {
+            stack.stackSize = Math.addExact(stack.stackSize, amount);
+            return;
+        }
+        ItemStack copy = item.copy();
+        copy.stackSize = amount;
+        stacks.add(copy);
+    }
+
+    private static void mergeFluid(List<FluidStack> stacks, FluidStack item, int amount) {
+        for (FluidStack stack : stacks) if (stack.isFluidEqual(item)) {
+            stack.amount = Math.addExact(stack.amount, amount);
+            return;
+        }
+        FluidStack copy = item.copy();
+        copy.amount = amount;
+        stacks.add(copy);
+    }
+
+    private static boolean useFluid(List<FluidStack> stacks, FluidStack item, int amount) {
+        for (FluidStack stack : stacks) if (stack.isFluidEqual(item) && stack.amount >= amount) {
+            stack.amount -= amount;
+            return true;
+        }
+        return false;
+    }
+}
