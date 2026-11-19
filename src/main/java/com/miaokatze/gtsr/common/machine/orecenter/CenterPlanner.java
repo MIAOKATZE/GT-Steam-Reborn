@@ -523,7 +523,7 @@ public final class CenterPlanner {
         return found.isEmpty() || found.size() > MAX_CANDIDATES ? null : found.get(0);
     }
 
-    private static boolean usableRecipe(GTRecipe recipe, int heat) {
+    static boolean usableRecipe(GTRecipe recipe, int heat) {
         return !recipe.mFakeRecipe && recipe.mEnabled && !recipe.mHidden
             && !recipe.getMetadataOrDefault(GTRecipeConstants.CLEANROOM, false)
             && !recipe.getMetadataOrDefault(GTRecipeConstants.LOW_GRAVITY, false)

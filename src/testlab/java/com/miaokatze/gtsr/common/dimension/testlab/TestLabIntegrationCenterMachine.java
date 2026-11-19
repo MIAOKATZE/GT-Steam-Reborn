@@ -26,7 +26,9 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.items.CenterModuleItems;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.SteamGrade;
@@ -36,6 +38,7 @@ import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTOreDictUnificator;
@@ -51,6 +54,9 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
     private static final int ORE_COUNT = 8, STEAM_FILL = 4096;
 
     private final List<int[]> positions = new ArrayList<>();
+    private final Map<Integer, Integer> hatchTexturesByTier = new LinkedHashMap<>();
+    private List<IGregTechTileEntity> hatches;
+    private int expectedCasingTier, checkHatchesAt;
     private int x, y, z, cursor, phase, pauseAt, steamAtPause, expected, outputCount;
     private long buildNanos, initialSequence;
     private IGregTechTileEntity controller, input, output;
@@ -86,6 +92,7 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
         cursor = phase = 0;
         pauseAt = -1;
         positions.clear();
+        hatchTexturesByTier.clear();
         addOwnership("tower-service-0", 0, 0, 0, 0, false);
         addOwnership("outer-0", 0, 0, 0, 0, false);
         addOwnership("module-1-crusher-1", -46, 9, 49, 0, true);
@@ -147,6 +154,21 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                 GTSRItemList.SteamInputHatchGeneric.get(1).getItemDamage()).getMetaTileEntity();
             cooling = (MTESteamCoolingHatch) TestLabFixtures.machine(world, x - 7, y, z,
                 GTSRItemList.SteamCoolingHatch.get(1).getItemDamage()).getMetaTileEntity();
+            IGregTechTileEntity energy = place(world, -6, ItemList.Hatch_Energy_LV);
+            hatches = Arrays.asList(input, output, ordinaryInput.getBaseMetaTileEntity(),
+                (IGregTechTileEntity) world.getTileEntity(x - 3, y, z), steam.getBaseMetaTileEntity(),
+                cooling.getBaseMetaTileEntity(), energy);
+            expectedCasingTier = 0;
+            checkHatchesAt = elapsedTicks + 25;
+            phase = 11;
+        } else if (phase == 11 && elapsedTicks >= checkHatchesAt && formedAtTier(expectedCasingTier)) {
+            checkHatchTextures(world, expectedCasingTier);
+            ItemStack tower = GTSRItemList.OreIntegrationCenter.get(expectedCasingTier == 3 ? 1 : expectedCasingTier + 2);
+            center.construct(tower, false);
+            if (expectedCasingTier == 3) phase = 12;
+            else expectedCasingTier++;
+        } else if (phase == 12 && formedAtTier(0)) {
+            checkHatchTextures(world, 0);
             input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
             phase = 1;
         } else if (phase == 1 && center.installModuleFromBus(1)) {
@@ -155,10 +177,16 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             phase = 2;
         } else if (phase == 2 && center.installModuleFromBus(3)) {
             require(input.getStackInSlot(0) == null, "Logistics pack was not charged through real input bus");
-            require(center.setGraphs(Arrays.asList(new CenterGraph(7, true, Arrays.asList("rawOreCopper"),
-                Arrays.asList(new CenterGraph.Node(CenterProcess.CRUSHER, new int[] { -1, -1, -1 }))))),
-                "Controller rejected valid copper graph");
+            CenterGraph graph = new CenterGraph(7, true, Arrays.asList("rawOreCopper"),
+                Arrays.asList(new CenterGraph.Node(CenterProcess.CRUSHER, new int[] { -1, -1, -1 })))
+                .withBusPositions(new CenterGraph.BusPosition(-30, 64), new CenterGraph.BusPosition(390, 86));
+            require(center.setGraphs(Arrays.asList(graph)), "Controller rejected valid copper graph");
             supply();
+            var preview = new CenterGraphPreview(graph, ore, center.terminalState());
+            preview.advance();
+            require(preview.products(0).stream().anyMatch(p -> p.port == 0 && p.canEnter(CenterProcess.WASHER)),
+                "The live washer map did not accept the crusher's principal copper product");
+            verifyPresetTrace();
             for (int i = 0; i < output.getSizeInventory(); i++) output.setInventorySlotContents(i, new ItemStack(Blocks.cobblestone, 64));
             input.setInventorySlotContents(0, ore.copy());
             initialSequence = center.batchSequence();
@@ -182,6 +210,10 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
         } else if (phase == 4 && elapsedTicks >= pauseAt + 8) {
             require(center.batchProgress() == checkpoint.getInteger("CenterElapsed"), "Discontinuous steam advanced progress");
             center.loadNBTData(checkpoint);
+            CenterGraph restored = center.graphSnapshot().get(0);
+            require(restored.inputPosition != null && restored.inputPosition.x == -30 && restored.inputPosition.y == 64
+                && restored.outputPosition != null && restored.outputPosition.x == 390 && restored.outputPosition.y == 86,
+                "Controller NBT lost graph bus positions");
             // Restore the paired tank too: cooling can drain its backlog during a stalled batch.
             cooling.setFillableStack(coolingAtCheckpoint);
             require(center.batchSequence() == initialSequence + 1, "NBT restore changed batch identity");
@@ -207,6 +239,11 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             if (outputCount == expected && waterAmount == expectedWater) {
                 require(water == null || water.getFluid() == FluidRegistry.getFluid("ic2distilledwater"), "Invalid condensate");
                 Map<String, Object> report = new LinkedHashMap<>();
+                report.put("hatchCasingTexturesByTowerTier", hatchTexturesByTier);
+                report.put("hatchesKeptDuringTowerRebuild", hatches.size());
+                report.put("restoredGraphBusPositions", true);
+                report.put("copperCrusherProductAcceptedByNativeWasher", true);
+                report.put("presetRawSamplesFollowFourProcessStagesWithoutStock", true);
                 report.put("fourRequiredPortsFormed", true);
                 report.put("nativeFormationAndTerminalAgreeAfterRemovalAndRestore", true);
                 report.put("clearedStaleStructureShutdownWithPowerSwitchOff", true);
@@ -224,6 +261,51 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             require(outputCount <= expected, "Output was duplicated");
         }
         return null;
+    }
+
+    private boolean formedAtTier(int tier) {
+        return center.mMachine && center.operationStatus().getInteger("Tier") == tier;
+    }
+
+    private static void verifyPresetTrace() {
+        var search = new CenterGraph.PreviewInputs("^crushedPurified(?:Copper|Lead)$");
+        List<ItemStack> samples = new ArrayList<>();
+        while (!search.advance(samples)) {
+            // Advance the actual OreDictionary search under its normal per-call budget.
+        }
+        require(samples.size() == 2, "Purified copper and lead rule did not resolve two raw minerals");
+        CenterGraph preset = CenterPresets.get("regular-MPMC").graph("Preview fixture");
+        for (ItemStack raw : samples) {
+            require(Arrays.stream(CenterGraph.tags(raw)).anyMatch(tag -> tag.equals("rawOreCopper") || tag.equals("rawOreLead")),
+                "Preset mineral picker did not return a coarse ore");
+            CenterGraphPreview trace = new CenterGraphPreview(preset, raw, new NBTTagCompound());
+            for (int step = 0; step < 32; step++) trace.advance();
+            require(trace.entryNode() == 0 && trace.products(0).stream().anyMatch(product -> product.port == 3),
+                "Preset coarse ore did not reach the wash branch of the first crusher");
+            require(trace.conditionalRecipe(1) && !trace.products(1).isEmpty()
+                && !trace.products(2).isEmpty() && !trace.products(3).isEmpty(),
+                "Preset trace stopped before washing, second grinding, and centrifuging");
+        }
+    }
+
+    private void checkHatchTextures(WorldServer world, int tier) {
+        int casing = switch (tier) {
+            case 0 -> GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings1, 10);
+            case 1 -> GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
+            case 2 -> GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 2);
+            case 3 -> GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings4, 0);
+            default -> throw new IllegalArgumentException("Unsupported fixture tier " + tier);
+        };
+        for (IGregTechTileEntity hatch : hatches) {
+            require(world.getTileEntity(hatch.getXCoord(), hatch.getYCoord(), hatch.getZCoord()) == hatch,
+                "Tower rebuild replaced the existing hatch at X offset " + (hatch.getXCoord() - x));
+            NBTTagCompound texture = new NBTTagCompound();
+            ((MTEHatch) hatch.getMetaTileEntity()).saveNBTData(texture);
+            int actual = texture.getInteger("texturePage") << 7 | texture.getInteger("textureIndex");
+            require(actual == casing,
+                "Hatch at X offset " + (hatch.getXCoord() - x) + " had casing " + actual + ", expected " + casing);
+        }
+        hatchTexturesByTier.put(tier, casing);
     }
 
     private boolean failedStructure() {

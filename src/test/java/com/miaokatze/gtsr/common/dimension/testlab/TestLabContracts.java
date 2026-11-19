@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -31,9 +32,10 @@ public final class TestLabContracts {
         requestCorrelation();
         wandProfiles();
         centerPresets();
+        centerBusPositions();
         if (args.length > 0) exportDeclaredCases(java.nio.file.Paths.get(args[0]));
         System.out.println(
-            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 110/95/120 catalog, performance selection, independent report retry, request correlation, wand profiles, ore generator presets");
+            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 110/95/120 catalog, performance selection, independent report retry, request correlation, wand profiles, ore generator presets, graph bus positions");
     }
 
     private static void centerPresets() throws IOException {
@@ -56,6 +58,41 @@ public final class TestLabContracts {
             ready++;
         }
         require(ready == 14, "whole generator graphs");
+    }
+
+    private static void centerBusPositions() throws ReflectiveOperationException {
+        var group = CenterPresets.all().stream().filter(candidate -> candidate.id.equals("regular-MPMC"))
+            .findFirst().orElseThrow(() -> new AssertionError("missing copper preset fixture"));
+        var base = CenterGraph.load(group.graph(group.name).save());
+        require(base.inputPosition == null && base.outputPosition == null, "legacy bus defaults");
+
+        Class<?> sync = Class.forName("com.miaokatze.gtsr.common.gui.CenterGraphSync");
+        Class<?> action = Class.forName(sync.getName() + "$Action");
+        var replace = sync.getDeclaredMethod("replace", CenterGraph.class, action, int.class, int.class, String.class);
+        replace.setAccessible(true);
+        Function<String, Object> command = name -> Arrays.stream(action.getEnumConstants())
+            .filter(value -> ((Enum<?>) value).name().equals(name)).findFirst()
+            .orElseThrow(() -> new AssertionError("missing graph command " + name));
+        Object move = command.apply("MOVE_BUS");
+        var inputMoved = (CenterGraph) replace.invoke(null, base, move, -40, 70, "input");
+        require(inputMoved.outputPosition == null, "moving input assigned the output position");
+        var moved = (CenterGraph) replace.invoke(null, inputMoved, move, 900, -20, "output");
+        var saved = CenterGraph.load(moved.save());
+        require(saved.inputPosition.x == -40 && saved.inputPosition.y == 70 && saved.outputPosition.x == 900
+            && saved.outputPosition.y == -20, "independent bus positions saved and restored");
+        require(saved.withBusPositions(null, null).save().equals(base.save()), "moving buses changed processing");
+        var renamed = (CenterGraph) replace.invoke(null, saved, command.apply("RENAME"), 0, 0, "review");
+        require(renamed.inputPosition == saved.inputPosition && renamed.outputPosition == saved.outputPosition,
+            "editing a graph lost bus positions");
+        var arranged = (CenterGraph) replace.invoke(null, renamed, command.apply("ARRANGE"), 0, 0, "");
+        require(arranged.inputPosition == null && arranged.outputPosition == null
+            && arranged.nodes.stream().allMatch(node -> node.x == CenterGraph.AUTO_POSITION), "reset layout");
+        try {
+            replace.invoke(null, saved, move, -8193, 0, "input");
+            throw new AssertionError("out-of-bounds bus accepted");
+        } catch (InvocationTargetException expected) {
+            require(expected.getCause() instanceof IllegalArgumentException, "invalid bus edit error");
+        }
     }
 
     private static void wandProfiles() {
