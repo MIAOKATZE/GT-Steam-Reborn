@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.ObjIntConsumer;
 import java.util.zip.GZIPInputStream;
 
 import net.minecraft.block.Block;
@@ -33,11 +34,13 @@ import com.miaokatze.gtsr.common.critical.CriticalStructureAlignment;
 import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor;
 import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor.Sample;
 import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor.Status;
+import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.ItemList;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEHatch;
 
 /** Sparse, controller-relative block lists exported by tools/ore-center/compile.cjs. */
 public final class CenterStructure {
@@ -93,9 +96,11 @@ public final class CenterStructure {
         return false;
     }
 
-    public void collectHatches(IGregTechTileEntity te, Consumer<IGregTechTileEntity> accept) {
-        if (towerTier >= 0 && facing == te.getFrontFacing())
-            collectHatches(new Frame(te), towerShape(towerTier, serviceFront), accept);
+    void collectHatches(IGregTechTileEntity te, ObjIntConsumer<IGregTechTileEntity> accept) {
+        if (towerTier < 0 || facing != te.getFrontFacing()) return;
+        int casingTexture = MTEClusterUnitBase.tierCasingTextureId(towerTier);
+        collectHatches(new Frame(te), towerShape(towerTier, serviceFront),
+            hatch -> accept.accept(hatch, casingTexture));
     }
 
     private static void collectHatches(Frame frame, Shape tower, Consumer<IGregTechTileEntity> accept) {
@@ -180,16 +185,16 @@ public final class CenterStructure {
             && MTEMineralIntegrationCenter.acceptsPort(gt.getMetaTileEntity());
     }
 
-    void showPreviewPorts(IGregTechTileEntity te) {
+    void showPreviewPorts(IGregTechTileEntity te, int tier) {
         Frame frame = new Frame(te);
         ItemStack[] examples = { ItemList.Hatch_Input_LV.get(1), ItemList.Hatch_Output_LV.get(1),
             ItemList.Hatch_Input_Bus_LV.get(1), ItemList.Hatch_Output_Bus_LV.get(1),
             GTSRItemList.SteamInputHatchGeneric.get(1), GTSRItemList.SteamCoolingHatch.get(1),
             ItemList.Hatch_Energy_LV.get(1) };
-        for (int i = 0; i < examples.length; i++) placeExamplePort(frame, SERVICE_PORT_X[i], 0, examples[i]);
+        for (int i = 0; i < examples.length; i++) placeExamplePort(frame, SERVICE_PORT_X[i], 0, examples[i], tier);
     }
 
-    private static void placeExamplePort(Frame frame, int x, int z, ItemStack stack) {
+    private static void placeExamplePort(Frame frame, int x, int z, ItemStack stack, int tier) {
         short id = (short) stack.getItemDamage();
         int wx = frame.x(x, z), wz = frame.z(x, z);
         frame.world.setBlock(wx, frame.y, wz, GregTechAPI.sBlockMachines,
@@ -197,6 +202,8 @@ public final class CenterStructure {
         if (frame.world.getTileEntity(wx, frame.y, wz) instanceof IGregTechTileEntity hatch) {
             hatch.setInitialValuesAsNBT(null, id);
             hatch.setFrontFacing(frame.facing);
+            if (hatch.getMetaTileEntity() instanceof MTEHatch port)
+                port.updateTexture(MTEClusterUnitBase.tierCasingTextureId(tier));
         }
     }
 
@@ -624,7 +631,7 @@ public final class CenterStructure {
                     boolean mountingCasing = service && block == GregTechAPI.sBlockCasings3
                         && frame.world.getBlockMetadata(wx, frame.y, wz) == 10;
                     if (!mountingCasing && !frame.world.isAirBlock(wx, frame.y, wz)) continue;
-                    placeExamplePort(frame, x, depth, examples[i]);
+                    placeExamplePort(frame, x, depth, examples[i], 3);
                     present[i] = frame.world.getTileEntity(wx, frame.y, wz) instanceof IGregTechTileEntity hatch
                         && hatch.getMetaTileID() == examples[i].getItemDamage();
                     if (present[i]) break;

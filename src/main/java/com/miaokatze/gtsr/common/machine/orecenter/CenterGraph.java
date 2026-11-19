@@ -136,6 +136,10 @@ public final class CenterGraph {
             return new Node(process, targets, circuit, filters, x, y, auxiliary);
         }
 
+        public Node withoutPosition() {
+            return new Node(process, targets, circuit, filters, AUTO_POSITION, AUTO_POSITION, auxiliary);
+        }
+
         public Node withConfiguration(int[] targets, int circuit, List<OutletFilter> filters) {
             return new Node(process, targets, circuit, filters, x, y, auxiliary);
         }
@@ -178,21 +182,54 @@ public final class CenterGraph {
             return false;
         }
 
-        int target(int slot, ItemStack stack) {
+        int routedOutlet(int slot, ItemStack stack) {
             int nativePorts = process.outletCount();
             if (targets.length > nativePorts) {
                 for (int i = nativePorts; i < targets.length; i++) {
                     OutletFilter filter = bySlot == null ? null : bySlot[i];
-                    if (filter == null || filter.accepts(stack)) return targets[i];
+                    if (filter == null || filter.accepts(stack)) return i;
                 }
                 // Recipe output indices above the native row count must never index configurable branches.
                 slot = Math.min(slot, nativePorts - 1);
             }
             if (process == CenterProcess.SIFTER) slot = Math.min(5, slot);
+            return slot;
+        }
+
+        int target(int slot, ItemStack stack) {
+            return targetAtOutlet(routedOutlet(slot, stack), stack);
+        }
+
+        int targetAtOutlet(int slot, ItemStack stack) {
             int target = target(slot);
-            if (target < 0 || bySlot == null || slot >= bySlot.length) return target;
+            if (target < 0 || bySlot == null || slot >= bySlot.length || slot >= process.outletCount()) return target;
             OutletFilter filter = bySlot[slot];
             return filter != null && !filter.accepts(stack) ? BUS : target;
+        }
+    }
+
+    public static final class BusPosition {
+
+        public final int x, y;
+
+        public BusPosition(int x, int y) {
+            if (x < -8192 || x > 8192 || y < -8192 || y > 8192)
+                throw new IllegalArgumentException("Bus position outside canvas bounds");
+            this.x = x;
+            this.y = y;
+        }
+
+        private void save(NBTTagCompound graph, String key) {
+            NBTTagCompound position = new NBTTagCompound();
+            position.setInteger("X", x);
+            position.setInteger("Y", y);
+            graph.setTag(key, position);
+        }
+
+        private static BusPosition load(NBTTagCompound graph, String key) {
+            NBTTagCompound position = graph.getCompoundTag(key);
+            return position.hasKey("X", 3) && position.hasKey("Y", 3)
+                ? new BusPosition(position.getInteger("X"), position.getInteger("Y")) : null;
         }
     }
 
@@ -207,6 +244,7 @@ public final class CenterGraph {
     private final List<String> excludedRules;
     private final List<CenterOreRule> excluded;
     private final boolean runnable;
+    public final BusPosition inputPosition, outputPosition;
 
     public CenterGraph(int priority, boolean enabled, List<String> oreRules, List<Node> nodes) {
         this(0, "", priority, enabled, oreRules, nodes);
@@ -218,6 +256,11 @@ public final class CenterGraph {
 
     public CenterGraph(long id, String name, int priority, boolean enabled, List<String> oreRules, List<Node> nodes,
         List<EntryRoute> entryRoutes, List<String> excludedRules) {
+        this(id, name, priority, enabled, oreRules, nodes, entryRoutes, excludedRules, null, null);
+    }
+
+    private CenterGraph(long id, String name, int priority, boolean enabled, List<String> oreRules, List<Node> nodes,
+        List<EntryRoute> entryRoutes, List<String> excludedRules, BusPosition inputPosition, BusPosition outputPosition) {
         if (nodes.size() > MAX_NODES || oreRules.size() > MAX_RULES || entryRoutes.size() > MAX_RULES
             || excludedRules.size() > MAX_RULES) {
             throw new IllegalArgumentException("Graph exceeds its node or rule budget");
@@ -232,6 +275,8 @@ public final class CenterGraph {
         }
         this.id = id;
         this.name = name;
+        this.inputPosition = inputPosition;
+        this.outputPosition = outputPosition;
         this.rules = immutableRules(oreRules);
         this.nodes = Collections.unmodifiableList(new ArrayList<>(nodes));
         this.entryRoutes = Collections.unmodifiableList(new ArrayList<>(entryRoutes));
@@ -288,11 +333,17 @@ public final class CenterGraph {
 
     public CenterGraph reconfigure(String name, int priority, boolean enabled, List<String> rules, List<Node> nodes,
         List<EntryRoute> entries) {
-        return new CenterGraph(id, name, priority, enabled, rules, nodes, entries, excludedRules);
+        return new CenterGraph(id, name, priority, enabled, rules, nodes, entries, excludedRules, inputPosition,
+            outputPosition);
     }
 
     CenterGraph withId(long replacement) {
-        return new CenterGraph(replacement, name, priority, enabled, rules, nodes, entryRoutes, excludedRules);
+        return new CenterGraph(replacement, name, priority, enabled, rules, nodes, entryRoutes, excludedRules,
+            inputPosition, outputPosition);
+    }
+
+    public CenterGraph withBusPositions(BusPosition input, BusPosition output) {
+        return new CenterGraph(id, name, priority, enabled, rules, nodes, entryRoutes, excludedRules, input, output);
     }
 
     private static List<String> immutableRules(List<String> source) {
@@ -340,16 +391,6 @@ public final class CenterGraph {
         return false;
     }
 
-    public static final class PreviewInput {
-
-        public final ItemStack mineral, feed;
-
-        PreviewInput(ItemStack mineral, ItemStack feed) {
-            this.mineral = mineral;
-            this.feed = feed;
-        }
-    }
-
     /** Resolves a clicked ore term against registered ore forms in bounded client-side slices. */
     public static final class PreviewInputs {
 
@@ -365,15 +406,14 @@ public final class CenterGraph {
                 .sorted().toArray(String[]::new);
         }
 
-        public boolean advance(List<PreviewInput> matches) {
+        public boolean advance(List<ItemStack> matches) {
             long end = System.nanoTime() + 1_500_000L;
             while (next < names.length && System.nanoTime() < end) {
                 String name = names[next++];
                 ItemStack mineral = oreStack(name);
                 if (mineral == null) continue;
                 try {
-                    ItemStack feed = matchingForm(rule, mineral, name.substring(6), FORMS);
-                    if (feed != null) matches.add(new PreviewInput(mineral, feed));
+                    if (matchesMineralForm(rule, mineral, name.substring(6), FORMS)) matches.add(mineral);
                 } catch (CenterOreRule.Limit ignored) {
                     // An over-budget candidate cannot be routed by this expression.
                 }
@@ -382,16 +422,16 @@ public final class CenterGraph {
         }
     }
 
-    private static ItemStack matchingForm(CenterOreRule rule, ItemStack mineral, String material, String[] forms) {
-        if (rule.matches(mineral, tags(mineral))) return mineral;
+    private static boolean matchesMineralForm(CenterOreRule rule, ItemStack mineral, String material, String[] forms) {
+        if (rule.matches(mineral, tags(mineral))) return true;
         for (String form : forms) {
             String alias = form + material;
             if (!OreDictionary.doesOreNameExist(alias)) continue;
             for (ItemStack feed : OreDictionary.getOres(alias, false)) {
-                if (feed != null && rule.matches(feed, tags(feed))) return feed;
+                if (feed != null && rule.matches(feed, tags(feed))) return true;
             }
         }
-        return null;
+        return false;
     }
 
     private static ItemStack oreStack(String name) {
@@ -412,6 +452,8 @@ public final class CenterGraph {
         tag.setString("Name", name);
         tag.setInteger("Priority", priority);
         tag.setBoolean("Enabled", enabled);
+        if (inputPosition != null) inputPosition.save(tag, "InputPosition");
+        if (outputPosition != null) outputPosition.save(tag, "OutputPosition");
         NBTTagList allow = new NBTTagList(), steps = new NBTTagList();
         for (String rule : rules) allow.appendTag(new NBTTagString(rule));
         for (Node node : nodes) {
@@ -512,6 +554,8 @@ public final class CenterGraph {
             names,
             steps,
             entryRoutes,
-            excluded);
+            excluded,
+            BusPosition.load(tag, "InputPosition"),
+            BusPosition.load(tag, "OutputPosition"));
     }
 }
