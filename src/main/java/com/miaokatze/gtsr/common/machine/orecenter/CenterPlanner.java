@@ -20,6 +20,7 @@ public final class CenterPlanner {
     private static final int MAX_INPUTS = 128, MAX_WORK = 4096, MAX_OUTPUTS = 512, MAX_CANDIDATES = 32;
     private static final int[] STEAM = { 4000, 24000, 112000, 384000 }, WIDTH = { 24, 48, 64, 128 },
         SETUP = { 100, 40, 20, 10 }, VOLTAGE = { 32, 128, 512, 2048 }, CONTROL_EU = { 0, 32, 128, 512 };
+    static final int[] HEAT = { 0, 0, 2700, 4500 };
     private static final double[] TIME = { 1, .8, .6, .4 }, GRADE_TIME = { 1, 1.35, 1.8 },
         GRADE_STEAM = { 1, 1.45, 2.1 }, GRADE_EU = { 1, 1.07, 1.15 };
     private static final CenterModule[] MODULES = CenterModule.values();
@@ -30,6 +31,7 @@ public final class CenterPlanner {
     public static final class Batch {
 
         public final List<ItemStack> consumed, outputs;
+        public final List<ItemStack> bonuses;
         public final List<FluidStack> consumedFluids, outputFluids;
         public final int ticks;
         public final long steam, energy;
@@ -37,6 +39,7 @@ public final class CenterPlanner {
         private Batch(Session plan, int ticks, long steam, long energy) {
             this.consumed = plan.consumed;
             this.outputs = plan.outputs;
+            this.bonuses = plan.bonuses;
             this.consumedFluids = plan.consumedFluids;
             this.outputFluids = plan.outputFluids;
             this.ticks = ticks;
@@ -48,12 +51,17 @@ public final class CenterPlanner {
     private static final class Lot {
 
         final ItemStack stack;
-        final boolean incoming, primary;
+        final boolean incoming, primary, seekingEntry;
 
         Lot(ItemStack stack, boolean incoming, boolean primary) {
+            this(stack, incoming, primary, incoming && isIntermediate(stack));
+        }
+
+        Lot(ItemStack stack, boolean incoming, boolean primary, boolean seekingEntry) {
             this.stack = stack;
             this.incoming = incoming;
             this.primary = primary;
+            this.seekingEntry = seekingEntry;
         }
     }
 
@@ -141,6 +149,7 @@ public final class CenterPlanner {
 
         private final List<WorkGraph> graphs = new ArrayList<>();
         private final List<ItemStack> consumed = new ArrayList<>(), outputs = new ArrayList<>();
+        private final List<ItemStack> bonuses = new ArrayList<>();
         private final List<FluidStack> consumedFluids = new ArrayList<>(), outputFluids = new ArrayList<>();
         private final List<ItemStack> auxiliary = new ArrayList<>();
         private final List<FluidStack> available = new ArrayList<>();
@@ -181,7 +190,7 @@ public final class CenterPlanner {
                 Comparator.comparingInt((CenterGraph g) -> g.priority)
                     .reversed());
             for (CenterGraph graph : sorted) {
-                if (!graph.enabled || graph.nodes.stream()
+                if (!graph.enabled || !graph.runnable() || graph.nodes.stream()
                     .anyMatch(n -> !n.process.installed(best))) continue;
                 graphs.add(new WorkGraph(graph));
                 for (CenterGraph.Node node : graph.nodes) weight[node.process.module.ordinal()] = .20;
@@ -280,38 +289,26 @@ public final class CenterPlanner {
 
         private void process(WorkGraph work, CenterGraph.Node node, Lot lot) {
             int index = node.process.module.ordinal();
-            long recipeVoltage = node.process.module.standbyEU == 0 ? VOLTAGE[tier] : voltage;
+            long recipeVoltage = recipeVoltage(node.process, tier, voltage);
             RecipeMap<?> map = node.process.recipes();
             var candidates = new ArrayList<ItemStack>();
+            var matchedAuxiliary = new ArrayList<ItemStack>();
             candidates.add(lot.stack.copy());
-            if (node.process == CenterProcess.REACTOR || node.process == CenterProcess.FURNACE) {
-                for (ItemStack stack : auxiliary) if (stack.stackSize > 0) candidates.add(stack.copy());
+            if (node.process.auxiliarySlots() > 0) {
+                for (ItemStack stack : auxiliary) if (stack.stackSize > 0 && node.acceptsAuxiliary(stack)) {
+                    candidates.add(stack.copy());
+                    matchedAuxiliary.add(stack);
+                }
             }
             if (node.circuit != 0) candidates.add(ItemList.Circuit_Integrated.getWithDamage(0, node.circuit));
             ItemStack[] itemStocks = candidates.toArray(new ItemStack[0]);
-            FluidStack[] fluidStocks = available.stream()
-                .filter(f -> f.amount > 0)
+            List<FluidStack> matchedFluids = new ArrayList<>();
+            for (FluidStack fluid : available)
+                if (fluid.amount > 0 && node.acceptsAuxiliary(fluid)) matchedFluids.add(fluid);
+            FluidStack[] fluidStocks = matchedFluids.stream()
                 .map(FluidStack::copy)
                 .toArray(FluidStack[]::new);
-            GTRecipe recipe = null;
-            if (map != null) {
-                List<GTRecipe> found = new ArrayList<>();
-                map.findRecipeQuery()
-                    .items(itemStocks)
-                    .fluids(fluidStocks)
-                    .voltage(recipeVoltage)
-                    .caching(false)
-                    .filter(r -> !r.mFakeRecipe && r.mEnabled && !r.mHidden)
-                    .filter(
-                        r -> !r.getMetadataOrDefault(GTRecipeConstants.CLEANROOM, false)
-                            && !r.getMetadataOrDefault(GTRecipeConstants.LOW_GRAVITY, false)
-                            && r.getMetadataOrDefault(GTRecipeConstants.COIL_HEAT, 0) <= heat)
-                    .filter(r -> ordinaryInputs(r))
-                    .findAll()
-                    .limit(MAX_CANDIDATES + 1L)
-                    .forEach(found::add);
-                if (found.size() <= MAX_CANDIDATES && !found.isEmpty()) recipe = found.get(0);
-            }
+            GTRecipe recipe = findRecipe(map, itemStocks, fluidStocks, recipeVoltage, heat);
             int times = 0;
             if (recipe != null) {
                 int limit = Math.min(lot.stack.stackSize, MAX_WORK - executions);
@@ -326,7 +323,9 @@ public final class CenterPlanner {
                     && itemStocks[0].stackSize < lot.stack.stackSize) times = lo;
             }
             if (times == 0) {
-                if (!lot.incoming) send(lot.stack, false);
+                if (lot.seekingEntry && nodeIndex + 1 < work.input.size())
+                    addLot(work.input.get(nodeIndex + 1), lot.stack, true, false);
+                else if (!lot.incoming) send(lot.stack, false);
                 return;
             }
             int paid = lot.stack.stackSize - itemStocks[0].stackSize;
@@ -334,18 +333,16 @@ public final class CenterPlanner {
                 merge(consumed, lot.stack, paid);
                 rootPaid += paid;
             } else if (itemStocks[0].stackSize > 0) send(itemStocks[0], false);
-            for (int i = 1, j = 0; i < itemStocks.length - (node.circuit == 0 ? 0 : 1); i++) {
-                while (auxiliary.get(j).stackSize <= 0) j++;
-                ItemStack original = auxiliary.get(j++);
-                int spent = original.stackSize - itemStocks[i].stackSize;
+            for (int i = 0; i < matchedAuxiliary.size(); i++) {
+                ItemStack original = matchedAuxiliary.get(i);
+                int spent = original.stackSize - itemStocks[i + 1].stackSize;
                 if (spent > 0) {
                     merge(consumed, original, spent);
                     original.stackSize -= spent;
                 }
             }
-            for (int i = 0, j = 0; i < fluidStocks.length; i++) {
-                while (available.get(j).amount <= 0) j++;
-                FluidStack original = available.get(j++);
+            for (int i = 0; i < fluidStocks.length; i++) {
+                FluidStack original = matchedFluids.get(i);
                 int spent = original.amount - fluidStocks[i].amount;
                 if (spent > 0) {
                     mergeFluid(consumedFluids, original, spent);
@@ -377,7 +374,11 @@ public final class CenterPlanner {
                 boolean primary = slot == 0 && lot.primary && node.process.mineralYield;
                 if (target >= 0) work.path[target] = Math.max(work.path[target], path);
                 produce(work, target, original, (long) ordinary * original.stackSize, primary);
-                produce(work, target, original, (long) extra * original.stackSize, false);
+                if (extra > 0) {
+                    int added = Math.multiplyExact(extra, original.stackSize);
+                    if (bonuses.size() < MAX_OUTPUTS) merge(bonuses, original, added);
+                    produce(work, target, original, added, false);
+                }
             }
             for (int i = 0; i < recipe.mFluidOutputs.length; i++) {
                 FluidStack f = recipe.mFluidOutputs[i];
@@ -403,7 +404,11 @@ public final class CenterPlanner {
 
         private void send(ItemStack stack, boolean eligible) {
             int quantity = stack.stackSize;
-            if (eligible && gain[2] > 0) quantity = Math.addExact(quantity, sample(quantity, gain[2] / 100));
+            if (eligible && gain[2] > 0) {
+                int extra = sample(quantity, gain[2] / 100);
+                if (extra > 0 && bonuses.size() < MAX_OUTPUTS) merge(bonuses, stack, extra);
+                quantity = Math.addExact(quantity, extra);
+            }
             merge(outputs, stack, quantity);
         }
 
@@ -469,6 +474,28 @@ public final class CenterPlanner {
         return false;
     }
 
+    static boolean isIntermediate(ItemStack item) {
+        String[] tags = CenterGraph.tags(item);
+        return !anyTag(tags, RAW) && anyTag(tags, FEED);
+    }
+
+    static GTRecipe findRecipe(RecipeMap<?> map, ItemStack[] items, FluidStack[] fluids, long voltage, int heat) {
+        if (map == null) return null;
+        List<GTRecipe> found = new ArrayList<>();
+        map.findRecipeQuery().items(items).fluids(fluids).voltage(voltage).caching(false)
+            .filter(r -> !r.mFakeRecipe && r.mEnabled && !r.mHidden)
+            .filter(r -> !r.getMetadataOrDefault(GTRecipeConstants.CLEANROOM, false)
+                && !r.getMetadataOrDefault(GTRecipeConstants.LOW_GRAVITY, false)
+                && r.getMetadataOrDefault(GTRecipeConstants.COIL_HEAT, 0) <= heat)
+            .filter(CenterPlanner::ordinaryInputs)
+            .findAll().limit(MAX_CANDIDATES + 1L).forEach(found::add);
+        return found.isEmpty() || found.size() > MAX_CANDIDATES ? null : found.get(0);
+    }
+
+    static long recipeVoltage(CenterProcess process, int tier, long suppliedVoltage) {
+        return process.module.standbyEU == 0 ? VOLTAGE[tier] : suppliedVoltage;
+    }
+
     private static boolean ordinaryInputs(GTRecipe recipe) {
         if (recipe.mInputChances != null) for (int chance : recipe.mInputChances) if (chance != 10000) return false;
         if (recipe.mFluidInputChances != null)
@@ -477,7 +504,7 @@ public final class CenterPlanner {
     }
 
     private static void addLot(List<Lot> lots, ItemStack item, boolean incoming, boolean primary) {
-        for (Lot lot : lots) if (lot.primary == primary && equal(lot.stack, item)) {
+        for (Lot lot : lots) if (lot.incoming == incoming && lot.primary == primary && equal(lot.stack, item)) {
             lot.stack.stackSize = Math.addExact(lot.stack.stackSize, item.stackSize);
             return;
         }

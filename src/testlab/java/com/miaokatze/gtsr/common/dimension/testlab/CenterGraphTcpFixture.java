@@ -13,12 +13,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
@@ -30,8 +33,11 @@ import com.google.gson.Gson;
 import com.google.gson.JsonParser;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterFixtureGeometry;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
+import com.miaokatze.gtsr.common.items.CenterModuleItems;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 import com.miaokatze.miaokatzecore.api.testlab.ArtifactIdentity;
 
@@ -39,7 +45,12 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import gregtech.api.GregTechAPI;
+import gregtech.api.enums.ItemList;
+import gregtech.api.enums.Materials;
+import gregtech.api.enums.OrePrefixes;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.util.GTOreDictUnificator;
+import net.minecraftforge.fluids.FluidRegistry;
 
 /** Dedicated server fixture. All edits after the two starting graphs must arrive via the production UI. */
 public final class CenterGraphTcpFixture {
@@ -59,6 +70,7 @@ public final class CenterGraphTcpFixture {
     private final List<Map<String, Object>> changes = new ArrayList<>();
     private MTEMineralIntegrationCenter center;
     private boolean ready, done, disabled;
+    private boolean reviewBuilt, loadedModule;
     private long revision;
 
     static boolean requested() {
@@ -93,6 +105,14 @@ public final class CenterGraphTcpFixture {
                     }
                 }
                 return;
+            }
+            if (!reviewBuilt && Files.isRegularFile(receiptDir.resolve("native-projector.png"))) {
+                buildReviewWing(world);
+                reviewBuilt = true;
+            }
+            if (reviewBuilt && !loadedModule && center.installModuleFromBus(1)) {
+                require(center.installModuleFromBus(3), "Cannot install the review logistics module");
+                loadedModule = true;
             }
             long current = center.graphRevision();
             if (current == revision) return;
@@ -196,26 +216,60 @@ public final class CenterGraphTcpFixture {
         gt.setFrontFacing(ForgeDirection.NORTH);
         gt.disableWorking();
         center = (MTEMineralIntegrationCenter) gt.getMetaTileEntity();
+        actor.inventory.setInventorySlotContents(9, GTOreDictUnificator.get(OrePrefixes.rawOre, Materials.Copper, 24));
         actor.playerNetServerHandler.setPlayerLocation(X + .5, Y, Z - 2.5, 0, 0);
-        List<CenterGraph.Node> nodes = Collections.singletonList(
-            new CenterGraph.Node(
-                CenterProcess.CRUSHER,
-                new int[] { CenterGraph.BUS, CenterGraph.BUS, CenterGraph.BUS }));
+        List<CenterGraph.Node> nodes = Arrays.asList(
+            new CenterGraph.Node(CenterProcess.CRUSHER, new int[] { 1, -1, -1 }).withPosition(174, 91),
+            new CenterGraph.Node(CenterProcess.WASHER, new int[] { 2, -1, -1 }).withPosition(282, 91),
+            new CenterGraph.Node(CenterProcess.CRUSHER, new int[] { 3, -1, -1 }).withPosition(106, 192),
+            new CenterGraph.Node(CenterProcess.CENTRIFUGE, new int[] { 4, 5 }).withPosition(214, 192),
+            new CenterGraph.Node(CenterProcess.SMELTING, new int[] { -1 }).withPosition(322, 192),
+            new CenterGraph.Node(CenterProcess.SMELTING, new int[] { -1 }).withPosition(214, 278));
         require(
             center.setGraphs(
                 Arrays.asList(
-                    new CenterGraph(FIRST, "Copper route A", 4, true, Collections.singletonList("rawOreCopper"), nodes),
+                    new CenterGraph(FIRST, "铜矿加工审阅", 4, true, Collections.singletonList("rawOreCopper"), nodes),
                     new CenterGraph(
                         SECOND,
-                        "Copper route B",
+                        "备用图谱",
                         4,
                         true,
                         Collections.singletonList("rawOreCopper"),
-                        nodes))),
+                        Collections.singletonList(new CenterGraph.Node(CenterProcess.CRUSHER, new int[] { -1, -1, -1 }))))),
             "Unable to seed graphs");
         revision = center.graphRevision();
         world.markBlockForUpdate(X, Y, Z);
         write(receiptDir, "server-progress.json", Collections.singletonMap("revision", revision));
+    }
+
+    private void buildReviewWing(WorldServer world) {
+        Set<Long> chunks = new HashSet<>();
+        for (int[] block : CenterFixtureGeometry.oneSector()) {
+            int x = (X + block[0]) >> 4, z = (Z + block[2]) >> 4;
+            if (chunks.add(((long) x << 32) | (z & 0xffffffffL))) world.theChunkProviderServer.loadChunk(x, z);
+        }
+        ItemStack trigger = new ItemStack(com.gtnewhorizon.structurelib.StructureLibAPI.getDefaultHologramItem(), 2);
+        center.construct(trigger, false);
+        IGregTechTileEntity input = placeReviewPort(world, -5, ItemList.Hatch_Input_Bus_LV);
+        placeReviewPort(world, -3, ItemList.Hatch_Output_Bus_LV);
+        IGregTechTileEntity fluid = placeReviewPort(world, -1, ItemList.Hatch_Input_IV);
+        placeReviewPort(world, 1, ItemList.Hatch_Output_LV);
+        input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
+        input.setInventorySlotContents(1, CenterModuleItems.stack(CenterModule.WASHER, 1));
+        input.setInventorySlotContents(2, CenterModuleItems.stack(CenterModule.SPEED, 1));
+        input.setInventorySlotContents(3, CenterModuleItems.stack(CenterModule.LOGISTICS, 1));
+        ((gregtech.api.metatileentity.implementations.MTEHatchInput) fluid.getMetaTileEntity())
+            .fill(ForgeDirection.UNKNOWN, FluidRegistry.getFluidStack("water", 8000), true);
+    }
+
+    private static IGregTechTileEntity placeReviewPort(WorldServer world, int x, ItemList type) {
+        int id = type.get(1).getItemDamage();
+        world.setBlock(X + x, Y, Z + 1, GregTechAPI.sBlockMachines,
+            GregTechAPI.METATILEENTITIES[id].getTileEntityBaseType(), 3);
+        IGregTechTileEntity tile = (IGregTechTileEntity) world.getTileEntity(X + x, Y, Z + 1);
+        tile.setInitialValuesAsNBT(null, (short) id);
+        tile.setFrontFacing(ForgeDirection.NORTH);
+        return tile;
     }
 
     static void require(boolean condition, String failure) {

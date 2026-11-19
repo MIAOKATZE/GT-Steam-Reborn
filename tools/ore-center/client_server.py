@@ -151,8 +151,8 @@ def run(args):
                 path = server_root / name
                 server_settings[name] = path.read_bytes() if path.exists() else empty
             stack.enter_context(client_qa.settings(server_root, server_settings, evidence / 'server-settings', lambda: running(server)))
-            client_settings = {'options.txt': b'fullscreen:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n'
-                                                b'guiScale:2\nlang:en_US\nrenderDistance:3\n'}
+            client_settings = {'options.txt': ('fullscreen:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n'
+                                                f'guiScale:2\nlang:{args.language}\nrenderDistance:3\n').encode('ascii')}
             for name in ('usernamecache.json', 'optionsnf.txt'):
                 path = client_root / name
                 if path.is_file():
@@ -244,6 +244,7 @@ def main():
     parser.add_argument('--evidence', type=Path, required=True)
     parser.add_argument('--heap-gib', type=int, choices=[4, 5], default=4)
     parser.add_argument('--deadline', type=int, default=900)
+    parser.add_argument('--language', choices=['en_US', 'zh_CN'], default='en_US')
     parser.add_argument('--execute', action='store_true')
     return run(parser.parse_args())
 

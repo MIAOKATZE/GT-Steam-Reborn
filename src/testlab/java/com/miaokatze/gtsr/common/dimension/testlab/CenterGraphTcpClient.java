@@ -7,6 +7,8 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -14,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDisconnected;
 import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.util.ScreenShotHelper;
@@ -28,6 +31,7 @@ import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.screen.viewport.LocatedWidget;
 import com.cleanroommc.modularui.widget.sizer.Area;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
+import com.gtnewhorizon.structurelib.StructureLibAPI;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
@@ -45,6 +49,7 @@ public final class CenterGraphTcpClient {
 
     private static final String CONTROL = "center_graph_";
     private static final String FRAME = "reopened-native-graph.png";
+    private static final String[] PAGES = { "assembly", "routes", "stats", "calculation" };
 
     private final String runId = System.getProperty(CenterGraphTcpFixture.PREFIX + "run");
     private final int port = Integer.getInteger(CenterGraphTcpFixture.PREFIX + "port");
@@ -53,6 +58,11 @@ public final class CenterGraphTcpClient {
     private long since = System.nanoTime(), expectedRevision;
     private int phase, openCooldown;
     private boolean screenshot, done;
+    private int projectedHints, previewStep;
+    private boolean controllerOverlay, reopenedRoutes, openedRules, verifiedCopper;
+    private int trialStep, trialTicks;
+    private String capturePage;
+    private final List<String> pageFrames = new ArrayList<>();
     private String lastTrace = "";
 
     static void register() {
@@ -96,11 +106,44 @@ public final class CenterGraphTcpClient {
                     open();
                     return;
                 }
+                if (phase == 1 && previewStep <= PAGES.length + 2) {
+                    if (capturePage != null) return;
+                    Object editor = readField(control(screen, "tabs"), "editor");
+                    Object sync = readField(editor, "sync");
+                    var terminal = (net.minecraft.nbt.NBTTagCompound) readField(sync, "terminal");
+                    if (!terminal.getBoolean("Formed") || terminal.getIntArray("Grades")[3] == 0) return;
+                    if (previewStep == 0) capturePage = PAGES[0];
+                    else if (previewStep == 1) click(screen, "page_routes");
+                    else if (previewStep == 2) {
+                        if (!previewCopper(screen, editor)) return;
+                        capturePage = "routes";
+                    } else if (previewStep == 3) {
+                        click(screen, "page_stats");
+                        capturePage = "stats";
+                    } else if (previewStep == 4) click(screen, "page_calculation");
+                    else if (previewStep == 5) {
+                        if (!previewTrial(screen)) return;
+                        capturePage = "calculation";
+                    } else click(screen, "page_routes");
+                    previewStep++;
+                    return;
+                }
+                if (phase == 7 && !reopenedRoutes) {
+                    click(screen, "page_routes");
+                    reopenedRoutes = true;
+                    return;
+                }
                 long revision = displayedRevision(screen);
                 if (revision < expectedRevision) return;
                 CenterGraphTcpFixture.require("rawOreCopper".equals(field(screen, "rules").getText()),
                     "The graph snapshot arrived but the selected copper route was not displayed: " + lastTrace);
                 if (phase == 1) {
+                    if (!openedRules) {
+                        click(screen, "rules_toggle");
+                        openedRules = true;
+                        return;
+                    }
+                    if (!field(screen, "rules").areAncestorsEnabled()) return;
                     replace(screen, "rules", CenterGraphTcpFixture.ORE_RULE);
                     click(screen, "save_rules");
                     expectedRevision = revision + 1;
@@ -149,13 +192,18 @@ public final class CenterGraphTcpClient {
 
     @SubscribeEvent
     public void render(TickEvent.RenderTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !screenshot || done) return;
+        if (event.phase != TickEvent.Phase.END || (!screenshot && capturePage == null) || done) return;
         try {
-            ScreenShotHelper.saveScreenshot(receipts.toFile(), FRAME, mc.displayWidth, mc.displayHeight, mc.getFramebuffer());
+            String frame = screenshot ? FRAME : "native-" + capturePage + ".png";
+            ScreenShotHelper.saveScreenshot(receipts.toFile(), frame, mc.displayWidth, mc.displayHeight, mc.getFramebuffer());
             // The vanilla screenshot helper always creates its screenshots/ subdirectory.
-            Path captured = receipts.resolve("screenshots").resolve(FRAME);
-            Files.move(captured, receipts.resolve(FRAME));
-            finish(null);
+            Path captured = receipts.resolve("screenshots").resolve(frame);
+            Files.move(captured, receipts.resolve(frame));
+            if (screenshot) finish(null);
+            else {
+                pageFrames.add(frame);
+                capturePage = null;
+            }
         } catch (Exception failure) {
             finish(failure.toString());
         }
@@ -166,12 +214,82 @@ public final class CenterGraphTcpClient {
         since = System.nanoTime();
     }
 
-    private void open() {
+    private boolean previewCopper(ModularScreen screen, Object editor) throws ReflectiveOperationException {
+        IWidget canvas = control(screen, "canvas");
+        if (!canvas.areAncestorsEnabled()) return false;
+        if (readField(canvas, "sample") == null) {
+            Area area = canvas.getArea();
+            int x = Math.max(1, Math.min(100, Math.max(27, area.width / 7)) - 78) + 22;
+            int y = area.height / 2 - 5;
+            mouse(screen, canvas, x, y, true);
+            mouse(screen, canvas, x, y, false);
+            return false;
+        }
+        var trace = (com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview) readField(canvas, "trace");
+        if (trace == null || trace.products(2).isEmpty()) return false;
+        if (!verifiedCopper) {
+            verifiedCopper = true;
+            click(screen, "source");
+            return false;
+        }
+        return (Boolean) readField(editor, "showSources");
+    }
+
+    private boolean previewTrial(ModularScreen screen) throws ReflectiveOperationException {
+        IWidget button = control(screen, "calc_run");
+        if (!button.areAncestorsEnabled()) return false;
+        if (trialStep == 0) {
+            click(screen, "calc_route");
+            trialStep++;
+            return false;
+        }
+        if (trialStep == 1) {
+            replace(screen, "calc_batch_size", "16");
+            click(screen, "calc_run");
+            trialStep++;
+            return false;
+        }
+        IWidget table = find(screen.getMainPanel(), "center_calculation_results");
+        if (table == null) throw new IllegalStateException("Missing estimate table");
+        Object view = readField(table, "this$0");
+        String status = (String) readField(view, "trialStatus");
+        if ("terminal.trial_working".equals(status)) return false;
+        CenterGraphTcpFixture.require("terminal.trial_ready".equals(status), "Copper estimate did not complete: " + status);
+        var result = (com.miaokatze.gtsr.common.machine.orecenter.CenterPlanner.Batch) readField(view, "trialBatch");
+        CenterGraphTcpFixture.require(result.ticks > 0 && result.steam > 0
+            && result.consumed.stream().mapToInt(item -> item.stackSize).sum() == 16, "Wrong copper estimate");
+        trialTicks = result.ticks;
+        return true;
+    }
+
+    private void open() throws ReflectiveOperationException {
+        if (capturePage != null) return;
         if (openCooldown-- > 0 || mc.theWorld == null) return;
         int x = CenterGraphTcpFixture.X, y = CenterGraphTcpFixture.Y, z = CenterGraphTcpFixture.Z;
         if (mc.thePlayer.getDistanceSq(x + .5, y + .5, z + .5) > 16) return;
         TileEntity tile = mc.theWorld.getTileEntity(x, y, z);
         if (!(tile instanceof IGregTechTileEntity) || !(((IGregTechTileEntity) tile).getMetaTileEntity() instanceof MTEMineralIntegrationCenter)) return;
+        if (phase == 1 && projectedHints == 0) {
+            IGregTechTileEntity base = (IGregTechTileEntity) tile;
+            MTEMineralIntegrationCenter controller = (MTEMineralIntegrationCenter) base.getMetaTileEntity();
+            ForgeDirection facing = base.getFrontFacing();
+            controllerOverlay = controller.getTexture(base, facing, facing, 0, false, false).length == 2
+                && controller.getTexture(base, facing, facing, 0, true, false).length == 2
+                && controller.getTexture(base, facing.getOpposite(), facing, 0, false, false).length == 1;
+            CenterGraphTcpFixture.require(controllerOverlay, "The controller front is missing its ore-drill overlay");
+            ItemStack projector = new ItemStack(StructureLibAPI.getDefaultHologramItem());
+            projector.getItem().onItemUseFirst(projector, mc.thePlayer, mc.theWorld, x, y, z,
+                ForgeDirection.NORTH.ordinal(), .5f, .5f, 0f);
+            Field groups = Class.forName("com.gtnewhorizon.structurelib.ClientProxy").getDeclaredField("allGroups");
+            groups.setAccessible(true);
+            List<?> holograms = (List<?>) groups.get(null);
+            CenterGraphTcpFixture.require(!holograms.isEmpty(), "Projector right click produced no hologram");
+            Object last = holograms.get(holograms.size() - 1);
+            projectedHints = ((List<?>) readField(last, "hints")).size();
+            CenterGraphTcpFixture.require(projectedHints > 1024, "Center projection contains only a floor fragment");
+            capturePage = "projector";
+            return;
+        }
         mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, mc.thePlayer.getHeldItem(), x, y, z,
             ForgeDirection.NORTH.ordinal(), Vec3.createVectorHelper(x + .5, y + .5, z));
         openCooldown = 20;
@@ -243,7 +361,7 @@ public final class CenterGraphTcpClient {
 
     private static void tab(ModularScreen screen, int start, int end) throws ReflectiveOperationException {
         IWidget widget = control(screen, "tabs");
-        int width = widget.getArea().width / 9;
+        int width = 64;
         mouse(screen, widget, start * width + width / 2, 7, true);
         if (start != end) aim(screen, widget, width, 7);
         mouse(screen, widget, end * width + width / 2, 7, false);
@@ -275,7 +393,8 @@ public final class CenterGraphTcpClient {
         Class<?> events = Class.forName("me.eigenraven.lwjgl3ify.api.InputEvents");
         Class<?> textEvent = Class.forName(events.getName() + "$TextEvent");
         events.getMethod("injectTextEvent", textEvent).invoke(null, textEvent.getConstructor(String.class).newInstance(value));
-        CenterGraphTcpFixture.require(value.equals(field.getText()), "Native text entry differs for " + name);
+        CenterGraphTcpFixture.require(value.equals(field.getText()), "Native text entry differs for " + name
+            + " (focused=" + field.isFocused() + ", enabled=" + field.areAncestorsEnabled() + ", actual=" + field.getText() + ")");
     }
 
     private void finish(String error) {
@@ -284,6 +403,11 @@ public final class CenterGraphTcpClient {
         report.put("phase", phase);
         report.put("error", error);
         report.put("lastTrace", lastTrace);
+        report.put("projectedHints", projectedHints);
+        report.put("controllerOverlay", controllerOverlay);
+        report.put("verifiedCopper", verifiedCopper);
+        report.put("trialTicks", trialTicks);
+        report.put("pageFrames", pageFrames);
         report.put("reopenedFrame", error == null ? FRAME : null);
         CenterGraphTcpFixture.write(receipts, "client-checks.json", report);
         mc.shutdown();

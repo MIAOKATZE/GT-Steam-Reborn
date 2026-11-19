@@ -35,9 +35,11 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.ClusterTier;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.SteamGrade;
+import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
 import com.miaokatze.gtsr.common.structure.StructurePreviewWorld;
 
 import gregtech.api.enums.Textures;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.interfaces.INEIPreviewModifier;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -77,8 +79,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private final List<FluidStack> pendingFluids = new ArrayList<>();
     private final List<MTEHatch> steamHatches = new ArrayList<>();
     private final List<MTESteamCoolingHatch> coolingHatches = new ArrayList<>();
+    private final CenterLedger ledger = new CenterLedger();
     private CenterPlanner.Session planning;
     private int selectedSlot, totalTicks, elapsed, steamKind, plannedTier = -1, plannedMask;
+    private int textureTier = -1;
     private long steamTotal, energyTotal, sequence, nextProbe, coolingSteam;
 
     public MTEMineralIntegrationCenter(int id, String name, String regionalName) {
@@ -142,6 +146,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     @Override
     public void onPreviewStructureComplete(ItemStack stack) {
         if (getBaseMetaTileEntity().getWorld() instanceof StructurePreviewWorld preview) preview.gtsr$markStructurePreview();
+        textureTier = selectedTier(stack) - 1;
         construct(stack, false);
         structure.showPreviewPorts(getBaseMetaTileEntity());
     }
@@ -193,7 +198,20 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     @Override
     public ITexture[] getTexture(IGregTechTileEntity te, ForgeDirection side, ForgeDirection facing, int colorIndex,
         boolean active, boolean redstone) {
-        return new ITexture[] { Textures.BlockIcons.getCasingTextureForId(10) };
+        ITexture casing = Textures.BlockIcons.getCasingTextureForId(MTEClusterUnitBase.tierCasingTextureId(textureTier));
+        if (side != facing) return new ITexture[] { casing };
+        return new ITexture[] { casing, TextureFactory.of(
+            active ? Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE : Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL) };
+    }
+
+    @Override
+    public byte getUpdateData() {
+        return (byte) (textureTier + 1);
+    }
+
+    @Override
+    public void onValueUpdate(byte value) {
+        textureTier = value >= 1 && value <= 4 ? value - 1 : -1;
     }
 
     @Override
@@ -252,6 +270,27 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     private String changeModule(IGregTechTileEntity te, int slot) {
+        return changeModule(te, slot, null, 0);
+    }
+
+    public String applyModuleEdit(EntityPlayer player, int slot, int choice, int grade) {
+        if (!canEditGraphs(player) || slot < 0 || slot >= grades.length || choice < -1 || choice >= MODULES.length)
+            return "module.invalid";
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        if (choice == -1) {
+            if (grades[slot] != grade || grade < 1) return "module.invalid";
+            return changeModule(te, slot).startsWith("Module package") ? "module.removed" : "module.blocked";
+        }
+        CenterModule module = MODULES[choice];
+        int kind = slot % 6 == 0 ? 0 : slot % 6 <= 2 ? 1 : 2;
+        if (module.kind != kind || !module.acceptsGrade(grade, structure.tier(te))) return "module.invalid";
+        if (grades[slot] != 0) return "module.occupied";
+        String result = changeModule(te, slot, module, grade);
+        return result.startsWith("Installed ") ? "module.installed"
+            : result.startsWith("No compatible") ? "module.no_pack" : "module.blocked";
+    }
+
+    private String changeModule(IGregTechTileEntity te, int slot, CenterModule choice, int choiceGrade) {
         if (totalTicks > 0 || structure.sectorMask(te) == 0 || (structure.sectorMask(te) & 1 << (slot / 6)) == 0) {
             return "The center must be formed and between batches.";
         }
@@ -271,6 +310,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             ItemStack pack = input.get();
             CenterModule module = CenterModuleItems.moduleOf(pack);
             int grade = CenterModuleItems.gradeOf(pack);
+            if (choice != null && (module != choice || grade != choiceGrade)) continue;
             if (module == null || module.kind != kind || !module.acceptsGrade(grade, tier)) continue;
             if (!structure.install(te, slot, module, grade)) return "The module pad could not be built.";
             input.take(1);
@@ -281,6 +321,57 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             return "Installed " + module.key + " " + grade;
         }
         return "No compatible package in the input bus.";
+    }
+
+    public NBTTagCompound terminalState() {
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setInteger("Tier", structure.tier(te));
+        tag.setInteger("Sectors", structure.sectorMask(te));
+        tag.setBoolean("Formed", structure.sectorMask(te) != 0 && hasRequiredPorts());
+        tag.setBoolean("Active", te.isActive());
+        tag.setIntArray("Modules", modules.clone());
+        tag.setIntArray("Grades", grades.clone());
+        int[] packs = new int[MODULES.length * 3];
+        for (Slot slot : itemSlots()) {
+            ItemStack item = slot.get();
+            CenterModule module = CenterModuleItems.moduleOf(item);
+            if (module != null) {
+                int type = module.ordinal() * 3 + CenterModuleItems.gradeOf(item) - 1;
+                packs[type] += Math.min(Math.max(0, item.stackSize), Integer.MAX_VALUE - packs[type]);
+            }
+        }
+        tag.setIntArray("Packs", packs);
+        tag.setInteger("Elapsed", elapsed);
+        tag.setInteger("Duration", totalTicks);
+        tag.setLong("Energy", energyTotal);
+        tag.setLong("Steam", steamTotal);
+        tag.setInteger("SteamDensity", STEAMS[steamKind].getDivisor());
+        tag.setLong("Power", getMaxInputEu());
+        tag.setLong("Voltage", getMaxInputVoltage());
+        NBTTagList fluids = new NBTTagList();
+        for (FluidSlot slot : fluidSlots()) {
+            FluidStack fluid = slot.get();
+            if (fluid != null && fluid.amount > 0 && fluids.tagCount() < 32) {
+                NBTTagCompound available = new NBTTagCompound();
+                available.setString("FluidName", fluid.getFluid().getName());
+                available.setInteger("Amount", fluid.amount);
+                fluids.appendTag(available);
+            }
+        }
+        tag.setTag("Fluids", fluids);
+        return tag;
+    }
+
+    public NBTTagList terminalLedger() {
+        return ledger.save();
+    }
+
+    public boolean resetTerminalLedger(EntityPlayer player) {
+        if (!canEditGraphs(player)) return false;
+        ledger.clear();
+        getBaseMetaTileEntity().markDirty();
+        return true;
     }
 
     /** Used by the server-side graph editor. Existing batches keep their saved result. */
@@ -369,6 +460,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         }
         int mask = structure.sectorMask(te);
         int tier = structure.tier(te);
+        if (textureTier != tier) {
+            textureTier = tier;
+            te.issueTileUpdate();
+        }
         if (mask == 0 || tier < 0) {
             planning = null;
             te.setActive(false);
@@ -456,7 +551,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
                 Integer.bitCount(mask),
                 getMaxInputVoltage(),
                 getMaxInputEu(),
-                new int[] { 0, 0, 2700, 4500 }[tier],
+                CenterPlanner.HEAT[tier],
                 getBaseMetaTileEntity().getWorld()
                     .getSeed() ^ sequence
                     ^ (long) te.getXCoord() * 341873128712L
@@ -530,6 +625,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         sequence++;
         pendingItems.addAll(batch.outputs);
         pendingFluids.addAll(batch.outputFluids);
+        for (ItemStack item : batch.consumed) ledger.add(item, 0, item.stackSize);
+        for (ItemStack item : batch.bonuses) ledger.add(item, 2, item.stackSize);
         te.markDirty();
     }
 
@@ -601,6 +698,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             int before = packet.stackSize;
             addOutputPartial(packet);
             remaining.stackSize -= before - packet.stackSize;
+            if (CenterModuleItems.moduleOf(remaining) == null) ledger.add(remaining, 1, before - packet.stackSize);
             if (remaining.stackSize <= 0) pendingItems.remove(0);
             if (before != packet.stackSize) te.markDirty();
         }
@@ -715,6 +813,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setLong("CenterGraphRevision", graphRevision);
         tag.setLong("CenterNextGraphId", nextGraphId);
         tag.setBoolean("CenterGraphConfigured", configuredGraphs);
+        tag.setTag("CenterLedger", ledger.save());
         NBTTagList configs = new NBTTagList(), items = new NBTTagList(), fluids = new NBTTagList();
         for (CenterGraph graph : graphs) configs.appendTag(graph.save());
         for (ItemStack item : pendingItems) {
@@ -755,6 +854,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         NBTTagList configs = tag.getTagList("CenterGraphs", 10), items = tag.getTagList("CenterItemOutputs", 10),
             fluids = tag.getTagList("CenterFluidOutputs", 10);
         configuredGraphs = tag.getBoolean("CenterGraphConfigured") || configs.tagCount() > 0;
+        ledger.load(tag.getTagList("CenterLedger", 10));
         Set<Long> ids = new HashSet<>();
         for (int i = 0; i < configs.tagCount() && i < CenterGraph.MAX_GRAPHS; i++) {
             try {

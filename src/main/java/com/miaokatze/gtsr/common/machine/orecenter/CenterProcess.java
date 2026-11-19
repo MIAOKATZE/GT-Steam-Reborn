@@ -44,4 +44,12 @@ public enum CenterProcess {
     public boolean installed(int[] grades) {
         return grades[module.ordinal()] > 0 && (this != RECYCLER || grades[CenterModule.REACTOR.ordinal()] > 0);
     }
+
+    public int auxiliarySlots() {
+        return this == REACTOR ? 3 : this == FURNACE ? 2 : 0;
+    }
+
+    public boolean hasCircuitSlot() {
+        return this == REACTOR || this == FURNACE || this == ELECTROLYZER;
+    }
 }

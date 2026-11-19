@@ -8,7 +8,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
+
+import cpw.mods.fml.common.registry.GameRegistry;
 
 /** Graphs are stored in display order. Forward-only links make the saved order a topological order. */
 public final class CenterGraph {
@@ -17,6 +20,8 @@ public final class CenterGraph {
     public static final int MAX_NODES = 64;
     public static final int MAX_RULES = 128;
     public static final int BUS = -1;
+    public static final int UNCONNECTED = -2;
+    public static final int AUTO_POSITION = Integer.MIN_VALUE;
     static final int MAX_DEPTH = 32;
     static final int MAX_EDGES = 256;
 
@@ -55,6 +60,8 @@ public final class CenterGraph {
         private final List<OutletFilter> filters;
         private final OutletFilter[] bySlot;
         public final int circuit;
+        public final int x, y;
+        private final String[] auxiliary;
 
         public Node(CenterProcess process, int[] targets) {
             this(process, targets, 0);
@@ -65,15 +72,25 @@ public final class CenterGraph {
         }
 
         public Node(CenterProcess process, int[] targets, int circuit, List<OutletFilter> filters) {
+            this(process, targets, circuit, filters, AUTO_POSITION, AUTO_POSITION);
+        }
+
+        private Node(CenterProcess process, int[] targets, int circuit, List<OutletFilter> filters, int x, int y) {
+            this(process, targets, circuit, filters, x, y, null);
+        }
+
+        private Node(CenterProcess process, int[] targets, int circuit, List<OutletFilter> filters, int x, int y,
+            String[] auxiliary) {
             if (process == null || targets.length > 64 || circuit < 0 || circuit > 24) {
                 throw new IllegalArgumentException("Invalid processing node");
             }
-            if (circuit != 0 && process != CenterProcess.FURNACE
-                && process != CenterProcess.ELECTROLYZER
-                && process != CenterProcess.REACTOR) throw new IllegalArgumentException("Unsupported NC slot");
+            if (circuit != 0 && !process.hasCircuitSlot()) throw new IllegalArgumentException("Unsupported NC slot");
             this.process = process;
             this.targets = targets.clone();
             this.circuit = circuit;
+            this.x = x;
+            this.y = y;
+            this.auxiliary = auxiliary == null ? null : auxiliary.clone();
             if (filters.size() > 64) throw new IllegalArgumentException("Too many outlet filters");
             this.filters = Collections.unmodifiableList(new ArrayList<>(filters));
             bySlot = filters.isEmpty() ? null : new OutletFilter[64];
@@ -95,9 +112,58 @@ public final class CenterGraph {
             return filters;
         }
 
+        public Node withPosition(int x, int y) {
+            if (x < -8192 || x > 8192 || y < -8192 || y > 8192)
+                throw new IllegalArgumentException("Node position outside canvas bounds");
+            return new Node(process, targets, circuit, filters, x, y, auxiliary);
+        }
+
+        public Node withConfiguration(int[] targets, int circuit, List<OutletFilter> filters) {
+            return new Node(process, targets, circuit, filters, x, y, auxiliary);
+        }
+
+        public Node withEmptyAuxiliary() {
+            if (process.auxiliarySlots() == 0) return this;
+            String[] keys = new String[process.auxiliarySlots() * 2];
+            java.util.Arrays.fill(keys, "");
+            return new Node(process, targets, circuit, filters, x, y, keys);
+        }
+
+        public Node withAuxiliary(int slot, String key) {
+            int size = process.auxiliarySlots();
+            if (slot < 0 || slot >= size * 2 || key.length() > 190
+                || !key.isEmpty() && !(slot < size ? key.matches("[A-Za-z0-9_.|/-]+:[A-Za-z0-9_.|/-]+@[0-9]{1,5}")
+                    : key.matches("[A-Za-z0-9_.:/-]+"))) throw new IllegalArgumentException("Invalid auxiliary slot");
+            Node base = auxiliary == null ? withEmptyAuxiliary() : this;
+            String[] keys = base.auxiliary.clone();
+            keys[slot] = key;
+            return new Node(process, targets, circuit, filters, x, y, keys);
+        }
+
+        public String auxiliary(int slot) {
+            return auxiliary == null || slot < 0 || slot >= auxiliary.length ? "" : auxiliary[slot];
+        }
+
+        boolean acceptsAuxiliary(ItemStack item) {
+            if (auxiliary == null) return true;
+            GameRegistry.UniqueIdentifier id = GameRegistry.findUniqueIdentifierFor(item.getItem());
+            if (id == null) return false;
+            String key = id + "@" + item.getItemDamage();
+            for (int i = 0; i < process.auxiliarySlots(); i++) if (key.equals(auxiliary[i])) return true;
+            return false;
+        }
+
+        boolean acceptsAuxiliary(FluidStack fluid) {
+            if (auxiliary == null) return true;
+            for (int i = process.auxiliarySlots(); i < auxiliary.length; i++)
+                if (fluid.getFluid().getName().equals(auxiliary[i])) return true;
+            return false;
+        }
+
         int target(int slot, ItemStack stack) {
+            if (process == CenterProcess.SIFTER) slot = Math.min(5, slot);
             int target = target(slot);
-            if (target == BUS || bySlot == null || slot >= bySlot.length) return target;
+            if (target < 0 || bySlot == null || slot >= bySlot.length) return target;
             OutletFilter filter = bySlot[slot];
             return filter != null && !filter.accepts(stack) ? BUS : target;
         }
@@ -110,13 +176,14 @@ public final class CenterGraph {
     private final List<String> rules;
     private final List<CenterOreRule> compiled;
     public final List<Node> nodes;
+    private final boolean runnable;
 
     public CenterGraph(int priority, boolean enabled, List<String> oreRules, List<Node> nodes) {
         this(0, "", priority, enabled, oreRules, nodes);
     }
 
     public CenterGraph(long id, String name, int priority, boolean enabled, List<String> oreRules, List<Node> nodes) {
-        if (nodes.isEmpty() || nodes.size() > MAX_NODES || oreRules.size() > MAX_RULES) {
+        if (nodes.size() > MAX_NODES || oreRules.size() > MAX_RULES) {
             throw new IllegalArgumentException("Graph exceeds its node or rule budget");
         }
         this.priority = priority;
@@ -132,7 +199,8 @@ public final class CenterGraph {
         this.rules = immutableRules(oreRules);
         this.nodes = Collections.unmodifiableList(new ArrayList<>(nodes));
         int[] depth = new int[nodes.size()];
-        depth[0] = 1;
+        if (!nodes.isEmpty()) depth[0] = 1;
+        boolean reachable = !nodes.isEmpty();
         int edges = 0;
         int ruleChars = rules.stream()
             .mapToInt(String::length)
@@ -148,15 +216,18 @@ public final class CenterGraph {
                 if (ruleCount > MAX_RULES || ruleChars > 16384)
                     throw new IllegalArgumentException("Graph filter budget exceeded");
             }
-            if (depth[i] == 0 || depth[i] > MAX_DEPTH) throw new IllegalArgumentException("Unreachable or deep node");
+            if (depth[i] > MAX_DEPTH) throw new IllegalArgumentException("Graph too deep");
+            if (depth[i] == 0) reachable = false;
             for (int target : node.targets) {
-                if (++edges > MAX_EDGES || target < BUS
-                    || target != BUS && (node.process.direct || target <= i || target >= nodes.size())) {
+                if (++edges > MAX_EDGES || target < UNCONNECTED
+                    || target >= 0 && (node.process.direct || target <= i || target >= nodes.size())) {
                     throw new IllegalArgumentException("Invalid or cyclic link");
                 }
-                if (target != BUS) depth[target] = Math.max(depth[target], depth[i] + 1);
+                if (target == UNCONNECTED) reachable = false;
+                if (target >= 0 && depth[i] != 0) depth[target] = Math.max(depth[target], depth[i] + 1);
             }
         }
+        runnable = reachable;
         this.compiled = compile(rules);
     }
 
@@ -185,6 +256,10 @@ public final class CenterGraph {
 
     public boolean fallback() {
         return rules.isEmpty();
+    }
+
+    public boolean runnable() {
+        return runnable;
     }
 
     boolean matches(ItemStack stack, String[] tags) {
@@ -219,7 +294,16 @@ public final class CenterGraph {
             NBTTagCompound step = new NBTTagCompound();
             step.setString("Process", node.process.name());
             step.setInteger("Circuit", node.circuit);
+            if (node.x != AUTO_POSITION) {
+                step.setInteger("X", node.x);
+                step.setInteger("Y", node.y);
+            }
             step.setIntArray("Targets", node.targets);
+            if (node.auxiliary != null) {
+                NBTTagList slots = new NBTTagList();
+                for (String item : node.auxiliary) slots.appendTag(new NBTTagString(item));
+                step.setTag("Auxiliary", slots);
+            }
             NBTTagList filters = new NBTTagList();
             for (OutletFilter filter : node.filters) {
                 NBTTagCompound row = new NBTTagCompound();
@@ -257,12 +341,19 @@ public final class CenterGraph {
                 for (int k = 0; k < lines.tagCount(); k++) selection.add(lines.getStringTagAt(k));
                 entries.add(new OutletFilter(filter.getInteger("Slot"), filter.getBoolean("Allow"), selection));
             }
-            steps.add(
-                new Node(
-                    CenterProcess.valueOf(step.getString("Process")),
-                    step.getIntArray("Targets"),
-                    step.getInteger("Circuit"),
-                    entries));
+            Node node = new Node(
+                CenterProcess.valueOf(step.getString("Process")),
+                step.getIntArray("Targets"),
+                step.getInteger("Circuit"),
+                entries);
+            if (step.hasKey("Auxiliary", 9)) {
+                NBTTagList slots = step.getTagList("Auxiliary", 8);
+                if (slots.tagCount() != node.process.auxiliarySlots() * 2) throw new IllegalArgumentException();
+                for (int slot = 0; slot < slots.tagCount(); slot++)
+                    node = node.withAuxiliary(slot, slots.getStringTagAt(slot));
+            }
+            steps.add(step.hasKey("X", 3) && step.hasKey("Y", 3)
+                ? node.withPosition(step.getInteger("X"), step.getInteger("Y")) : node);
         }
         return new CenterGraph(
             tag.getLong("Id"),

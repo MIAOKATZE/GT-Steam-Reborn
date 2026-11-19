@@ -434,10 +434,15 @@ public final class CenterStructure {
     public boolean construct(IGregTechTileEntity te, int tier, int mask, boolean hintsOnly) {
         if (tier < 0 || tier > 3 || mask < 1 || mask > 63) return false;
         Frame frame = new Frame(te);
-        if (!hintsOnly && frame.world.isRemote) return false;
         List<Shape> blueprints = pieces(tier, mask);
-        if (!hintsOnly) for (Shape piece : blueprints) if (!canConstruct(frame, piece)) return false;
-        for (Shape piece : blueprints) buildPiece(frame, piece, hintsOnly);
+        if (hintsOnly) {
+            if (!frame.world.isRemote) return false;
+            for (Shape piece : blueprints) projectPiece(frame, piece);
+            return true;
+        }
+        if (frame.world.isRemote) return false;
+        for (Shape piece : blueprints) if (!canConstruct(frame, piece)) return false;
+        for (Shape piece : blueprints) buildPiece(frame, piece);
         tower.requestFastSweep();
         for (CriticalStructureMonitor sector : sectors) sector.requestFastSweep();
         return true;
@@ -513,17 +518,29 @@ public final class CenterStructure {
         return true;
     }
 
-    private static void buildPiece(Frame frame, Shape shape, boolean hints) {
-        for (int i = 0, hintCount = 0; i < shape.count(); i++) {
+    private static void projectPiece(Frame frame, Shape shape) {
+        for (int i = 0; i < shape.count(); i++) {
+            Block block = shape.block(i);
+            if (block == null) continue;
+            int rx = shape.x[i], rz = shape.z[i] + 19;
+            int x = frame.x(rx, rz), y = frame.y + shape.y[i] - 2, z = frame.z(rx, rz);
+            if (y < 0 || y >= frame.world.getHeight() || !frame.loaded(x, z)) continue;
+            int meta = shape.metadata(i);
+            if (frame.world.getBlock(x, y, z) == block && frame.world.getBlockMetadata(x, y, z) == meta) continue;
+            if (!substitutedPort(shape, i, frame, x, y, z))
+                StructureLibAPI.hintParticle(frame.world, x, y, z, block, meta);
+        }
+    }
+
+    private static void buildPiece(Frame frame, Shape shape) {
+        for (int i = 0; i < shape.count(); i++) {
             int rx = shape.x[i], rz = shape.z[i] + 19;
             int wx = frame.x(rx, rz), wy = frame.y + shape.y[i] - 2, wz = frame.z(rx, rz);
             if (shape.block(i) == null || !frame.loaded(wx, wz)) continue;
             boolean matches = frame.world.getBlock(wx, wy, wz) == shape.block(i)
                 && frame.world.getBlockMetadata(wx, wy, wz) == shape.metadata(i);
             if (matches || substitutedPort(shape, i, frame, wx, wy, wz)) continue;
-            if (hints && hintCount++ < 512)
-                StructureLibAPI.hintParticle(frame.world, wx, wy, wz, shape.block(i), shape.metadata(i));
-            if (!hints) frame.world.setBlock(wx, wy, wz, shape.block(i), shape.metadata(i), 2);
+            frame.world.setBlock(wx, wy, wz, shape.block(i), shape.metadata(i), 2);
         }
     }
 
