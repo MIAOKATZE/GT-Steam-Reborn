@@ -56,7 +56,7 @@ final class CenterTerminalPages {
     private boolean resetArmed, trialRequested;
     private CenterPlanner.Session trialJob;
     private CenterPlanner.Batch trialBatch;
-    private CenterGraph trialGraph;
+    private long trialRevision = -1;
     private String trialStatus;
     private final TextFieldWidget batchSize = CenterGraphGui.field("calc_batch_size", 7);
     private final TextFieldWidget search = CenterGraphGui.field("ledger_search", 64);
@@ -339,14 +339,15 @@ final class CenterTerminalPages {
         trialRequested = false;
         trialJob = null;
         trialBatch = null;
-        trialGraph = null;
+        trialRevision = -1;
         trialStatus = null;
     }
 
     private void runTrial() {
         resetTrial();
         trialRequested = true;
-        trialGraph = calculationGraph();
+        CenterGraph trialGraph = calculationGraph();
+        trialRevision = sync.snapshot().revision();
         int quantity;
         try {
             quantity = Integer.parseInt(batchSize.getText().trim());
@@ -828,7 +829,7 @@ final class CenterTerminalPages {
         @Override
         public void onUpdate() {
             super.onUpdate();
-            if (trialRequested && calculationGraph() != trialGraph) resetTrial();
+            if (trialRequested && sync.snapshot().revision() != trialRevision) resetTrial();
             if (trialJob != null && trialJob.advance(4, 200_000)) {
                 trialBatch = trialJob.batch();
                 trialJob = null;

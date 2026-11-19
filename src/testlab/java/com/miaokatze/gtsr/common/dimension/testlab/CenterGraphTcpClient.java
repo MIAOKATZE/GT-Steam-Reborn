@@ -56,7 +56,8 @@ public final class CenterGraphTcpClient {
     private final Path receipts = Paths.get(System.getProperty(CenterGraphTcpFixture.PREFIX + "receipts"));
     private final Minecraft mc = Minecraft.getMinecraft();
     private long since = System.nanoTime(), expectedRevision;
-    private int phase, openCooldown;
+    private int phase, openCooldown, layoutStep, presetNodes;
+    private boolean verifiedEmptyBoard, verifiedGraphHistory;
     private boolean screenshot, done;
     private int projectedHints, previewStep;
     private boolean controllerOverlay, reopenedRoutes, openedRules, verifiedCopper;
@@ -169,6 +170,10 @@ public final class CenterGraphTcpClient {
                 }
                 long revision = displayedRevision(screen);
                 if (revision < expectedRevision) return;
+                if (phase == 7 && layoutStep > 0) {
+                    if (capturePage == null) verifyGraphLayout(screen);
+                    return;
+                }
                 CenterGraphTcpFixture.require("rawOreCopper".equals(field(screen, "rules").getText()),
                     "The graph snapshot arrived but the selected copper route was not displayed: " + lastTrace);
                 if (phase == 1) {
@@ -186,6 +191,11 @@ public final class CenterGraphTcpClient {
                     CenterGraphTcpFixture.require(CenterGraphTcpFixture.ORE_RULE.equals(field(screen, "rules").getText())
                         && CenterGraphTcpFixture.FILTER_RULE.equals(field(screen, "filter").getText()),
                         "Server's reopened graph did not display both persisted expressions");
+                    if (fullCenter) {
+                        click(screen, "add");
+                        layoutStep = 1;
+                        return;
+                    }
                     screenshot = true;
                 }
                 advance();
@@ -250,13 +260,14 @@ public final class CenterGraphTcpClient {
 
     private boolean previewCopper(ModularScreen screen, Object editor) throws ReflectiveOperationException {
         IWidget canvas = control(screen, "canvas");
-        if (!canvas.areAncestorsEnabled()) return false;
+        if (!canvas.areAncestorsEnabled() || readField(canvas, "laidOut") == null) return false;
         if (readField(canvas, "sample") == null) {
-            Area area = canvas.getArea();
-            int x = Math.max(1, Math.min(100, Math.max(27, area.width / 7)) - 78) + 22;
-            int y = area.height / 2 - 5;
-            mouse(screen, canvas, x, y, true);
-            mouse(screen, canvas, x, y, false);
+            IWidget results = control(screen, "matching");
+            if (!results.areAncestorsEnabled()) {
+                int x = canvasNumber(canvas, "ruleX", 0) + 10;
+                int y = canvasNumber(canvas, "ruleY", 0) + 7;
+                clickBoard(screen, canvas, x, y);
+            } else if (!((List<?>) readField(results, "matches")).isEmpty()) clickBoardAtPixel(screen, results, 8, 7);
             return false;
         }
         var trace = (com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview) readField(canvas, "trace");
@@ -267,6 +278,115 @@ public final class CenterGraphTcpClient {
             return false;
         }
         return (Boolean) readField(editor, "showSources");
+    }
+
+    private void verifyGraphLayout(ModularScreen screen) throws ReflectiveOperationException {
+        IWidget canvas = control(screen, "canvas");
+        var graph = (com.miaokatze.gtsr.common.machine.orecenter.CenterGraph) readField(canvas, "laidOut");
+        if (graph == null || graph != readField(readField(canvas, "editor"), "graph")) return;
+        switch (layoutStep) {
+            case 1 -> {
+                if (graph.id <= 102 || !graph.nodes.isEmpty()) return;
+                verifyEmptyAnchors(canvas);
+                capturePage = "graph-empty";
+            }
+            case 2 -> {
+                int x = (int) readField(canvas, "offX"), y = (int) readField(canvas, "offY");
+                double zoom = (double) readField(canvas, "zoom");
+                Area area = canvas.getArea();
+                mouse(screen, canvas, 12, area.height - 38, true);
+                aim(screen, canvas, 39, area.height - 17);
+                screen.onMouseDrag(0, 20);
+                mouse(screen, canvas, 39, area.height - 17, false);
+                click(screen, "zoom_in");
+                CenterGraphTcpFixture.require((int) readField(canvas, "offX") != x && (int) readField(canvas, "offY") != y
+                    && (double) readField(canvas, "zoom") > zoom, "Native canvas did not pan and zoom");
+                verifyEmptyAnchors(canvas);
+                verifiedEmptyBoard = true;
+                click(screen, "enabled");
+            }
+            case 3 -> {
+                if (graph.enabled) return;
+                click(screen, "undo");
+            }
+            case 4 -> {
+                if (!graph.enabled) return;
+                click(screen, "redo");
+            }
+            case 5 -> {
+                if (graph.enabled) return;
+                verifiedGraphHistory = true;
+                click(screen, "delete");
+                click(screen, "delete");
+            }
+            case 6 -> {
+                if (graph.id > 102) return;
+                click(screen, "generator_presets");
+            }
+            case 7 -> {
+                var modal = screen.getPanelManager().getOpenPanel("gtsr_center_presets");
+                if (modal == null) return;
+                IWidget preset = find(modal, CONTROL + "preset_regular-MPMC");
+                IWidget apply = find(modal, CONTROL + "preset_apply");
+                if (preset == null || apply == null) return;
+                clickBoardAtPixel(screen, preset, preset.getArea().width / 2, 7);
+                clickBoardAtPixel(screen, apply, apply.getArea().width / 2, 7);
+            }
+            case 8 -> {
+                if (graph.id <= 102 || graph.nodes.size() < 10) return;
+                int[][] nodes = (int[][]) readField(canvas, "nodes");
+                var height = canvas.getClass().getDeclaredMethod("cardHeight", graph.nodes.get(0).getClass());
+                height.setAccessible(true);
+                for (int i = 0; i < nodes.length; i++) {
+                    int[] a = nodes[i];
+                    int h = (int) height.invoke(null, graph.nodes.get(i));
+                    for (int j = i + 1; j < nodes.length; j++) {
+                        int[] b = nodes[j];
+                        int otherHeight = (int) height.invoke(null, graph.nodes.get(j));
+                        CenterGraphTcpFixture.require(Math.abs(a[0] - b[0]) >= 92 || a[1] + h <= b[1]
+                            || b[1] + otherHeight <= a[1], "Preset cards overlap: " + i + " and " + j);
+                    }
+                }
+                presetNodes = nodes.length;
+                capturePage = "graph-preset";
+            }
+            case 9 -> {
+                tab(screen, 1, 1);
+                screenshot = true;
+                advance();
+            }
+            default -> throw new IllegalStateException("Unexpected layout step " + layoutStep);
+        }
+        layoutStep++;
+    }
+
+    private static void verifyEmptyAnchors(IWidget canvas) throws ReflectiveOperationException {
+        int x = (int) readField(canvas, "offX"), y = (int) readField(canvas, "offY");
+        int ruleX = canvasNumber(canvas, "ruleX", 0), ruleY = canvasNumber(canvas, "ruleY", 0);
+        int output = (int) readField(canvas, "outputX");
+        var hit = canvas.getClass().getDeclaredMethod("hit", int.class, int.class);
+        hit.setAccessible(true);
+        CenterGraphTcpFixture.require(ruleY == y + 48 && (int) hit.invoke(canvas, ruleX + 8, ruleY + 8) == -5
+            && (int) hit.invoke(canvas, x + 8, ruleY + 8) == -3
+            && (int) hit.invoke(canvas, x + 130, ruleY + 8) == -4
+            && (int) hit.invoke(canvas, x + output + 8, ruleY + 8) == -2,
+            "The empty board lost one or more aligned canvas anchors");
+    }
+
+    private static int canvasNumber(IWidget canvas, String name, int index) throws ReflectiveOperationException {
+        var method = canvas.getClass().getDeclaredMethod(name, int.class);
+        method.setAccessible(true);
+        return (int) method.invoke(canvas, index);
+    }
+
+    private static void clickBoard(ModularScreen screen, IWidget widget, int x, int y) throws ReflectiveOperationException {
+        double zoom = (double) readField(widget, "zoom");
+        clickBoardAtPixel(screen, widget, (int) Math.round(x * zoom), (int) Math.round(y * zoom));
+    }
+
+    private static void clickBoardAtPixel(ModularScreen screen, IWidget widget, int x, int y) throws ReflectiveOperationException {
+        mouse(screen, widget, x, y, true);
+        mouse(screen, widget, x, y, false);
     }
 
     private boolean previewTrial(ModularScreen screen) throws ReflectiveOperationException {
@@ -474,6 +594,9 @@ public final class CenterGraphTcpClient {
         report.put("projectedHints", projectedHints);
         report.put("controllerOverlay", controllerOverlay);
         report.put("verifiedCopper", verifiedCopper);
+        report.put("verifiedEmptyBoardPanAndZoom", verifiedEmptyBoard);
+        report.put("verifiedGraphHistory", verifiedGraphHistory);
+        report.put("nonOverlappingPresetCards", presetNodes);
         report.put("trialTicks", trialTicks);
         report.put("assemblySectors", verifiedAssemblyMask);
         report.put("pageFrames", pageFrames);

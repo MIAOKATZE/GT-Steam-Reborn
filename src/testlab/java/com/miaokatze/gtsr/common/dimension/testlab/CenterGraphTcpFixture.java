@@ -116,6 +116,10 @@ public final class CenterGraphTcpFixture {
             }
             if (reviewBuilt && !loadedModule && center.installModuleFromBus(1)) {
                 require(center.installModuleFromBus(3), "Cannot install the review logistics module");
+                if (fullCenter) {
+                    require(center.installModuleFromBus(4) && center.installModuleFromBus(5),
+                        "Cannot install two layout test logistics packs");
+                }
                 loadedModule = true;
             }
             if (fullCenter && reviewBuilt && !fullCenterVerified) {
@@ -288,7 +292,9 @@ public final class CenterGraphTcpFixture {
         input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
         input.setInventorySlotContents(1, CenterModuleItems.stack(CenterModule.WASHER, 1));
         input.setInventorySlotContents(2, CenterModuleItems.stack(CenterModule.SPEED, 1));
-        input.setInventorySlotContents(3, CenterModuleItems.stack(CenterModule.LOGISTICS, 1));
+        ItemStack logistics = CenterModuleItems.stack(CenterModule.LOGISTICS, 1);
+        logistics.stackSize = fullCenter ? 3 : 1;
+        input.setInventorySlotContents(3, logistics);
         ((gregtech.api.metatileentity.implementations.MTEHatchInput) fluid.getMetaTileEntity())
             .fill(ForgeDirection.UNKNOWN, FluidRegistry.getFluidStack("water", 8000), true);
     }

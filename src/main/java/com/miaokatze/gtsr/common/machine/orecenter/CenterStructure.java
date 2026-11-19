@@ -81,6 +81,18 @@ public final class CenterStructure {
         return tier(te) < 0 ? 0 : formedSectors;
     }
 
+    boolean isCheckingFormation(IGregTechTileEntity te) {
+        if (facing != te.getFrontFacing()) return true;
+        if (towerTier < 0) return false;
+        Status status = tower.getStatus();
+        if (status == Status.PENDING || status == Status.UNLOADED) return true;
+        if (status != Status.VALID || formedSectors != 0) return false;
+        for (CriticalStructureMonitor sector : sectors) {
+            if (sector.getStatus() == Status.PENDING || sector.getStatus() == Status.UNLOADED) return true;
+        }
+        return false;
+    }
+
     public void collectHatches(IGregTechTileEntity te, Consumer<IGregTechTileEntity> accept) {
         if (towerTier >= 0 && facing == te.getFrontFacing())
             collectHatches(new Frame(te), towerShape(towerTier, serviceFront), accept);

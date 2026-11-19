@@ -340,6 +340,65 @@ public final class CenterGraph {
         return false;
     }
 
+    public static final class PreviewInput {
+
+        public final ItemStack mineral, feed;
+
+        PreviewInput(ItemStack mineral, ItemStack feed) {
+            this.mineral = mineral;
+            this.feed = feed;
+        }
+    }
+
+    /** Resolves a clicked ore term against registered ore forms in bounded client-side slices. */
+    public static final class PreviewInputs {
+
+        private static final String[] FORMS = { "ore", "variantOre", "crushed", "crushedPurified", "dustImpure", "dustPure" };
+        private final CenterOreRule rule;
+        private final String[] names;
+        private int next;
+
+        public PreviewInputs(String expression) {
+            rule = new CenterOreRule(expression);
+            names = java.util.Arrays.stream(OreDictionary.getOreNames())
+                .filter(name -> name.startsWith("rawOre") && name.length() > 6 && Character.isUpperCase(name.charAt(6)))
+                .sorted().toArray(String[]::new);
+        }
+
+        public boolean advance(List<PreviewInput> matches) {
+            long end = System.nanoTime() + 1_500_000L;
+            while (next < names.length && System.nanoTime() < end) {
+                String name = names[next++];
+                ItemStack mineral = oreStack(name);
+                if (mineral == null) continue;
+                try {
+                    ItemStack feed = matchingForm(rule, mineral, name.substring(6), FORMS);
+                    if (feed != null) matches.add(new PreviewInput(mineral, feed));
+                } catch (CenterOreRule.Limit ignored) {
+                    // An over-budget candidate cannot be routed by this expression.
+                }
+            }
+            return next == names.length;
+        }
+    }
+
+    private static ItemStack matchingForm(CenterOreRule rule, ItemStack mineral, String material, String[] forms) {
+        if (rule.matches(mineral, tags(mineral))) return mineral;
+        for (String form : forms) {
+            String alias = form + material;
+            if (!OreDictionary.doesOreNameExist(alias)) continue;
+            for (ItemStack feed : OreDictionary.getOres(alias, false)) {
+                if (feed != null && rule.matches(feed, tags(feed))) return feed;
+            }
+        }
+        return null;
+    }
+
+    private static ItemStack oreStack(String name) {
+        for (ItemStack stack : OreDictionary.getOres(name, false)) if (stack != null) return stack;
+        return null;
+    }
+
     public static String[] tags(ItemStack stack) {
         int[] ids = OreDictionary.getOreIDs(stack);
         String[] names = new String[ids.length];

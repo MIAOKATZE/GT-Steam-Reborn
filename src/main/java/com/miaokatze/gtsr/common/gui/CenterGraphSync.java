@@ -4,7 +4,10 @@
 package com.miaokatze.gtsr.common.gui;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +40,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
 
     private static final int HEADER = 0, GRAPH = 1, RESULT = 2, EDIT = 3, TERMINAL = 4, TERMINAL_RESULT = 5;
-    private static final int MAX_GRAPH_BYTES = 65536, MAX_TEXT = 8192;
+    private static final int MAX_GRAPH_BYTES = 65536, MAX_TEXT = 8192, MAX_HISTORY = 24;
     private static final CenterProcess[] PROCESSES = CenterProcess.values();
 
     enum Action {
@@ -60,7 +63,10 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
         DUPLICATE,
         OUTLET_ALL,
         AUXILIARY,
-        PRESET
+        PRESET,
+        ARRANGE,
+        UNDO,
+        REDO
     }
 
     private static final Action[] ACTIONS = Action.values();
@@ -98,6 +104,17 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
         }
     }
 
+    private static final class Change {
+
+        final CenterGraph before, after;
+
+        Change(CenterGraph before, CenterGraph after) {
+            this.before = before;
+            this.after = after;
+        }
+    }
+
+    private final Deque<Change> undo = new ArrayDeque<>(), redo = new ArrayDeque<>();
     private final MTEMineralIntegrationCenter machine;
     private final PanelSyncManager manager;
     private final EntityPlayer player;
@@ -125,7 +142,11 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
         this.manager = manager;
         this.player = player;
         connection = ServerPacketAuthority.connection(player);
-        manager.addOpenListener(ignored -> generation.incrementAndGet());
+        manager.addOpenListener(ignored -> {
+            generation.incrementAndGet();
+            undo.clear();
+            redo.clear();
+        });
     }
 
     Snapshot snapshot() {
@@ -340,7 +361,7 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                 }
                 int result = apply(action, revision, graph, a, b, text);
                 if (result == 0 || result == 1) detectAndSendChanges(false);
-                long imported = result == 0 && action == Action.PRESET ? machine.lastGraphId() : -1;
+                long imported = result == 0 && (action == Action.PRESET || action == Action.ADD) ? machine.lastGraphId() : -1;
                 syncToClient(RESULT, outgoing -> {
                     outgoing.writeByte(result);
                     if (imported > 0) outgoing.writeLong(imported);
@@ -390,13 +411,51 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                         if (a < 0 || a >= graphs.size()) return 2;
                         graphs.add(a, graphs.remove(index));
                     }
-                    default -> graphs.set(index, replace(graph, action, a, b, text));
+                    case UNDO, REDO -> {
+                        return applyHistory(action == Action.UNDO, revision, graphs, index, graph);
+                    }
+                    default -> {
+                        CenterGraph updated = replace(graph, action, a, b, text);
+                        graphs.set(index, updated);
+                        if (!machine.applyGraphEdit(player, revision, graphs)) return 2;
+                        if (!graph.save().equals(updated.save())) {
+                            remember(undo, new Change(graph, updated));
+                            redo.removeIf(change -> change.before.id == id);
+                        }
+                        return 0;
+                    }
                 }
             }
             return machine.applyGraphEdit(player, revision, graphs) ? 0 : 2;
         } catch (IllegalArgumentException | IndexOutOfBoundsException invalid) {
             return 2;
         }
+    }
+
+    private int applyHistory(boolean reverting, long revision, List<CenterGraph> graphs, int index, CenterGraph graph) {
+        Deque<Change> from = reverting ? undo : redo;
+        Iterator<Change> changes = from.descendingIterator();
+        while (changes.hasNext()) {
+            Change change = changes.next();
+            if (change.before.id != graph.id) continue;
+            CenterGraph current = reverting ? change.after : change.before;
+            if (!current.save().equals(graph.save())) {
+                undo.removeIf(entry -> entry.before.id == graph.id);
+                redo.removeIf(entry -> entry.before.id == graph.id);
+                return 1;
+            }
+            graphs.set(index, reverting ? change.before : change.after);
+            if (!machine.applyGraphEdit(player, revision, graphs)) return 2;
+            changes.remove();
+            remember(reverting ? redo : undo, change);
+            return 0;
+        }
+        return 2;
+    }
+
+    private static void remember(Deque<Change> history, Change change) {
+        if (history.size() >= MAX_HISTORY) history.removeFirst();
+        history.addLast(change);
     }
 
     private static boolean nameTaken(List<CenterGraph> graphs, String name) {
@@ -416,7 +475,7 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
             case RENAME -> name = text.trim();
             case PRIORITY -> priority = a;
             case RULES -> rules = parseRules(text);
-            case FILTER, TARGET, APPEND_NODE, REMOVE_NODE, MOVE, CIRCUIT, FREE_NODE, DUPLICATE, OUTLET_ALL, AUXILIARY -> {
+            case FILTER, TARGET, APPEND_NODE, REMOVE_NODE, MOVE, CIRCUIT, FREE_NODE, DUPLICATE, OUTLET_ALL, AUXILIARY, ARRANGE -> {
                 nodes = editNodes(nodes, action, a, b, text);
                 if (action == Action.REMOVE_NODE && !entries.isEmpty()) {
                     List<Integer> removed = nodeSelection(text, a, graph.nodes.size());
@@ -472,6 +531,10 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                     targets[slot] = remap[targets[slot]];
                 nodes.add(current.withConfiguration(targets, current.circuit, current.filters()));
             }
+            return nodes;
+        }
+        if (action == Action.ARRANGE) {
+            nodes.replaceAll(node -> node.withPosition(CenterGraph.AUTO_POSITION, CenterGraph.AUTO_POSITION));
             return nodes;
         }
         if (action == Action.OUTLET_ALL) {

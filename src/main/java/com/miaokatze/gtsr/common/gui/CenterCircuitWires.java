@@ -17,23 +17,34 @@ import com.cleanroommc.modularui.utils.Platform.VertexFormat;
 final class CenterCircuitWires {
 
     private int[][] previousInput = new int[0][];
+    private int originX, originY;
     private List<Wire> wires = new ArrayList<>();
 
-    void draw(int width, int height, int gridX, int gridY, int background, int grid, List<int[]> edges, List<int[]> boxes) {
-        List<int[]> geometry = new ArrayList<>(edges.size() + boxes.size() + 1);
-        geometry.add(new int[] { width, height, edges.size() });
-        geometry.addAll(edges);
-        geometry.addAll(boxes);
-        int[][] input = geometry.toArray(new int[0][]);
+    void draw(int width, int height, int gridX, int gridY, int gridStride, int background, int grid,
+        List<int[]> edges, List<int[]> boxes) {
+        int[][] input = new int[1 + edges.size() + boxes.size()][];
+        input[0] = new int[] { edges.size() };
+        int geometryIndex = 1;
+        for (int[] edge : edges) input[geometryIndex++] = relative(edge, gridX, gridY);
+        for (int[] box : boxes) input[geometryIndex++] = relative(box, gridX, gridY);
         if (!Arrays.deepEquals(input, previousInput)) {
             wires = plan(edges, boxes);
             previousInput = input;
+        } else if (originX != gridX || originY != gridY) {
+            for (Wire wire : wires) {
+                for (int k = 0; k < wire.runs.size(); k++)
+                    wire.runs.set(k, wire.runs.get(k).translated(gridX - originX, gridY - originY));
+            }
         }
+        originX = gridX;
+        originY = gridY;
         Platform.setupDrawColor();
         try {
             Platform.startDrawing(DrawMode.QUADS, VertexFormat.POS_COLOR, buffer -> {
                 for (Wire wire : wires) {
                     for (Run run : wire.runs) {
+                        if (run.horizontal ? run.axis < -5 || run.axis >= height + 5 || run.high < -5 || run.low >= width + 5
+                            : run.axis < -5 || run.axis >= width + 5 || run.high < -5 || run.low >= height + 5) continue;
                         for (Hop hop : run.hops) {
                             float[] arc = arc(run, hop);
                             for (int i = 2; i < arc.length; i += 2) {
@@ -44,7 +55,7 @@ final class CenterCircuitWires {
                             // Repaint the board grid where the bridge's broad stroke clears the crossing.
                             for (int ax = x - 4; ax <= x + 4; ax++) for (int ay = y - 4; ay <= y + 4; ay++) {
                                 if (ax < 0 || ay < 0 || ax >= width || ay >= height
-                                    || Math.floorMod(ax - gridX, 10) != 0 && Math.floorMod(ay - gridY, 10) != 0) continue;
+                                    || Math.floorMod(ax - gridX, gridStride) != 0 && Math.floorMod(ay - gridY, gridStride) != 0) continue;
                                 if (nearArc(ax + .5f, ay + .5f, arc))
                                     quad(buffer, grid, ax, ay, ax, ay + 1, ax + 1, ay + 1, ax + 1, ay);
                             }
@@ -57,6 +68,15 @@ final class CenterCircuitWires {
         } finally {
             Platform.endDrawColor();
         }
+    }
+
+    private static int[] relative(int[] geometry, int x, int y) {
+        int[] relative = geometry.clone();
+        relative[0] -= x;
+        relative[1] -= y;
+        relative[2] -= x;
+        relative[3] -= y;
+        return relative;
     }
 
     private static List<Wire> plan(List<int[]> edges, List<int[]> boxes) {
@@ -197,6 +217,12 @@ final class CenterCircuitWires {
             axis = horizontal ? y : x;
             low = Math.min(horizontal ? x : y, horizontal ? dx : dy);
             high = Math.max(horizontal ? x : y, horizontal ? dx : dy);
+        }
+
+        Run translated(int x, int y) {
+            Run translated = new Run(this.x + x, this.y + y, dx + x, dy + y);
+            for (Hop hop : hops) translated.hops.add(new Hop(hop.at + (horizontal ? x : y), hop.direction));
+            return translated;
         }
 
         boolean contains(int at) {
