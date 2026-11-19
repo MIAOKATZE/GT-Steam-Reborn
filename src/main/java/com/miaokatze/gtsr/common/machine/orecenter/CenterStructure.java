@@ -15,6 +15,8 @@ import java.util.function.Consumer;
 import java.util.zip.GZIPInputStream;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -77,7 +79,10 @@ public final class CenterStructure {
     }
 
     public void collectHatches(IGregTechTileEntity te, Consumer<IGregTechTileEntity> accept) {
-        Frame frame = new Frame(te);
+        collectHatches(new Frame(te), accept);
+    }
+
+    private static void collectHatches(Frame frame, Consumer<IGregTechTileEntity> accept) {
         for (int x : HATCH_X) visitHatch(frame, x, 1, accept);
         Shape tower = shape("tower-0");
         for (int i : plinthPorts(tower)) visitHatch(frame, tower.x[i], tower.z[i] + 19, accept);
@@ -127,7 +132,7 @@ public final class CenterStructure {
         ItemStack[] examples = { ItemList.Hatch_Input_LV.get(1), ItemList.Hatch_Output_LV.get(1),
             ItemList.Hatch_Input_Bus_LV.get(1), ItemList.Hatch_Output_Bus_LV.get(1),
             GTSRItemList.SteamInputHatchGeneric.get(1), GTSRItemList.SteamCoolingHatch.get(1) };
-        for (int i = 0; i < examples.length; i++) previewPort(frame, HATCH_X[i], 1, examples[i]);
+        for (int i = 0; i < examples.length; i++) placeExamplePort(frame, HATCH_X[i], 1, examples[i]);
         Shape base = shape("tower-0");
         int best = -1, distance = Integer.MAX_VALUE;
         for (int i : plinthPorts(base)) {
@@ -137,10 +142,10 @@ public final class CenterStructure {
                 distance = offset;
             }
         }
-        if (best >= 0) previewPort(frame, base.x[best], base.z[best] + 19, ItemList.Hatch_Energy_LV.get(1));
+        if (best >= 0) placeExamplePort(frame, base.x[best], base.z[best] + 19, ItemList.Hatch_Energy_LV.get(1));
     }
 
-    private static void previewPort(Frame frame, int x, int z, ItemStack stack) {
+    private static void placeExamplePort(Frame frame, int x, int z, ItemStack stack) {
         short id = (short) stack.getItemDamage();
         int wx = frame.x(x, z), wz = frame.z(x, z);
         frame.world.setBlock(wx, frame.y, wz, GregTechAPI.sBlockMachines,
@@ -446,6 +451,146 @@ public final class CenterStructure {
         tower.requestFastSweep();
         for (CriticalStructureMonitor sector : sectors) sector.requestFastSweep();
         return true;
+    }
+
+    private static final CenterModule[][] DEBUG_MODULES = {
+        { CenterModule.SPEED, CenterModule.CRUSHER, CenterModule.EXTRACTOR },
+        { CenterModule.PARALLEL, CenterModule.WASHER, CenterModule.CENTRIFUGE },
+        { CenterModule.YIELD, CenterModule.SIFTER, CenterModule.ELECTROLYZER },
+        { CenterModule.SECONDARY, CenterModule.DRYER, CenterModule.THERMAL_CENTRIFUGE },
+        { CenterModule.SECONDARY, CenterModule.FURNACE, CenterModule.REACTOR },
+        { CenterModule.SPEED, CenterModule.SEPARATOR, CenterModule.SMELTING }
+    };
+
+    DebugBuild debugBuild(IGregTechTileEntity te, EntityPlayer player, int[] types, int[] grades) {
+        return new DebugBuild(new Frame(te), player, types, grades);
+    }
+
+    final class DebugBuild {
+
+        private final Frame frame;
+        private final EntityPlayer player;
+        private final int[] types, grades;
+        private final CenterClaims claims;
+        private int piece, cursor;
+        private boolean clearing;
+        private String resource;
+
+        private DebugBuild(Frame frame, EntityPlayer player, int[] types, int[] grades) {
+            this.frame = frame;
+            this.player = player;
+            this.types = types;
+            this.grades = grades;
+            claims = CenterClaims.get(frame.world);
+        }
+
+        /** Each call writes at most one layout slice and never loads a chunk. */
+        String advance(IGregTechTileEntity te, long deadline) {
+            if (player.worldObj != frame.world || player.isDead || te.getFrontFacing() != frame.facing
+                || !player.capabilities.isCreativeMode && !player.canCommandSenderUseCommand(2, "gtsrdebug"))
+                return finish("gtsr.wand.debug.denied");
+
+            int slot = piece - 2;
+            CenterModule module = slot < 0 ? null : grades[slot] > 0 ? CenterModule.values()[types[slot]]
+                : slot % 6 < 3 ? DEBUG_MODULES[slot / 6][slot % 6] : CenterModule.LOGISTICS;
+            String target = piece == 0 ? "tower-3" : piece == 1 ? "outer-full" : moduleKey(slot, module, 3);
+            if (resource == null) {
+                String previous = slot < 0 ? null : claims.moduleResource(frame, slot);
+                clearing = previous != null && !previous.equals(target);
+                resource = clearing ? previous : target;
+            }
+            Shape layout = shape(resource);
+            Shape replacement = clearing ? shape(target) : null;
+            if (replacement != null) replacement.prepareLookup();
+            int[] at = slot < 0 ? null : SLOTS[slot];
+            for (int i = 0; cursor < layout.count() && i < 2048 && System.nanoTime() < deadline; i++, cursor++) {
+                int dx = at == null ? layout.x[cursor] : at[0] + rotateX(layout.x[cursor], layout.z[cursor], at[3]);
+                int dz = at == null ? layout.z[cursor] : at[2] + rotateZ(layout.x[cursor], layout.z[cursor], at[3]);
+                int x = frame.x(dx, dz + 19), z = frame.z(dx, dz + 19);
+                int y = frame.y + layout.y[cursor] - 2 + (at == null ? 0 : at[1] - 64);
+                if (!frame.loaded(x, z)) return finish("gtsr.wand.debug.build_unloaded");
+                Block block = layout.block(cursor);
+                int meta = layout.metadata(cursor);
+                if (block == null || y < 0 || y >= frame.world.getHeight())
+                    return finish("gtsr.wand.debug.build_blocked");
+                boolean matches = frame.world.getBlock(x, y, z) == block
+                    && frame.world.getBlockMetadata(x, y, z) == meta;
+                if (clearing) {
+                    if (!matches || !claims.owns(frame, slot, x, y, z)) continue;
+                    int next = replacement.lookup(layout.x[cursor], layout.y[cursor], layout.z[cursor]);
+                    if (next >= 0 && replacement.block(next) == block && replacement.metadata(next) == meta) continue;
+                } else if (matches || substitutedPort(layout, cursor, frame, x, y, z)) continue;
+                if (!frame.world.canMineBlock(player, x, y, z) || frame.world.getTileEntity(x, y, z) != null
+                    || CriticalBlockProtection.protects(frame.world, x, y, z) && !claims.owns(frame, slot, x, y, z)
+                    || !frame.world.setBlock(x, y, z, clearing ? Blocks.air : block, clearing ? 0 : meta, 2))
+                    return finish("gtsr.wand.debug.build_blocked");
+            }
+            if (cursor < layout.count()) return null;
+            cursor = 0;
+            if (clearing) {
+                claims.claim(frame, slot, target, shape(target));
+                modules[slot] = new ModuleCheck(target);
+                claims.attach(frame, slot, CenterStructure.this);
+                types[slot] = module.ordinal();
+                grades[slot] = 3;
+                te.markDirty();
+                resource = target;
+                clearing = false;
+                return null;
+            }
+            if (slot >= 0) {
+                if (!target.equals(claims.moduleResource(frame, slot))) claims.claim(frame, slot, target, layout);
+                modules[slot] = new ModuleCheck(target);
+                claims.attach(frame, slot, CenterStructure.this);
+                types[slot] = module.ordinal();
+                grades[slot] = 3;
+                te.markDirty();
+            }
+            resource = null;
+            return ++piece < grades.length + 2 ? null : finish(
+                placeMissingPorts() ? "gtsr.wand.debug.build_done" : "gtsr.wand.debug.build_ports");
+        }
+
+        private boolean placeMissingPorts() {
+            ItemStack[] examples = { ItemList.Hatch_Input_LV.get(1), ItemList.Hatch_Output_LV.get(1),
+                ItemList.Hatch_Input_Bus_LV.get(1), ItemList.Hatch_Output_Bus_LV.get(1) };
+            Class<?>[] types = new Class<?>[examples.length];
+            for (int i = 0; i < examples.length; i++)
+                types[i] = GregTechAPI.METATILEENTITIES[examples[i].getItemDamage()].getClass();
+            boolean[] present = new boolean[examples.length];
+            collectHatches(frame, hatch -> {
+                if (hatch.getMetaTileEntity() == null) return;
+                for (int i = 0; i < types.length; i++) if (types[i] == hatch.getMetaTileEntity().getClass())
+                    present[i] = true;
+            });
+            for (int i = 0; i < examples.length; i++) {
+                if (present[i]) continue;
+                for (int j = 0; j < HATCH_X.length; j++) {
+                    int x = HATCH_X[(i + j) % HATCH_X.length];
+                    int wx = frame.x(x, 1), wz = frame.z(x, 1);
+                    if (!frame.loaded(wx, wz) || !frame.world.isAirBlock(wx, frame.y, wz)
+                        || !frame.world.canMineBlock(player, wx, frame.y, wz)) continue;
+                    placeExamplePort(frame, x, 1, examples[i]);
+                    present[i] = frame.world.getTileEntity(wx, frame.y, wz) instanceof IGregTechTileEntity hatch
+                        && hatch.getMetaTileID() == examples[i].getItemDamage();
+                    if (present[i]) break;
+                }
+                if (!present[i]) return false;
+            }
+            return true;
+        }
+
+        private String finish(String result) {
+            tower.reset();
+            towerTier = -1;
+            for (CriticalStructureMonitor sector : sectors) sector.reset();
+            formedSectors = 0;
+            return result;
+        }
+
+        void notifyPlayer(String result) {
+            com.miaokatze.gtsr.common.debug.MachineDebugRegistry.feedback(player, result);
+        }
     }
 
     private static List<Shape> pieces(int tier, int mask) {

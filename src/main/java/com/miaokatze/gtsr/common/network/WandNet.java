@@ -103,6 +103,10 @@ public final class WandNet {
         NETWORK.sendToServer(message);
     }
 
+    public static void sendMode(String family) {
+        sendAirProfile(family, new int[0]);
+    }
+
     public static void sendAirProfile(String family, int[] values) {
         PacketAirProfile message = new PacketAirProfile();
         message.family = family;
@@ -335,8 +339,13 @@ public final class WandNet {
                 } else if (task.message() instanceof PacketAirProfile profile) {
                     var adapter = MachineDebugRegistry.findFamily(profile.family);
                     // Air selection changes the held item's profile only; applying requires a validated target.
-                    if (adapter != null && MachineDebugRegistry.writeProfile(held, adapter, null, profile.values))
-                        player.inventoryContainer.detectAndSendChanges();
+                    if (adapter == null) continue;
+                    if (profile.values.length == 0) {
+                        MachineDebugRegistry.selectFamily(held, adapter);
+                        SESSIONS.remove(player.getUniqueID());
+                    } else if (!adapter.family().equals(MachineDebugRegistry.activeFamily(held))
+                        || !MachineDebugRegistry.writeProfile(held, adapter, null, profile.values)) continue;
+                    player.inventoryContainer.detectAndSendChanges();
                 }
             }
         }
@@ -362,7 +371,7 @@ public final class WandNet {
                 MachineDebugRegistry.feedback(player, "gtsr.wand.debug.denied");
                 return;
             }
-            var adapter = MachineDebugRegistry.find(machine);
+            var adapter = MachineDebugRegistry.findActive(held, machine);
             if (adapter == null) {
                 MachineDebugRegistry.feedback(player, "gtsr.wand.debug.unsupported");
                 return;
@@ -412,8 +421,8 @@ public final class WandNet {
                 || session.base()
                     .getMetaTileEntity() != session.meta()
                 || !usable(player, session.base())) return;
-            var adapter = MachineDebugRegistry.find(
-                session.base()
+            var adapter = MachineDebugRegistry.findActive(
+                held, session.base()
                     .getMetaTileEntity());
             if (adapter == null || !adapter.canUse(
                 session.base()
@@ -425,14 +434,6 @@ public final class WandNet {
                 session.base()
                     .getMetaTileEntity(),
                 message.values)) {
-                // A validated target construction screen edits that controller's debug settings immediately.
-                // Air profiles and singularity increment selection remain item-only settings.
-                if ("construction".equals(adapter.family())) adapter.apply(
-                    session.base()
-                        .getMetaTileEntity(),
-                    player,
-                    message.values,
-                    false);
                 player.inventoryContainer.detectAndSendChanges();
             }
         }

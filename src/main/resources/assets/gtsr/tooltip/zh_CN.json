@@ -1494,15 +1494,17 @@
     }},
     {"id":"item.SingularityTuningWand","owner":{"item":"gtsr:SingularityTuningWand","meta":0},"tiers":{
       "common":[
-        {"type":"line","text":"§6创造模式／管理员§7调试工具：奇点词条、 [item:gregtech:gt.blockmachines@14904|拟态织机] 的§b施工与修复§7。§r"},
-        {"type":"table","columns":["操作","调试"],"rows":[["[key-right:Alt+右击]控制器","§b配置机器方案"],["[right:右击]控制器","§a应用方案"],["[key-right:Shift+右击]控制器","§e反向调整／取消施工"],["[key-right:Shift+右击]空气","§b选择能力、词条与增量"]]},
-        {"type":"line","text":"§7奇点词条：§d超限／失稳／撕裂§7；增量 §e1～1,000§7。§r"},
+        {"type":"line","text":"§6创造模式／管理员§7调试工具。§r"},
+        {"type":"table","columns":["操作","调试"],"rows":[["[key-right:Shift+右击]空气","§b切换模式并配置"],["[key-right:Alt+右击]控制器","§b打开调试配置"],["[right:右击]控制器","§a应用配置"],["[key-right:Shift+右击]控制器","§e反向调整词条或恢复消耗"]]},
+        {"type":"line","text":"§d纠缠奇点§7：调节超限、失稳或撕裂，增量 §e1～1,000§7。§r"},
+        {"type":"line","text":"§b机器调试§7：独立无视物品、流体和电力；快速建造由控制器处理。§r"},
+        {"type":"line","text":"§7拟态织机快速检测；矿物加工集成中心快速升级为钨钢、六扇、III 级模块。§r"},
         {"type":"profiles"},
         {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ],
       "quick":[
-        {"type":"line","text":"§6创造／管理员调试§7：[key-right:Alt+右击]配置，[right:右击]应用。§r"},
-        {"type":"line","text":"§7[key-right:Shift+右击]控制器反向或取消；对空气选择能力与增量。§r"},
+        {"type":"line","text":"§6创造／管理员§7：[key-right:Shift+右击]空气切换奇点或机器模式。§r"},
+        {"type":"line","text":"§7[right:右击]控制器应用；[key-right:Shift+右击]反向调整或恢复消耗。§r"},
         {"type":"line","text":"§7添加模组：§bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ]
     }},

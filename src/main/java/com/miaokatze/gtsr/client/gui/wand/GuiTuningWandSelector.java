@@ -9,6 +9,7 @@ import net.minecraft.util.StatCollector;
 
 import com.miaokatze.gtsr.common.debug.MachineDebugRegistry;
 import com.miaokatze.gtsr.common.items.SingularityTuningWand;
+import com.miaokatze.gtsr.common.network.WandNet;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -46,13 +47,9 @@ public class GuiTuningWandSelector extends GuiScreen {
         var held = mc.thePlayer.getHeldItem();
         if (held == null || !(held.getItem() instanceof SingularityTuningWand)) return;
         var adapter = MachineDebugRegistry.findFamily(families[button.id]);
-        mc.displayGuiScreen(
-            new GuiMachineDebugSelector(
-                0,
-                adapter.family(),
-                adapter.options(null),
-                MachineDebugRegistry.readProfile(held, adapter, null),
-                true));
+        int[] values = MachineDebugRegistry.readProfile(held, adapter, null);
+        WandNet.sendMode(adapter.family());
+        mc.displayGuiScreen(new GuiMachineDebugSelector(0, adapter.family(), adapter.options(null), values, true));
     }
 
     @Override

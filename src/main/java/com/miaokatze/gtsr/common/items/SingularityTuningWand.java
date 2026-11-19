@@ -13,6 +13,7 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
+import com.miaokatze.gtsr.common.debug.MachineDebugRegistry;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
 import cpw.mods.fml.relauncher.Side;
@@ -126,10 +127,13 @@ public class SingularityTuningWand extends Item {
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tuning_wand.desc.2"));
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tuning_wand.desc.3"));
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.tuning_wand.desc.4"));
-        for (String family : com.miaokatze.gtsr.common.debug.MachineDebugRegistry.families()) {
-            var adapter = com.miaokatze.gtsr.common.debug.MachineDebugRegistry.findFamily(family);
+        String active = MachineDebugRegistry.activeFamily(stack);
+        list.add(EnumChatFormatting.GREEN + StatCollector.translateToLocalFormatted(
+            "gtsr.wand.debug.active", StatCollector.translateToLocal("gtsr.wand.debug.family." + active)));
+        for (String family : MachineDebugRegistry.families()) {
+            var adapter = MachineDebugRegistry.findFamily(family);
             var options = adapter.options(null);
-            int[] values = com.miaokatze.gtsr.common.debug.MachineDebugRegistry.readProfile(stack, adapter, null);
+            int[] values = MachineDebugRegistry.readProfile(stack, adapter, null);
             StringBuilder selection = new StringBuilder(
                 StatCollector.translateToLocal("gtsr.wand.debug.family." + family));
             for (int i = 0; i < options.length; i++) selection.append(i == 0 ? ": " : " / ")

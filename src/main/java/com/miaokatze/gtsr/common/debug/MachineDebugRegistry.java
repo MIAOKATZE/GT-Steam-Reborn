@@ -9,12 +9,14 @@ import java.util.List;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.StatCollector;
 
 import com.miaokatze.gtsr.common.items.SingularityTuningWand;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 import com.miaokatze.gtsr.common.machine.MTECriticalSingularityCompressor;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityMachineBase;
+import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.util.GTUtility;
@@ -69,9 +71,19 @@ public final class MachineDebugRegistry {
         ADAPTERS.add(adapter);
     }
 
-    public static Adapter find(IMetaTileEntity machine) {
-        for (Adapter adapter : ADAPTERS) if (adapter.supports(machine)) return adapter;
-        return null;
+    public static Adapter findActive(ItemStack wand, IMetaTileEntity machine) {
+        Adapter adapter = findFamily(activeFamily(wand));
+        return adapter != null && adapter.supports(machine) ? adapter : null;
+    }
+
+    public static String activeFamily(ItemStack wand) {
+        return wand.hasTagCompound() && wand.getTagCompound().getBoolean("gtsrWandMachineMode")
+            ? "construction" : "singularity";
+    }
+
+    public static void selectFamily(ItemStack wand, Adapter adapter) {
+        if (!wand.hasTagCompound()) wand.setTagCompound(new NBTTagCompound());
+        wand.getTagCompound().setBoolean("gtsrWandMachineMode", "construction".equals(adapter.family()));
     }
 
     public static Adapter findFamily(String family) {
@@ -96,6 +108,12 @@ public final class MachineDebugRegistry {
         if (adapter instanceof SingularityAdapter && profile.hasNoTags()) {
             values[0] = SingularityTuningWand.getSelectedEntry(wand);
             values[1] = SingularityTuningWand.getSelectedDeltaIndex(wand);
+        }
+        if (adapter instanceof ConstructionAdapter && profile.hasKey("requirements") && !profile.hasKey("items")) {
+            int legacy = profile.getInteger("requirements");
+            values[0] = legacy == 1 || legacy == 3 ? 1 : 0;
+            values[1] = legacy == 2 || legacy == 3 ? 1 : 0;
+            values[2] = profile.getInteger("energy");
         }
         for (int i = 0; i < values.length; i++)
             if (values[i] < 0 || values[i] >= options[i].values().length) values[i] = 0;
@@ -123,7 +141,7 @@ public final class MachineDebugRegistry {
     }
 
     public static void feedback(EntityPlayer player, String key) {
-        GTUtility.sendChatToPlayer(player, StatCollector.translateToLocal(key));
+        player.addChatMessage(new ChatComponentTranslation(key));
     }
 
     private static final class SingularityAdapter implements Adapter {
@@ -182,33 +200,42 @@ public final class MachineDebugRegistry {
         }
 
         public boolean supports(IMetaTileEntity machine) {
-            return machine instanceof MTECriticalMachine;
+            return machine instanceof MTEMineralIntegrationCenter
+                || machine instanceof MTECriticalMachine loom && loom.isKindSelector();
         }
 
         public boolean canUse(IMetaTileEntity machine, EntityPlayer player) {
-            return ((MTECriticalMachine) machine).getCriticalState()
-                .canUse(player);
+            return machine instanceof MTEMineralIntegrationCenter center ? center.canEditGraphs(player)
+                : ((MTECriticalMachine) machine).getCriticalState().canUse(player);
+        }
+
+        private static Option toggle(String key, String enabled) {
+            return new Option(key, new String[] { "gtsr.wand.debug.normal", "gtsr.wand.debug." + enabled });
         }
 
         public Option[] options(IMetaTileEntity machine) {
-            return new Option[] {
-                new Option(
-                    "requirements",
-                    new String[] { "gtsr.wand.debug.normal", "gtsr.wand.debug.no_items", "gtsr.wand.debug.no_fluids",
-                        "gtsr.wand.debug.no_materials" }),
-                new Option("speed", new String[] { "gtsr.wand.debug.normal", "2x", "10x", "gtsr.wand.debug.instant" }),
-                new Option(
-                    "energy",
-                    new String[] { "gtsr.wand.debug.energy_required", "gtsr.wand.debug.ignore_energy" }) };
+            return new Option[] { toggle("items", "no_items"), toggle("fluids", "no_fluids"),
+                toggle("energy", "ignore_energy"), toggle("quick_build", "quick_build_ready") };
         }
 
         public void apply(IMetaTileEntity machine, EntityPlayer player, int[] values, boolean reverse) {
+            boolean items = !reverse && values[0] == 1;
+            boolean fluids = !reverse && values[1] == 1;
+            boolean energy = !reverse && values[2] == 1;
+            boolean quick = !reverse && values[3] == 1;
+            if (machine instanceof MTEMineralIntegrationCenter center) {
+                String result = center.applyWandDebug(player, items, fluids, energy, quick);
+                feedback(player, reverse && "gtsr.wand.debug.applied".equals(result) ? "gtsr.wand.debug.reset" : result);
+                return;
+            }
             var state = ((MTECriticalMachine) machine).getCriticalState();
-            boolean applied = reverse ? state.resetConstructionDebug(player)
-                : state.applyConstructionDebug(player, values[0], values[1], values[2] == 1);
-            feedback(
-                player,
-                applied ? reverse ? "gtsr.wand.debug.reset" : "gtsr.wand.debug.applied" : "gtsr.wand.debug.denied");
+            if (!state.applyConstructionDebug(player, (items ? 1 : 0) | (fluids ? 2 : 0), 0, energy)) {
+                feedback(player, "gtsr.wand.debug.denied");
+                return;
+            }
+            if (quick) state.requestDamageHighlight(player);
+            feedback(player, reverse ? "gtsr.wand.debug.reset"
+                : quick ? "gtsr.wand.debug.loom_checked" : "gtsr.wand.debug.applied");
         }
     }
 }

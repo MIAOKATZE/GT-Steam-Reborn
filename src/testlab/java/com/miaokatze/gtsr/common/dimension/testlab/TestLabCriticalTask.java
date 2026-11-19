@@ -141,13 +141,16 @@ public final class TestLabCriticalTask implements TestLabTask {
         player.setPosition(tile.getXCoord() + .5, tile.getYCoord() + .5, tile.getZCoord() - 2.5);
         if (!state.configure(player, CriticalTier.T3, kind, 8, 0, 0))
             throw new IllegalStateException("Test owner/configuration rejected");
-        MachineDebugRegistry.Adapter debug = MachineDebugRegistry.find(machine);
-        if (debug == null || !"construction".equals(debug.family()) || !debug.canUse(machine, player))
+        MachineDebugRegistry.Adapter debug = MachineDebugRegistry.findFamily("construction");
+        if (debug == null || !debug.supports(machine) || !debug.canUse(machine, player))
             throw new IllegalStateException("Construction debug adapter unavailable to test owner");
-        debug.apply(machine, player, new int[] { 3, 3, 1 }, false);
-        if (state.getConstructionDebugRequirements() != 3 || state.getConstructionDebugSpeed() != 3
+        debug.apply(machine, player, new int[] { 1, 1, 1, 0 }, false);
+        if (state.getConstructionDebugRequirements() != 3 || state.getConstructionDebugSpeed() != 0
             || !state.getConstructionDebugIgnoreEnergy())
             throw new IllegalStateException("Construction debug not applied");
+        // The large legacy construction fixtures still need the internal accelerated clock.
+        if (!state.applyConstructionDebug(player, 3, 3, true))
+            throw new IllegalStateException("Test construction acceleration rejected");
         state.setEnabled(player, false);
         loom = new TestLabStructure(world, machine, CriticalRuntime.getLoomControllerStack());
         // Journal-generated blocks and controllers must also survive a server restart in the reset manifest.

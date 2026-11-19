@@ -200,6 +200,11 @@ public final class CenterClaims extends WorldSavedData {
             && claim.match(x, y, z, frame.world.getBlock(x, y, z), frame.world.getBlockMetadata(x, y, z));
     }
 
+    String moduleResource(Frame frame, int slot) {
+        Claim claim = owners.get(owner(frame, slot));
+        return claim == null ? null : claim.resource;
+    }
+
     boolean hasRemainingDifferent(Frame frame, int slot, String resource) {
         Claim claim = owners.get(owner(frame, slot));
         if (claim == null || resource.equals(claim.resource)) return false;

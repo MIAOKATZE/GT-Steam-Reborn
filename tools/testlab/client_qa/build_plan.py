@@ -159,7 +159,7 @@ def tools_and_lore():
     wand = call(field(cls(G + "common.api.enums.GTSRItemList"), "SingularityTuningWand"), "get", 1)
     value(wand, "wand"); held(ref("wand")); add("wandAir"); screen("wand-families", "wand_families")
     click("wand.family.construction"); screen("wand-profile", "wand_profile")
-    click("wand.choice.requirements"); wait(30)
+    click("wand.choice.items"); wait(30)
     value(call(cls(G + "common.debug.MachineDebugRegistry"), "findFamily", "construction"), "constructionAdapter")
     value(call(cls(G + "common.debug.MachineDebugRegistry"), "readProfile", call(ref("serverPlayer"), "getHeldItem|func_70694_bm"), ref("constructionAdapter"), None), "savedProfile")
     add("record", name="wand-server-profile-after-action", value={"index": 0, "target": ref("savedProfile")}, side="server")

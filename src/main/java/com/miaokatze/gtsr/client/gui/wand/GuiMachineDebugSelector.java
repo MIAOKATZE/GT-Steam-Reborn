@@ -13,7 +13,7 @@ import com.miaokatze.gtsr.common.network.WandNet;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
-/** Air saves a wand profile; construction targets apply selections immediately; singularity selects an increment. */
+/** Writes the active wand profile via the validated air or target route. */
 @SideOnly(Side.CLIENT)
 public final class GuiMachineDebugSelector extends GuiScreen {
 

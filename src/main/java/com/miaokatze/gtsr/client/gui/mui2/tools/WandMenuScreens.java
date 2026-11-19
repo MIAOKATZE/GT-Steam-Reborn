@@ -65,12 +65,11 @@ public final class WandMenuScreens extends ModularScreen {
                         var held = mc.thePlayer.getHeldItem();
                         if (held == null || !(held.getItem() instanceof SingularityTuningWand)) return true;
                         var adapter = MachineDebugRegistry.findFamily(family);
-                        if (adapter != null) openProfile(
-                            0,
-                            family,
-                            adapter.options(null),
-                            MachineDebugRegistry.readProfile(held, adapter, null),
-                            true);
+                        if (adapter != null) {
+                            int[] values = MachineDebugRegistry.readProfile(held, adapter, null);
+                            WandNet.sendMode(family);
+                            openProfile(0, family, adapter.options(null), values, true);
+                        }
                         return true;
                     }));
         }

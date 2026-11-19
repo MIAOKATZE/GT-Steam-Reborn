@@ -160,6 +160,7 @@ public final class CenterPlanner {
         private final int[] boostPrice = new int[4];
         private final int tier, sectors, heat;
         private final long voltage, maxEUt;
+        private final boolean ignoreFluids, ignoreEnergy;
         private final Random random;
         private int graphIndex, nodeIndex, lotIndex, inputIndex, selected, executions, rootPaid, proposedRoots;
         private double workTicks, critical, workSteam, recipeEU, steamMultiplier = 1, euMultiplier = 1;
@@ -168,6 +169,11 @@ public final class CenterPlanner {
 
         Session(List<CenterGraph> configured, ItemStack[] items, FluidStack[] fluids, int[][] counts, int tier,
             int sectors, long voltage, long maxEUt, int heat, long seed) {
+            this(configured, items, fluids, counts, tier, sectors, voltage, maxEUt, heat, seed, false, false);
+        }
+
+        Session(List<CenterGraph> configured, ItemStack[] items, FluidStack[] fluids, int[][] counts, int tier,
+            int sectors, long voltage, long maxEUt, int heat, long seed, boolean ignoreFluids, boolean ignoreEnergy) {
             if (tier < 0 || tier > 3 || sectors < 1 || sectors > 6 || configured.size() > CenterGraph.MAX_GRAPHS) {
                 throw new IllegalArgumentException("Invalid center configuration");
             }
@@ -176,6 +182,8 @@ public final class CenterPlanner {
             this.voltage = voltage;
             this.maxEUt = maxEUt;
             this.heat = heat;
+            this.ignoreFluids = ignoreFluids;
+            this.ignoreEnergy = ignoreEnergy;
             this.random = new Random(seed);
             this.counts = counts;
             for (CenterModule module : MODULES) {
@@ -230,8 +238,8 @@ public final class CenterPlanner {
                     int required = proposedRoots * b.price[g];
                     for (int repeat = 0; repeat < counts[module][g] && required > 0; repeat++) {
                         FluidStack fluid = FluidRegistry.getFluidStack(b.fluid, required);
-                        if (fluid == null || !useFluid(available, fluid, required)) break;
-                        mergeFluid(consumedFluids, fluid, required);
+                        if (fluid == null || !ignoreFluids && !useFluid(available, fluid, required)) break;
+                        if (!ignoreFluids) mergeFluid(consumedFluids, fluid, required);
                         boostPrice[i] += b.price[g];
                         gain[i] = Math.min(b.cap, gain[i] + b.gain[g]);
                         steamMultiplier += b.steam[g];
@@ -289,7 +297,7 @@ public final class CenterPlanner {
 
         private void process(WorkGraph work, CenterGraph.Node node, Lot lot) {
             int index = node.process.module.ordinal();
-            long recipeVoltage = recipeVoltage(node.process, tier, voltage);
+            long recipeVoltage = ignoreEnergy ? Integer.MAX_VALUE : recipeVoltage(node.process, tier, voltage);
             RecipeMap<?> map = node.process.recipes();
             var candidates = new ArrayList<ItemStack>();
             var matchedAuxiliary = new ArrayList<ItemStack>();
@@ -309,9 +317,12 @@ public final class CenterPlanner {
                 .map(FluidStack::copy)
                 .toArray(FluidStack[]::new);
             GTRecipe recipe = findRecipe(map, itemStocks, fluidStocks, recipeVoltage, heat);
+            if (ignoreFluids && recipe == null)
+                recipe = findWithoutFluidStock(map, node, itemStocks, recipeVoltage, heat);
             int times = 0;
             if (recipe != null) {
                 int limit = Math.min(lot.stack.stackSize, MAX_WORK - executions);
+                if (ignoreFluids) fluidStocks = virtualFluids(recipe, limit);
                 // Binary search exact native quantities using copies, then consume the matched run once.
                 int lo = 0, hi = limit;
                 while (lo < hi) {
@@ -341,7 +352,7 @@ public final class CenterPlanner {
                     original.stackSize -= spent;
                 }
             }
-            for (int i = 0; i < fluidStocks.length; i++) {
+            if (!ignoreFluids) for (int i = 0; i < fluidStocks.length; i++) {
                 FluidStack original = matchedFluids.get(i);
                 int spent = original.amount - fluidStocks[i].amount;
                 if (spent > 0) {
@@ -450,13 +461,16 @@ public final class CenterPlanner {
                 }
             }
             if (idleEU > 0) idleEU += CONTROL_EU[tier];
-            double net = maxEUt - idleEU * scale * euMultiplier;
-            if (recipeEU > 0 && net <= 0) return null;
-            if (recipeEU > 0) ticks = Math.max(ticks, (int) Math.ceil(recipeEU * scale * euMultiplier / net));
+            long energy = 0;
+            if (!ignoreEnergy) {
+                double net = maxEUt - idleEU * scale * euMultiplier;
+                if (recipeEU > 0 && net <= 0) return null;
+                if (recipeEU > 0) ticks = Math.max(ticks, (int) Math.ceil(recipeEU * scale * euMultiplier / net));
+                energy = (long) Math.ceil(scale * euMultiplier * (recipeEU + idleEU * ticks));
+                if (energy > maxEUt * ticks) return null;
+            }
             if (ticks > 24000) return null;
-            long energy = (long) Math.ceil(scale * euMultiplier * (recipeEU + idleEU * ticks));
-            if (energy > maxEUt * ticks) return null;
-            long steam = (long) Math.ceil(
+            long steam = ignoreFluids ? 0 : (long) Math.ceil(
                 scale * (STEAM[tier] * (1 + .1 * (sectors - 1)) * ticks / 20
                     + steamMultiplier * (hold * ticks / 20 + workSteam / (20 * WIDTH[tier]))));
             return new Batch(this, ticks, steam, energy);
@@ -483,13 +497,48 @@ public final class CenterPlanner {
         if (map == null) return null;
         List<GTRecipe> found = new ArrayList<>();
         map.findRecipeQuery().items(items).fluids(fluids).voltage(voltage).caching(false)
-            .filter(r -> !r.mFakeRecipe && r.mEnabled && !r.mHidden)
-            .filter(r -> !r.getMetadataOrDefault(GTRecipeConstants.CLEANROOM, false)
-                && !r.getMetadataOrDefault(GTRecipeConstants.LOW_GRAVITY, false)
-                && r.getMetadataOrDefault(GTRecipeConstants.COIL_HEAT, 0) <= heat)
-            .filter(CenterPlanner::ordinaryInputs)
+            .filter(r -> usableRecipe(r, heat))
             .findAll().limit(MAX_CANDIDATES + 1L).forEach(found::add);
         return found.isEmpty() || found.size() > MAX_CANDIDATES ? null : found.get(0);
+    }
+
+    private static boolean usableRecipe(GTRecipe recipe, int heat) {
+        return !recipe.mFakeRecipe && recipe.mEnabled && !recipe.mHidden
+            && !recipe.getMetadataOrDefault(GTRecipeConstants.CLEANROOM, false)
+            && !recipe.getMetadataOrDefault(GTRecipeConstants.LOW_GRAVITY, false)
+            && recipe.getMetadataOrDefault(GTRecipeConstants.COIL_HEAT, 0) <= heat
+            && ordinaryInputs(recipe);
+    }
+
+    private static GTRecipe findWithoutFluidStock(RecipeMap<?> map, CenterGraph.Node node, ItemStack[] items,
+        long voltage, int heat) {
+        if (map == null || !map.containsInput(items[0])) return null;
+        for (GTRecipe recipe : map.getAllRecipes()) {
+            if (recipe.mFluidInputs.length == 0 || recipe.mEUt > voltage * map.getAmperage()
+                || !usableRecipe(recipe, heat)) continue;
+            boolean accepted = true;
+            for (FluidStack fluid : recipe.mFluidInputs) {
+                if (fluid != null && !node.acceptsAuxiliary(fluid)) {
+                    accepted = false;
+                    break;
+                }
+            }
+            if (!accepted) continue;
+            FluidStack[] fluids = virtualFluids(recipe, 1);
+            if (!recipe.isRecipeInputEqual(false, false, 1, fluids, items)) continue;
+            ItemStack[] sample = java.util.Arrays.stream(items).map(ItemStack::copy).toArray(ItemStack[]::new);
+            if (recipe.isRecipeInputEqual(true, false, 1, fluids, sample) && sample[0].stackSize < items[0].stackSize)
+                return recipe;
+        }
+        return null;
+    }
+
+    private static FluidStack[] virtualFluids(GTRecipe recipe, int limit) {
+        List<FluidStack> fluids = new ArrayList<>();
+        for (FluidStack fluid : recipe.mFluidInputs) if (fluid != null)
+            mergeFluid(fluids, fluid, (int) Math.min(Integer.MAX_VALUE / recipe.mFluidInputs.length,
+                (long) fluid.amount * limit));
+        return fluids.toArray(new FluidStack[0]);
     }
 
     static long recipeVoltage(CenterProcess process, int tier, long suppliedVoltage) {

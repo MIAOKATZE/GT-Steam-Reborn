@@ -11,6 +11,12 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+
+import com.miaokatze.gtsr.common.debug.MachineDebugRegistry;
+
 /** Executable contracts: no server, client, GL context or world is created. */
 public final class TestLabContracts {
 
@@ -21,9 +27,36 @@ public final class TestLabContracts {
         persistenceRetry();
         terminalSnapshots();
         requestCorrelation();
+        wandProfiles();
         if (args.length > 0) exportDeclaredCases(java.nio.file.Paths.get(args[0]));
         System.out.println(
-            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 110/95/120 catalog, performance selection, independent report retry, request correlation");
+            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 110/95/120 catalog, performance selection, independent report retry, request correlation, wand mode and profile migration");
+    }
+
+    private static void wandProfiles() {
+        ItemStack wand = new ItemStack((Item) null, 1, 0);
+        var singularity = MachineDebugRegistry.findFamily("singularity");
+        var machine = MachineDebugRegistry.findFamily("construction");
+        require("singularity".equals(MachineDebugRegistry.activeFamily(wand)), "old wand default mode");
+        require(MachineDebugRegistry.writeProfile(wand, singularity, null, new int[] { 2, 4 }), "singularity profile");
+        var profiles = wand.getTagCompound().getCompoundTag("gtsrDebugProfiles");
+        var legacy = new NBTTagCompound();
+        legacy.setInteger("requirements", 3);
+        legacy.setInteger("speed", 3);
+        legacy.setInteger("energy", 1);
+        profiles.setTag("construction", legacy);
+        require(Arrays.equals(MachineDebugRegistry.readProfile(wand, machine, null), new int[] { 1, 1, 1, 0 }),
+            "legacy material and energy toggles migrate without arming Quick Build");
+        MachineDebugRegistry.selectFamily(wand, machine);
+        require(MachineDebugRegistry.writeProfile(wand, machine, null, new int[] { 0, 1, 0, 1 }), "machine profile");
+        require(!MachineDebugRegistry.writeProfile(wand, machine, null, new int[] { 0, 1, 0, 2 }), "invalid toggle");
+        ItemStack copy = wand.copy();
+        require("construction".equals(MachineDebugRegistry.activeFamily(copy)), "machine mode survives stack copy");
+        require(Arrays.equals(MachineDebugRegistry.readProfile(copy, machine, null), new int[] { 0, 1, 0, 1 }),
+            "machine profile survives stack copy");
+        MachineDebugRegistry.selectFamily(copy, singularity);
+        require(Arrays.equals(MachineDebugRegistry.readProfile(copy, singularity, null), new int[] { 2, 4 }),
+            "mode selection preserves singularity configuration");
     }
 
     private static void bootstrapWithoutImplementation() throws Exception {
