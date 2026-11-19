@@ -82,14 +82,31 @@ public final class CenterStructure {
     }
 
     public void collectHatches(IGregTechTileEntity te, Consumer<IGregTechTileEntity> accept) {
-        collectHatches(new Frame(te), accept);
+        if (towerTier >= 0 && facing == te.getFrontFacing())
+            collectHatches(new Frame(te), towerShape(towerTier, serviceFront), accept);
     }
 
-    private static void collectHatches(Frame frame, Consumer<IGregTechTileEntity> accept) {
-        boolean service = hasServiceFront(frame);
-        if (!service) for (int x : HATCH_X) visitHatch(frame, x, 1, accept);
-        Shape tower = towerShape(0, service);
-        for (int i : plinthPorts(tower)) visitHatch(frame, tower.x[i], tower.z[i] + 19, accept);
+    private static void collectHatches(Frame frame, Shape tower, Consumer<IGregTechTileEntity> accept) {
+        // Visit the existing tile entities in loaded tower chunks instead of polling every casing.
+        int x0 = frame.x(tower.minX, tower.minZ + 19), x1 = frame.x(tower.maxX, tower.maxZ + 19);
+        int z0 = frame.z(tower.minX, tower.minZ + 19), z1 = frame.z(tower.maxX, tower.maxZ + 19);
+        tower.prepareLookup();
+        for (int cx = Math.min(x0, x1) >> 4; cx <= Math.max(x0, x1) >> 4; cx++) {
+            for (int cz = Math.min(z0, z1) >> 4; cz <= Math.max(z0, z1) >> 4; cz++) {
+                if (!frame.loaded(cx << 4, cz << 4)) continue;
+                for (Object tile : frame.world.getChunkFromChunkCoords(cx, cz).chunkTileEntityMap.values()) {
+                    if (!(tile instanceof TileEntity entity) || entity.isInvalid() || !(entity instanceof IGregTechTileEntity gt)
+                        || !MTEMineralIntegrationCenter.acceptsPort(gt.getMetaTileEntity())) continue;
+                    int dx = gt.getXCoord() - frame.x, dz = gt.getZCoord() - frame.z;
+                    int x = (int) CriticalStructureAlignment.unrotateX(dx, dz, frame.facing);
+                    int z = (int) CriticalStructureAlignment.unrotateZ(dx, dz, frame.facing);
+                    int y = gt.getYCoord() - frame.y;
+                    int i = tower.lookup(x, y + 2, z - 19);
+                    if (i >= 0 && portCasing(tower, i) || !tower.service && y == 0 && z == 1
+                        && java.util.Arrays.binarySearch(HATCH_X, x) >= 0) accept.accept(gt);
+                }
+            }
+        }
     }
 
     private static synchronized int[] plinthPorts(Shape tower) {
@@ -114,16 +131,13 @@ public final class CenterStructure {
 
     private static boolean hasServiceFront(Frame frame) {
         if (!frame.loaded(frame.x(0, 0), frame.z(0, 0))) return false;
-        int x = frame.x(0, 0), z = frame.z(0, 0), y = frame.y + 1;
-        Block block = frame.world.getBlock(x, y, z);
-        int meta = frame.world.getBlockMetadata(x, y, z);
-        for (int tier = 0; tier < 4; tier++) {
-            Shape tower = towerShape(tier, true);
-            tower.prepareLookup();
-            int marker = tower.lookup(0, 3, -19);
-            if (marker >= 0 && block == tower.block(marker) && meta == tower.metadata(marker)) return true;
-        }
-        return false;
+        // The decorative sill is required by this layout and cannot become a hatch.
+        Shape tower = towerShape(0, true);
+        tower.prepareLookup();
+        int marker = tower.lookup(0, 1, -19);
+        int x = frame.x(0, 0), z = frame.z(0, 0), y = frame.y - 1;
+        return frame.world.getBlock(x, y, z) == tower.block(marker)
+            && frame.world.getBlockMetadata(x, y, z) == tower.metadata(marker);
     }
 
     private static boolean outside(Shape tower, int x, int z) {
@@ -137,18 +151,20 @@ public final class CenterStructure {
         return block == GregTechAPI.sBlockCasings3 || block == GregTechAPI.sBlockCasings4;
     }
 
-    private static void visitHatch(Frame frame, int x, int z, Consumer<IGregTechTileEntity> accept) {
-        int wx = frame.x(x, z), wz = frame.z(x, z);
-        if (!frame.loaded(wx, wz) || frame.world.getBlock(wx, frame.y, wz) != GregTechAPI.sBlockMachines) return;
-        if (frame.world.getTileEntity(wx, frame.y, wz) instanceof IGregTechTileEntity gt) accept.accept(gt);
+    private static boolean portCasing(Shape shape, int i) {
+        if (!shape.tower) return false;
+        Block block = shape.block(i);
+        int meta = shape.metadata(i);
+        if (Byte.toUnsignedInt(shape.ids[i]) == shape.shell || block == GregTechAPI.sBlockCasings3 && meta == 10) return true;
+        if (!plinthCasing(shape, i)) return false;
+        Shape base = towerShape(0, shape.service);
+        int[] ports = plinthPorts(base);
+        return java.util.Arrays.binarySearch(ports, base.lookup(shape.x[i], 2, shape.z[i])) >= 0;
     }
 
     private static boolean substitutedPort(Shape shape, int i, Frame frame, int wx, int wy, int wz) {
-        if (!plinthCasing(shape, i) || frame.world.getBlock(wx, wy, wz) != GregTechAPI.sBlockMachines) return false;
-        Shape base = towerShape(0, shape.service);
-        int[] ports = plinthPorts(base);
-        if (java.util.Arrays.binarySearch(ports, base.lookup(shape.x[i], 2, shape.z[i])) < 0) return false;
-        return frame.world.getTileEntity(wx, wy, wz) instanceof IGregTechTileEntity gt
+        return shape.tower && frame.world.getBlock(wx, wy, wz) == GregTechAPI.sBlockMachines && portCasing(shape, i)
+            && frame.world.getTileEntity(wx, wy, wz) instanceof IGregTechTileEntity gt
             && MTEMineralIntegrationCenter.acceptsPort(gt.getMetaTileEntity());
     }
 
@@ -267,7 +283,7 @@ public final class CenterStructure {
         Shape first = shape("tower-0");
         if (anchorIndex < 0) {
             for (int i = 0; i < first.count(); i++) {
-                if (plinthCasing(first, i)) continue;
+                if (portCasing(first, i) || first.y[i] < 5) continue;
                 int index = i;
                 boolean allDifferent = true;
                 for (int j = 0; j < 4; j++) for (int k = j + 1; k < 4; k++) {
@@ -579,7 +595,7 @@ public final class CenterStructure {
             for (int i = 0; i < examples.length; i++)
                 types[i] = GregTechAPI.METATILEENTITIES[examples[i].getItemDamage()].getClass();
             boolean[] present = new boolean[examples.length];
-            collectHatches(frame, hatch -> {
+            collectHatches(frame, towerShape(3, service), hatch -> {
                 if (hatch.getMetaTileEntity() == null) return;
                 for (int i = 0; i < types.length; i++) if (types[i] == hatch.getMetaTileEntity().getClass())
                     present[i] = true;
@@ -628,39 +644,12 @@ public final class CenterStructure {
     }
 
     @FunctionalInterface
-    public interface PreviewBlocks {
-        void block(int x, int y, int z, Block block, int meta);
+    public interface AssemblyPad {
+        void pad(int slot, int x, int z);
     }
 
-    /** Reads the same block coordinates used by construction, relative to the central tower. */
-    public static void visitAssemblyPreview(int tier, int mask, int[] types, int[] grades, PreviewBlocks sink) {
-        for (Shape part : pieces(tier, mask)) visitPreview(part, 0, 0, 0, 0, sink);
-        CenterModule[] modules = CenterModule.values();
-        int count = Math.min(SLOTS.length, Math.min(types.length, grades.length));
-        for (int slot = 0; slot < count; slot++) {
-            if ((mask & 1 << (slot / 6)) == 0 || grades[slot] < 1 || grades[slot] > 3
-                || types[slot] < 0 || types[slot] >= modules.length) continue;
-            Shape part = optionalShape(moduleKey(slot, modules[types[slot]], grades[slot]));
-            int[] pad = SLOTS[slot];
-            if (part != null) visitPreview(part, pad[0], pad[1] - 64, pad[2], pad[3], sink);
-        }
-    }
-
-    @FunctionalInterface
-    public interface PreviewPads {
-        void pad(int slot, int x, int y, int z);
-    }
-
-    public static void visitAssemblyPads(PreviewPads sink) {
-        for (int i = 0; i < SLOTS.length; i++) sink.pad(i, SLOTS[i][0], SLOTS[i][1], SLOTS[i][2]);
-    }
-
-    private static void visitPreview(Shape part, int x, int y, int z, int rotation, PreviewBlocks sink) {
-        for (int i = 0; i < part.count(); i++) {
-            Block block = part.block(i);
-            if (block != null) sink.block(x + rotateX(part.x[i], part.z[i], rotation), y + part.y[i],
-                z + rotateZ(part.x[i], part.z[i], rotation), block, part.metadata(i));
-        }
+    public static void visitAssemblyPads(AssemblyPad sink) {
+        for (int i = 0; i < SLOTS.length; i++) sink.pad(i, SLOTS[i][0], SLOTS[i][2]);
     }
 
     public int survivalConstruct(IGregTechTileEntity te, int tier, int mask, int budget,
@@ -774,9 +763,23 @@ public final class CenterStructure {
                 blocks[i] = GameRegistry.findBlock(id[0], id[1]);
                 metas[i] = in.readByte();
             }
+            boolean tower = key.startsWith("tower-");
+            int shell = -1;
+            if (tower) {
+                int tier = key.charAt(key.length() - 1) - '0';
+                Block casing = switch (tier) {
+                    case 0 -> GregTechAPI.sBlockCasings1;
+                    case 1 -> GregTechAPI.sBlockCasings2;
+                    default -> GregTechAPI.sBlockCasings4;
+                };
+                int meta = tier == 0 ? 10 : tier == 2 ? 2 : 0;
+                for (int i = 0; i < colors; i++) if (blocks[i] == casing && metas[i] == meta) shell = i;
+                if (shell < 0) throw new IOException("Missing main tower casing");
+            }
             Shape result = new Shape(
-                key.startsWith("tower-"),
+                tower,
                 key.startsWith(SERVICE_TOWER),
+                shell,
                 blocks,
                 metas,
                 new short[count],
@@ -788,6 +791,10 @@ public final class CenterStructure {
                 result.y[i] = in.readByte();
                 result.z[i] = in.readShort();
                 result.ids[i] = in.readByte();
+                result.minX = Math.min(result.minX, result.x[i]);
+                result.maxX = Math.max(result.maxX, result.x[i]);
+                result.minZ = Math.min(result.minZ, result.z[i]);
+                result.maxZ = Math.max(result.maxZ, result.z[i]);
             }
             SHAPES.put(key, result);
             return result;
@@ -827,15 +834,18 @@ public final class CenterStructure {
     static final class Shape {
 
         final boolean tower, service;
+        final int shell;
+        int minX, maxX, minZ, maxZ;
         final Block[] blocks;
         final byte[] metas;
         final short[] x, z;
         final byte[] y, ids;
         private long[] lookup;
 
-        Shape(boolean tower, boolean service, Block[] blocks, byte[] metas, short[] x, byte[] y, short[] z, byte[] ids) {
+        Shape(boolean tower, boolean service, int shell, Block[] blocks, byte[] metas, short[] x, byte[] y, short[] z, byte[] ids) {
             this.tower = tower;
             this.service = service;
+            this.shell = shell;
             this.blocks = blocks;
             this.metas = metas;
             this.x = x;

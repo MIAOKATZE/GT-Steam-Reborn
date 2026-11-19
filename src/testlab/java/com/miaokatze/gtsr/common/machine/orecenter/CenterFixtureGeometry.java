@@ -25,6 +25,15 @@ public final class CenterFixtureGeometry {
         return positions;
     }
 
+    public static List<int[]> fullCenter() {
+        List<int[]> positions = new ArrayList<>();
+        add(positions, "tower-service-1", 0, -2, 0, 0);
+        add(positions, "outer-full", 0, -2, 0, 0);
+        addModule(positions, 1, "crusher");
+        addModule(positions, 3, "logistics");
+        return positions;
+    }
+
     private static void addModule(List<int[]> positions, int slot, String module) {
         int[] at = CenterStructure.SLOTS[slot];
         add(positions, "module-" + slot + "-" + module + "-1", at[0], at[1] - 66, at[2], at[3]);

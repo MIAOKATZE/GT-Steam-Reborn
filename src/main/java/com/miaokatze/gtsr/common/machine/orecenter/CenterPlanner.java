@@ -38,6 +38,7 @@ public final class CenterPlanner {
         public final List<FluidStack> consumedFluids, outputFluids;
         public final int ticks;
         final int[] boostFluids;
+        final int usedModules;
         public final long steam, energy;
 
         private Batch(Session plan, int ticks, long steam, long energy) {
@@ -47,6 +48,12 @@ public final class CenterPlanner {
             this.boostFluids = new int[BOOSTS.length];
             if (!plan.ignoreFluids)
                 for (int i = 0; i < boostFluids.length; i++) boostFluids[i] = plan.rootPaid * plan.boostPrice[i];
+            int used = 0;
+            for (CenterModule module : MODULES)
+                if (module.kind == 1 && plan.weight[module.ordinal()] == 1) used |= 1 << module.ordinal();
+            for (int i = 0; i < BOOSTS.length; i++)
+                if (plan.gain[i] > 0) used |= 1 << (CenterModule.SPEED.ordinal() + i);
+            this.usedModules = used;
             this.consumedFluids = plan.consumedFluids;
             this.outputFluids = plan.outputFluids;
             this.ticks = ticks;

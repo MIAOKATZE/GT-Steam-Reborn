@@ -72,6 +72,9 @@ public final class CenterGraphTcpFixture {
     private boolean ready, done, disabled;
     private boolean reviewBuilt, loadedModule;
     private long revision;
+    private boolean fullCenterVerified;
+    private final boolean fullCenter = Boolean.getBoolean(PREFIX + "fullCenter");
+    private EntityPlayerMP businessActor;
 
     static boolean requested() {
         return System.getProperty(PREFIX + "run") != null;
@@ -100,19 +103,40 @@ public final class CenterGraphTcpFixture {
                 for (Object candidate : server.getConfigurationManager().playerEntityList) {
                     EntityPlayerMP actor = (EntityPlayerMP) candidate;
                     if (actorId.equals(actor.getUniqueID()) && actor.worldObj == world) {
+                        businessActor = actor;
                         place(world, actor);
                         break;
                     }
                 }
                 return;
             }
-            if (!reviewBuilt && Files.isRegularFile(receiptDir.resolve("native-projector.png"))) {
+            if (!reviewBuilt && (fullCenter || Files.isRegularFile(receiptDir.resolve("native-projector.png")))) {
                 buildReviewWing(world);
                 reviewBuilt = true;
             }
             if (reviewBuilt && !loadedModule && center.installModuleFromBus(1)) {
                 require(center.installModuleFromBus(3), "Cannot install the review logistics module");
                 loadedModule = true;
+            }
+            if (fullCenter && reviewBuilt && !fullCenterVerified) {
+                NBTTagCompound state = center.terminalState();
+                if (world.getTotalWorldTime() % 80 == 0) {
+                    Map<String, Object> status = new LinkedHashMap<>();
+                    status.put("tier", state.getInteger("Tier"));
+                    status.put("sectors", state.getInteger("Sectors"));
+                    status.put("formed", state.getBoolean("Formed"));
+                    status.put("moduleInstalled", loadedModule);
+                    status.put("power", state.getLong("Power"));
+                    write(receiptDir, "server-formation.json", status);
+                }
+                if (!loadedModule) return;
+                if (state.getInteger("Sectors") != 63) return;
+                require(state.getBoolean("Formed") && state.getLong("Power") > 0,
+                    "Tower casings did not bind the four required I/O ports and the energy hatch");
+                require(state.getIntArray("Grades")[1] > 0, "Installed module is missing from the six-sector snapshot");
+                fullCenterVerified = true;
+                businessActor.playerNetServerHandler.setPlayerLocation(X + .5, Y, Z - 2.5, 0, 0);
+                write(receiptDir, "server-full-ready.json", Collections.singletonMap("sectors", 63));
             }
             long current = center.graphRevision();
             if (current == revision) return;
@@ -245,17 +269,22 @@ public final class CenterGraphTcpFixture {
     }
 
     private void buildReviewWing(WorldServer world) {
+        boolean full = fullCenter;
         Set<Long> chunks = new HashSet<>();
-        for (int[] block : CenterFixtureGeometry.oneSector()) {
+        for (int[] block : full ? CenterFixtureGeometry.fullCenter() : CenterFixtureGeometry.oneSector()) {
             int x = (X + block[0]) >> 4, z = (Z + block[2]) >> 4;
             if (chunks.add(((long) x << 32) | (z & 0xffffffffL))) world.theChunkProviderServer.loadChunk(x, z);
         }
         ItemStack trigger = new ItemStack(com.gtnewhorizon.structurelib.StructureLibAPI.getDefaultHologramItem(), 2);
+        if (full) com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor
+            .setChannelData(trigger, "ore_center_sectors", 6);
         center.construct(trigger, false);
-        IGregTechTileEntity input = placeReviewPort(world, 5, ItemList.Hatch_Input_Bus_LV);
-        placeReviewPort(world, -5, ItemList.Hatch_Output_Bus_LV);
-        IGregTechTileEntity fluid = placeReviewPort(world, 3, ItemList.Hatch_Input_IV);
-        placeReviewPort(world, -3, ItemList.Hatch_Output_LV);
+        // Exercise ordinary casing on the controller level, the beam above it, and the rear of the wall.
+        IGregTechTileEntity input = placeReviewPort(world, -1, 0, 0, ItemList.Hatch_Input_Bus_LV);
+        placeReviewPort(world, 1, 0, 0, ItemList.Hatch_Output_Bus_LV);
+        IGregTechTileEntity fluid = placeReviewPort(world, 0, 1, 0, ItemList.Hatch_Input_IV);
+        placeReviewPort(world, 0, 0, 1, ItemList.Hatch_Output_LV);
+        placeReviewPort(world, 5, 0, 0, ItemList.Hatch_Energy_LV);
         input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
         input.setInventorySlotContents(1, CenterModuleItems.stack(CenterModule.WASHER, 1));
         input.setInventorySlotContents(2, CenterModuleItems.stack(CenterModule.SPEED, 1));
@@ -264,11 +293,14 @@ public final class CenterGraphTcpFixture {
             .fill(ForgeDirection.UNKNOWN, FluidRegistry.getFluidStack("water", 8000), true);
     }
 
-    private static IGregTechTileEntity placeReviewPort(WorldServer world, int x, ItemList type) {
+    private static IGregTechTileEntity placeReviewPort(WorldServer world, int x, int y, int z, ItemList type) {
         int id = type.get(1).getItemDamage();
-        world.setBlock(X + x, Y, Z, GregTechAPI.sBlockMachines,
+        require(world.getBlock(X + x, Y + y, Z + z) == (x == 5 ? GregTechAPI.sBlockCasings3 : GregTechAPI.sBlockCasings2)
+            && world.getBlockMetadata(X + x, Y + y, Z + z) == (x == 5 ? 10 : 0),
+            "Fixture must replace an actual authored casing");
+        world.setBlock(X + x, Y + y, Z + z, GregTechAPI.sBlockMachines,
             GregTechAPI.METATILEENTITIES[id].getTileEntityBaseType(), 3);
-        IGregTechTileEntity tile = (IGregTechTileEntity) world.getTileEntity(X + x, Y, Z);
+        IGregTechTileEntity tile = (IGregTechTileEntity) world.getTileEntity(X + x, Y + y, Z + z);
         tile.setInitialValuesAsNBT(null, (short) id);
         tile.setFrontFacing(ForgeDirection.NORTH);
         return tile;

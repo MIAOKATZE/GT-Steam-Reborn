@@ -62,6 +62,8 @@ public final class CenterGraphTcpClient {
     private boolean controllerOverlay, reopenedRoutes, openedRules, verifiedCopper;
     private int trialStep, trialTicks;
     private int terminalSlot = -1;
+    private int verifiedAssemblyMask;
+    private final boolean fullCenter = Boolean.getBoolean(CenterGraphTcpFixture.PREFIX + "fullCenter");
     private boolean gtCaptured, gtVerified;
     private String capturePage;
     private final List<String> pageFrames = new ArrayList<>();
@@ -102,8 +104,8 @@ public final class CenterGraphTcpClient {
             }
 
             ModularScreen screen = screen();
-            if (phase == 1 && projectedHints != 0 && !gtVerified) {
-                verifyGtWindow();
+            if (phase == 1 && (fullCenter || projectedHints != 0) && !gtVerified) {
+                if (!fullCenter || Files.isRegularFile(receipts.resolve("server-full-ready.json"))) verifyGtWindow();
                 return;
             }
             if (phase == 1 || phase == 7) {
@@ -124,6 +126,16 @@ public final class CenterGraphTcpClient {
                             CenterGraphTcpFixture.require(net.minecraftforge.fluids.FluidRegistry.getFluid(
                                 costs.getCompoundTagAt(i).getString("FluidName")) != null,
                                 "Missing synchronized additive fluid " + i);
+                        IWidget diagram = find(screen.getMainPanel(), "center_assembly_scene");
+                        if (diagram == null || (Integer) readField(diagram, "visibleMask") != 63) return;
+                        int[] sx = (int[]) readField(diagram, "sx"), sy = (int[]) readField(diagram, "sy");
+                        mouse(screen, diagram, sx[1], sy[1], true);
+                        mouse(screen, diagram, sx[1], sy[1], false);
+                        Object assembly = readField(diagram, "this$0");
+                        CenterGraphTcpFixture.require((Integer) readField(assembly, "slot") == 1,
+                            "Diagram did not select the installed crusher pad");
+                        verifiedAssemblyMask = terminal.getInteger("Sectors");
+                        CenterGraphTcpFixture.require(!fullCenter || verifiedAssemblyMask == 63, "Expected all six live sectors");
                         capturePage = PAGES[0];
                     }
                     else if (previewStep == 1) click(screen, "page_routes");
@@ -288,10 +300,14 @@ public final class CenterGraphTcpClient {
         if (capturePage != null) return;
         if (openCooldown-- > 0 || mc.theWorld == null) return;
         int x = CenterGraphTcpFixture.X, y = CenterGraphTcpFixture.Y, z = CenterGraphTcpFixture.Z;
-        if (mc.thePlayer.getDistanceSq(x + .5, y + .5, z + .5) > 16) return;
+        if (mc.thePlayer.getDistanceSq(x + .5, y + .5, z + .5) > 16) {
+            trace("outside controller reach, player=" + (int) mc.thePlayer.posX + "," + (int) mc.thePlayer.posY
+                + "," + (int) mc.thePlayer.posZ);
+            return;
+        }
         TileEntity tile = mc.theWorld.getTileEntity(x, y, z);
         if (!(tile instanceof IGregTechTileEntity) || !(((IGregTechTileEntity) tile).getMetaTileEntity() instanceof MTEMineralIntegrationCenter)) return;
-        if (phase == 1 && projectedHints == 0) {
+        if (!fullCenter && phase == 1 && projectedHints == 0) {
             IGregTechTileEntity base = (IGregTechTileEntity) tile;
             MTEMineralIntegrationCenter controller = (MTEMineralIntegrationCenter) base.getMetaTileEntity();
             ForgeDirection facing = base.getFrontFacing();
@@ -341,6 +357,8 @@ public final class CenterGraphTcpClient {
         }
         IWidget row = find(current.getMainPanel(), "center_gt_operation_7");
         CenterGraphTcpFixture.require(row != null && row.isValid(), "Ordinary controller click did not open GT status");
+        CenterGraphTcpFixture.require(find(current.getMainPanel(), "center_gt_batch_progress") != null,
+            "GT terminal lacks the native batch progress texture widget");
         capturePage = "gt-operation";
         gtCaptured = true;
     }
@@ -457,6 +475,7 @@ public final class CenterGraphTcpClient {
         report.put("controllerOverlay", controllerOverlay);
         report.put("verifiedCopper", verifiedCopper);
         report.put("trialTicks", trialTicks);
+        report.put("assemblySectors", verifiedAssemblyMask);
         report.put("pageFrames", pageFrames);
         report.put("reopenedFrame", error == null ? FRAME : null);
         CenterGraphTcpFixture.write(receipts, "client-checks.json", report);

@@ -20,20 +20,22 @@ import net.minecraftforge.oredict.OreDictionary;
 import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.widget.Interactable;
+import com.cleanroommc.modularui.drawable.BufferBuilder;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.Alignment;
+import com.cleanroommc.modularui.utils.Platform;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.miaokatze.gtsr.client.gui.CenterTerminalClient;
-import com.miaokatze.gtsr.client.gui.CenterAssemblyScene;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterPlanner;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterStructure;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
 import com.miaokatze.gtsr.common.items.CenterModuleItems;
 
@@ -46,6 +48,8 @@ final class CenterTerminalPages {
     private final LongFunction<ItemStack> sampleForGraph;
     private int slot, grade = 1, scope = -1;
     private boolean allPacks;
+    private CenterGraphSync.Snapshot referenceSnapshot;
+    private final List<List<CenterGraph>> moduleReferences = new ArrayList<>(MODULES.length);
     private CenterModule selected = CenterModule.SPEED;
     private boolean showDirectory = true, showDetails = true, focused;
     private int statsColumn = -1, formula, route, outlet;
@@ -61,6 +65,7 @@ final class CenterTerminalPages {
         this.sync = sync;
         this.sampleForGraph = sampleForGraph;
         batchSize.value(new com.cleanroommc.modularui.value.StringValue("64"));
+        for (CenterModule ignored : MODULES) moduleReferences.add(new ArrayList<>());
     }
 
     private NBTTagCompound state() {
@@ -168,8 +173,7 @@ final class CenterTerminalPages {
         mapHead.child(CriticalGuiStyle.label(() -> tr("terminal.assembly_rings"),
             () -> 0xFFCCCCBE, Alignment.CenterRight).left(89).right(3).top(0).height(14));
         center.child(mapHead);
-        center.child(new Miniature().name("center_assembly_scene").left(1).right(1).top(15).bottom(16)
-            .tooltipBuilder(t -> t.add(tr("terminal.scene_controls"))));
+        center.child(new Miniature().name("center_assembly_scene").left(1).right(1).top(15).bottom(16));
         ParentWidget<?> mapFoot = card("center_assembly_sector_bar").left(1).right(1).bottom(1).height(15);
         mapFoot.child(label(() -> tr("terminal.sector")).pos(1, 0).size(22, 15));
         for (int s = 0; s < 6; s++) {
@@ -210,11 +214,71 @@ final class CenterTerminalPages {
         detail.child(button("apply_module", () -> tr((mask() & 1 << (slot / 6)) == 0
             ? "terminal.wait_sector" : removing() ? "assembly.remove" : "assembly.install"), this::apply)
             .left(4).right(4).top(157).height(14));
-        detail.child(label(() -> tr("assembly.bus")).pos(4, 177).size(103, 14));
+        detail.child(label(() -> installedGrade() == 0 ? "" : roleText(MODULES[value("Modules", slot)]))
+            .pos(4, 174).size(170, 12).tooltipBuilder(t -> {
+                if (installedGrade() != 0) padTooltip(t, slot);
+            }));
+        detail.child(label(() -> installedGrade() == 0 ? "" : usageText(MODULES[value("Modules", slot)]))
+            .pos(4, 187).size(170, 12));
+        detail.child(label(() -> tr("assembly.bus")).pos(4, 203).size(103, 14));
         detail.child(button("stock_all", () -> tr(allPacks ? "terminal.compatible_packs" : "terminal.all_packs"),
-            () -> allPacks = !allPacks).right(4).top(177).size(53, 14));
-        detail.child(new PackStock().left(4).right(4).top(193).bottom(4));
+            () -> allPacks = !allPacks).right(4).top(203).size(53, 14));
+        detail.child(new PackStock().left(4).right(4).top(219).bottom(4));
         return page.child(detail);
+    }
+
+    private List<CenterGraph> references(CenterModule module) {
+        CenterGraphSync.Snapshot snapshot = sync.snapshot();
+        if (snapshot != referenceSnapshot) {
+            referenceSnapshot = snapshot;
+            moduleReferences.forEach(List::clear);
+            for (CenterGraph graph : snapshot.graphs()) {
+                int used = 0;
+                for (CenterGraph.Node node : graph.nodes) used |= 1 << node.process.module.ordinal();
+                for (CenterModule candidate : MODULES)
+                    if ((used & 1 << candidate.ordinal()) != 0) moduleReferences.get(candidate.ordinal()).add(graph);
+            }
+        }
+        return moduleReferences.get(module.ordinal());
+    }
+
+    private boolean usedInBatch(CenterModule module) {
+        NBTTagCompound current = state();
+        return current.getInteger("Elapsed") < current.getInteger("Duration")
+            && (current.getInteger("BatchModules") & 1 << module.ordinal()) != 0;
+    }
+
+    private String roleText(CenterModule module) {
+        return tr(module.kind == 1 ? "assembly.role.process" : "assembly.role." + module.key);
+    }
+
+    private String usageText(CenterModule module) {
+        if (module.kind == 2)
+            return tr("assembly.usage.capacity", sync.snapshot().graphs().size(), sync.snapshot().capacity());
+        if (usedInBatch(module)) return tr("assembly.usage.in_batch");
+        if (module.kind == 0) return tr("assembly.usage.boost_idle");
+        List<CenterGraph> graphs = references(module);
+        return tr("assembly.usage.references", graphs.stream().filter(graph -> graph.enabled).count(), graphs.size());
+    }
+
+    private void padTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip, int pad) {
+        String code = "S0" + (pad / 6 + 1) + " / " + SLOT_CODES[pad % 6];
+        int g = value("Grades", pad);
+        if (g == 0 || (mask() & 1 << (pad / 6)) == 0) {
+            tooltip.add(code + "  " + tr((mask() & 1 << (pad / 6)) == 0 ? "assembly.planned" : "assembly.vacant"));
+            return;
+        }
+        CenterModule module = MODULES[value("Modules", pad)];
+        tooltip.add(code + "  " + pack(module, g).getDisplayName());
+        tooltip.add(roleText(module));
+        if (module.kind == 1) {
+            List<CenterGraph> graphs = references(module);
+            tooltip.add(tr("assembly.usage.references", graphs.stream().filter(graph -> graph.enabled).count(),
+                graphs.size()));
+            for (CenterGraph graph : graphs) tooltip.add("  " + graph.name + "  "
+                + tr(graph.enabled ? "enabled" : "disabled"));
+        }
+        if (module.kind != 1 || usedInBatch(module)) tooltip.add(usageText(module));
     }
 
     private int installed() {
@@ -432,90 +496,137 @@ final class CenterTerminalPages {
         }
     }
 
+    /** Interactive 2D construction diagram. Only the six lanes and 36 published pad positions are drawn. */
     private final class Miniature extends Surface<Miniature> {
 
-        private CenterAssemblyScene scene;
-        private int drawnMask, mouseX, mouseY;
-        private boolean rotating, rendered;
+        private final int[] px = new int[36], pz = new int[36], sx = new int[36], sy = new int[36];
+        private int visibleMask, halfWidth, halfHeight;
+
+        Miniature() {
+            CenterStructure.visitAssemblyPads((pad, x, z) -> {
+                px[pad] = x;
+                pz[pad] = z;
+            });
+            tooltipBuilder(t -> {
+                int pad = padAt(getContext().getMouseX(), getContext().getMouseY());
+                if (pad >= 0) padTooltip(t, pad);
+                else t.add(tr("terminal.scene_controls"));
+            });
+        }
 
         @Override
         public void draw(ModularGuiContext context, WidgetThemeEntry<?> theme) {
             int width = getArea().width, height = getArea().height;
+            visibleMask = 0;
             if (width <= 0 || height <= 0) return;
-            GuiDraw.drawRect(0, 0, width, height, 0xFF1B292E);
-            for (int i = 0; i < width; i += 10) GuiDraw.drawRect(i, 0, 1, height, 0xFF25363B);
-            for (int i = 0; i < height; i += 10) GuiDraw.drawRect(0, i, width, 1, 0xFF25363B);
-            if (scene == null) scene = new CenterAssemblyScene();
-            int mask = mask(), local = 1 << (slot / 6);
-            drawnMask = focused && (mask & local) != 0 ? local : mask;
-            rendered = scene.draw(context, width, height, Math.max(0, tier()), drawnMask,
-                state().getIntArray("Modules"), state().getIntArray("Grades"));
-            if (!rendered) {
-                text(context, tr("terminal.scene_unavailable"), 7, height / 2 - 9, width - 14, 18, false);
-                return;
+            GuiDraw.drawRect(0, 0, width, height, 0xFF151F27);
+            for (int i = 10; i < width; i += 12) GuiDraw.drawRect(i, 0, 1, height, 0xFF22333B);
+            for (int i = 10; i < height; i += 12) GuiDraw.drawRect(0, i, width, 1, 0xFF22333B);
+            if (width < 72 || height < 72) return;
+            int built = mask(), selectedSector = slot / 6;
+            visibleMask = focused ? 1 << selectedSector : 63;
+            float radius = Math.min(width, height) / 2f - 15;
+            float cx = width / 2f, cy = height / 2f;
+            if (focused) {
+                cx -= (float) Math.cos(bearing(selectedSector)) * radius * .43f;
+                cy -= (float) Math.sin(bearing(selectedSector)) * radius * .43f;
+                radius *= 1.30f;
             }
-            for (int i = 0; i < 36; i++) {
-                if ((drawnMask & 1 << (i / 6)) == 0 || i / 6 != slot / 6) continue;
-                int x = scene.x[i], y = scene.y[i];
-                if (x < 9 || y < 6 || x >= width - 9 || y >= height - 6) continue;
-                (i == slot ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)
-                    .draw(context, x - 9, y - 5, 18, 11, theme.getTheme());
-                text(context, SLOT_CODES[i % 6], x - 7, y - 5, 16, 11, i == slot);
+            drawSectors(cx, cy, radius, built, selectedSector);
+            float hub = radius * .185f;
+            GuiDraw.drawCircle(cx - hub, cy - hub, hub * 2, 0xFF718891, 24);
+            GuiDraw.drawCircle(cx - hub + 2, cy - hub + 2, hub * 2 - 4, 0xFF263742, 24);
+            TerminalUiStyle.CHIP_NORMAL.draw(context, Math.round(cx) - 14, Math.round(cy) - 7, 28, 14, theme.getTheme());
+            text(context, tier() < 0 ? "—" : tr("terminal.tier." + tier()), Math.round(cx) - 12,
+                Math.round(cy) - 7, 24, 14, built != 0);
+
+            float scale = radius / 110f;
+            halfWidth = Math.max(6, Math.min(18, Math.round(scale * 8)));
+            halfHeight = Math.max(4, Math.min(9, Math.round(scale * 4)));
+            for (int i = 0; i < sx.length; i++) {
+                if ((visibleMask & 1 << (i / 6)) == 0) continue;
+                sx[i] = Math.round(cx + px[i] * scale);
+                sy[i] = Math.round(cy + pz[i] * scale);
+                boolean formed = (built & 1 << (i / 6)) != 0;
+                int g = formed ? value("Grades", i) : 0, x = sx[i] - halfWidth, y = sy[i] - halfHeight;
+                boolean selectedPad = i == slot;
+                (selectedPad ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)
+                    .draw(context, x, y, 2 * halfWidth, 2 * halfHeight, theme.getTheme());
+                int stripe = formed ? 0xFF68808C : 0xFF3A4953;
+                if (g > 0) {
+                    CenterModule module = MODULES[value("Modules", i)];
+                    stripe = usedInBatch(module) ? 0xFF83DDBC : 0xFFDEAC6A;
+                    if (halfWidth >= 12) item(context, pack(module, g), x + 2, y + 1, 2 * halfHeight - 2);
+                }
+                GuiDraw.drawRect(x + 1, y + 2, 1, 2 * halfHeight - 4, stripe);
+                int textLeft = g > 0 && halfWidth >= 12 ? 2 * halfHeight + 1 : 3;
+                text(context, SLOT_CODES[i % 6], x + textLeft, y, 2 * halfWidth - textLeft - 1, 2 * halfHeight, selectedPad);
             }
+            markTooltipDirty();
+        }
+
+        private void drawSectors(float cx, float cy, float radius, int built, int selectedSector) {
+            Platform.setupDrawColor();
+            Platform.startDrawing(Platform.DrawMode.QUADS, Platform.VertexFormat.POS_COLOR, buffer -> {
+                for (int sector = 0; sector < 6; sector++) {
+                    if ((visibleMask & 1 << sector) == 0) continue;
+                    double angle = bearing(sector);
+                    boolean present = (built & 1 << sector) != 0;
+                    band(buffer, cx, cy, radius * .22f, radius, angle, .48,
+                        present ? sector == selectedSector ? 0xFFDBAC72 : 0xFF6B8592 : 0xFF3E515C);
+                    band(buffer, cx, cy, radius * .24f, radius * .977f, angle, .456,
+                        present ? 0xFF324653 : 0xFF222F3A);
+                    band(buffer, cx, cy, radius * .47f, radius * .48f, angle, .456,
+                        present ? 0xFF7C7770 : 0xFF41515B);
+                    band(buffer, cx, cy, radius * .725f, radius * .74f, angle, .456,
+                        present ? 0xFF718C97 : 0xFF41515B);
+                    band(buffer, cx, cy, radius * .93f, radius * .95f, angle, .456,
+                        present ? 0xFF5B818B : 0xFF344952);
+                }
+            });
+            Platform.endDrawColor();
+        }
+
+        private void band(BufferBuilder buffer, float cx, float cy, float inner, float outer, double angle,
+            double half, int color) {
+            for (int t = 0; t < 8; t++) {
+                double a = angle - half + half * t / 4, b = a + half / 4;
+                vertex(buffer, cx, cy, inner, a, color);
+                vertex(buffer, cx, cy, inner, b, color);
+                vertex(buffer, cx, cy, outer, b, color);
+                vertex(buffer, cx, cy, outer, a, color);
+            }
+        }
+
+        private void vertex(BufferBuilder buffer, float cx, float cy, float radius, double angle, int color) {
+            buffer.pos(cx + (float) Math.cos(angle) * radius, cy + (float) Math.sin(angle) * radius, 0)
+                .color(color >> 16 & 255, color >> 8 & 255, color & 255, 255).endVertex();
+        }
+
+        private double bearing(int sector) {
+            return (2 - sector) * Math.PI / 3;
+        }
+
+        private int padAt(int x, int y) {
+            int hit = -1, distance = Integer.MAX_VALUE;
+            for (int i = 0; i < sx.length; i++) {
+                if ((visibleMask & 1 << (i / 6)) == 0) continue;
+                int dx = x - sx[i], dy = y - sy[i];
+                int squared = dx * dx + dy * dy;
+                if (Math.abs(dx) <= halfWidth && Math.abs(dy) <= halfHeight && squared < distance) {
+                    hit = i;
+                    distance = squared;
+                }
+            }
+            return hit;
         }
 
         @Override
         public Result onMousePressed(int button) {
-            if (!rendered) return Result.IGNORE;
-            int mx = getContext().getMouseX(), my = getContext().getMouseY();
-            if (button == 1) {
-                mouseX = mx;
-                mouseY = my;
-                rotating = true;
-                return Result.SUCCESS;
-            }
-            if (button != 0) return Result.IGNORE;
-            int closest = -1, distance = 196;
-            for (int i = 0; i < 36; i++) {
-                if ((drawnMask & 1 << (i / 6)) == 0) continue;
-                int dx = mx - scene.x[i], dy = my - scene.y[i], square = dx * dx + dy * dy;
-                if (square >= distance) continue;
-                closest = i;
-                distance = square;
-            }
-            if (closest < 0) return Result.IGNORE;
-            select(closest);
+            int pad = padAt(getContext().getMouseX(), getContext().getMouseY());
+            if (button != 0 || pad < 0) return Result.IGNORE;
+            select(pad);
             return Result.SUCCESS;
-        }
-
-        @Override
-        public void onMouseDrag(int button, long time) {
-            if (!rotating || button != 1 || scene == null) return;
-            int x = getContext().getMouseX(), y = getContext().getMouseY();
-            scene.rotate(x - mouseX, y - mouseY);
-            mouseX = x;
-            mouseY = y;
-        }
-
-        @Override
-        public boolean onMouseRelease(int button) {
-            if (button != 1 || !rotating) return false;
-            rotating = false;
-            return true;
-        }
-
-        @Override
-        public boolean onMouseScroll(UpOrDown direction, int amount) {
-            if (!rendered || scene == null) return false;
-            scene.zoom(direction == UpOrDown.UP);
-            return true;
-        }
-
-        @Override
-        public void dispose() {
-            if (scene != null) scene.close();
-            scene = null;
-            super.dispose();
         }
     }
 

@@ -118,7 +118,8 @@ def run(args):
         spec = host.read(workspace / 'client-launch.json')
         client_command = client_qa.command_with(spec, {
             '--username': client_qa.ACTOR, '--uuid': client_qa.ACTOR_UUID.replace('-', ''),
-            '--width': '1600', '--height': '900',
+            '--width': '2560' if args.large_view else '1600',
+            '--height': '1334' if args.large_view else '900',
         })
         client_command = [arg for arg in client_command if not arg.startswith(('-Xmx', '-Dgtsr.uiqa.enabled='))]
         with ExitStack() as stack:
@@ -141,7 +142,7 @@ def run(args):
             props.update({'level-name': world.name, 'level-type': 'FLAT', 'online-mode': 'false', 'white-list': 'true',
                           'op-permission-level': '2', 'server-ip': '127.0.0.1', 'enable-rcon': 'false',
                           'enable-query': 'false', 'spawn-protection': '0', 'spawn-monsters': 'false',
-                          'spawn-animals': 'false', 'spawn-npcs': 'false', 'view-distance': '5'})
+                          'spawn-animals': 'false', 'spawn-npcs': 'false', 'view-distance': '10' if args.large_view else '5'})
             server_settings = {
                 'server.properties': ('\n'.join(f'{key}={value}' for key, value in props.items()) + '\n').encode(),
                 'ops.json': b'[]',
@@ -152,7 +153,7 @@ def run(args):
                 server_settings[name] = path.read_bytes() if path.exists() else empty
             stack.enter_context(client_qa.settings(server_root, server_settings, evidence / 'server-settings', lambda: running(server)))
             client_settings = {'options.txt': ('fullscreen:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n'
-                                                f'guiScale:2\nlang:{args.language}\nrenderDistance:3\n').encode('ascii')}
+                                                f'guiScale:{3 if args.large_view else 2}\nlang:{args.language}\nrenderDistance:3\n').encode('ascii')}
             for name in ('usernamecache.json', 'optionsnf.txt'):
                 path = client_root / name
                 if path.is_file():
@@ -166,6 +167,8 @@ def run(args):
             stack.enter_context(host.installed(client_root, artifacts, evidence / 'client-jars', lambda: client))
             common = ['-Dgtsr.graphTcp.run=' + run_id, '-Dgtsr.graphTcp.receipts=' + str(evidence),
                       '-Dgtsr.graphTcp.actor=' + client_qa.ACTOR_UUID]
+            if args.large_view:
+                common.append('-Dgtsr.graphTcp.fullCenter=true')
             server_command = [server_item['server_java'], '-Xms1G', '-Xmx3G', '-Djava.awt.headless=true',
                               '-Duser.language=en', '-Dgtsr.graphTcp.world=' + str(world), *common,
                               '@java9args.txt', '-jar', 'lwjgl3ify-forgePatches.jar', 'nogui']
@@ -245,6 +248,7 @@ def main():
     parser.add_argument('--heap-gib', type=int, choices=[4, 5], default=4)
     parser.add_argument('--deadline', type=int, default=900)
     parser.add_argument('--language', choices=['en_US', 'zh_CN'], default='en_US')
+    parser.add_argument('--large-view', action='store_true', help='match the 2560×1334 GUI scale 3 crash case')
     parser.add_argument('--execute', action='store_true')
     return run(parser.parse_args())
 
