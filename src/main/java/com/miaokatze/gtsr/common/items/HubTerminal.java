@@ -13,8 +13,11 @@ import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StatCollector;
 import net.minecraft.world.World;
 
+import com.miaokatze.gtsr.common.gui.CenterTerminalFactory;
+import com.miaokatze.gtsr.common.gui.CriticalMachineTerminalFactory;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 import com.miaokatze.gtsr.common.machine.base.IHubCacheNode;
+import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.register.CreativeTabManager;
 
@@ -35,7 +38,8 @@ public class HubTerminal extends Item {
         setCreativeTab(CreativeTabManager.CREATIVE_TAB);
         setTextureName("gtsr:HubTerminal");
         setMaxStackSize(1);
-        com.miaokatze.gtsr.common.gui.CriticalMachineTerminalFactory.register();
+        CriticalMachineTerminalFactory.register();
+        CenterTerminalFactory.register();
         com.miaokatze.gtsr.common.terminal.MachineHistoryFactory.register();
     }
 
@@ -44,10 +48,10 @@ public class HubTerminal extends Item {
     public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
         if (!(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity base)
-            || !(base.getMetaTileEntity() instanceof MTECriticalMachine)) return false;
+            || !supportsMachineTerminal(base)) return false;
         if (world.isRemote) com.miaokatze.gtsr.common.network.WandNet
             .sendTerminalTarget(x, y, z, player.dimension, base.getMetaTileID(), player.inventory.currentItem);
-        else com.miaokatze.gtsr.common.gui.CriticalMachineTerminalFactory.open(player, base);
+        else openMachineTerminal(player, base);
         return true;
     }
 
@@ -56,7 +60,7 @@ public class HubTerminal extends Item {
         float hitX, float hitY, float hitZ) {
         if (world.isRemote) return false;
         TileEntity te = world.getTileEntity(x, y, z);
-        if (te instanceof IGregTechTileEntity base && base.getMetaTileEntity() instanceof MTECriticalMachine) {
+        if (te instanceof IGregTechTileEntity base && supportsMachineTerminal(base)) {
             // The first-use route owns this controller; do not open a second terminal here.
             return true;
         }
@@ -68,6 +72,16 @@ public class HubTerminal extends Item {
         }
         openNodeEditor(player, gte);
         return true;
+    }
+
+    private static boolean supportsMachineTerminal(IGregTechTileEntity base) {
+        return base.getMetaTileEntity() instanceof MTECriticalMachine
+            || base.getMetaTileEntity() instanceof MTEMineralIntegrationCenter;
+    }
+
+    public static boolean openMachineTerminal(EntityPlayer player, IGregTechTileEntity base) {
+        return base.getMetaTileEntity() instanceof MTEMineralIntegrationCenter ? CenterTerminalFactory.open(player, base)
+            : CriticalMachineTerminalFactory.open(player, base);
     }
 
     public static boolean openNodeEditor(EntityPlayer player, IGregTechTileEntity base) {

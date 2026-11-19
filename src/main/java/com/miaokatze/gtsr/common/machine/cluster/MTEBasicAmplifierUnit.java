@@ -383,7 +383,7 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
      * 捕获未注册异常回退 null；任一环节未注册返回 null；蒸汽效率增幅先查配置注册名冷却液，缺失
      * 回退超冷却液。
      */
-    protected static Fluid resolveBoosterFluid(ClusterParams.BoosterType type) {
+    public static Fluid resolveBoosterFluid(ClusterParams.BoosterType type) {
         if (type == null) return null;
         if (type == ClusterParams.BoosterType.PARALLEL) return toFluid(Materials.NitricAcid.getFluid(1));
         if (type == ClusterParams.BoosterType.SPEED) return toFluid(Materials.HydrochloricAcid.getFluid(1));

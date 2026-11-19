@@ -8,7 +8,16 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
+
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+
+import com.miaokatze.gtsr.common.debug.MachineDebugRegistry;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets;
 
 /** Executable contracts: no server, client, GL context or world is created. */
 public final class TestLabContracts {
@@ -20,9 +29,59 @@ public final class TestLabContracts {
         persistenceRetry();
         terminalSnapshots();
         requestCorrelation();
+        wandProfiles();
+        centerPresets();
         if (args.length > 0) exportDeclaredCases(java.nio.file.Paths.get(args[0]));
         System.out.println(
-            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 106/95/119 catalog, performance selection, independent report retry, request correlation");
+            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 110/95/120 catalog, performance selection, independent report retry, request correlation, wand profiles, ore generator presets");
+    }
+
+    private static void centerPresets() throws IOException {
+        var groups = CenterPresets.all();
+        require(groups.size() == 18, "original generator group count changed");
+        int ready = 0;
+        for (var group : groups) if (group.importable()) {
+            var graph = group.graph(group.name);
+            require(graph.runnable(), group.id + " is not runnable after import");
+            require(graph.nodes.size() == group.nodeCount(), group.id + " lost processing stages");
+            NBTTagCompound tag = graph.save();
+            require(CenterGraph.load(tag).save().equals(tag), group.id + " did not round trip");
+            require(net.minecraft.nbt.CompressedStreamTools.compress(tag).length <= 65536,
+                group.id + " does not fit the native graph packet");
+            if (group.id.startsWith("regular-")) {
+                require(graph.entryRoutes().size() == 2, group.id + " lost the extra entry points");
+                require(graph.nodes.stream().anyMatch(node -> node.targetCount() > node.process.outletCount()),
+                    group.id + " lost the multiway output routes");
+            }
+            ready++;
+        }
+        require(ready == 14, "whole generator graphs");
+    }
+
+    private static void wandProfiles() {
+        ItemStack wand = new ItemStack((Item) null, 1, 0);
+        var singularity = MachineDebugRegistry.findFamily("singularity");
+        var machine = MachineDebugRegistry.findFamily("construction");
+        require("singularity".equals(MachineDebugRegistry.activeFamily(wand)), "old wand default mode");
+        require(MachineDebugRegistry.writeProfile(wand, singularity, null, new int[] { 2, 4 }), "singularity profile");
+        var profiles = wand.getTagCompound().getCompoundTag("gtsrDebugProfiles");
+        var legacy = new NBTTagCompound();
+        legacy.setInteger("requirements", 3);
+        legacy.setInteger("speed", 3);
+        legacy.setInteger("energy", 1);
+        profiles.setTag("construction", legacy);
+        require(Arrays.equals(MachineDebugRegistry.readProfile(wand, machine, null), new int[] { 1, 1, 1, 0 }),
+            "legacy material and energy toggles migrate without arming Quick Build");
+        MachineDebugRegistry.selectFamily(wand, machine);
+        require(MachineDebugRegistry.writeProfile(wand, machine, null, new int[] { 0, 1, 0, 1 }), "machine profile");
+        require(!MachineDebugRegistry.writeProfile(wand, machine, null, new int[] { 0, 1, 0, 2 }), "invalid toggle");
+        ItemStack copy = wand.copy();
+        require("construction".equals(MachineDebugRegistry.activeFamily(copy)), "machine mode survives stack copy");
+        require(Arrays.equals(MachineDebugRegistry.readProfile(copy, machine, null), new int[] { 0, 1, 0, 1 }),
+            "machine profile survives stack copy");
+        MachineDebugRegistry.selectFamily(copy, singularity);
+        require(Arrays.equals(MachineDebugRegistry.readProfile(copy, singularity, null), new int[] { 2, 4 }),
+            "mode selection preserves singularity configuration");
     }
 
     private static void bootstrapWithoutImplementation() throws Exception {
@@ -76,10 +135,24 @@ public final class TestLabContracts {
 
     private static void catalogSelection() {
         List<TestLabTask> tasks = TestLabCatalog.tasks();
-        require(tasks.size() == 106, "machine catalog coverage changed: " + tasks.size());
+        require(tasks.size() == 110, "machine catalog coverage changed: " + tasks.size());
         require(
             TestLabCatalog.isExplicitRegression("rock_breaker_sites"),
             "stone maker checks require explicit selection");
+        for (String id : Arrays.asList(
+            TestLabIntegrationCenter.PLANNER,
+            TestLabIntegrationCenter.PRESSURE,
+            TestLabIntegrationCenterMachine.ID,
+            TestLabIntegrationCenterEntityPressure.ID)) {
+            require(TestLabCatalog.isExplicitRegression(id), "ore-center check requires explicit selection: " + id);
+            require(
+                new TestLabSupport().cases()
+                    .stream()
+                    .anyMatch(
+                        entry -> entry.id()
+                            .equals(id)),
+                "ore-center check absent from the unified catalog: " + id);
+        }
         int defaults = 0, representatives = 0;
         for (TestLabTask task : tasks) {
             if (task instanceof TestLabSingularityProfile) require(
@@ -112,10 +185,21 @@ public final class TestLabContracts {
         require(representatives == 6, "explicit performance representatives changed: " + representatives);
         require(
             TestLabUiProbes.tasks()
-                .size() == 119,
+                .size() == 120,
             "UI catalog lost cases");
+        require(
+            TestLabUiProbes.tasks()
+                .stream()
+                .anyMatch(
+                    task -> task.id()
+                        .equals("ui.ore_integration_center")),
+            "Missing generic controller UI probe for the registered ore integration center");
+        require(
+            new TestLabSupport().cases().stream().anyMatch(entry -> entry.id().equals(CenterGraphTcpFixture.CASE_ID)
+                && entry.lane().equals("client-server") && !entry.defaultSuite() && entry.requiresRealActor()),
+            "Ore-center graph TCP must be an explicit dual-instance case");
         List<TestLabTask> performance = TestLabPerformanceTasks.select("all", null);
-        require(performance.size() == 139, "performance plan changed: " + performance.size());
+        require(performance.size() == 140, "performance plan changed: " + performance.size());
         for (TestLabTask task : performance) require(
             !task.id()
                 .contains("followup_"),

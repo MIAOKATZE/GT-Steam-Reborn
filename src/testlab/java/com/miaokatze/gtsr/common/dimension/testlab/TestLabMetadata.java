@@ -17,6 +17,8 @@ final class TestLabMetadata {
         new LinkedHashSet<>(
             Arrays.asList(
                 "rock_breaker_sites",
+                TestLabIntegrationCenter.PLANNER,
+                TestLabIntegrationCenterMachine.ID,
                 "cluster_unit_furnace_output_split",
                 "cluster_unit_ore_washer_water_bulk",
                 "cluster_unit_ore_washer_residual_distilled_bulk",
@@ -39,7 +41,10 @@ final class TestLabMetadata {
             .startsWith("ui.client.");
         boolean followup = task instanceof TestLabFollowupTask || task instanceof TestLabAmmoniaNaturalTask
             || REGRESSIONS.contains(task.id());
-        String group = task instanceof TestLabAmmoniaNaturalTask ? "ammonia-natural"
+        String group = task instanceof TestLabIntegrationCenter || task instanceof TestLabIntegrationCenterMachine
+            || task instanceof TestLabIntegrationCenterEntityPressure
+            ? "ore-integration-center"
+            : task instanceof TestLabAmmoniaNaturalTask ? "ammonia-natural"
             : task instanceof TestLabFollowupTask ? "followup"
                 : task instanceof TestLabHubTask ? "hub-storage"
                     : task instanceof TestLabClusterTask ? "cluster"

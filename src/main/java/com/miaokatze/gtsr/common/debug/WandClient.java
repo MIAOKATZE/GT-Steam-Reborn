@@ -64,7 +64,7 @@ public final class WandClient {
                 || mc.thePlayer.inventory.currentItem != message.slot) continue;
             if (!(mc.theWorld.getTileEntity(message.x, message.y, message.z) instanceof IGregTechTileEntity base)
                 || base.getMetaTileID() != message.metaId) continue;
-            var adapter = MachineDebugRegistry.find(base.getMetaTileEntity());
+            var adapter = MachineDebugRegistry.findActive(held, base.getMetaTileEntity());
             if (adapter == null || !adapter.family()
                 .equals(message.family)) continue;
             var schema = adapter.options(base.getMetaTileEntity());

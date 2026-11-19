@@ -50,6 +50,20 @@ public final class CriticalRuntime {
     public static final class StructureChangeListener {
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
+        public void onCenterWorldLoad(net.minecraftforge.event.world.WorldEvent.Load event) {
+            com.miaokatze.gtsr.common.machine.orecenter.CenterClaims.load(event.world);
+        }
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent(
+            priority = cpw.mods.fml.common.eventhandler.EventPriority.LOWEST)
+        public void onCenterHarvest(net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent event) {
+            if (com.miaokatze.gtsr.common.machine.orecenter.CenterClaims
+                .suppressDrops(event.world, event.x, event.y, event.z, event.block, event.blockMetadata)) {
+                event.drops.clear();
+            }
+        }
+
+        @cpw.mods.fml.common.eventhandler.SubscribeEvent
         public void onWorldUnload(net.minecraftforge.event.world.WorldEvent.Unload event) {
             CriticalBlockProtection.unloadClientWorld(event.world);
         }
@@ -124,6 +138,10 @@ public final class CriticalRuntime {
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
         public void onChange(net.minecraftforge.event.world.BlockEvent event) {
             if (!event.world.isRemote) {
+                if (event instanceof net.minecraftforge.event.world.BlockEvent.BreakEvent
+                    || event instanceof net.minecraftforge.event.world.BlockEvent.PlaceEvent)
+                    com.miaokatze.gtsr.common.machine.orecenter.CenterClaims
+                        .changed(event.world, event.x, event.y, event.z);
                 changedDuringClearance(event.world, event.x, event.y, event.z);
                 CriticalWorldData.get(event.world)
                     .invalidateAt(event.world, event.x, event.y, event.z);

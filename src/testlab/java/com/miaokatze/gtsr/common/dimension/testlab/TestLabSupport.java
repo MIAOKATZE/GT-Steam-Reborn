@@ -7,12 +7,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.command.ICommandSender;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 
 import com.miaokatze.miaokatzecore.api.testlab.LabCase;
 import com.miaokatze.miaokatzecore.api.testlab.LabModule;
 import com.miaokatze.miaokatzecore.api.testlab.LabRegistry;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 
 /** Complete testlab variant only. The normal mod loads this solely after an explicit opt in. */
@@ -31,6 +33,9 @@ public final class TestLabSupport implements LabModule {
         if (TestLabDimension.enabled()) {
             TestLabRuntime.register();
             LabRegistry.register(MODULE);
+            if (CenterGraphTcpFixture.requested() && FMLCommonHandler.instance().getSide().isClient()) {
+                CenterGraphTcpClient.register();
+            }
         }
     }
 
@@ -38,6 +43,7 @@ public final class TestLabSupport implements LabModule {
         if (!TestLabDimension.enabled()) return;
         TestLabRuntime.INSTANCE.serverStarting();
         event.registerServerCommand(new TestLabCommand());
+        CenterGraphTcpFixture.registerServer(MinecraftServer.getServer());
     }
 
     public String id() {
@@ -90,6 +96,14 @@ public final class TestLabSupport implements LabModule {
                 java.util.Collections.singleton("client"),
                 false,
                 false));
+        result.add(
+            new LabCase(
+                CenterGraphTcpFixture.CASE_ID,
+                "Ore center native MUI2 graph editing on a dedicated server",
+                "client-server",
+                java.util.Collections.singleton("gui:mui2"),
+                false,
+                true));
         return result;
     }
 
@@ -121,6 +135,8 @@ public final class TestLabSupport implements LabModule {
             }
             if ("client.display-list".equals(id)) throw new IllegalArgumentException(
                 "UNSUPPORTED on server: requires isolated client GL QA, no desktop input; invoke TestLabDisplayListProbe from client QA");
+            if (CenterGraphTcpFixture.CASE_ID.equals(id)) throw new IllegalArgumentException(
+                "Requires the native client and dedicated server adapter tools/ore-center/client_server.py");
         }
         if (args.length == 2 && "run".equals(args[0])) {
             TestLabRuntime.INSTANCE.run(args[1], sender);

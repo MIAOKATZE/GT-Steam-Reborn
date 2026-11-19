@@ -19,6 +19,9 @@ public final class TestLabCatalog {
     public static List<TestLabTask> tasks() {
         List<TestLabTask> tasks = new ArrayList<>();
         for (MetaTileEntityID id : MetaTileEntityID.values()) {
+            if (id == MetaTileEntityID.ORE_INTEGRATION_CENTER) {
+                continue;
+            }
             if (id == MetaTileEntityID.CRITICAL_LOOM || Arrays.stream(CriticalMachineKind.values())
                 .anyMatch(
                     kind -> id.name()
@@ -81,6 +84,10 @@ public final class TestLabCatalog {
         tasks.add(new TestLabAmmoniaNaturalTask(true));
         tasks.add(new TestLabSingularityProfile());
         tasks.add(new TestLabStoneBreakers());
+        tasks.add(new TestLabIntegrationCenter(false));
+        tasks.add(new TestLabIntegrationCenter(true));
+        tasks.add(new TestLabIntegrationCenterMachine());
+        tasks.add(new TestLabIntegrationCenterEntityPressure());
         return Collections.unmodifiableList(tasks);
     }
 

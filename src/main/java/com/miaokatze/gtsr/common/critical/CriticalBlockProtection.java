@@ -60,6 +60,7 @@ public final class CriticalBlockProtection {
 
     public static boolean protects(World world, int x, int y, int z) {
         if (world == null) return false;
+        if (com.miaokatze.gtsr.common.machine.orecenter.CenterClaims.protects(world, x, y, z)) return true;
         Block block = world.getBlock(x, y, z);
         if (!(block instanceof CriticalMaterials.MaterialBlock) && block != gregtech.api.GregTechAPI.sBlockMachines)
             return false;

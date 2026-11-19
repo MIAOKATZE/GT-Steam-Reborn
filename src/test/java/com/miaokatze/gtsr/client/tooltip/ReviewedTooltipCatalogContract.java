@@ -23,6 +23,7 @@ public final class ReviewedTooltipCatalogContract {
 
     public static void main(String[] args) throws Exception {
         Set<String> ids = new HashSet<>(), owners = new HashSet<>(), state = new HashSet<>();
+        Set<Integer> centerPackMetas = new HashSet<>();
         int machines = 0, routes = 0, curves = 0, matrices = 0;
         try (var reader = new InputStreamReader(
             ReviewedTooltipCatalogContract.class.getResourceAsStream("/assets/gtsr/tooltip/zh_CN.json"),
@@ -50,6 +51,10 @@ public final class ReviewedTooltipCatalogContract {
                             .startsWith("gtsr:"),
                         id);
                     check(owner.has("meta") || id.startsWith("ammo.") || id.equals("item.SpacetimeAnchorBeacon"), id);
+                    if (id.startsWith("centerPack.")) {
+                        check(owner.get("item").getAsString().equals("gtsr:ore_integration_module"), id);
+                        check(centerPackMetas.add(owner.get("meta").getAsInt()), id);
+                    }
                 }
                 JsonObject tiers = item.getAsJsonObject("tiers");
                 boolean route = tiers.getAsJsonArray("common")
@@ -107,8 +112,10 @@ public final class ReviewedTooltipCatalogContract {
             }
         }
         check(
-            ids.size() == 179 && machines == 81 && routes == 29 && curves == 8 && matrices == 2 && state.size() == 6,
+            ids.size() == 234 && machines == 82 && routes == 29 && curves == 8 && matrices == 2 && state.size() == 6,
             "Coverage: " + ids.size() + "/" + machines + "/" + routes + "/" + curves + "/" + matrices + "/" + state);
+        check(ids.contains("machine.OreIntegrationCenter") && centerPackMetas.size() == 54
+            && java.util.stream.IntStream.range(0, 54).allMatch(centerPackMetas::contains), "Center registration coverage");
         List<String> vanilla = new ArrayList<>(Arrays.asList("name", "cover", "GTSR info", "fluid amount", "foreign"));
         check(GTSRReviewedPages.removeOwned(vanilla, Arrays.asList("GTSR info")), "owned block");
         check(
@@ -140,7 +147,7 @@ public final class ReviewedTooltipCatalogContract {
             check(before.equals(tag), "hover mutated a binding");
         }
         System.out.println(
-            "PASS 179 reviewed registrations, all tiers, 29 terminal routes (+ native boiler), 8 curves, 2 heatmaps and 6 stack-state block types");
+            "PASS 234 reviewed registrations, including all 54 center module metas, all tiers and owned fallback text");
     }
 
     private static void check(boolean pass, String message) {

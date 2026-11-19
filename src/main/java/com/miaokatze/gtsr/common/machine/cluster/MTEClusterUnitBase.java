@@ -900,7 +900,7 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
      * tier → 外壳底材纹理索引（静态共用表入口，3.5.2）：总控 getCasingTextureID 与本族 getTexture
      * 共用同一类加载期常量表；越界/未成型回退青铜（索引常量，零 icon 分配，NEI 安全红线）。
      */
-    static int tierCasingTextureId(int tier) {
+    public static int tierCasingTextureId(int tier) {
         if (tier < 0 || tier >= TIER_CASING_TEXTURE_IDS.length) return TIER_CASING_TEXTURE_IDS[0];
         return TIER_CASING_TEXTURE_IDS[tier];
     }

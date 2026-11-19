@@ -425,7 +425,7 @@
   },
   {
     "op": "click",
-    "widget": "wand.choice.requirements"
+    "widget": "wand.choice.items"
   },
   {
     "op": "wait",
@@ -433,7 +433,7 @@
   },
   {
     "op": "click",
-    "widget": "wand.choice.speed"
+    "widget": "wand.choice.fluids"
   },
   {
     "op": "wait",
@@ -547,7 +547,7 @@
   },
   {
     "op": "click",
-    "widget": "wand.choice.requirements"
+    "widget": "wand.choice.items"
   },
   {
     "op": "wait",
@@ -590,7 +590,7 @@
         "ref": "p6AfterReloadAction"
       }
     },
-    "expected": 2,
+    "expected": 0,
     "side": "server"
   },
   {
@@ -771,7 +771,7 @@
         "ref": "p6ReloadedConstruction"
       }
     },
-    "expected": 2,
+    "expected": 0,
     "side": "server"
   },
   {
