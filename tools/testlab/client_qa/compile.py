@@ -54,7 +54,7 @@ def main():
     jar = out / "gtsr-mui2-qa-owned-only.jar"
     artifacts = sorted(classes.rglob("*.class"))
     # Only this helper's output is packaged; stale unrelated classes are not included.
-    artifacts = [p for p in artifacts if p.relative_to(classes).as_posix().startswith(("audit/Mui2ClientQa", "audit/UiQaWireCounter", "audit/UiQaScript", "audit/UiQaGallery", "audit/UiGalleryBatch", "audit/TicketRestartQa", "miaotest/host/HostEnvironment", "miaotest/host/OwnedClientScope"))]
+    artifacts = [p for p in artifacts if p.relative_to(classes).as_posix().startswith(("audit/Mui2ClientQa", "audit/CoreTooltipInteractionFixture", "audit/UiQaWireCounter", "audit/UiQaScript", "audit/UiQaGallery", "audit/UiGalleryBatch", "audit/TicketRestartQa", "miaotest/host/HostEnvironment", "miaotest/host/OwnedClientScope"))]
     if args.include_mega_turbine_profile:
         artifacts.extend(sorted((classes / 'com/miaokatze/gtsr/common/dimension/testlab').glob('MegaTurbineProfileFixture*.class')))
         artifacts.extend(sorted((classes / 'com/miaokatze/gtsr/common/dimension/testlab').glob('MegaTurbineProximityFixture*.class')))

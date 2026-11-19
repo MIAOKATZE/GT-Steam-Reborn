@@ -77,13 +77,14 @@ public final class MachineDebugRegistry {
     }
 
     public static String activeFamily(ItemStack wand) {
-        return wand.hasTagCompound() && wand.getTagCompound().getBoolean("gtsrWandMachineMode")
-            ? "construction" : "singularity";
+        return wand.hasTagCompound() && wand.getTagCompound()
+            .getBoolean("gtsrWandMachineMode") ? "construction" : "singularity";
     }
 
     public static void selectFamily(ItemStack wand, Adapter adapter) {
         if (!wand.hasTagCompound()) wand.setTagCompound(new NBTTagCompound());
-        wand.getTagCompound().setBoolean("gtsrWandMachineMode", "construction".equals(adapter.family()));
+        wand.getTagCompound()
+            .setBoolean("gtsrWandMachineMode", "construction".equals(adapter.family()));
     }
 
     public static Adapter findFamily(String family) {
@@ -206,7 +207,8 @@ public final class MachineDebugRegistry {
 
         public boolean canUse(IMetaTileEntity machine, EntityPlayer player) {
             return machine instanceof MTEMineralIntegrationCenter center ? center.canEditGraphs(player)
-                : ((MTECriticalMachine) machine).getCriticalState().canUse(player);
+                : ((MTECriticalMachine) machine).getCriticalState()
+                    .canUse(player);
         }
 
         private static Option toggle(String key, String enabled) {
@@ -214,8 +216,11 @@ public final class MachineDebugRegistry {
         }
 
         public Option[] options(IMetaTileEntity machine) {
-            return new Option[] { toggle("items", "no_items"), toggle("fluids", "no_fluids"),
-                toggle("energy", "ignore_energy"), toggle("quick_build", "quick_build_ready") };
+            Option items = machine instanceof MTEMineralIntegrationCenter
+                ? new Option("items", new String[] { "gtsr.wand.debug.normal" })
+                : toggle("items", "no_items");
+            return new Option[] { items, toggle("fluids", "no_fluids"), toggle("energy", "ignore_energy"),
+                toggle("quick_build", "quick_build_ready") };
         }
 
         public void apply(IMetaTileEntity machine, EntityPlayer player, int[] values, boolean reverse) {
@@ -224,8 +229,10 @@ public final class MachineDebugRegistry {
             boolean energy = !reverse && values[2] == 1;
             boolean quick = !reverse && values[3] == 1;
             if (machine instanceof MTEMineralIntegrationCenter center) {
-                String result = center.applyWandDebug(player, items, fluids, energy, quick);
-                feedback(player, reverse && "gtsr.wand.debug.applied".equals(result) ? "gtsr.wand.debug.reset" : result);
+                String result = center.applyWandDebug(player, fluids, energy, quick);
+                feedback(
+                    player,
+                    reverse && "gtsr.wand.debug.applied".equals(result) ? "gtsr.wand.debug.reset" : result);
                 return;
             }
             var state = ((MTECriticalMachine) machine).getCriticalState();
@@ -234,8 +241,9 @@ public final class MachineDebugRegistry {
                 return;
             }
             if (quick) state.requestDamageHighlight(player);
-            feedback(player, reverse ? "gtsr.wand.debug.reset"
-                : quick ? "gtsr.wand.debug.loom_checked" : "gtsr.wand.debug.applied");
+            feedback(
+                player,
+                reverse ? "gtsr.wand.debug.reset" : quick ? "gtsr.wand.debug.loom_checked" : "gtsr.wand.debug.applied");
         }
     }
 }

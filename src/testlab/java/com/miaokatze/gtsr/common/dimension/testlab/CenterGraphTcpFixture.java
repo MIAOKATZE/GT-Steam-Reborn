@@ -12,8 +12,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,16 +28,17 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.fluids.FluidRegistry;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
-import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
+import com.miaokatze.gtsr.common.items.CenterModuleItems;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterFixtureGeometry;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
-import com.miaokatze.gtsr.common.items.CenterModuleItems;
-import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 import com.miaokatze.miaokatzecore.api.testlab.ArtifactIdentity;
 
@@ -50,7 +51,6 @@ import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.util.GTOreDictUnificator;
-import net.minecraftforge.fluids.FluidRegistry;
 
 /** Dedicated server fixture. All edits after the two starting graphs must arrive via the production UI. */
 public final class CenterGraphTcpFixture {
@@ -71,6 +71,7 @@ public final class CenterGraphTcpFixture {
     private MTEMineralIntegrationCenter center;
     private boolean ready, done, disabled;
     private boolean reviewBuilt, loadedModule;
+    private final boolean interactive = Boolean.getBoolean(PREFIX + "interactive");
     private long revision;
     private boolean fullCenterVerified;
     private final boolean fullCenter = Boolean.getBoolean(PREFIX + "fullCenter");
@@ -110,18 +111,23 @@ public final class CenterGraphTcpFixture {
                 }
                 return;
             }
-            if (!reviewBuilt && (fullCenter || Files.isRegularFile(receiptDir.resolve("native-projector.png")))) {
+            if (!reviewBuilt
+                && (fullCenter || interactive || Files.isRegularFile(receiptDir.resolve("native-projector.png")))) {
                 buildReviewWing(world);
                 reviewBuilt = true;
             }
             if (reviewBuilt && !loadedModule && center.installModuleFromBus(1)) {
                 require(center.installModuleFromBus(3), "Cannot install the review logistics module");
-                if (fullCenter) {
-                    require(center.installModuleFromBus(4) && center.installModuleFromBus(5),
+                if (fullCenter && !interactive) {
+                    require(
+                        center.installModuleFromBus(4) && center.installModuleFromBus(5),
                         "Cannot install two layout test logistics packs");
                 }
+                if (interactive)
+                    require(center.installModuleFromBus(4), "Cannot install the second review logistics module");
                 loadedModule = true;
             }
+            if (interactive) return;
             if (fullCenter && reviewBuilt && !fullCenterVerified) {
                 NBTTagCompound state = center.terminalState();
                 if (world.getTotalWorldTime() % 80 == 0) {
@@ -135,7 +141,8 @@ public final class CenterGraphTcpFixture {
                 }
                 if (!loadedModule) return;
                 if (state.getInteger("Sectors") != 63) return;
-                require(state.getBoolean("Formed") && state.getLong("Power") > 0,
+                require(
+                    state.getBoolean("Formed") && state.getLong("Power") > 0,
                     "Tower casings did not bind the four required I/O ports and the energy hatch");
                 require(state.getIntArray("Grades")[1] > 0, "Installed module is missing from the six-sector snapshot");
                 fullCenterVerified = true;
@@ -244,8 +251,7 @@ public final class CenterGraphTcpFixture {
         gt.setFrontFacing(ForgeDirection.NORTH);
         gt.disableWorking();
         center = (MTEMineralIntegrationCenter) gt.getMetaTileEntity();
-        actor.inventory.setInventorySlotContents(actor.inventory.currentItem,
-            GTSRItemList.HubTerminal.get(1));
+        actor.inventory.setInventorySlotContents(actor.inventory.currentItem, GTSRItemList.HubTerminal.get(1));
         actor.inventory.setInventorySlotContents(9, GTOreDictUnificator.get(OrePrefixes.rawOre, Materials.Copper, 24));
         actor.playerNetServerHandler.setPlayerLocation(X + .5, Y, Z - 2.5, 0, 0);
         List<CenterGraph.Node> nodes = Arrays.asList(
@@ -265,7 +271,8 @@ public final class CenterGraphTcpFixture {
                         4,
                         true,
                         Collections.singletonList("rawOreCopper"),
-                        Collections.singletonList(new CenterGraph.Node(CenterProcess.CRUSHER, new int[] { -1, -1, -1 }))))),
+                        Collections
+                            .singletonList(new CenterGraph.Node(CenterProcess.CRUSHER, new int[] { -1, -1, -1 }))))),
             "Unable to seed graphs");
         revision = center.graphRevision();
         world.markBlockForUpdate(X, Y, Z);
@@ -293,19 +300,26 @@ public final class CenterGraphTcpFixture {
         input.setInventorySlotContents(1, CenterModuleItems.stack(CenterModule.WASHER, 1));
         input.setInventorySlotContents(2, CenterModuleItems.stack(CenterModule.SPEED, 1));
         ItemStack logistics = CenterModuleItems.stack(CenterModule.LOGISTICS, 1);
-        logistics.stackSize = fullCenter ? 3 : 1;
+        logistics.stackSize = interactive || fullCenter ? 3 : 1;
         input.setInventorySlotContents(3, logistics);
         ((gregtech.api.metatileentity.implementations.MTEHatchInput) fluid.getMetaTileEntity())
             .fill(ForgeDirection.UNKNOWN, FluidRegistry.getFluidStack("water", 8000), true);
     }
 
     private static IGregTechTileEntity placeReviewPort(WorldServer world, int x, int y, int z, ItemList type) {
-        int id = type.get(1).getItemDamage();
-        require(world.getBlock(X + x, Y + y, Z + z) == (x == 5 ? GregTechAPI.sBlockCasings3 : GregTechAPI.sBlockCasings2)
-            && world.getBlockMetadata(X + x, Y + y, Z + z) == (x == 5 ? 10 : 0),
+        int id = type.get(1)
+            .getItemDamage();
+        require(
+            world.getBlock(X + x, Y + y, Z + z) == (x == 5 ? GregTechAPI.sBlockCasings3 : GregTechAPI.sBlockCasings2)
+                && world.getBlockMetadata(X + x, Y + y, Z + z) == (x == 5 ? 10 : 0),
             "Fixture must replace an actual authored casing");
-        world.setBlock(X + x, Y + y, Z + z, GregTechAPI.sBlockMachines,
-            GregTechAPI.METATILEENTITIES[id].getTileEntityBaseType(), 3);
+        world.setBlock(
+            X + x,
+            Y + y,
+            Z + z,
+            GregTechAPI.sBlockMachines,
+            GregTechAPI.METATILEENTITIES[id].getTileEntityBaseType(),
+            3);
         IGregTechTileEntity tile = (IGregTechTileEntity) world.getTileEntity(X + x, Y + y, Z + z);
         tile.setInitialValuesAsNBT(null, (short) id);
         tile.setFrontFacing(ForgeDirection.NORTH);

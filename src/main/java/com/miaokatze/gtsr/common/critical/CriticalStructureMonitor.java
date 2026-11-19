@@ -52,6 +52,12 @@ public final class CriticalStructureMonitor {
         status = valid ? Status.VALID : Status.PENDING;
     }
 
+    /** Resume a previously verified shape and immediately begin its background recheck. */
+    public void restoreValidation(int total) {
+        primeConstruction(total);
+        requestFastSweep();
+    }
+
     /** Revokes the cached result without restarting the sweep at its first voxel. */
     public void invalidate() {
         valid = false;

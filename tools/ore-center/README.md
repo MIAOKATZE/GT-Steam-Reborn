@@ -20,4 +20,6 @@
 python -B tools/ore-center/client_server.py --bundle <bundle.json> --evidence <新证据目录> --execute
 ```
 
+手动审核用同一份工件清单并增加 --review-port 20742 与 --language zh_CN。工程 index 的「机器 GUI」直接连接此回环窗口。点击、拖动、滚轮和键盘由私有 JVM 的原生控件处理，浏览器读实际绘制结果。F4 用于查看控件名和坐标。结束审核后宿主停机并恢复实例；手动审核回执记录会话及清理，自动用例另行验证脚本断言。
+
 排查压力峰值时在专服进程启用 JFR，使用报告中的 tick 与 UTC 毫秒锚连接对应观测区间。单次原生配方查询及 JVM 暂停可能跨越规划的软预算。压力判断同时看耗时分布、样本数量和实际业务产出。

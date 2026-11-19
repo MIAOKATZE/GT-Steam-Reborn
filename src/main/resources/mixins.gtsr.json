@@ -60,9 +60,7 @@
     "RendererLivingWeaponYawMixin",
     "WeaponCreativeBooksMixin",
     "angelica.CriticalMeshingTaskMixin",
-    "angelica.CriticalChunkBuildContextMixin",
-    "nei.CriticalPreviewWorldMixin",
-    "nei.CriticalPreviewSceneMixin"
+    "angelica.CriticalChunkBuildContextMixin"
   ],
   "server": []
 }

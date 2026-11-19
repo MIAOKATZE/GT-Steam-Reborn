@@ -35,7 +35,7 @@ def main():
     native_tooltip=False
     if a.plan:
         declared=read_json(a.plan)
-        if isinstance(declared,dict) and declared.get("scriptOnly") in ("gtsr-native-tooltip-table-v1", "gtsr-native-tooltip-charts-v2", "gtsr-center-tooltip-v1"):
+        if isinstance(declared,dict) and declared.get("scriptOnly") in ("gtsr-native-tooltip-table-v1", "gtsr-native-tooltip-charts-v2", "gtsr-center-tooltip-v1", "core-tooltip-interaction-v1"):
             a.language=declared.get("language","zh_CN")
             native_tooltip=True
     if os.name!='nt' or not a.hidden_desktop:raise RuntimeError('Private Windows desktop is mandatory; foreground fallback is forbidden')
@@ -66,15 +66,41 @@ def main():
     proc=None;desktop=None;payload=None;options=FIXTURE/'options.txt';original_options=options.read_bytes() if options.exists() else None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
     if a.mode=='ticket-restart':receipt['inputType']='Synthetic same-JVM Minecraft launchIntegratedServer/loadWorld(null) and production CriticalChunkLoading ensure/release; UI suite and physical input NOT_RUN'
     scoped_backups={}
+    companion_installed=[]
+    scoped_empty_directories=[]
     if native_tooltip:
         backup=result/'native-tooltip-before';backup.mkdir()
-        for rel in ['ops.json','config/miaokatzecore/tooltip.properties']:
+        extra_files=declared.get('scopedFiles',[]) if declared.get('scriptOnly')=='core-tooltip-interaction-v1' else []
+        if not isinstance(extra_files,list) or len(extra_files)>32:raise ValueError('Bounded explicit scoped file list required')
+        for rel in ['ops.json','config/miaokatzecore/tooltip.properties',*extra_files]:
             path=FIXTURE/rel
+            if not path.resolve().is_relative_to(FIXTURE) or path.is_dir():raise ValueError('Scoped file escaped instance or names a directory')
             scoped_backups[rel]=path.read_bytes() if path.is_file() else None
             if scoped_backups[rel] is not None:
                 saved=backup/rel;saved.parent.mkdir(parents=True,exist_ok=True);saved.write_bytes(scoped_backups[rel])
         (backup/'inventory.json').write_text(json.dumps({k:hashlib.sha256(v).hexdigest() if v is not None else None for k,v in scoped_backups.items()},indent=2),encoding='utf8')
+        for rel in declared.get('emptyDirectoriesToRestore',[]):
+            path=FIXTURE/rel
+            if not path.resolve().is_relative_to(FIXTURE):raise ValueError('Scoped directory escaped instance')
+            if not path.exists():scoped_empty_directories.append(path)
     try:
+        # Optional companions belong only to the explicit interaction profile and the enclosing host lease.
+        # Existing mod IDs are refused: this path adds a missing dependency and restores its prior absence.
+        if native_tooltip and declared.get('scriptOnly')=='core-tooltip-interaction-v1':
+            existing_ids={entry['modId'] for entry in host.inventory(FIXTURE/'mods')}
+            companions=declared.get('companionArtifacts',[])
+            if not isinstance(companions,list) or len(companions)>4:raise ValueError('Bounded explicit companion list required')
+            for entry in companions:
+                source=Path(entry['path']).resolve(strict=True)
+                modid=entry['modId']
+                if modid in existing_ids or sha(source)!=entry['sha256'] or modid not in {m.get('modid') for m in host.mods_in(source)}:raise ValueError('Companion identity/hash mismatch or mod ID already installed')
+                destination=FIXTURE/'mods'/source.name
+                if destination.exists():raise FileExistsError('Companion filename collision')
+                companion_installed.append(dict(path=str(destination),sha256=entry['sha256'],modId=modid,source=str(source)))
+                host.write(result/'companion-recovery.json',dict(state='INSTALLING',installed=companion_installed,originals=[]))
+                shutil.copy2(source,destination)
+                existing_ids.add(modid)
+            if companion_installed:host.write(result/'companion-recovery.json',dict(state='INSTALLED',installed=companion_installed,originals=[]))
         if installed_helper.exists():raise FileExistsError('Owned helper filename already exists; inspect previous recovery')
         helper_owned=True;shutil.copy2(helper,installed_helper)
         import client_qa as common_client_qa
@@ -171,7 +197,16 @@ def main():
                 if raw is None:path.unlink(missing_ok=True)
                 else:path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
             receipt['nativeTooltipScopedFilesRestored']=True
+            for path in sorted(scoped_empty_directories,key=lambda p:len(p.parts),reverse=True):
+                if path.is_dir() and not any(path.iterdir()):path.rmdir()
         if helper_owned and (proc is None or proc.poll() is not None):installed_helper.unlink(missing_ok=True);receipt['helperRemoved']=True
+        if companion_installed and (proc is None or proc.poll() is not None):
+            for entry in companion_installed:
+                path=Path(entry['path'])
+                if path.exists() and sha(path)!=entry['sha256']:raise RuntimeError('Companion changed during run; retain for explicit recovery')
+                path.unlink(missing_ok=True)
+            host.write(result/'companion-recovery.json',dict(state='RESTORED_PRIOR_ABSENCE',installed=companion_installed,originals=[]))
+            receipt['companionArtifactsRestored']=True
         if owned_world is not None and (proc is None or proc.poll() is not None):
             if a.mode=='ui' and (result/'checks.json').is_file():
                 try:payload=host.read(result/'checks.json')

@@ -17,6 +17,7 @@ import client_prepare
 import client_qa
 import host
 import preparation
+from review_transport import ReviewTransport
 
 
 def running(process):
@@ -70,6 +71,23 @@ def wait_for_client(client, log_path, deadline):
         wait_for(completed, client, deadline, 'Native client completion')
 
 
+def verify_automated_result(evidence, run_id, artifacts, client, receipt):
+    client_report = host.read(evidence / 'client-checks.json')
+    if client_report.get('status') != 'PASS':
+        raise RuntimeError(f'Native client failed in phase {client_report.get("phase")}: {client_report.get("error")}')
+    server_report = host.read(evidence / 'server-checks.json')
+    for name, report in (('client', client_report), ('server', server_report)):
+        if report.get('runId') != run_id or report.get('status') != 'PASS':
+            raise RuntimeError(f'{name} did not report PASS for this run: {report}')
+        for artifact in artifacts:
+            if report.get('artifacts', {}).get(artifact['modId'], {}).get('jarSha256') != artifact['sha256']:
+                raise RuntimeError(f'{name} loaded a different {artifact["modId"]} jar')
+    screenshot = evidence / 'reopened-native-graph.png'
+    if client.returncode != 0 or not screenshot.is_file():
+        raise RuntimeError('Native client did not exit cleanly with its reopened graph frame')
+    receipt['frame'] = {'path': str(screenshot), 'sha256': host.sha(screenshot)}
+
+
 def run(args):
     server_item = host.registered(args.registry, 'gtsr')
     client_item = host.registered(args.registry, 'gtsr', 'client')
@@ -101,7 +119,8 @@ def run(args):
     run_id = str(uuid.uuid4())
     evidence = host.unredirected(args.evidence.absolute())
     evidence.mkdir(parents=True, exist_ok=False)
-    receipt = {'runId': run_id, 'lane': 'client-server', 'case': 'ore_integration_center.graph_tcp',
+    case = 'ore_integration_center.native_review' if args.review_port else 'ore_integration_center.graph_tcp'
+    receipt = {'runId': run_id, 'lane': 'client-server', 'case': case,
                'status': 'ERROR', 'serverInstance': str(server_root), 'clientInstance': str(client_root),
                'endpoint': f'127.0.0.1:{port}', 'actorUuid': client_qa.ACTOR_UUID, 'memory': budget, 'cleanup': {}}
     server, client, desktop = None, None, None
@@ -123,6 +142,12 @@ def run(args):
         })
         client_command = [arg for arg in client_command if not arg.startswith(('-Xmx', '-Dgtsr.uiqa.enabled='))]
         with ExitStack() as stack:
+            if args.review_port:
+                review = ReviewTransport(evidence, REPO.parent / 'GT-MUI2工作台/native/live', args.review_port,
+                                         next(a['sha256'] for a in artifacts if a['modId'] == 'gtsr'))
+                stack.enter_context(review.open())
+                receipt['review'] = review.origin
+                print(f'Native review: {review.origin} (starting)', flush=True)
             server_owner, server_lock = stack.enter_context(host.lease(server_root, run_id, evidence))
             client_owner, client_lock = stack.enter_context(host.lease(client_root, run_id, evidence))
             world = client_qa.create_world(server_root, run_id)
@@ -142,7 +167,7 @@ def run(args):
             props.update({'level-name': world.name, 'level-type': 'FLAT', 'online-mode': 'false', 'white-list': 'true',
                           'op-permission-level': '2', 'server-ip': '127.0.0.1', 'enable-rcon': 'false',
                           'enable-query': 'false', 'spawn-protection': '0', 'spawn-monsters': 'false',
-                          'spawn-animals': 'false', 'spawn-npcs': 'false', 'view-distance': '10' if args.large_view else '5'})
+                          'spawn-animals': 'false', 'spawn-npcs': 'false', 'view-distance': '10' if args.large_view or args.review_port else '5'})
             server_settings = {
                 'server.properties': ('\n'.join(f'{key}={value}' for key, value in props.items()) + '\n').encode(),
                 'ops.json': b'[]',
@@ -169,6 +194,8 @@ def run(args):
                       '-Dgtsr.graphTcp.actor=' + client_qa.ACTOR_UUID]
             if args.large_view:
                 common.append('-Dgtsr.graphTcp.fullCenter=true')
+            if args.review_port:
+                common += ['-Dgtsr.graphTcp.interactive=true']
             server_command = [server_item['server_java'], '-Xms1G', '-Xmx3G', '-Djava.awt.headless=true',
                               '-Duser.language=en', '-Dgtsr.graphTcp.world=' + str(world), *common,
                               '@java9args.txt', '-jar', 'lwjgl3ify-forgePatches.jar', 'nogui']
@@ -210,20 +237,15 @@ def run(args):
             host.write(client_lock, client_owner)
             receipt['clientProcess'] = client_owner['child']
             wait_for_client(client, client_log_path, time.monotonic() + args.deadline)
-            client_report = host.read(evidence / 'client-checks.json')
-            if client_report.get('status') != 'PASS':
-                raise RuntimeError(f'Native client failed in phase {client_report.get("phase")}: {client_report.get("error")}')
-            server_report = host.read(evidence / 'server-checks.json')
-            for name, report in (('client', client_report), ('server', server_report)):
-                if report.get('runId') != run_id or report.get('status') != 'PASS':
-                    raise RuntimeError(f'{name} did not report PASS for this run: {report}')
-                for artifact in artifacts:
-                    if report.get('artifacts', {}).get(artifact['modId'], {}).get('jarSha256') != artifact['sha256']:
-                        raise RuntimeError(f'{name} loaded a different {artifact["modId"]} jar')
-            screenshot = evidence / 'reopened-native-graph.png'
-            if client.returncode != 0 or not screenshot.is_file():
-                raise RuntimeError('Native client did not exit cleanly with its reopened graph frame')
-            receipt['frame'] = {'path': str(screenshot), 'sha256': host.sha(screenshot)}
+            if args.review_port:
+                state = host.read(evidence / 'review-state.json')
+                closed = host.read(evidence / 'review-closed.json')
+                if client.returncode != 0 or state.get('frame', 0) < 1 or closed.get('runId') != run_id:
+                    raise RuntimeError('Native review did not display and close cleanly')
+                receipt['reviewFrames'] = state['frame']
+                receipt['browserInputBatches'] = state['seq']
+            else:
+                verify_automated_result(evidence, run_id, artifacts, client, receipt)
         if receipt['cleanup'] != {'clientForcedStop': False, 'desktopClosed': True,
                                   'serverForcedStop': False, 'worldDeleted': True}:
             raise RuntimeError(f'Cleanup incomplete: {receipt["cleanup"]}')
@@ -250,6 +272,8 @@ def main():
     parser.add_argument('--language', choices=['en_US', 'zh_CN'], default='en_US')
     parser.add_argument('--large-view', action='store_true', help='match the 2560×1334 GUI scale 3 crash case')
     parser.add_argument('--execute', action='store_true')
+    parser.add_argument('--review-port', type=int, choices=[20742],
+                        help='serve the interactive native panel on the configured local browser port')
     return run(parser.parse_args())
 
 

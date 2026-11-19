@@ -69,10 +69,14 @@ public final class CenterGraphTcpClient {
     private String capturePage;
     private final List<String> pageFrames = new ArrayList<>();
     private String lastTrace = "";
+    private final boolean interactive = Boolean.getBoolean(CenterGraphTcpFixture.PREFIX + "interactive");
+    private final CenterNativeReviewInput reviewer = interactive ? new CenterNativeReviewInput(mc, receipts) : null;
 
     static void register() {
         if (System.getProperty(CenterGraphTcpFixture.PREFIX + "port") != null) {
-            FMLCommonHandler.instance().bus().register(new CenterGraphTcpClient());
+            FMLCommonHandler.instance()
+                .bus()
+                .register(new CenterGraphTcpClient());
         }
     }
 
@@ -81,7 +85,12 @@ public final class CenterGraphTcpClient {
         if (event.phase != TickEvent.Phase.END || done) return;
         try {
             if (Files.exists(receipts.resolve("stop.json"))) {
-                finish("Cancelled by host");
+                if (interactive) {
+                    done = true;
+                    CenterGraphTcpFixture
+                        .write(receipts, "review-closed.json", java.util.Collections.singletonMap("runId", runId));
+                    mc.shutdown();
+                } else finish("Cancelled by host");
                 return;
             }
             if (phase == 0) {
@@ -90,11 +99,13 @@ public final class CenterGraphTcpClient {
                 forge.setupServerList();
                 ServerData endpoint = new ServerData("GTSR TestLab", "127.0.0.1:" + port);
                 forge.connectToServer(new GuiMainMenu(), endpoint);
-                CenterGraphTcpFixture.require(mc.func_147104_D() == endpoint, "Forge did not select the owned endpoint");
+                CenterGraphTcpFixture
+                    .require(mc.func_147104_D() == endpoint, "Forge did not select the owned endpoint");
                 advance();
                 return;
             }
-            CenterGraphTcpFixture.require(System.nanoTime() - since < TimeUnit.SECONDS.toNanos(120), "Client phase timed out: " + phase);
+            if (!interactive) CenterGraphTcpFixture
+                .require(System.nanoTime() - since < TimeUnit.SECONDS.toNanos(120), "Client phase timed out: " + phase);
             if (mc.currentScreen instanceof GuiDisconnected) {
                 IChatComponent reason = (IChatComponent) readField(mc.currentScreen, "field_146304_f");
                 throw new IllegalStateException("Dedicated TCP connection ended: " + reason.getUnformattedText());
@@ -105,6 +116,10 @@ public final class CenterGraphTcpClient {
             }
 
             ModularScreen screen = screen();
+            if (interactive) {
+                if (screen == null) open();
+                return;
+            }
             if (phase == 1 && (fullCenter || projectedHints != 0) && !gtVerified) {
                 if (!fullCenter || Files.isRegularFile(receipts.resolve("server-full-ready.json"))) verifyGtWindow();
                 return;
@@ -123,23 +138,26 @@ public final class CenterGraphTcpClient {
                     if (!terminal.getBoolean("Formed") || terminal.getIntArray("Grades")[3] == 0) return;
                     if (previewStep == 0) {
                         var costs = terminal.getTagList("BoostCosts", 10);
-                        for (int i = 0; i < 4; i++)
-                            CenterGraphTcpFixture.require(net.minecraftforge.fluids.FluidRegistry.getFluid(
-                                costs.getCompoundTagAt(i).getString("FluidName")) != null,
-                                "Missing synchronized additive fluid " + i);
+                        for (int i = 0; i < 4; i++) CenterGraphTcpFixture.require(
+                            net.minecraftforge.fluids.FluidRegistry.getFluid(
+                                costs.getCompoundTagAt(i)
+                                    .getString("FluidName"))
+                                != null,
+                            "Missing synchronized additive fluid " + i);
                         IWidget diagram = find(screen.getMainPanel(), "center_assembly_scene");
                         if (diagram == null || (Integer) readField(diagram, "visibleMask") != 63) return;
                         int[] sx = (int[]) readField(diagram, "sx"), sy = (int[]) readField(diagram, "sy");
                         mouse(screen, diagram, sx[1], sy[1], true);
                         mouse(screen, diagram, sx[1], sy[1], false);
                         Object assembly = readField(diagram, "this$0");
-                        CenterGraphTcpFixture.require((Integer) readField(assembly, "slot") == 1,
+                        CenterGraphTcpFixture.require(
+                            (Integer) readField(assembly, "slot") == 1,
                             "Diagram did not select the installed crusher pad");
                         verifiedAssemblyMask = terminal.getInteger("Sectors");
-                        CenterGraphTcpFixture.require(!fullCenter || verifiedAssemblyMask == 63, "Expected all six live sectors");
+                        CenterGraphTcpFixture
+                            .require(!fullCenter || verifiedAssemblyMask == 63, "Expected all six live sectors");
                         capturePage = PAGES[0];
-                    }
-                    else if (previewStep == 1) click(screen, "page_routes");
+                    } else if (previewStep == 1) click(screen, "page_routes");
                     else if (previewStep == 2) {
                         if (!previewCopper(screen, editor)) return;
                         capturePage = "routes";
@@ -153,13 +171,16 @@ public final class CenterGraphTcpClient {
                     } else if (previewStep == 6) click(screen, "page_routes");
                     else if (previewStep == 7) click(screen, "generator_presets");
                     else if (previewStep == 8) {
-                        var presetPanel = screen.getPanelManager().getOpenPanel("gtsr_center_presets");
+                        var presetPanel = screen.getPanelManager()
+                            .getOpenPanel("gtsr_center_presets");
                         if (presetPanel == null) return;
-                        CenterGraphTcpFixture.require(find(presetPanel, CONTROL + "preset_regular-MPMC") != null
-                            && find(presetPanel, CONTROL + "preset_special-dehydrator") != null,
+                        CenterGraphTcpFixture.require(
+                            find(presetPanel, CONTROL + "preset_regular-MPMC") != null
+                                && find(presetPanel, CONTROL + "preset_special-dehydrator") != null,
                             "Generator lost its regular or expression-only presets");
                         capturePage = "presets";
-                    } else screen.getPanelManager().closeTopPanel();
+                    } else screen.getPanelManager()
+                        .closeTopPanel();
                     previewStep++;
                     return;
                 }
@@ -174,7 +195,8 @@ public final class CenterGraphTcpClient {
                     if (capturePage == null) verifyGraphLayout(screen);
                     return;
                 }
-                CenterGraphTcpFixture.require("rawOreCopper".equals(field(screen, "rules").getText()),
+                CenterGraphTcpFixture.require(
+                    "rawOreCopper".equals(field(screen, "rules").getText()),
                     "The graph snapshot arrived but the selected copper route was not displayed: " + lastTrace);
                 if (phase == 1) {
                     if (!openedRules) {
@@ -188,8 +210,9 @@ public final class CenterGraphTcpClient {
                     expectedRevision = revision + 1;
                 } else {
                     tab(screen, 1, 1);
-                    CenterGraphTcpFixture.require(CenterGraphTcpFixture.ORE_RULE.equals(field(screen, "rules").getText())
-                        && CenterGraphTcpFixture.FILTER_RULE.equals(field(screen, "filter").getText()),
+                    CenterGraphTcpFixture.require(
+                        CenterGraphTcpFixture.ORE_RULE.equals(field(screen, "rules").getText())
+                            && CenterGraphTcpFixture.FILTER_RULE.equals(field(screen, "filter").getText()),
                         "Server's reopened graph did not display both persisted expressions");
                     if (fullCenter) {
                         click(screen, "add");
@@ -236,12 +259,26 @@ public final class CenterGraphTcpClient {
 
     @SubscribeEvent
     public void render(TickEvent.RenderTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || (!screenshot && capturePage == null) || done) return;
+        if (event.phase != TickEvent.Phase.END || done) return;
         try {
+            if (interactive) {
+                ModularScreen current = screen();
+                if (current != null && !reviewer.isReady()) {
+                    Object editor = readField(control(current, "tabs"), "editor");
+                    Object sync = readField(editor, "sync");
+                    var terminal = (net.minecraft.nbt.NBTTagCompound) readField(sync, "terminal");
+                    reviewer.initialize(terminal.getBoolean("Formed") && terminal.getIntArray("Grades")[3] != 0);
+                }
+                reviewer.render(current);
+                return;
+            }
+            if (!screenshot && capturePage == null) return;
             String frame = screenshot ? FRAME : "native-" + capturePage + ".png";
-            ScreenShotHelper.saveScreenshot(receipts.toFile(), frame, mc.displayWidth, mc.displayHeight, mc.getFramebuffer());
+            ScreenShotHelper
+                .saveScreenshot(receipts.toFile(), frame, mc.displayWidth, mc.displayHeight, mc.getFramebuffer());
             // The vanilla screenshot helper always creates its screenshots/ subdirectory.
-            Path captured = receipts.resolve("screenshots").resolve(frame);
+            Path captured = receipts.resolve("screenshots")
+                .resolve(frame);
             Files.move(captured, receipts.resolve(frame));
             if (screenshot) finish(null);
             else {
@@ -271,7 +308,8 @@ public final class CenterGraphTcpClient {
             return false;
         }
         var trace = (com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview) readField(canvas, "trace");
-        if (trace == null || trace.products(2).isEmpty()) return false;
+        if (trace == null || trace.products(2)
+            .isEmpty()) return false;
         if (!verifiedCopper) {
             verifiedCopper = true;
             click(screen, "source");
@@ -299,8 +337,10 @@ public final class CenterGraphTcpClient {
                 screen.onMouseDrag(0, 20);
                 mouse(screen, canvas, 39, area.height - 17, false);
                 click(screen, "zoom_in");
-                CenterGraphTcpFixture.require((int) readField(canvas, "offX") != x && (int) readField(canvas, "offY") != y
-                    && (double) readField(canvas, "zoom") > zoom, "Native canvas did not pan and zoom");
+                CenterGraphTcpFixture.require(
+                    (int) readField(canvas, "offX") != x && (int) readField(canvas, "offY") != y
+                        && (double) readField(canvas, "zoom") > zoom,
+                    "Native canvas did not pan and zoom");
                 verifyEmptyAnchors(canvas);
                 verifiedEmptyBoard = true;
                 click(screen, "enabled");
@@ -324,7 +364,8 @@ public final class CenterGraphTcpClient {
                 click(screen, "generator_presets");
             }
             case 7 -> {
-                var modal = screen.getPanelManager().getOpenPanel("gtsr_center_presets");
+                var modal = screen.getPanelManager()
+                    .getOpenPanel("gtsr_center_presets");
                 if (modal == null) return;
                 IWidget preset = find(modal, CONTROL + "preset_regular-MPMC");
                 IWidget apply = find(modal, CONTROL + "preset_apply");
@@ -335,7 +376,11 @@ public final class CenterGraphTcpClient {
             case 8 -> {
                 if (graph.id <= 102 || graph.nodes.size() < 10) return;
                 int[][] nodes = (int[][]) readField(canvas, "nodes");
-                var height = canvas.getClass().getDeclaredMethod("cardHeight", graph.nodes.get(0).getClass());
+                var height = canvas.getClass()
+                    .getDeclaredMethod(
+                        "cardHeight",
+                        graph.nodes.get(0)
+                            .getClass());
                 height.setAccessible(true);
                 for (int i = 0; i < nodes.length; i++) {
                     int[] a = nodes[i];
@@ -343,8 +388,9 @@ public final class CenterGraphTcpClient {
                     for (int j = i + 1; j < nodes.length; j++) {
                         int[] b = nodes[j];
                         int otherHeight = (int) height.invoke(null, graph.nodes.get(j));
-                        CenterGraphTcpFixture.require(Math.abs(a[0] - b[0]) >= 92 || a[1] + h <= b[1]
-                            || b[1] + otherHeight <= a[1], "Preset cards overlap: " + i + " and " + j);
+                        CenterGraphTcpFixture.require(
+                            Math.abs(a[0] - b[0]) >= 92 || a[1] + h <= b[1] || b[1] + otherHeight <= a[1],
+                            "Preset cards overlap: " + i + " and " + j);
                     }
                 }
                 presetNodes = nodes.length;
@@ -364,27 +410,32 @@ public final class CenterGraphTcpClient {
         int x = (int) readField(canvas, "offX"), y = (int) readField(canvas, "offY");
         int ruleX = canvasNumber(canvas, "ruleX", 0), ruleY = canvasNumber(canvas, "ruleY", 0);
         int output = (int) readField(canvas, "outputX");
-        var hit = canvas.getClass().getDeclaredMethod("hit", int.class, int.class);
+        var hit = canvas.getClass()
+            .getDeclaredMethod("hit", int.class, int.class);
         hit.setAccessible(true);
-        CenterGraphTcpFixture.require(ruleY == y + 48 && (int) hit.invoke(canvas, ruleX + 8, ruleY + 8) == -5
-            && (int) hit.invoke(canvas, x + 8, ruleY + 8) == -3
-            && (int) hit.invoke(canvas, x + 130, ruleY + 8) == -4
-            && (int) hit.invoke(canvas, x + output + 8, ruleY + 8) == -2,
+        CenterGraphTcpFixture.require(
+            ruleY == y + 48 && (int) hit.invoke(canvas, ruleX + 8, ruleY + 8) == -5
+                && (int) hit.invoke(canvas, x + 8, ruleY + 8) == -3
+                && (int) hit.invoke(canvas, x + 130, ruleY + 8) == -4
+                && (int) hit.invoke(canvas, x + output + 8, ruleY + 8) == -2,
             "The empty board lost one or more aligned canvas anchors");
     }
 
     private static int canvasNumber(IWidget canvas, String name, int index) throws ReflectiveOperationException {
-        var method = canvas.getClass().getDeclaredMethod(name, int.class);
+        var method = canvas.getClass()
+            .getDeclaredMethod(name, int.class);
         method.setAccessible(true);
         return (int) method.invoke(canvas, index);
     }
 
-    private static void clickBoard(ModularScreen screen, IWidget widget, int x, int y) throws ReflectiveOperationException {
+    private static void clickBoard(ModularScreen screen, IWidget widget, int x, int y)
+        throws ReflectiveOperationException {
         double zoom = (double) readField(widget, "zoom");
         clickBoardAtPixel(screen, widget, (int) Math.round(x * zoom), (int) Math.round(y * zoom));
     }
 
-    private static void clickBoardAtPixel(ModularScreen screen, IWidget widget, int x, int y) throws ReflectiveOperationException {
+    private static void clickBoardAtPixel(ModularScreen screen, IWidget widget, int x, int y)
+        throws ReflectiveOperationException {
         mouse(screen, widget, x, y, true);
         mouse(screen, widget, x, y, false);
     }
@@ -408,10 +459,15 @@ public final class CenterGraphTcpClient {
         Object view = readField(table, "this$0");
         String status = (String) readField(view, "trialStatus");
         if ("terminal.trial_working".equals(status)) return false;
-        CenterGraphTcpFixture.require("terminal.trial_ready".equals(status), "Copper estimate did not complete: " + status);
+        CenterGraphTcpFixture
+            .require("terminal.trial_ready".equals(status), "Copper estimate did not complete: " + status);
         var result = (com.miaokatze.gtsr.common.machine.orecenter.CenterPlanner.Batch) readField(view, "trialBatch");
-        CenterGraphTcpFixture.require(result.ticks > 0 && result.steam > 0
-            && result.consumed.stream().mapToInt(item -> item.stackSize).sum() == 16, "Wrong copper estimate");
+        CenterGraphTcpFixture.require(
+            result.ticks > 0 && result.steam > 0
+                && result.consumed.stream()
+                    .mapToInt(item -> item.stackSize)
+                    .sum() == 16,
+            "Wrong copper estimate");
         trialTicks = result.ticks;
         return true;
     }
@@ -421,12 +477,17 @@ public final class CenterGraphTcpClient {
         if (openCooldown-- > 0 || mc.theWorld == null) return;
         int x = CenterGraphTcpFixture.X, y = CenterGraphTcpFixture.Y, z = CenterGraphTcpFixture.Z;
         if (mc.thePlayer.getDistanceSq(x + .5, y + .5, z + .5) > 16) {
-            trace("outside controller reach, player=" + (int) mc.thePlayer.posX + "," + (int) mc.thePlayer.posY
-                + "," + (int) mc.thePlayer.posZ);
+            trace(
+                "outside controller reach, player=" + (int) mc.thePlayer.posX
+                    + ","
+                    + (int) mc.thePlayer.posY
+                    + ","
+                    + (int) mc.thePlayer.posZ);
             return;
         }
         TileEntity tile = mc.theWorld.getTileEntity(x, y, z);
-        if (!(tile instanceof IGregTechTileEntity) || !(((IGregTechTileEntity) tile).getMetaTileEntity() instanceof MTEMineralIntegrationCenter)) return;
+        if (!(tile instanceof IGregTechTileEntity)
+            || !(((IGregTechTileEntity) tile).getMetaTileEntity() instanceof MTEMineralIntegrationCenter)) return;
         if (!fullCenter && phase == 1 && projectedHints == 0) {
             IGregTechTileEntity base = (IGregTechTileEntity) tile;
             MTEMineralIntegrationCenter controller = (MTEMineralIntegrationCenter) base.getMetaTileEntity();
@@ -436,9 +497,20 @@ public final class CenterGraphTcpClient {
                 && controller.getTexture(base, facing.getOpposite(), facing, 0, false, false).length == 1;
             CenterGraphTcpFixture.require(controllerOverlay, "The controller front is missing its ore-drill overlay");
             ItemStack projector = new ItemStack(StructureLibAPI.getDefaultHologramItem());
-            projector.getItem().onItemUseFirst(projector, mc.thePlayer, mc.theWorld, x, y, z,
-                ForgeDirection.NORTH.ordinal(), .5f, .5f, 0f);
-            Field groups = Class.forName("com.gtnewhorizon.structurelib.ClientProxy").getDeclaredField("allGroups");
+            projector.getItem()
+                .onItemUseFirst(
+                    projector,
+                    mc.thePlayer,
+                    mc.theWorld,
+                    x,
+                    y,
+                    z,
+                    ForgeDirection.NORTH.ordinal(),
+                    .5f,
+                    .5f,
+                    0f);
+            Field groups = Class.forName("com.gtnewhorizon.structurelib.ClientProxy")
+                .getDeclaredField("allGroups");
             groups.setAccessible(true);
             List<?> holograms = (List<?>) groups.get(null);
             CenterGraphTcpFixture.require(!holograms.isEmpty(), "Projector right click produced no hologram");
@@ -448,8 +520,15 @@ public final class CenterGraphTcpClient {
             capturePage = "projector";
             return;
         }
-        mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, mc.thePlayer.getHeldItem(), x, y, z,
-            ForgeDirection.NORTH.ordinal(), Vec3.createVectorHelper(x + .5, y + .5, z));
+        mc.playerController.onPlayerRightClick(
+            mc.thePlayer,
+            mc.theWorld,
+            mc.thePlayer.getHeldItem(),
+            x,
+            y,
+            z,
+            ForgeDirection.NORTH.ordinal(),
+            Vec3.createVectorHelper(x + .5, y + .5, z));
         openCooldown = 20;
     }
 
@@ -465,7 +544,8 @@ public final class CenterGraphTcpClient {
         if (terminalSlot < 0) {
             terminalSlot = mc.thePlayer.inventory.currentItem;
             int empty = (terminalSlot + 1) % 9;
-            CenterGraphTcpFixture.require(mc.thePlayer.inventory.getStackInSlot(empty) == null,
+            CenterGraphTcpFixture.require(
+                mc.thePlayer.inventory.getStackInSlot(empty) == null,
                 "GT bare-hand check requires an empty hotbar slot");
             mc.thePlayer.inventory.currentItem = empty;
             openCooldown = 0;
@@ -477,7 +557,8 @@ public final class CenterGraphTcpClient {
         }
         IWidget row = find(current.getMainPanel(), "center_gt_operation_7");
         CenterGraphTcpFixture.require(row != null && row.isValid(), "Ordinary controller click did not open GT status");
-        CenterGraphTcpFixture.require(find(current.getMainPanel(), "center_gt_batch_progress") != null,
+        CenterGraphTcpFixture.require(
+            find(current.getMainPanel(), "center_gt_batch_progress") != null,
             "GT terminal lacks the native batch progress texture widget");
         capturePage = "gt-operation";
         gtCaptured = true;
@@ -517,14 +598,27 @@ public final class CenterGraphTcpClient {
         Object snapshot = readField(editor, "snapshot");
         long revision = (Long) readField(snapshot, "revision");
         long received = (Long) readField(readField(sync, "snapshot"), "revision");
-        trace("editorRevision=" + revision + ", receivedRevision=" + received + ", expectedRevision="
-            + expectedRevision + ", awaitingResult=" + waiting + ", status=" + readField(sync, "status") + ", rules="
-            + field(screen, "rules").getText() + ", outlet=" + field(screen, "filter").getText());
+        trace(
+            "editorRevision=" + revision
+                + ", receivedRevision="
+                + received
+                + ", expectedRevision="
+                + expectedRevision
+                + ", awaitingResult="
+                + waiting
+                + ", status="
+                + readField(sync, "status")
+                + ", rules="
+                + field(screen, "rules").getText()
+                + ", outlet="
+                + field(screen, "filter").getText());
         return waiting ? -1 : revision;
     }
 
     private String currentScreen() {
-        return mc.currentScreen == null ? "none" : mc.currentScreen.getClass().getName();
+        return mc.currentScreen == null ? "none"
+            : mc.currentScreen.getClass()
+                .getName();
     }
 
     private void trace(String value) {
@@ -535,7 +629,8 @@ public final class CenterGraphTcpClient {
     }
 
     private static Object readField(Object receiver, String name) throws ReflectiveOperationException {
-        Field field = receiver.getClass().getDeclaredField(name);
+        Field field = receiver.getClass()
+            .getDeclaredField(name);
         field.setAccessible(true);
         return field.get(receiver);
     }
@@ -556,8 +651,10 @@ public final class CenterGraphTcpClient {
     }
 
     private static void aim(ModularScreen screen, IWidget widget, int x, int y) {
-        var transform = LocatedWidget.of(widget).getTransformationMatrix();
-        screen.getContext().updateState((int) transform.transformX(x, y), (int) transform.transformY(x, y), 0);
+        var transform = LocatedWidget.of(widget)
+            .getTransformationMatrix();
+        screen.getContext()
+            .updateState((int) transform.transformX(x, y), (int) transform.transformY(x, y), 0);
         screen.onFrameUpdate();
     }
 
@@ -574,15 +671,28 @@ public final class CenterGraphTcpClient {
 
     private static void replace(ModularScreen screen, String name, String value) throws ReflectiveOperationException {
         TextFieldWidget field = field(screen, name);
-        int length = field.getText().length();
+        int length = field.getText()
+            .length();
         click(screen, name);
         screen.onKeyPressed('\0', Keyboard.KEY_END);
         for (int i = 0; i < length; i++) screen.onKeyPressed('\b', Keyboard.KEY_BACK);
         Class<?> events = Class.forName("me.eigenraven.lwjgl3ify.api.InputEvents");
         Class<?> textEvent = Class.forName(events.getName() + "$TextEvent");
-        events.getMethod("injectTextEvent", textEvent).invoke(null, textEvent.getConstructor(String.class).newInstance(value));
-        CenterGraphTcpFixture.require(value.equals(field.getText()), "Native text entry differs for " + name
-            + " (focused=" + field.isFocused() + ", enabled=" + field.areAncestorsEnabled() + ", actual=" + field.getText() + ")");
+        events.getMethod("injectTextEvent", textEvent)
+            .invoke(
+                null,
+                textEvent.getConstructor(String.class)
+                    .newInstance(value));
+        CenterGraphTcpFixture.require(
+            value.equals(field.getText()),
+            "Native text entry differs for " + name
+                + " (focused="
+                + field.isFocused()
+                + ", enabled="
+                + field.areAncestorsEnabled()
+                + ", actual="
+                + field.getText()
+                + ")");
     }
 
     private void finish(String error) {

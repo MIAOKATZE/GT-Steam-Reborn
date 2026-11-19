@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +17,7 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.StatCollector;
+import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
@@ -36,10 +38,8 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.ClusterTier;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.SteamGrade;
 import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
-import com.miaokatze.gtsr.common.structure.StructurePreviewWorld;
 
 import gregtech.api.enums.Textures;
-import gregtech.api.render.TextureFactory;
 import gregtech.api.interfaces.INEIPreviewModifier;
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -52,8 +52,11 @@ import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
+import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
+import gregtech.api.util.FluidEjectionHelper;
+import gregtech.api.util.ItemEjectionHelper;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
@@ -84,7 +87,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private final CenterLedger ledger = new CenterLedger();
     private CenterPlanner.Session planning;
     private CenterStructure.DebugBuild debugBuild;
-    private boolean debugIgnoreItems, debugIgnoreFluids, debugIgnoreEnergy;
+    private boolean debugIgnoreFluids, debugIgnoreEnergy;
     private int selectedSlot, totalTicks, elapsed, steamKind, plannedTier = -1, plannedMask;
     private int textureTier = -1;
     private long steamTotal, energyTotal, sequence, nextProbe, coolingSteam;
@@ -131,10 +134,18 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         structure.construct(getBaseMetaTileEntity(), selectedTier(stack) - 1, selectedSectors(stack), hintsOnly);
     }
 
+    private World previewConstructionWorld;
+
+    @Override
+    public void onPreviewConstruct(ItemStack stack) {
+        previewConstructionWorld = getBaseMetaTileEntity().getWorld();
+    }
+
     @Override
     public int survivalConstruct(ItemStack stack, int budget, ISurvivalBuildEnvironment env) {
-        // The tracked renderer has a completion callback. Populate its world once there.
-        if (getBaseMetaTileEntity().getWorld() instanceof StructurePreviewWorld) return 0;
+        // The native NEI completion callback places the selected structure and preview ports together.
+        if (previewConstructionWorld != null && previewConstructionWorld == getBaseMetaTileEntity().getWorld())
+            return 0;
         return structure
             .survivalConstruct(getBaseMetaTileEntity(), selectedTier(stack) - 1, selectedSectors(stack), budget, env);
     }
@@ -145,13 +156,14 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
 
     static int selectedSectors(ItemStack stack) {
         int value = ChannelDataAccessor.hasSubChannel(stack, CenterStructure.SECTOR_CHANNEL)
-            ? ChannelDataAccessor.getChannelData(stack, CenterStructure.SECTOR_CHANNEL) : 1;
+            ? ChannelDataAccessor.getChannelData(stack, CenterStructure.SECTOR_CHANNEL)
+            : 1;
         return (1 << Math.max(1, Math.min(6, value))) - 1;
     }
 
     @Override
     public void onPreviewStructureComplete(ItemStack stack) {
-        if (getBaseMetaTileEntity().getWorld() instanceof StructurePreviewWorld preview) preview.gtsr$markStructurePreview();
+        previewConstructionWorld = null;
         textureTier = selectedTier(stack) - 1;
         construct(stack, false);
         structure.showPreviewPorts(getBaseMetaTileEntity(), textureTier);
@@ -181,7 +193,11 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     @Override
     protected void onStructureCheckFinished(IGregTechTileEntity te) {
         super.onStructureCheckFinished(te);
-        if (mMachine && ShutDownReasonRegistry.STRUCTURE_INCOMPLETE.getKey().equals(te.getLastShutDownReason().getKey())) {
+        if (mMachine && mStartUpCheck > 0) mStartUpCheck = -1;
+        if (mMachine && ShutDownReasonRegistry.STRUCTURE_INCOMPLETE.getKey()
+            .equals(
+                te.getLastShutDownReason()
+                    .getKey())) {
             te.setShutDownReason(ShutDownReasonRegistry.NONE);
             te.setShutdownStatus(false);
         }
@@ -216,24 +232,32 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     static boolean acceptsPort(IMetaTileEntity meta) {
         if (!(meta instanceof MTEHatch)) return false;
         Class<?> type = meta.getClass();
-        return type == MTEHatchInput.class || type == MTEHatchInputBus.class || type == MTEHatchOutput.class
-            || type == MTEHatchOutputBus.class || type == MTEHatchEnergy.class || type == MTESteamCoolingHatch.class
-            || type == MTESteamInputHatchGeneric.class || type == MTEHatchPressureSteamInput.class
+        return type == MTEHatchInput.class || type == MTEHatchInputBus.class
+            || type == MTEHatchOutput.class
+            || type == MTEHatchOutputBus.class
+            || type == MTEHatchEnergy.class
+            || type == MTESteamCoolingHatch.class
+            || type == MTESteamInputHatchGeneric.class
+            || type == MTEHatchPressureSteamInput.class
             || type == MTEOverpressureTurbineInputHatch.class;
     }
 
     private boolean hasRequiredPorts() {
         return !mInputBusses.isEmpty() && !mOutputBusses.isEmpty()
-            && !mInputHatches.isEmpty() && !mOutputHatches.isEmpty();
+            && !mInputHatches.isEmpty()
+            && !mOutputHatches.isEmpty();
     }
 
     @Override
     public ITexture[] getTexture(IGregTechTileEntity te, ForgeDirection side, ForgeDirection facing, int colorIndex,
         boolean active, boolean redstone) {
-        ITexture casing = Textures.BlockIcons.getCasingTextureForId(MTEClusterUnitBase.tierCasingTextureId(textureTier));
+        ITexture casing = Textures.BlockIcons
+            .getCasingTextureForId(MTEClusterUnitBase.tierCasingTextureId(textureTier));
         if (side != facing) return new ITexture[] { casing };
-        return new ITexture[] { casing, TextureFactory.of(
-            active ? Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE : Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL) };
+        return new ITexture[] { casing,
+            TextureFactory.of(
+                active ? Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE
+                    : Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL) };
     }
 
     @Override
@@ -248,7 +272,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
 
     @Override
     protected MultiblockTooltipBuilder createTooltip() {
-        return new MultiblockTooltipBuilder().addMachineType(StatCollector.translateToLocal("gtsr.ore_center.tooltip.type"))
+        return new MultiblockTooltipBuilder()
+            .addMachineType(StatCollector.translateToLocal("gtsr.ore_center.tooltip.type"))
             .addInfo("The controller plans and runs whole processing batches.")
             .addInfo(StatCollector.translateToLocal("gtsr.ore_center.tooltip.terminal"))
             .addInfo("Sneak-screwdriver selects a module pad. Use screwdriver to install or return a package.")
@@ -274,6 +299,11 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     @Override
     public CheckRecipeResult checkProcessing() {
         return CheckRecipeResultRegistry.NO_RECIPE;
+    }
+
+    @Override
+    protected void runMachine(IGregTechTileEntity te, long tick) {
+        // GT uses the mirrored progress and products for its GUI. The center owns all transactions.
     }
 
     @Override
@@ -324,14 +354,14 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     private String changeModule(IGregTechTileEntity te, int slot, CenterModule choice, int choiceGrade) {
-        if (debugBuild != null || totalTicks > 0
-            || (structure.sectorMask(te) & 1 << (slot / 6)) == 0) {
+        if (debugBuild != null || totalTicks > 0 || (structure.sectorMask(te) & 1 << (slot / 6)) == 0) {
             return "The center must be formed and between batches.";
         }
         if (grades[slot] > 0) {
             CenterModule module = MODULES[modules[slot]];
             if (!structure.remove(te, slot, module, grades[slot])) return "Module removal could not be verified.";
             pendingItems.add(CenterModuleItems.stack(module, grades[slot]));
+            mirrorBatchOutputs();
             grades[slot] = 0;
             planning = null;
             te.markDirty();
@@ -411,7 +441,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             FluidStack fluid = slot.get();
             if (fluid != null && fluid.amount > 0 && fluids.tagCount() < 32) {
                 NBTTagCompound available = new NBTTagCompound();
-                available.setString("FluidName", fluid.getFluid().getName());
+                available.setString(
+                    "FluidName",
+                    fluid.getFluid()
+                        .getName());
                 available.setInteger("Amount", fluid.amount);
                 fluids.appendTag(available);
             }
@@ -494,13 +527,12 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             && te.isUseableByPlayer(player);
     }
 
-    public String applyWandDebug(EntityPlayer player, boolean items, boolean fluids, boolean energy, boolean quick) {
+    public String applyWandDebug(EntityPlayer player, boolean fluids, boolean energy, boolean quick) {
         if (!canEditGraphs(player)
             || !player.capabilities.isCreativeMode && !player.canCommandSenderUseCommand(2, "gtsrdebug"))
             return "gtsr.wand.debug.denied";
         if (quick && (debugBuild != null || elapsed < totalTicks)) return "gtsr.wand.debug.build_busy";
         IGregTechTileEntity te = getBaseMetaTileEntity();
-        debugIgnoreItems = items;
         debugIgnoreFluids = fluids;
         debugIgnoreEnergy = energy;
         planning = null;
@@ -529,6 +561,17 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             CenterTickTiming.end(te, CenterTickTiming.Stage.BASE, measured);
         }
         if (te.isClientSide()) return;
+        try {
+            tickBatch(te, tick);
+        } finally {
+            mProgresstime = elapsed;
+            mMaxProgresstime = totalTicks;
+            if (mOutputItems == null && !pendingItems.isEmpty() || mOutputFluids == null && !pendingFluids.isEmpty())
+                mirrorBatchOutputs();
+        }
+    }
+
+    private void tickBatch(IGregTechTileEntity te, long tick) {
         if (debugBuild != null) {
             te.setActive(false);
             runDebugBuild(te);
@@ -551,16 +594,20 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         }
         if (elapsed < totalTicks) {
             payTick(te);
-            return;
+            if (elapsed < totalTicks) return;
+            drainOutput(te);
+        } else if (tick % 10 == 0) {
+            drainOutput(te);
         }
-        if ((tick % 10) == 0) drainOutput(te);
-        if (!pendingItems.isEmpty() || !pendingFluids.isEmpty() || !te.isAllowedToWork()) return;
+        te.setActive(false);
+        if (!pendingItems.isEmpty() || !pendingFluids.isEmpty()) return;
         totalTicks = elapsed = 0;
+        if (!te.isAllowedToWork()) return;
         if (tick < nextProbe) return;
         // Leave room for the final non-interruptible native lookup or inventory operation.
         if (!hasTickBudget()) return;
         long start = System.nanoTime();
-        measured = CenterTickTiming.begin();
+        long measured = CenterTickTiming.begin();
         try {
             planTick(te, tick, plannedTier, plannedMask);
         } finally {
@@ -594,7 +641,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     private static boolean hasTickBudget() {
-        int serverTick = MinecraftServer.getServer().getTickCounter();
+        int serverTick = MinecraftServer.getServer()
+            .getTickCounter();
         if (serverTick != budgetTick) {
             budgetTick = serverTick;
             workInTick = 0;
@@ -694,16 +742,18 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     private void commit(IGregTechTileEntity te, CenterPlanner.Batch batch, int tier) {
+        if (batch.consumed.isEmpty()) return;
         List<Slot> slots = itemSlots();
         List<FluidSlot> tanks = fluidSlots();
-        List<Runnable> debits = new ArrayList<>();
-        if (!debugIgnoreItems) for (ItemStack need : batch.consumed) {
+        Map<Slot, Integer> debits = new LinkedHashMap<>();
+        for (ItemStack need : batch.consumed) {
             int left = need.stackSize;
             for (Slot slot : slots) {
                 ItemStack stack = slot.get();
                 if (stack == null || !CenterPlanner.equal(stack, need)) continue;
-                int n = Math.min(left, stack.stackSize);
-                if (n > 0) debits.add(() -> slot.take(n));
+                int prior = debits.getOrDefault(slot, 0);
+                int n = Math.min(left, stack.stackSize - prior);
+                if (n > 0) debits.put(slot, prior + n);
                 left -= n;
                 if (left == 0) break;
             }
@@ -712,8 +762,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         Map<FluidSlot, Integer> ingredients = new IdentityHashMap<>();
         int accepted = 0;
         if (!debugIgnoreFluids) {
-            for (FluidStack fluid : batch.consumedFluids)
-                if (!reserve(tanks, fluid, ingredients)) return;
+            for (FluidStack fluid : batch.consumedFluids) if (!reserve(tanks, fluid, ingredients)) return;
             List<FluidSlot> dedicated = steamSlots();
             List<FluidSlot> supply = new ArrayList<>(dedicated);
             supply.addAll(tanks);
@@ -722,7 +771,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             if (accepted < 0) return;
         }
         if (!debugIgnoreEnergy && batch.energy > getMaxInputEu() * batch.ticks) return;
-        debits.forEach(Runnable::run);
+        debits.forEach(Slot::take);
         ingredients.forEach(FluidSlot::take);
         elapsed = 0;
         totalTicks = batch.ticks;
@@ -734,7 +783,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         sequence++;
         pendingItems.addAll(batch.outputs);
         pendingFluids.addAll(batch.outputFluids);
-        if (!debugIgnoreItems) for (ItemStack item : batch.consumed) ledger.add(item, 0, item.stackSize);
+        mirrorBatchOutputs();
+        for (ItemStack item : batch.consumed) ledger.add(item, 0, item.stackSize);
         for (ItemStack item : batch.bonuses) ledger.add(item, 2, item.stackSize);
         te.markDirty();
     }
@@ -801,25 +851,30 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     private void drainOutput(IGregTechTileEntity te) {
-        if (elapsed < totalTicks) return;
+        if (pendingItems.isEmpty() && pendingFluids.isEmpty()) return;
+        ItemEjectionHelper itemOutput = null;
+        FluidEjectionHelper fluidOutput = null;
         if (!pendingItems.isEmpty()) {
-            ItemStack remaining = pendingItems.get(0);
-            ItemStack packet = remaining.copy();
-            packet.stackSize = Math.min(remaining.getMaxStackSize(), remaining.stackSize);
-            int before = packet.stackSize;
-            addOutputPartial(packet);
-            remaining.stackSize -= before - packet.stackSize;
-            if (CenterModuleItems.moduleOf(remaining) == null) ledger.add(remaining, 1, before - packet.stackSize);
-            if (remaining.stackSize <= 0) pendingItems.remove(0);
-            if (before != packet.stackSize) te.markDirty();
+            itemOutput = new ItemEjectionHelper(getOutputBusses(), true);
+            if (itemOutput.ejectItems(pendingItems, 1) != 1) return;
         }
         if (!pendingFluids.isEmpty()) {
-            FluidStack remaining = pendingFluids.get(0);
-            int before = remaining.amount;
-            addOutputPartial(remaining, getOutputHatches(new FluidStack[] { remaining }), true);
-            if (remaining.amount <= 0) pendingFluids.remove(0);
-            if (before != remaining.amount) te.markDirty();
+            fluidOutput = new FluidEjectionHelper(getOutputHatches(pendingFluids.toArray(new FluidStack[0])), true);
+            if (fluidOutput.ejectFluids(pendingFluids, 1) != 1) return;
         }
+        if (itemOutput != null) itemOutput.commit();
+        if (fluidOutput != null) fluidOutput.commit();
+        for (ItemStack item : pendingItems)
+            if (CenterModuleItems.moduleOf(item) == null) ledger.add(item, 1, item.stackSize);
+        pendingItems.clear();
+        pendingFluids.clear();
+        mirrorBatchOutputs();
+        te.markDirty();
+    }
+
+    private void mirrorBatchOutputs() {
+        mOutputItems = pendingItems.isEmpty() ? null : pendingItems.toArray(new ItemStack[0]);
+        mOutputFluids = pendingFluids.isEmpty() ? null : pendingFluids.toArray(new FluidStack[0]);
     }
 
     private static class Slot {
@@ -837,10 +892,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         }
 
         void take(int count) {
-            ItemStack item = get();
-            item.stackSize -= count;
-            if (item.stackSize == 0) te.setInventorySlotContents(index, null);
-            te.markDirty();
+            te.decrStackSize(index, count);
         }
     }
 
@@ -911,9 +963,16 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     @Override
     public void saveNBTData(NBTTagCompound tag) {
         super.saveNBTData(tag);
+        // Only the Center* fields are a batch journal. Older builds must not replay the GUI mirrors.
+        tag.removeTag("mProgresstime");
+        tag.removeTag("mMaxProgresstime");
+        tag.removeTag("mOutputItemsLength");
+        tag.removeTag("mOutputFluidsLength");
+        if (mOutputItems != null) for (int i = 0; i < mOutputItems.length; i++) tag.removeTag("mOutputItem" + i);
+        if (mOutputFluids != null) for (int i = 0; i < mOutputFluids.length; i++) tag.removeTag("mOutputFluids" + i);
         tag.setIntArray("CenterModules", modules);
         tag.setIntArray("CenterGrades", grades);
-        tag.setBoolean("CenterDebugItems", debugIgnoreItems);
+        tag.removeTag("CenterDebugItems");
         tag.setBoolean("CenterDebugFluids", debugIgnoreFluids);
         tag.setBoolean("CenterDebugEnergy", debugIgnoreEnergy);
         tag.setInteger("CenterPad", selectedSlot);
@@ -941,13 +1000,12 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setTag("CenterGraphs", configs);
         tag.setTag("CenterItemOutputs", items);
         tag.setTag("CenterFluidOutputs", fluids);
-        structure.save(tag);
+        structure.save(tag, getBaseMetaTileEntity());
     }
 
     @Override
     public void loadNBTData(NBTTagCompound tag) {
         super.loadNBTData(tag);
-        debugIgnoreItems = tag.getBoolean("CenterDebugItems");
         debugIgnoreFluids = tag.getBoolean("CenterDebugFluids");
         debugIgnoreEnergy = tag.getBoolean("CenterDebugEnergy");
         int[] types = tag.getIntArray("CenterModules"), levels = tag.getIntArray("CenterGrades");
@@ -1007,5 +1065,12 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             if (fluid != null && fluid.amount > 0) pendingFluids.add(fluid);
         }
         structure.load(tag);
+        planning = null;
+        plannedTier = -1;
+        plannedMask = 0;
+        mMachine = false;
+        mProgresstime = elapsed;
+        mMaxProgresstime = totalTicks;
+        mirrorBatchOutputs();
     }
 }

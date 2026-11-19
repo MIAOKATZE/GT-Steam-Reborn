@@ -34,24 +34,35 @@ final class CenterOperationText {
         int tier = state.getInteger("Tier");
         int sectors = Integer.bitCount(state.getInteger("Sectors"));
         String tierName = tier >= 0 && tier < 4
-            ? StatCollector.translateToLocal("gtsr.ore_center.graph.terminal.tier." + tier) : "–";
+            ? StatCollector.translateToLocal("gtsr.ore_center.graph.terminal.tier." + tier)
+            : "–";
         String white = nativeGui ? EnumChatFormatting.WHITE.toString() : "";
         String yellow = nativeGui ? EnumChatFormatting.YELLOW.toString() : "";
         return switch (index) {
-            case 0 -> nativeGui ? yellow + local("native.structure", structureState(state, sectors),
-                EnumChatFormatting.GOLD + tierName, white + sectors)
+            case 0 -> nativeGui
+                ? yellow + local(
+                    "native.structure",
+                    structureState(state, sectors),
+                    EnumChatFormatting.GOLD + tierName,
+                    white + sectors)
                 : local("overview", tierName, sectors, state.getInteger("Installed"), state.getInteger("Graphs"));
-            case 1 -> nativeGui ? yellow + local("native.progress", white + state.getInteger("Elapsed"), duration,
-                state.getInteger("Installed"), state.getInteger("Graphs"))
+            case 1 -> nativeGui
+                ? yellow + local("native.modules", white + state.getInteger("Installed"), state.getInteger("Graphs"))
                 : local("progress", state.getInteger("Elapsed"), duration, format(state.getLong("Power")));
-            case 2 -> yellow + local("steam", white + rate(steamUnits, duration), format(steamUnits),
+            case 2 -> yellow + local(
+                "steam",
+                white + rate(steamUnits, duration),
+                format(steamUnits),
                 (nativeGui ? EnumChatFormatting.AQUA.toString() : "") + fluidName(state.getString("SteamFluid")));
             case 3 -> yellow + local("energy", white + rate(energy, duration), format(energy));
             default -> {
                 int boost = index - 4;
-                NBTTagCompound cost = state.getTagList("BoostCosts", 10).getCompoundTagAt(boost);
+                NBTTagCompound cost = state.getTagList("BoostCosts", 10)
+                    .getCompoundTagAt(boost);
                 String fluid = fluidName(cost.getString("FluidName"));
-                yield yellow + local(BOOSTS[boost], (nativeGui ? EnumChatFormatting.AQUA.toString() : "") + fluid,
+                yield yellow + local(
+                    BOOSTS[boost],
+                    (nativeGui ? EnumChatFormatting.AQUA.toString() : "") + fluid,
                     white + format(cost.getInteger("Amount")));
             }
         };
