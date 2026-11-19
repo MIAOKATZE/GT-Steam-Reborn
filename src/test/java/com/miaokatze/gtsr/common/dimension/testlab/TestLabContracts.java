@@ -16,6 +16,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 
 import com.miaokatze.gtsr.common.debug.MachineDebugRegistry;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets;
 
 /** Executable contracts: no server, client, GL context or world is created. */
 public final class TestLabContracts {
@@ -28,9 +30,32 @@ public final class TestLabContracts {
         terminalSnapshots();
         requestCorrelation();
         wandProfiles();
+        centerPresets();
         if (args.length > 0) exportDeclaredCases(java.nio.file.Paths.get(args[0]));
         System.out.println(
-            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 110/95/120 catalog, performance selection, independent report retry, request correlation, wand mode and profile migration");
+            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 110/95/120 catalog, performance selection, independent report retry, request correlation, wand profiles, ore generator presets");
+    }
+
+    private static void centerPresets() throws IOException {
+        var groups = CenterPresets.all();
+        require(groups.size() == 18, "original generator group count changed");
+        int ready = 0;
+        for (var group : groups) if (group.importable()) {
+            var graph = group.graph(group.name);
+            require(graph.runnable(), group.id + " is not runnable after import");
+            require(graph.nodes.size() == group.nodeCount(), group.id + " lost processing stages");
+            NBTTagCompound tag = graph.save();
+            require(CenterGraph.load(tag).save().equals(tag), group.id + " did not round trip");
+            require(net.minecraft.nbt.CompressedStreamTools.compress(tag).length <= 65536,
+                group.id + " does not fit the native graph packet");
+            if (group.id.startsWith("regular-")) {
+                require(graph.entryRoutes().size() == 2, group.id + " lost the extra entry points");
+                require(graph.nodes.stream().anyMatch(node -> node.targetCount() > node.process.outletCount()),
+                    group.id + " lost the multiway output routes");
+            }
+            ready++;
+        }
+        require(ready == 14, "whole generator graphs");
     }
 
     private static void wandProfiles() {

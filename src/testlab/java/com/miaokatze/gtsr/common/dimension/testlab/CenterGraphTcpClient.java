@@ -61,6 +61,8 @@ public final class CenterGraphTcpClient {
     private int projectedHints, previewStep;
     private boolean controllerOverlay, reopenedRoutes, openedRules, verifiedCopper;
     private int trialStep, trialTicks;
+    private int terminalSlot = -1;
+    private boolean gtCaptured, gtVerified;
     private String capturePage;
     private final List<String> pageFrames = new ArrayList<>();
     private String lastTrace = "";
@@ -100,19 +102,30 @@ public final class CenterGraphTcpClient {
             }
 
             ModularScreen screen = screen();
+            if (phase == 1 && projectedHints != 0 && !gtVerified) {
+                verifyGtWindow();
+                return;
+            }
             if (phase == 1 || phase == 7) {
                 if (screen == null) {
                     trace("waiting for graph panel, screen=" + currentScreen());
                     open();
                     return;
                 }
-                if (phase == 1 && previewStep <= PAGES.length + 2) {
+                if (phase == 1 && previewStep <= PAGES.length + 5) {
                     if (capturePage != null) return;
                     Object editor = readField(control(screen, "tabs"), "editor");
                     Object sync = readField(editor, "sync");
                     var terminal = (net.minecraft.nbt.NBTTagCompound) readField(sync, "terminal");
                     if (!terminal.getBoolean("Formed") || terminal.getIntArray("Grades")[3] == 0) return;
-                    if (previewStep == 0) capturePage = PAGES[0];
+                    if (previewStep == 0) {
+                        var costs = terminal.getTagList("BoostCosts", 10);
+                        for (int i = 0; i < 4; i++)
+                            CenterGraphTcpFixture.require(net.minecraftforge.fluids.FluidRegistry.getFluid(
+                                costs.getCompoundTagAt(i).getString("FluidName")) != null,
+                                "Missing synchronized additive fluid " + i);
+                        capturePage = PAGES[0];
+                    }
                     else if (previewStep == 1) click(screen, "page_routes");
                     else if (previewStep == 2) {
                         if (!previewCopper(screen, editor)) return;
@@ -124,7 +137,16 @@ public final class CenterGraphTcpClient {
                     else if (previewStep == 5) {
                         if (!previewTrial(screen)) return;
                         capturePage = "calculation";
-                    } else click(screen, "page_routes");
+                    } else if (previewStep == 6) click(screen, "page_routes");
+                    else if (previewStep == 7) click(screen, "generator_presets");
+                    else if (previewStep == 8) {
+                        var presetPanel = screen.getPanelManager().getOpenPanel("gtsr_center_presets");
+                        if (presetPanel == null) return;
+                        CenterGraphTcpFixture.require(find(presetPanel, CONTROL + "preset_regular-MPMC") != null
+                            && find(presetPanel, CONTROL + "preset_special-dehydrator") != null,
+                            "Generator lost its regular or expression-only presets");
+                        capturePage = "presets";
+                    } else screen.getPanelManager().closeTopPanel();
                     previewStep++;
                     return;
                 }
@@ -293,6 +315,34 @@ public final class CenterGraphTcpClient {
         mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, mc.thePlayer.getHeldItem(), x, y, z,
             ForgeDirection.NORTH.ordinal(), Vec3.createVectorHelper(x + .5, y + .5, z));
         openCooldown = 20;
+    }
+
+    private void verifyGtWindow() throws ReflectiveOperationException {
+        if (capturePage != null) return;
+        if (gtCaptured) {
+            mc.thePlayer.closeScreen();
+            mc.thePlayer.inventory.currentItem = terminalSlot;
+            openCooldown = 0;
+            gtVerified = true;
+            return;
+        }
+        if (terminalSlot < 0) {
+            terminalSlot = mc.thePlayer.inventory.currentItem;
+            int empty = (terminalSlot + 1) % 9;
+            CenterGraphTcpFixture.require(mc.thePlayer.inventory.getStackInSlot(empty) == null,
+                "GT bare-hand check requires an empty hotbar slot");
+            mc.thePlayer.inventory.currentItem = empty;
+            openCooldown = 0;
+        }
+        ModularScreen current = ModularScreen.getCurrent();
+        if (mc.currentScreen == null || current == null) {
+            open();
+            return;
+        }
+        IWidget row = find(current.getMainPanel(), "center_gt_operation_7");
+        CenterGraphTcpFixture.require(row != null && row.isValid(), "Ordinary controller click did not open GT status");
+        capturePage = "gt-operation";
+        gtCaptured = true;
     }
 
     private ModularScreen screen() {

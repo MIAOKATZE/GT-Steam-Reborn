@@ -49,6 +49,16 @@ public enum CenterProcess {
         return this == REACTOR ? 3 : this == FURNACE ? 2 : 0;
     }
 
+    public int outletCount() {
+        return switch (this) {
+            case CRUSHER, WASHER, THERMAL_CENTRIFUGE, SEPARATOR -> 3;
+            case CHEMICAL_BATH -> 4;
+            case HAMMER, SIMPLE_WASHER, CENTRIFUGE -> 2;
+            case SIFTER -> 6;
+            default -> 1;
+        };
+    }
+
     public boolean hasCircuitSlot() {
         return this == REACTOR || this == FURNACE || this == ELECTROLYZER;
     }

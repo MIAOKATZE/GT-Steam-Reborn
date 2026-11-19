@@ -45,7 +45,7 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
 
     static final String ID = "ore_integration_center.machine";
     private static final String PREFIX = "/assets/gtsr/orecenter/";
-    private static final int ORE_COUNT = 8, STEAM_FILL = 4096, COOLING_Z = 4;
+    private static final int ORE_COUNT = 8, STEAM_FILL = 4096;
 
     private final List<int[]> positions = new ArrayList<>();
     private int x, y, z, cursor, phase, pauseAt, steamAtPause, expected, outputCount;
@@ -83,7 +83,7 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
         cursor = phase = 0;
         pauseAt = -1;
         positions.clear();
-        addOwnership("tower-0", 0, 0, 0, 0, false);
+        addOwnership("tower-service-0", 0, 0, 0, 0, false);
         addOwnership("outer-0", 0, 0, 0, 0, false);
         addOwnership("module-1-crusher-1", -46, 9, 49, 0, true);
         addOwnership("module-3-logistics-1", -76, 1, 66, 3, true);
@@ -111,13 +111,13 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                 long begin = System.nanoTime();
                 center.construct(GTSRItemList.OreIntegrationCenter.get(1), false);
                 buildNanos = System.nanoTime() - begin;
-                input = place(world, -5, ItemList.Hatch_Input_Bus_LV);
-                output = place(world, -3, ItemList.Hatch_Output_Bus_LV);
-                ordinaryInput = (MTEHatchInput) place(world, -1, ItemList.Hatch_Input_IV).getMetaTileEntity();
-                place(world, 1, ItemList.Hatch_Output_LV);
-                steam = (MTEHatchInput) TestLabFixtures.machine(world, x + 3, y, z + 1,
+                input = place(world, 5, ItemList.Hatch_Input_Bus_LV);
+                output = place(world, -5, ItemList.Hatch_Output_Bus_LV);
+                ordinaryInput = (MTEHatchInput) place(world, 3, ItemList.Hatch_Input_IV).getMetaTileEntity();
+                place(world, -3, ItemList.Hatch_Output_LV);
+                steam = (MTEHatchInput) TestLabFixtures.machine(world, x + 7, y, z,
                     GTSRItemList.SteamInputHatchGeneric.get(1).getItemDamage()).getMetaTileEntity();
-                cooling = (MTESteamCoolingHatch) TestLabFixtures.machine(world, x, y, z + COOLING_Z,
+                cooling = (MTESteamCoolingHatch) TestLabFixtures.machine(world, x - 7, y, z,
                     GTSRItemList.SteamCoolingHatch.get(1).getItemDamage()).getMetaTileEntity();
                 input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
                 phase = 1;
@@ -191,7 +191,7 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
     }
 
     private IGregTechTileEntity place(WorldServer world, int offset, ItemList item) {
-        return TestLabFixtures.machine(world, x + offset, y, z + 1, item.get(1).getItemDamage());
+        return TestLabFixtures.machine(world, x + offset, y, z, item.get(1).getItemDamage());
     }
 
     private void supply() {

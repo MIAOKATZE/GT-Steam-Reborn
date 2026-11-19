@@ -7,8 +7,11 @@ import java.util.Random;
 import java.util.regex.Pattern;
 
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
+
+import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.BoosterType;
+import com.miaokatze.gtsr.common.machine.cluster.MTEBasicAmplifierUnit;
 
 import gregtech.api.enums.ItemList;
 import gregtech.api.recipe.RecipeMap;
@@ -34,12 +37,16 @@ public final class CenterPlanner {
         public final List<ItemStack> bonuses;
         public final List<FluidStack> consumedFluids, outputFluids;
         public final int ticks;
+        final int[] boostFluids;
         public final long steam, energy;
 
         private Batch(Session plan, int ticks, long steam, long energy) {
             this.consumed = plan.consumed;
             this.outputs = plan.outputs;
             this.bonuses = plan.bonuses;
+            this.boostFluids = new int[BOOSTS.length];
+            if (!plan.ignoreFluids)
+                for (int i = 0; i < boostFluids.length; i++) boostFluids[i] = plan.rootPaid * plan.boostPrice[i];
             this.consumedFluids = plan.consumedFluids;
             this.outputFluids = plan.outputFluids;
             this.ticks = ticks;
@@ -100,13 +107,13 @@ public final class CenterPlanner {
 
     static final class Boost {
 
-        final String fluid;
+        final BoosterType type;
         final double[] gain, steam, eu;
         final int[] price;
         final double cap;
 
-        Boost(String fluid, double[] gain, int[] price, double[] steam, double[] eu, double cap) {
-            this.fluid = fluid;
+        Boost(BoosterType type, double[] gain, int[] price, double[] steam, double[] eu, double cap) {
+            this.type = type;
             this.gain = gain;
             this.price = price;
             this.steam = steam;
@@ -117,33 +124,37 @@ public final class CenterPlanner {
 
     private static final Boost[] BOOSTS = {
         new Boost(
-            "hydrochloricacid",
+            BoosterType.SPEED,
             new double[] { 5, 10, 20 },
             new int[] { 4, 14, 45 },
             new double[] { .05, .12, .24 },
             new double[] { .03, .07, .14 },
             50),
         new Boost(
-            "nitricacid",
+            BoosterType.PARALLEL,
             new double[] { 4, 8, 16 },
             new int[] { 4, 12, 36 },
             new double[] { .04, .10, .20 },
             new double[] { .02, .06, .12 },
             48),
         new Boost(
-            "sulfuricacid",
+            BoosterType.PRIMARY_OUTPUT,
             new double[] { .5, 1, 2 },
             new int[] { 8, 24, 75 },
             new double[] { .08, .16, .30 },
             new double[] { .04, .09, .18 },
             8),
         new Boost(
-            "ammoniumchloride",
+            BoosterType.SECONDARY_OUTPUT,
             new double[] { 1, 2.5, 5 },
             new int[] { 3, 10, 30 },
             new double[] { .05, .12, .22 },
             new double[] { .03, .07, .14 },
             20) };
+
+    static Fluid boostFluid(int index) {
+        return MTEBasicAmplifierUnit.resolveBoosterFluid(BOOSTS[index].type);
+    }
 
     public static final class Session {
 
@@ -213,7 +224,7 @@ public final class CenterPlanner {
                 int quantity = Math.min(stack.stackSize, MAX_WORK - proposedRoots);
                 boolean raw = anyTag(tags, RAW);
                 stack.stackSize = quantity;
-                addLot(graph.input.get(0), stack, true, raw);
+                addLot(graph.input.get(graph.graph.entry(stack, tags)), stack, true, raw);
                 proposedRoots += quantity;
                 selected++;
             } else if (graph == null && auxiliary.size() < MAX_INPUTS) {
@@ -234,11 +245,14 @@ public final class CenterPlanner {
             for (int i = 0; i < BOOSTS.length; i++) {
                 Boost b = BOOSTS[i];
                 int module = CenterModule.SPEED.ordinal() + i;
+                if (best[module] == 0) continue;
+                Fluid ingredient = boostFluid(i);
+                if (ingredient == null) continue;
                 for (int g = 0; g < best[module]; g++) {
                     int required = proposedRoots * b.price[g];
                     for (int repeat = 0; repeat < counts[module][g] && required > 0; repeat++) {
-                        FluidStack fluid = FluidRegistry.getFluidStack(b.fluid, required);
-                        if (fluid == null || !ignoreFluids && !useFluid(available, fluid, required)) break;
+                        FluidStack fluid = new FluidStack(ingredient, required);
+                        if (!ignoreFluids && !useFluid(available, fluid, required)) break;
                         if (!ignoreFluids) mergeFluid(consumedFluids, fluid, required);
                         boostPrice[i] += b.price[g];
                         gain[i] = Math.min(b.cap, gain[i] + b.gain[g]);
@@ -443,7 +457,7 @@ public final class CenterPlanner {
         private Batch conclude() {
             for (int i = 0; i < BOOSTS.length; i++) {
                 int refund = (proposedRoots - rootPaid) * boostPrice[i];
-                if (refund > 0) useFluid(consumedFluids, FluidRegistry.getFluidStack(BOOSTS[i].fluid, refund), refund);
+                if (refund > 0) useFluid(consumedFluids, new FluidStack(boostFluid(i), refund), refund);
             }
             consumedFluids.removeIf(f -> f.amount <= 0);
             double scale = 1 + .06 * (sectors - 1) + .025 * Math.max(0, graphs.size() - 1);

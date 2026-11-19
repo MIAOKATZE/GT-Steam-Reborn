@@ -216,6 +216,8 @@ public final class CenterGraphTcpFixture {
         gt.setFrontFacing(ForgeDirection.NORTH);
         gt.disableWorking();
         center = (MTEMineralIntegrationCenter) gt.getMetaTileEntity();
+        actor.inventory.setInventorySlotContents(actor.inventory.currentItem,
+            GTSRItemList.HubTerminal.get(1));
         actor.inventory.setInventorySlotContents(9, GTOreDictUnificator.get(OrePrefixes.rawOre, Materials.Copper, 24));
         actor.playerNetServerHandler.setPlayerLocation(X + .5, Y, Z - 2.5, 0, 0);
         List<CenterGraph.Node> nodes = Arrays.asList(
@@ -250,10 +252,10 @@ public final class CenterGraphTcpFixture {
         }
         ItemStack trigger = new ItemStack(com.gtnewhorizon.structurelib.StructureLibAPI.getDefaultHologramItem(), 2);
         center.construct(trigger, false);
-        IGregTechTileEntity input = placeReviewPort(world, -5, ItemList.Hatch_Input_Bus_LV);
-        placeReviewPort(world, -3, ItemList.Hatch_Output_Bus_LV);
-        IGregTechTileEntity fluid = placeReviewPort(world, -1, ItemList.Hatch_Input_IV);
-        placeReviewPort(world, 1, ItemList.Hatch_Output_LV);
+        IGregTechTileEntity input = placeReviewPort(world, 5, ItemList.Hatch_Input_Bus_LV);
+        placeReviewPort(world, -5, ItemList.Hatch_Output_Bus_LV);
+        IGregTechTileEntity fluid = placeReviewPort(world, 3, ItemList.Hatch_Input_IV);
+        placeReviewPort(world, -3, ItemList.Hatch_Output_LV);
         input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
         input.setInventorySlotContents(1, CenterModuleItems.stack(CenterModule.WASHER, 1));
         input.setInventorySlotContents(2, CenterModuleItems.stack(CenterModule.SPEED, 1));
@@ -264,9 +266,9 @@ public final class CenterGraphTcpFixture {
 
     private static IGregTechTileEntity placeReviewPort(WorldServer world, int x, ItemList type) {
         int id = type.get(1).getItemDamage();
-        world.setBlock(X + x, Y, Z + 1, GregTechAPI.sBlockMachines,
+        world.setBlock(X + x, Y, Z, GregTechAPI.sBlockMachines,
             GregTechAPI.METATILEENTITIES[id].getTileEntityBaseType(), 3);
-        IGregTechTileEntity tile = (IGregTechTileEntity) world.getTileEntity(X + x, Y, Z + 1);
+        IGregTechTileEntity tile = (IGregTechTileEntity) world.getTileEntity(X + x, Y, Z);
         tile.setInitialValuesAsNBT(null, (short) id);
         tile.setFrontFacing(ForgeDirection.NORTH);
         return tile;

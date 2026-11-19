@@ -11,14 +11,14 @@ global.window = global;
 for (const name of ['block-palette', 'factory-base', 'factory-modules', 'voxel-model'])
     vm.runInThisContext(fs.readFileSync(path.join(preview, name + '.js'), 'utf8'), { filename:name });
 fs.mkdirSync(output, {recursive:true});
-const excluded = (x,y,z) => y === 2 && (x === 0 && z === -19 || z === -18 && [-5,-3,-1,1,3,5].includes(x));
+const excluded = (x,y,z) => y === 2 && x === 0 && z === -19;
 const key = (x,y,z) => (x+256)*131072+(z+256)*256+y;
 function sparse(model) {
     const { blocks, width, depth, minX, minZ, palette } = model;
     const result = new Map();
     for (let i=0;i<blocks.length;i++) {
         const material = palette[blocks[i]];
-        if (!blocks[i] || material.marking) continue;
+        if (!blocks[i] || material.marking || material.previewOnly) continue;
         const x=i%width+minX, y=Math.floor(i/(width*depth)), z=Math.floor(i/width)%depth+minZ;
         if (!excluded(x,y,z)) result.set(key(x,y,z), [x,y,z,material.block,material.meta]);
     }
@@ -48,7 +48,7 @@ const realOuter=buildOreFactoryOuter;
 global.buildOreFactoryOuter=()=>{};
 const tower=Array.from({length:4},(_,tier)=>sparse(makeOreVoxelModel(tier,[],1)));
 global.buildOreFactoryOuter=realOuter;
-for (const [tier,cells] of tower.entries()) write('tower-'+tier,cells);
+for (const [tier,cells] of tower.entries()) write('tower-service-'+tier,cells);
 const isolated=Array.from({length:6},(_,sector)=>sparse(makeOreVoxelModel(0,[],1<<sector)));
 for(const cells of isolated) for(const k of tower[0].keys()) cells.delete(k);
 const common=isolated.map(cells=>new Map(cells));

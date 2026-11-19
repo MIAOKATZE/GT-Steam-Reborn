@@ -24,6 +24,20 @@ public final class CenterGraph {
     public static final int AUTO_POSITION = Integer.MIN_VALUE;
     static final int MAX_DEPTH = 32;
     static final int MAX_EDGES = 256;
+    private static final int MAX_RULE_CHARACTERS = 24576;
+
+    public static final class EntryRoute {
+
+        public final int node;
+        public final String rule;
+        private final CenterOreRule compiled;
+
+        public EntryRoute(int node, String rule) {
+            this.node = node;
+            this.rule = rule;
+            this.compiled = new CenterOreRule(rule);
+        }
+    }
 
     public static final class OutletFilter {
 
@@ -104,6 +118,10 @@ public final class CenterGraph {
             return slot < targets.length ? targets[slot] : BUS;
         }
 
+        public int targetCount() {
+            return targets.length;
+        }
+
         public int[] targets() {
             return targets.clone();
         }
@@ -161,6 +179,15 @@ public final class CenterGraph {
         }
 
         int target(int slot, ItemStack stack) {
+            int nativePorts = process.outletCount();
+            if (targets.length > nativePorts) {
+                for (int i = nativePorts; i < targets.length; i++) {
+                    OutletFilter filter = bySlot == null ? null : bySlot[i];
+                    if (filter == null || filter.accepts(stack)) return targets[i];
+                }
+                // Recipe output indices above the native row count must never index configurable branches.
+                slot = Math.min(slot, nativePorts - 1);
+            }
             if (process == CenterProcess.SIFTER) slot = Math.min(5, slot);
             int target = target(slot);
             if (target < 0 || bySlot == null || slot >= bySlot.length) return target;
@@ -176,6 +203,9 @@ public final class CenterGraph {
     private final List<String> rules;
     private final List<CenterOreRule> compiled;
     public final List<Node> nodes;
+    private final List<EntryRoute> entryRoutes;
+    private final List<String> excludedRules;
+    private final List<CenterOreRule> excluded;
     private final boolean runnable;
 
     public CenterGraph(int priority, boolean enabled, List<String> oreRules, List<Node> nodes) {
@@ -183,7 +213,13 @@ public final class CenterGraph {
     }
 
     public CenterGraph(long id, String name, int priority, boolean enabled, List<String> oreRules, List<Node> nodes) {
-        if (nodes.size() > MAX_NODES || oreRules.size() > MAX_RULES) {
+        this(id, name, priority, enabled, oreRules, nodes, Collections.emptyList(), Collections.emptyList());
+    }
+
+    public CenterGraph(long id, String name, int priority, boolean enabled, List<String> oreRules, List<Node> nodes,
+        List<EntryRoute> entryRoutes, List<String> excludedRules) {
+        if (nodes.size() > MAX_NODES || oreRules.size() > MAX_RULES || entryRoutes.size() > MAX_RULES
+            || excludedRules.size() > MAX_RULES) {
             throw new IllegalArgumentException("Graph exceeds its node or rule budget");
         }
         this.priority = priority;
@@ -198,6 +234,9 @@ public final class CenterGraph {
         this.name = name;
         this.rules = immutableRules(oreRules);
         this.nodes = Collections.unmodifiableList(new ArrayList<>(nodes));
+        this.entryRoutes = Collections.unmodifiableList(new ArrayList<>(entryRoutes));
+        this.excludedRules = immutableRules(excludedRules);
+        this.excluded = compile(this.excludedRules);
         int[] depth = new int[nodes.size()];
         if (!nodes.isEmpty()) depth[0] = 1;
         boolean reachable = !nodes.isEmpty();
@@ -205,7 +244,15 @@ public final class CenterGraph {
         int ruleChars = rules.stream()
             .mapToInt(String::length)
             .sum();
-        int ruleCount = rules.size();
+        int ruleCount = rules.size() + this.excludedRules.size() + entryRoutes.size();
+        for (String rule : this.excludedRules) ruleChars += rule.length();
+        for (EntryRoute route : entryRoutes) {
+            if (route.node < 0 || route.node >= nodes.size()) throw new IllegalArgumentException("Invalid entry");
+            depth[route.node] = 1;
+            ruleChars += route.rule.length();
+        }
+        if (ruleCount > MAX_RULES || ruleChars > MAX_RULE_CHARACTERS)
+            throw new IllegalArgumentException("Graph filter budget exceeded");
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
             for (OutletFilter filter : node.filters) {
@@ -213,7 +260,7 @@ public final class CenterGraph {
                 ruleChars += filter.rules.stream()
                     .mapToInt(String::length)
                     .sum();
-                if (ruleCount > MAX_RULES || ruleChars > 16384)
+                if (ruleCount > MAX_RULES || ruleChars > MAX_RULE_CHARACTERS)
                     throw new IllegalArgumentException("Graph filter budget exceeded");
             }
             if (depth[i] > MAX_DEPTH) throw new IllegalArgumentException("Graph too deep");
@@ -235,8 +282,17 @@ public final class CenterGraph {
         return rules;
     }
 
+    public List<EntryRoute> entryRoutes() {
+        return entryRoutes;
+    }
+
+    public CenterGraph reconfigure(String name, int priority, boolean enabled, List<String> rules, List<Node> nodes,
+        List<EntryRoute> entries) {
+        return new CenterGraph(id, name, priority, enabled, rules, nodes, entries, excludedRules);
+    }
+
     CenterGraph withId(long replacement) {
-        return new CenterGraph(replacement, name, priority, enabled, rules, nodes);
+        return new CenterGraph(replacement, name, priority, enabled, rules, nodes, entryRoutes, excludedRules);
     }
 
     private static List<String> immutableRules(List<String> source) {
@@ -264,10 +320,19 @@ public final class CenterGraph {
 
     boolean matches(ItemStack stack, String[] tags) {
         try {
-            return matchesRules(compiled, stack, tags);
+            return !matchesRules(excluded, stack, tags) && matchesRules(compiled, stack, tags);
         } catch (CenterOreRule.Limit ignored) {
             return false;
         }
+    }
+
+    int entry(ItemStack stack, String[] tags) {
+        for (EntryRoute route : entryRoutes) try {
+            if (route.compiled.matches(stack, tags)) return route.node;
+        } catch (CenterOreRule.Limit ignored) {
+            // The rule budget is independent of the next entry branch.
+        }
+        return 0;
     }
 
     private static boolean matchesRules(List<CenterOreRule> rules, ItemStack stack, String[] tags) {
@@ -319,6 +384,21 @@ public final class CenterGraph {
         }
         tag.setTag("Rules", allow);
         tag.setTag("Nodes", steps);
+        if (!entryRoutes.isEmpty()) {
+            NBTTagList routes = new NBTTagList();
+            for (EntryRoute route : entryRoutes) {
+                var entry = new NBTTagCompound();
+                entry.setInteger("Node", route.node);
+                entry.setString("Rule", route.rule);
+                routes.appendTag(entry);
+            }
+            tag.setTag("EntryRoutes", routes);
+        }
+        if (!excludedRules.isEmpty()) {
+            NBTTagList deny = new NBTTagList();
+            for (String rule : excludedRules) deny.appendTag(new NBTTagString(rule));
+            tag.setTag("EntryExclusions", deny);
+        }
         return tag;
     }
 
@@ -355,12 +435,24 @@ public final class CenterGraph {
             steps.add(step.hasKey("X", 3) && step.hasKey("Y", 3)
                 ? node.withPosition(step.getInteger("X"), step.getInteger("Y")) : node);
         }
+        var routes = tag.getTagList("EntryRoutes", 10);
+        var deny = tag.getTagList("EntryExclusions", 8);
+        if (routes.tagCount() > MAX_RULES || deny.tagCount() > MAX_RULES) throw new IllegalArgumentException();
+        List<EntryRoute> entryRoutes = new ArrayList<>();
+        for (int i = 0; i < routes.tagCount(); i++) {
+            var row = routes.getCompoundTagAt(i);
+            entryRoutes.add(new EntryRoute(row.getInteger("Node"), row.getString("Rule")));
+        }
+        List<String> excluded = new ArrayList<>();
+        for (int i = 0; i < deny.tagCount(); i++) excluded.add(deny.getStringTagAt(i));
         return new CenterGraph(
             tag.getLong("Id"),
             tag.getString("Name"),
             tag.getInteger("Priority"),
             tag.getBoolean("Enabled"),
             names,
-            steps);
+            steps,
+            entryRoutes,
+            excluded);
     }
 }

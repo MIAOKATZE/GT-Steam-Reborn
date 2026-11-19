@@ -70,7 +70,8 @@ public final class CenterGraphPreview {
             visited.add(new HashSet<>());
         }
         this.fluids = fluids(state);
-        if (!graph.nodes.isEmpty()) queue.add(new Visit(0, sample.copy(), CenterPlanner.isIntermediate(sample)));
+        if (!graph.nodes.isEmpty()) queue.add(
+            new Visit(graph.entry(sample, CenterGraph.tags(sample)), sample.copy(), CenterPlanner.isIntermediate(sample)));
     }
 
     private static FluidStack[] fluids(NBTTagCompound state) {

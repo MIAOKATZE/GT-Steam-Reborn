@@ -5,9 +5,6 @@ package com.miaokatze.gtsr.common.gui;
 
 import static com.miaokatze.gtsr.common.gui.CenterGraphGui.tr;
 
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Collections;
@@ -18,14 +15,12 @@ import java.util.function.LongFunction;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.GuiDraw;
-import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.Alignment;
@@ -34,6 +29,7 @@ import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.miaokatze.gtsr.client.gui.CenterTerminalClient;
+import com.miaokatze.gtsr.client.gui.CenterAssemblyScene;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview;
@@ -138,8 +134,19 @@ final class CenterTerminalPages {
             Integer.bitCount(mask()), installed(), sync.snapshot().capacity()),
             () -> 0xFFEDE6D8, Alignment.CenterRight).left(84).right(2).top(0).height(13));
         page.child(bar);
+        ParentWidget<?> resources = card("center_assembly_resources").left(0).right(0).top(14).height(35);
+        for (int i = 0; i < 6; i++) {
+            int row = i + 2;
+            var readout = CriticalGuiStyle.fitted(() -> CenterOperationText.line(state(), row),
+                () -> 0xFFD9E6E2, Alignment.CenterLeft).asWidget();
+            readout.widthRel(.48f).top(2 + (i / 2) * 11).height(11);
+            if ((i & 1) == 0) readout.left(4);
+            else readout.right(3);
+            resources.child(readout);
+        }
+        page.child(resources);
 
-        ParentWidget<?> directory = card("center_assembly_directory").left(0).top(15).bottom(0).width(113)
+        ParentWidget<?> directory = card("center_assembly_directory").left(0).top(51).bottom(0).width(113)
             .setEnabledIf(w -> showDirectory);
         directory.child(label(() -> tr("assembly.pads")).pos(4, 3).size(103, 13));
         for (int filter = -1; filter < 2; filter++) {
@@ -153,7 +160,7 @@ final class CenterTerminalPages {
         ParentWidget<?> center = card("center_assembly_map").left(() -> showDirectory ? 115 : 0,
             com.cleanroommc.modularui.widget.sizer.Unit.Measure.PIXEL)
             .right(() -> showDetails ? 182 : 0, com.cleanroommc.modularui.widget.sizer.Unit.Measure.PIXEL)
-            .top(15).bottom(0);
+            .top(51).bottom(0);
         ParentWidget<?> mapHead = new ParentWidget<>().background((IDrawable)
             (ctx, x, y, width, height, theme) -> GuiDraw.drawRect(x, y, width, height, 0xFF27373C))
             .left(0).right(0).top(1).height(14);
@@ -161,7 +168,8 @@ final class CenterTerminalPages {
         mapHead.child(CriticalGuiStyle.label(() -> tr("terminal.assembly_rings"),
             () -> 0xFFCCCCBE, Alignment.CenterRight).left(89).right(3).top(0).height(14));
         center.child(mapHead);
-        center.child(new Miniature().left(1).right(1).top(15).bottom(16));
+        center.child(new Miniature().name("center_assembly_scene").left(1).right(1).top(15).bottom(16)
+            .tooltipBuilder(t -> t.add(tr("terminal.scene_controls"))));
         ParentWidget<?> mapFoot = card("center_assembly_sector_bar").left(1).right(1).bottom(1).height(15);
         mapFoot.child(label(() -> tr("terminal.sector")).pos(1, 0).size(22, 15));
         for (int s = 0; s < 6; s++) {
@@ -177,7 +185,7 @@ final class CenterTerminalPages {
         center.child(mapFoot);
         page.child(center);
 
-        ParentWidget<?> detail = card("center_assembly_inspector").right(0).top(15).bottom(0).width(180)
+        ParentWidget<?> detail = card("center_assembly_inspector").right(0).top(51).bottom(0).width(180)
             .setEnabledIf(w -> showDetails);
         detail.child(label(() -> tr("assembly.pad")).pos(4, 3).size(96, 13));
         detail.child(CriticalGuiStyle.label(() -> "S0" + (slot / 6 + 1) + " / " + SLOT_CODES[slot % 6],
@@ -313,7 +321,7 @@ final class CenterTerminalPages {
         while (i >= 0) {
             CenterGraph.Node node = graph.nodes.get(i);
             path.add(node);
-            i = node.target(Math.min(outlet, CenterGraphSync.outlets(node.process) - 1));
+            i = node.target(Math.min(outlet, CenterGraphSync.outlets(node) - 1));
         }
         return path;
     }
@@ -426,69 +434,51 @@ final class CenterTerminalPages {
 
     private final class Miniature extends Surface<Miniature> {
 
-        private static final String PATH = "textures/gui/orecenter/map/";
-        private int drawnTier = -1, drawnMask = -1;
-        private UITexture image, material;
-        private int[] anchors = new int[72];
-        private int imageX, imageY, imageW, imageH;
+        private CenterAssemblyScene scene;
+        private int drawnMask, mouseX, mouseY;
+        private boolean rotating, rendered;
 
         @Override
         public void draw(ModularGuiContext context, WidgetThemeEntry<?> theme) {
-            int w = getArea().width, h = getArea().height;
-            if (w <= 0 || h <= 0) return;
-            GuiDraw.drawRect(0, 0, w, h, 0xFF1B292E);
-            for (int i = 0; i < w; i += 10) GuiDraw.drawRect(i, 0, 1, h, 0xFF25363B);
-            for (int i = 0; i < h; i += 10) GuiDraw.drawRect(0, i, w, 1, 0xFF25363B);
+            int width = getArea().width, height = getArea().height;
+            if (width <= 0 || height <= 0) return;
+            GuiDraw.drawRect(0, 0, width, height, 0xFF1B292E);
+            for (int i = 0; i < width; i += 10) GuiDraw.drawRect(i, 0, 1, height, 0xFF25363B);
+            for (int i = 0; i < height; i += 10) GuiDraw.drawRect(0, i, width, 1, 0xFF25363B);
+            if (scene == null) scene = new CenterAssemblyScene();
             int mask = mask(), local = 1 << (slot / 6);
-            if (focused && (mask & local) != 0) mask = local;
-            int tier = Math.max(0, tier());
-            if (drawnTier != tier || drawnMask != mask) {
-                drawnTier = tier;
-                drawnMask = mask;
-                image = UITexture.builder().location(new ResourceLocation("gtsr", PATH + "0-" + mask + ".png"))
-                    .imageSize(540, 305).build();
-                material = tier == 0 ? null
-                    : UITexture.builder().location(new ResourceLocation("gtsr", PATH + tier + "-" + mask + ".png"))
-                        .imageSize(540, 305).build();
-                try (InputStream stream = getClass().getResourceAsStream("/assets/gtsr/" + PATH + tier + ".anchors")) {
-                    if (stream == null) throw new IOException("Missing ore center preview anchors");
-                    DataInputStream data = new DataInputStream(stream);
-                    int offset = mask * 36 * 4;
-                    if (data.skipBytes(offset) != offset) throw new IOException("Truncated ore center preview anchors");
-                    for (int i = 0; i < anchors.length; i++) anchors[i] = data.readShort();
-                } catch (IOException e) {
-                    throw new IllegalStateException("Cannot read ore center miniature", e);
-                }
+            drawnMask = focused && (mask & local) != 0 ? local : mask;
+            rendered = scene.draw(context, width, height, Math.max(0, tier()), drawnMask,
+                state().getIntArray("Modules"), state().getIntArray("Grades"));
+            if (!rendered) {
+                text(context, tr("terminal.scene_unavailable"), 7, height / 2 - 9, width - 14, 18, false);
+                return;
             }
-            imageW = Math.min(w, h * 540 / 305);
-            imageH = imageW * 305 / 540;
-            imageX = (w - imageW) / 2;
-            imageY = (h - imageH) / 2;
-            image.draw(context, imageX, imageY, imageW, imageH, theme.getTheme());
-            if (material != null) material.draw(context, imageX, imageY, imageW, imageH, theme.getTheme());
             for (int i = 0; i < 36; i++) {
-                if ((mask & 1 << (i / 6)) == 0) continue;
-                int x = x(i), y = y(i), level = value("Grades", i);
-                if (level > 0) item(context, pack(MODULES[value("Modules", i)], level), x - 7, y - 15, 14);
-                if (i / 6 != slot / 6) continue;
+                if ((drawnMask & 1 << (i / 6)) == 0 || i / 6 != slot / 6) continue;
+                int x = scene.x[i], y = scene.y[i];
+                if (x < 9 || y < 6 || x >= width - 9 || y >= height - 6) continue;
                 (i == slot ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)
                     .draw(context, x - 9, y - 5, 18, 11, theme.getTheme());
                 text(context, SLOT_CODES[i % 6], x - 7, y - 5, 16, 11, i == slot);
             }
         }
 
-        private int x(int slot) { return imageX + imageW * anchors[slot * 2] / 540; }
-
-        private int y(int slot) { return imageY + imageH * anchors[slot * 2 + 1] / 305; }
-
         @Override
         public Result onMousePressed(int button) {
-            if (button != 0) return Result.IGNORE;
+            if (!rendered) return Result.IGNORE;
             int mx = getContext().getMouseX(), my = getContext().getMouseY();
+            if (button == 1) {
+                mouseX = mx;
+                mouseY = my;
+                rotating = true;
+                return Result.SUCCESS;
+            }
+            if (button != 0) return Result.IGNORE;
             int closest = -1, distance = 196;
             for (int i = 0; i < 36; i++) {
                 if ((drawnMask & 1 << (i / 6)) == 0) continue;
-                int dx = mx - x(i), dy = my - y(i), square = dx * dx + dy * dy;
+                int dx = mx - scene.x[i], dy = my - scene.y[i], square = dx * dx + dy * dy;
                 if (square >= distance) continue;
                 closest = i;
                 distance = square;
@@ -496,6 +486,36 @@ final class CenterTerminalPages {
             if (closest < 0) return Result.IGNORE;
             select(closest);
             return Result.SUCCESS;
+        }
+
+        @Override
+        public void onMouseDrag(int button, long time) {
+            if (!rotating || button != 1 || scene == null) return;
+            int x = getContext().getMouseX(), y = getContext().getMouseY();
+            scene.rotate(x - mouseX, y - mouseY);
+            mouseX = x;
+            mouseY = y;
+        }
+
+        @Override
+        public boolean onMouseRelease(int button) {
+            if (button != 1 || !rotating) return false;
+            rotating = false;
+            return true;
+        }
+
+        @Override
+        public boolean onMouseScroll(UpOrDown direction, int amount) {
+            if (!rendered || scene == null) return false;
+            scene.zoom(direction == UpOrDown.UP);
+            return true;
+        }
+
+        @Override
+        public void dispose() {
+            if (scene != null) scene.close();
+            scene = null;
+            super.dispose();
         }
     }
 
@@ -655,7 +675,7 @@ final class CenterTerminalPages {
             List<CenterGraph.Node> path = path();
             for (int i = 0; i < Math.min(path.size(), (getArea().height - 30) / 21); i++) {
                 CenterGraph.Node node = path.get(i);
-                int port = Math.min(outlet, CenterGraphSync.outlets(node.process) - 1), y = 29 + i * 21;
+                int port = Math.min(outlet, CenterGraphSync.outlets(node) - 1), y = 29 + i * 21;
                 if ((i & 1) != 0) GuiDraw.drawRect(2, y, width - 4, 21, 0xFF2F343B);
                 text(context, (i + 1) + "  " + CenterGraphGui.processName(node.process), 3, y, width / 3, 20, false);
                 text(context, tr("calc.outlet", port + 1) + " → " + (node.target(port) < 0

@@ -173,7 +173,6 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
         }
         if (cursor != footprint.size()) return;
         checkTerrain(world, machine.x, machine.y, machine.z);
-        for (int shift : new int[] { -5, -3, -1, 1 }) checkTerrain(world, machine.x + shift, machine.y, machine.z + 1);
         machine.place(world);
     }
 
@@ -247,15 +246,15 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
             long begin = System.nanoTime();
             center.construct(centerStack, false);
             buildNanos = System.nanoTime() - begin;
-            input = place(world, -5, ItemList.Hatch_Input_Bus_LV);
-            output = place(world, -3, ItemList.Hatch_Output_Bus_LV);
-            steam = (MTEHatchInput) place(world, -1, ItemList.Hatch_Input_IV).getMetaTileEntity();
-            place(world, 1, ItemList.Hatch_Output_LV);
+            input = place(world, 5, ItemList.Hatch_Input_Bus_LV);
+            output = place(world, -5, ItemList.Hatch_Output_Bus_LV);
+            steam = (MTEHatchInput) place(world, 3, ItemList.Hatch_Input_IV).getMetaTileEntity();
+            place(world, -3, ItemList.Hatch_Output_LV);
             input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.CRUSHER, 1));
         }
 
         private IGregTechTileEntity place(WorldServer world, int dx, ItemList item) {
-            return TestLabFixtures.machine(world, x + dx, y, z + 1, item.get(1).getItemDamage());
+            return TestLabFixtures.machine(world, x + dx, y, z, item.get(1).getItemDamage());
         }
 
         void feed() {

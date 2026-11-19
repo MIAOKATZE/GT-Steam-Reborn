@@ -18,7 +18,7 @@ public final class CenterFixtureGeometry {
 
     public static List<int[]> oneSector() {
         List<int[]> positions = new ArrayList<>();
-        add(positions, "tower-0", 0, -2, 0, 0);
+        add(positions, "tower-service-0", 0, -2, 0, 0);
         add(positions, "outer-0", 0, -2, 0, 0);
         addModule(positions, 1, "crusher");
         addModule(positions, 3, "logistics");

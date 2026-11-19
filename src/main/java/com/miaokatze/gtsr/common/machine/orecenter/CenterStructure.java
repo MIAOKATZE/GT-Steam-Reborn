@@ -51,6 +51,8 @@ public final class CenterStructure {
         { -19, 1, -99, 2 }, { -50, 1, -86, 2 }, { -76, 1, -66, 3 }, { -38, 18, 0, 3 }, { -65, 9, -15, 3 },
         { -65, 9, 15, 3 }, { -95, 1, -33, 3 }, { -99, 1, 0, 3 }, { -95, 1, 33, 3 }, };
     private static final int[] HATCH_X = { -5, -3, -1, 1, 3, 5 };
+    private static final int[] SERVICE_PORT_X = { 3, -3, 5, -5, 7, -7, -6 };
+    private static final String SERVICE_TOWER = "tower-service-";
     private static final Map<String, Shape> SHAPES = new HashMap<>();
     private final CriticalStructureMonitor tower = new CriticalStructureMonitor();
     private final CriticalStructureMonitor[] sectors = new CriticalStructureMonitor[6];
@@ -63,7 +65,8 @@ public final class CenterStructure {
     private int anchorIndex = -1;
     private boolean attachClaims = true;
     private int survivalCursor, survivalTier = -1, survivalMask;
-    private static int[] plinthPorts;
+    private boolean serviceFront;
+    private static int[] legacyPlinthPorts, servicePlinthPorts;
 
     public CenterStructure() {
         for (int i = 0; i < sectors.length; i++) sectors[i] = new CriticalStructureMonitor();
@@ -83,22 +86,44 @@ public final class CenterStructure {
     }
 
     private static void collectHatches(Frame frame, Consumer<IGregTechTileEntity> accept) {
-        for (int x : HATCH_X) visitHatch(frame, x, 1, accept);
-        Shape tower = shape("tower-0");
+        boolean service = hasServiceFront(frame);
+        if (!service) for (int x : HATCH_X) visitHatch(frame, x, 1, accept);
+        Shape tower = towerShape(0, service);
         for (int i : plinthPorts(tower)) visitHatch(frame, tower.x[i], tower.z[i] + 19, accept);
     }
 
     private static synchronized int[] plinthPorts(Shape tower) {
-        if (plinthPorts == null) {
-            plinthPorts = java.util.stream.IntStream.range(0, tower.count())
+        int[] ports = tower.service ? servicePlinthPorts : legacyPlinthPorts;
+        if (ports == null) {
+            ports = java.util.stream.IntStream.range(0, tower.count())
                 .filter(i -> plinthCasing(tower, i))
                 .filter(i -> outside(tower, tower.x[i] - 1, tower.z[i])
                     || outside(tower, tower.x[i] + 1, tower.z[i])
                     || outside(tower, tower.x[i], tower.z[i] - 1)
                     || outside(tower, tower.x[i], tower.z[i] + 1))
                 .toArray();
+            if (tower.service) servicePlinthPorts = ports;
+            else legacyPlinthPorts = ports;
         }
-        return plinthPorts;
+        return ports;
+    }
+
+    private static Shape towerShape(int tier, boolean service) {
+        return shape((service ? SERVICE_TOWER : "tower-") + tier);
+    }
+
+    private static boolean hasServiceFront(Frame frame) {
+        if (!frame.loaded(frame.x(0, 0), frame.z(0, 0))) return false;
+        int x = frame.x(0, 0), z = frame.z(0, 0), y = frame.y + 1;
+        Block block = frame.world.getBlock(x, y, z);
+        int meta = frame.world.getBlockMetadata(x, y, z);
+        for (int tier = 0; tier < 4; tier++) {
+            Shape tower = towerShape(tier, true);
+            tower.prepareLookup();
+            int marker = tower.lookup(0, 3, -19);
+            if (marker >= 0 && block == tower.block(marker) && meta == tower.metadata(marker)) return true;
+        }
+        return false;
     }
 
     private static boolean outside(Shape tower, int x, int z) {
@@ -120,7 +145,7 @@ public final class CenterStructure {
 
     private static boolean substitutedPort(Shape shape, int i, Frame frame, int wx, int wy, int wz) {
         if (!plinthCasing(shape, i) || frame.world.getBlock(wx, wy, wz) != GregTechAPI.sBlockMachines) return false;
-        Shape base = shape("tower-0");
+        Shape base = towerShape(0, shape.service);
         int[] ports = plinthPorts(base);
         if (java.util.Arrays.binarySearch(ports, base.lookup(shape.x[i], 2, shape.z[i])) < 0) return false;
         return frame.world.getTileEntity(wx, wy, wz) instanceof IGregTechTileEntity gt
@@ -131,18 +156,9 @@ public final class CenterStructure {
         Frame frame = new Frame(te);
         ItemStack[] examples = { ItemList.Hatch_Input_LV.get(1), ItemList.Hatch_Output_LV.get(1),
             ItemList.Hatch_Input_Bus_LV.get(1), ItemList.Hatch_Output_Bus_LV.get(1),
-            GTSRItemList.SteamInputHatchGeneric.get(1), GTSRItemList.SteamCoolingHatch.get(1) };
-        for (int i = 0; i < examples.length; i++) placeExamplePort(frame, HATCH_X[i], 1, examples[i]);
-        Shape base = shape("tower-0");
-        int best = -1, distance = Integer.MAX_VALUE;
-        for (int i : plinthPorts(base)) {
-            int offset = Math.abs(base.x[i]) + Math.abs(base.z[i] + 18);
-            if (offset < distance) {
-                best = i;
-                distance = offset;
-            }
-        }
-        if (best >= 0) placeExamplePort(frame, base.x[best], base.z[best] + 19, ItemList.Hatch_Energy_LV.get(1));
+            GTSRItemList.SteamInputHatchGeneric.get(1), GTSRItemList.SteamCoolingHatch.get(1),
+            ItemList.Hatch_Energy_LV.get(1) };
+        for (int i = 0; i < examples.length; i++) placeExamplePort(frame, SERVICE_PORT_X[i], 0, examples[i]);
     }
 
     private static void placeExamplePort(Frame frame, int x, int z, ItemStack stack) {
@@ -186,22 +202,24 @@ public final class CenterStructure {
             survivalCursor = 0;
         }
         int found = detectTier(frame);
-        if (found != towerTier) {
+        boolean service = found >= 0 && hasServiceFront(frame);
+        if (found != towerTier || service != serviceFront) {
             towerTier = found;
+            serviceFront = service;
             tower.reset();
         }
         if (towerTier < 0) return;
 
         // A single monitor gets a slice per tick. Missing wings and unused pads don't consume a slice.
         if (tower.getStatus() == Status.PENDING) {
-            scan(tower, shape("tower-" + towerTier), frame, 0, 0, 0, 0, false, elapsed(frame, 0));
+            scan(tower, towerShape(towerTier, serviceFront), frame, 0, 0, 0, 0, false, elapsed(frame, 0));
             return;
         }
         for (int attempts = 0; attempts < lastScan.length; attempts++) {
             int monitor = scanCursor;
             scanCursor = (scanCursor + 1) % lastScan.length;
             if (monitor == 0) {
-                scan(tower, shape("tower-" + towerTier), frame, 0, 0, 0, 0, false, elapsed(frame, 0));
+                scan(tower, towerShape(towerTier, serviceFront), frame, 0, 0, 0, 0, false, elapsed(frame, 0));
                 return;
             }
             int i = monitor - 1;
@@ -398,7 +416,7 @@ public final class CenterStructure {
 
     void changed(int x, int y, int z) {
         if (towerTier >= 0 && y >= 0 && y <= 64 && x >= -22 && x <= 22 && z >= -22 && z <= 22) {
-            Shape body = shape("tower-" + towerTier);
+            Shape body = towerShape(towerTier, serviceFront);
             body.prepareLookup();
             if (body.lookup(x, y, z) >= 0) {
                 tower.invalidate();
@@ -472,6 +490,7 @@ public final class CenterStructure {
         private final EntityPlayer player;
         private final int[] types, grades;
         private final CenterClaims claims;
+        private final boolean service;
         private int piece, cursor;
         private boolean clearing;
         private String resource;
@@ -482,6 +501,7 @@ public final class CenterStructure {
             this.types = types;
             this.grades = grades;
             claims = CenterClaims.get(frame.world);
+            service = hasServiceFront(frame) || detectTier(frame) < 0;
         }
 
         /** Each call writes at most one layout slice and never loads a chunk. */
@@ -493,7 +513,8 @@ public final class CenterStructure {
             int slot = piece - 2;
             CenterModule module = slot < 0 ? null : grades[slot] > 0 ? CenterModule.values()[types[slot]]
                 : slot % 6 < 3 ? DEBUG_MODULES[slot / 6][slot % 6] : CenterModule.LOGISTICS;
-            String target = piece == 0 ? "tower-3" : piece == 1 ? "outer-full" : moduleKey(slot, module, 3);
+            String target = piece == 0 ? (service ? SERVICE_TOWER : "tower-") + "3"
+                : piece == 1 ? "outer-full" : moduleKey(slot, module, 3);
             if (resource == null) {
                 String previous = slot < 0 ? null : claims.moduleResource(frame, slot);
                 clearing = previous != null && !previous.equals(target);
@@ -565,12 +586,17 @@ public final class CenterStructure {
             });
             for (int i = 0; i < examples.length; i++) {
                 if (present[i]) continue;
-                for (int j = 0; j < HATCH_X.length; j++) {
-                    int x = HATCH_X[(i + j) % HATCH_X.length];
-                    int wx = frame.x(x, 1), wz = frame.z(x, 1);
-                    if (!frame.loaded(wx, wz) || !frame.world.isAirBlock(wx, frame.y, wz)
-                        || !frame.world.canMineBlock(player, wx, frame.y, wz)) continue;
-                    placeExamplePort(frame, x, 1, examples[i]);
+                int[] locations = service ? SERVICE_PORT_X : HATCH_X;
+                int depth = service ? 0 : 1;
+                for (int j = 0; j < locations.length; j++) {
+                    int x = locations[(i + j) % locations.length];
+                    int wx = frame.x(x, depth), wz = frame.z(x, depth);
+                    if (!frame.loaded(wx, wz) || !frame.world.canMineBlock(player, wx, frame.y, wz)) continue;
+                    Block block = frame.world.getBlock(wx, frame.y, wz);
+                    boolean mountingCasing = service && block == GregTechAPI.sBlockCasings3
+                        && frame.world.getBlockMetadata(wx, frame.y, wz) == 10;
+                    if (!mountingCasing && !frame.world.isAirBlock(wx, frame.y, wz)) continue;
+                    placeExamplePort(frame, x, depth, examples[i]);
                     present[i] = frame.world.getTileEntity(wx, frame.y, wz) instanceof IGregTechTileEntity hatch
                         && hatch.getMetaTileID() == examples[i].getItemDamage();
                     if (present[i]) break;
@@ -595,10 +621,46 @@ public final class CenterStructure {
 
     private static List<Shape> pieces(int tier, int mask) {
         List<Shape> result = new ArrayList<>(7);
-        result.add(shape("tower-" + tier));
+        result.add(towerShape(tier, true));
         if (mask == 63) result.add(shape("outer-full"));
         else for (int i = 0; i < 6; i++) if ((mask & 1 << i) != 0) result.add(shape("outer-" + i));
         return result;
+    }
+
+    @FunctionalInterface
+    public interface PreviewBlocks {
+        void block(int x, int y, int z, Block block, int meta);
+    }
+
+    /** Reads the same block coordinates used by construction, relative to the central tower. */
+    public static void visitAssemblyPreview(int tier, int mask, int[] types, int[] grades, PreviewBlocks sink) {
+        for (Shape part : pieces(tier, mask)) visitPreview(part, 0, 0, 0, 0, sink);
+        CenterModule[] modules = CenterModule.values();
+        int count = Math.min(SLOTS.length, Math.min(types.length, grades.length));
+        for (int slot = 0; slot < count; slot++) {
+            if ((mask & 1 << (slot / 6)) == 0 || grades[slot] < 1 || grades[slot] > 3
+                || types[slot] < 0 || types[slot] >= modules.length) continue;
+            Shape part = optionalShape(moduleKey(slot, modules[types[slot]], grades[slot]));
+            int[] pad = SLOTS[slot];
+            if (part != null) visitPreview(part, pad[0], pad[1] - 64, pad[2], pad[3], sink);
+        }
+    }
+
+    @FunctionalInterface
+    public interface PreviewPads {
+        void pad(int slot, int x, int y, int z);
+    }
+
+    public static void visitAssemblyPads(PreviewPads sink) {
+        for (int i = 0; i < SLOTS.length; i++) sink.pad(i, SLOTS[i][0], SLOTS[i][1], SLOTS[i][2]);
+    }
+
+    private static void visitPreview(Shape part, int x, int y, int z, int rotation, PreviewBlocks sink) {
+        for (int i = 0; i < part.count(); i++) {
+            Block block = part.block(i);
+            if (block != null) sink.block(x + rotateX(part.x[i], part.z[i], rotation), y + part.y[i],
+                z + rotateZ(part.x[i], part.z[i], rotation), block, part.metadata(i));
+        }
     }
 
     public int survivalConstruct(IGregTechTileEntity te, int tier, int mask, int budget,
@@ -714,6 +776,7 @@ public final class CenterStructure {
             }
             Shape result = new Shape(
                 key.startsWith("tower-"),
+                key.startsWith(SERVICE_TOWER),
                 blocks,
                 metas,
                 new short[count],
@@ -763,15 +826,16 @@ public final class CenterStructure {
 
     static final class Shape {
 
-        final boolean tower;
+        final boolean tower, service;
         final Block[] blocks;
         final byte[] metas;
         final short[] x, z;
         final byte[] y, ids;
         private long[] lookup;
 
-        Shape(boolean tower, Block[] blocks, byte[] metas, short[] x, byte[] y, short[] z, byte[] ids) {
+        Shape(boolean tower, boolean service, Block[] blocks, byte[] metas, short[] x, byte[] y, short[] z, byte[] ids) {
             this.tower = tower;
+            this.service = service;
             this.blocks = blocks;
             this.metas = metas;
             this.x = x;

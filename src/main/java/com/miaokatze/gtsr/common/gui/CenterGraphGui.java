@@ -51,12 +51,15 @@ import com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 
+import com.cleanroommc.modularui.widgets.ListWidget;
+import com.cleanroommc.modularui.api.widget.IWidget;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets.Preset;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.ItemList;
 import gregtech.api.util.GTUtility;
-import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
-public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegrationCenter> {
+public final class CenterGraphGui {
 
     private static final String PANEL = "gtsr_ore_center_graph";
     private static final String PREFIX = "gtsr.ore_center.graph.";
@@ -70,21 +73,20 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
     private final MTEMineralIntegrationCenter machine;
 
     public CenterGraphGui(MTEMineralIntegrationCenter machine) {
-        super(machine);
         this.machine = machine;
     }
 
-    @Override
     public ModularPanel build(PosGuiData data, PanelSyncManager manager, UISettings settings) {
         ModularPanel panel = new ModularPanel(PANEL).sizeRel(1f)
             .background(TerminalUiStyle.CLUSTER_PANEL);
         CenterGraphSync sync = new CenterGraphSync(machine, manager, data.getPlayer());
         manager.syncValue("ore_center.graph", sync.allowC2S());
         Editor editor = new Editor(sync);
+        var presets = manager.syncedPanel("ore_center.generator", true,
+            (child, handler) -> editor.presetPanel(handler::closePanel));
+        editor.openPresets = presets::openPanel;
         CenterTerminalPages pages = new CenterTerminalPages(sync,
             id -> editor.graphId == id ? editor.canvas.sample : null);
-        var machinePanel = manager
-            .syncedPanel("ore_center.base", true, (childManager, handler) -> super.build(data, childManager, settings));
         int[] selectedPage = { 0 };
         ParentWidget<?> header = new ParentWidget<>().name("center_terminal_header")
             .background(TerminalUiStyle.CHIP_NORMAL)
@@ -108,14 +110,11 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
         }
         for (int i = 0; i < 4; i++) {
             int tier = i;
-            header.child(button("tier_" + i, () -> tr("terminal.tier." + tier), machinePanel::openPanel)
-                .right(30 + (3 - i) * 20).top(3).size(19, 13)
+            header.child(new ParentWidget<>().name("tier_" + i).right(30 + (3 - i) * 20).top(3).size(19, 13)
                 .background(new DynamicDrawable(() -> sync.terminal().hasKey("Tier")
                     && sync.terminal().getInteger("Tier") == tier ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL))
-                .tooltipBuilder(t -> {
-                    t.add(tr("terminal.tier." + tier));
-                    t.add(tr("machine"));
-                }));
+                .child(CriticalGuiStyle.fitted(() -> tr("terminal.tier." + tier),
+                    () -> 0xFFC0C9C8, Alignment.CENTER).asWidget().sizeRel(1f)));
         }
         header.child(button("exit", () -> tr("exit"), () -> panel.getScreen().close()).right(1).top(3).size(26, 13));
         panel.child(header);
@@ -162,6 +161,8 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
         private final SourceItems sourceItems = new SourceItems(this);
         private ItemStack carried;
         private boolean showSources, chooseOreTerm, showRules;
+        private Runnable openPresets;
+        private Preset preset = CenterPresets.all().get(0);
         private final Tabs tabs = new Tabs(this);
         private final Canvas canvas = new Canvas(this);
 
@@ -179,6 +180,8 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
                 carried = null;
                 contents.scheduleResize();
             }).right(2).top(0).size(68, 13));
+            sourceBar.child(button("generator_presets", () -> tr("preset.open"), () -> openPresets.run())
+                .pos(2, 0).size(71, 13));
             contents.child(sourceBar);
             ParentWidget<?> toolbar = CenterTerminalPages.card("center_graph_documents")
                 .left(0).right(0).top(14).height(17);
@@ -305,6 +308,90 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
             return contents;
         }
 
+        private ModularPanel presetPanel(Runnable close) {
+            var panel = new ModularPanel("gtsr_center_presets").size(387, 224)
+                .background(TerminalUiStyle.CLUSTER_PANEL);
+            panel.child(label(() -> tr("preset.title"), 5, 3, 195, 16));
+            panel.child(button("preset_close", () -> tr("exit"), close).right(4).top(3).size(37, 15));
+            ListWidget<IWidget, ?> menu = new ListWidget<>();
+            menu.name("center_preset_groups").left(4).top(23).bottom(4).width(132);
+            String group = "";
+            for (Preset item : CenterPresets.all()) {
+                if (!item.group.equals(group)) {
+                    group = item.group;
+                    String label = item.group;
+                    menu.child(CenterTerminalPages.label(() -> label).fullWidth().height(13));
+                }
+                menu.child(button("preset_" + item.id, () -> item.name, () -> {
+                    preset = item;
+                    panel.scheduleResize();
+                }).fullWidth().height(16).background(new DynamicDrawable(() -> preset == item
+                    ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)));
+            }
+            panel.child(menu);
+            var detail = CenterTerminalPages.card("center_preset_details").left(140).right(4).top(23).bottom(4);
+            detail.child(CenterTerminalPages.label(() -> preset.name).left(4).right(4).top(3).height(14));
+            detail.child(IKey.dynamic(() -> preset.description).color(0xFFC9D3D1).asWidget()
+                .left(4).right(4).top(20).height(35));
+            detail.child(CenterTerminalPages.label(() -> tr("preset.nodes", preset.nodeCount()))
+                .left(4).right(4).top(57).height(13));
+            ListWidget<IWidget, ?> expressions = new ListWidget<>();
+            expressions.name("center_preset_expressions").left(4).right(4).top(73).bottom(21);
+            int rows = CenterPresets.all().stream().mapToInt(p -> p.expressions.size()).max().orElse(0);
+            for (int i = 0; i < rows; i++) {
+                int row = i;
+                var expression = new ParentWidget<>().fullWidth().height(16)
+                    .setEnabledIf(w -> row < preset.expressions.size());
+                expression.child(CenterTerminalPages.label(() -> row < preset.expressions.size()
+                    ? preset.expressions.get(row).label() : "").left(0).right(61).top(0).height(15));
+                expression.child(button("preset_expression_" + i, () -> tr(expressionFilter()
+                    ? "preset.use_outlet" : "preset.use_rule"), () -> useExpression(row, close))
+                    .right(0).top(0).size(59, 15).setEnabledIf(w -> graph != null && snapshot.writable())
+                    .tooltipBuilder(t -> {
+                        if (row < preset.expressions.size()) t.add(preset.expressions.get(row).rule());
+                    }));
+                expressions.child(expression);
+            }
+            detail.child(expressions);
+            detail.child(button("preset_apply", () -> tr(preset.importable() ? "preset.apply" : "preset.rules_only"),
+                () -> {
+                    if (!preset.importable() || !snapshot.writable()) return;
+                    if (snapshot.graphs().size() >= snapshot.capacity()) {
+                        sync.setStatus("status.capacity");
+                        return;
+                    }
+                    edit(CenterGraphSync.Action.PRESET, 0, 0, preset.id);
+                    close.run();
+                }).left(4).right(4).bottom(3).height(15));
+            return panel.child(detail);
+        }
+
+        private boolean expressionFilter() {
+            return preset.id.equals("special-electrolyzer") || preset.id.equals("special-centrifuge")
+                || preset.id.equals("special-dehydrator");
+        }
+
+        private void useExpression(int index, Runnable close) {
+            if (graph == null || index >= preset.expressions.size() || !snapshot.writable()) return;
+            String expression = preset.expressions.get(index).rule();
+            if (expressionFilter()) {
+                if (node() == null || CenterGraphSync.direct(node().process)) {
+                    sync.setStatus("preset.select_outlet");
+                    return;
+                }
+                Set<String> values = new LinkedHashSet<>();
+                for (OutletFilter outlet : node().filters())
+                    if (outlet.slot == port && outlet.allow) values.addAll(outlet.rules());
+                values.add(expression);
+                edit(CenterGraphSync.Action.FILTER, nodeIndex, port * 3 + ALLOW, String.join(";", values));
+            } else {
+                Set<String> values = new LinkedHashSet<>(graph.rules());
+                values.add(expression);
+                edit(CenterGraphSync.Action.RULES, 0, 0, String.join(";", values));
+            }
+            close.run();
+        }
+
         private void savePriority() {
             try {
                 edit(CenterGraphSync.Action.PRIORITY, Integer.parseInt(priority.getText().trim()), 0, "");
@@ -320,7 +407,13 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
         }
 
         private void update() {
+            long imported = sync.takeImportedGraph();
             CenterGraphSync.Snapshot next = sync.snapshot();
+            if (imported > 0) {
+                snapshot = next;
+                selectGraph(imported);
+                return;
+            }
             if (next == snapshot) return;
             boolean sameRevision = next.revision() == snapshot.revision();
             snapshot = next;
@@ -346,7 +439,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
             setField(rules, graph == null ? "" : String.join(";", graph.rules()));
             nodeIndex = graph == null || graph.nodes.isEmpty() ? 0 : Math.min(nodeIndex, graph.nodes.size() - 1);
             Node current = node();
-            if (current == null || port >= CenterGraphSync.outlets(current.process)) port = 0;
+            if (current == null || port >= CenterGraphSync.outlets(current)) port = 0;
             readPort();
         }
 
@@ -391,7 +484,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
         }
 
         private void edit(CenterGraphSync.Action action, int a, int b, String value) {
-            if (action != CenterGraphSync.Action.ADD && graph == null) return;
+            if (action != CenterGraphSync.Action.ADD && action != CenterGraphSync.Action.PRESET && graph == null) return;
             sync.edit(action, snapshot, graphId, a, b, value);
         }
 
@@ -406,7 +499,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
         private String portText() {
             Node current = node();
             if (current != null && CenterGraphSync.direct(current.process)) return tr("direct");
-            return outletName(port);
+            return outletName(current, port);
         }
 
         private String modeText() {
@@ -459,9 +552,14 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
     }
 
     private static ItemStack processIcon(CenterProcess process) {
+        if (process == CenterProcess.DRYER) {
+            return gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList.Controller_Vacuum_Furnace.get(1);
+        }
         ItemList icon = switch (process) {
-            case CRUSHER, HAMMER -> ItemList.Machine_LV_Macerator;
-            case WASHER, SIMPLE_WASHER, CHEMICAL_BATH -> ItemList.Machine_LV_OreWasher;
+            case CRUSHER -> ItemList.Machine_LV_Macerator;
+            case HAMMER -> ItemList.Machine_LV_Hammer;
+            case WASHER, SIMPLE_WASHER -> ItemList.Machine_LV_OreWasher;
+            case CHEMICAL_BATH -> ItemList.Machine_LV_ChemicalBath;
             case SIFTER -> ItemList.Machine_LV_Sifter;
             case CENTRIFUGE, SEPARATION -> ItemList.Machine_LV_Centrifuge;
             case ELECTROLYZER -> ItemList.Machine_LV_Electrolyzer;
@@ -472,6 +570,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
             case REACTOR -> ItemList.Machine_Multi_LargeChemicalReactor;
             case FURNACE -> ItemList.Machine_Multi_BlastFurnace;
             case SMELTING -> ItemList.Machine_LV_E_Furnace;
+            case RECYCLER -> ItemList.Machine_LV_Recycler;
             default -> null;
         };
         return icon == null || !icon.hasBeenSet() ? CenterModuleItems.stack(process.module, 1) : icon.get(1);
@@ -550,14 +649,14 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
         public void draw(ModularGuiContext context, WidgetThemeEntry<?> theme) {
             Node node = editor.node();
             if (node == null) return;
-            int outlets = CenterGraphSync.outlets(node.process), width = getArea().width;
+            int outlets = CenterGraphSync.outlets(node), width = getArea().width;
             int visible = getArea().height / 29;
             first = Math.min(first, Math.max(0, outlets - visible));
             for (int i = first; i < Math.min(first + visible, outlets); i++) {
                 int y = (i - first) * 29;
                 TerminalUiStyle.CHIP_NORMAL.draw(context, 0, y, width, 27, theme.getTheme());
                 if (editor.port == i) GuiDraw.drawRect(0, y, 1, 27, 0xFFE1AF71);
-                caption = CenterGraphSync.direct(node.process) ? tr("direct") : outletName(i);
+                caption = CenterGraphSync.direct(node.process) ? tr("direct") : outletName(node, i);
                 color = i == 0 ? 0xFFE1AF71 : 0xFFA6C9B6;
                 text.draw(context, 1, y, width - 4, 13, null);
                 int target = node.target(i);
@@ -576,7 +675,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
         public Result onMousePressed(int mouseButton) {
             Node node = editor.node();
             int port = first + getContext().getMouseY() / 29;
-            if (mouseButton != 0 || node == null || port < 0 || port >= CenterGraphSync.outlets(node.process))
+            if (mouseButton != 0 || node == null || port < 0 || port >= CenterGraphSync.outlets(node))
                 return Result.IGNORE;
             editor.port = port;
             editor.readPort();
@@ -771,6 +870,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
         private static final int GRID = 0xFF323C42, LINE = 0xFF95C4AA, BACKGROUND = 0xFF20262C;
         private static final int OUT = -2, IN = -3;
         private final Editor editor;
+        private final CenterCircuitWires circuits = new CenterCircuitWires();
         private final IDrawable text;
         private final IDrawable productText;
         private final Set<Integer> marked = new LinkedHashSet<>();
@@ -879,18 +979,11 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
             positions(graph);
             int busY = height / 2, outX = width - BUS_W - 5;
             int inputX = Math.min(100, Math.max(27, width / 7));
-            if (nodes.length > 0) wire(inputX + BUS_W, busY, nodes[0][0], nodes[0][1] + 9, LINE);
-            for (int i = 0; i < nodes.length; i++) {
-                Node node = graph.nodes.get(i);
-                for (int port = 0; port < CenterGraphSync.outlets(node.process); port++) {
-                    int target = node.target(port);
-                    if (target == CenterGraph.UNCONNECTED) continue;
-                    int x = target < 0 ? outX : nodes[target][0];
-                    int y = target < 0 ? busY : nodes[target][1] + 9;
-                    boolean main = port == 0;
-                    wire(nodes[i][0] + NODE_W, portY(i, port), x, y, main ? 0xFFE2AD68 : LINE, !main);
-                }
-            }
+            List<String> rules = graph.rules();
+            if (rules.isEmpty()) rules = Collections.singletonList(tr("fallback"));
+            int ruleX = Math.max(1, inputX - BUS_W - 9);
+            int ruleY = busY - 11 + (sample == null ? 0 : 17);
+            drawCircuits(graph, width, height, busY, inputX, outX, ruleX, ruleY, rules.size());
             if (source >= 0 && source < nodes.length) wire(nodes[source][0] + NODE_W, portY(source, sourcePort),
                 context.getMouseX(), context.getMouseY(), 0xFFDFC381);
             box(context, theme.getTheme(), tr("input"), inputX, busY - 8);
@@ -899,18 +992,11 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
                 rect(sampleX - 1, busY - 18, 19, 19, 0xFFA8C6AD);
                 rect(sampleX, busY - 17, 17, 17, 0xFF32383F);
                 GuiDraw.drawItem(sample, sampleX + 1, busY - 16, 15, 15, context.getCurrentDrawingZ());
-                wire(sampleX + 18, busY - 9, inputX, busY, 0xFFE0AD71);
             }
             box(context, theme.getTheme(), tr("output"), outX, busY - 8);
-            List<String> rules = graph.rules();
-            if (rules.isEmpty()) rules = Collections.singletonList(tr("fallback"));
             for (int i = 0; i < Math.min(8, rules.size()); i++) {
-                int y = busY - 11 + i * 17;
-                if (sample != null) y += 17;
-                if (y < 0) continue;
-                int at = Math.max(1, inputX - BUS_W - 9);
-                box(context, theme.getTheme(), rules.get(i), at, y);
-                wire(at + BUS_W, y + 8, inputX, busY, LINE);
+                int y = ruleY + i * 17;
+                if (y >= 0) box(context, theme.getTheme(), rules.get(i), ruleX, y);
             }
             int hover = hit(context.getMouseX(), context.getMouseY());
             if (graph.nodes.isEmpty()) {
@@ -919,7 +1005,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
             for (int i = 0; i < nodes.length; i++) {
                 Node node = graph.nodes.get(i);
                 int x = nodes[i][0], y = nodes[i][1];
-                int slots = CenterGraphSync.outlets(node.process), h = portOffset(node) + slots * ROW + 11;
+                int slots = CenterGraphSync.outlets(node), h = portOffset(node) + slots * ROW + 11;
                 if (x <= -NODE_W || x >= width || y <= -h || y >= height) continue;
                 boolean selected = i == editor.nodeIndex || marked.contains(i);
                 boolean reached = trace != null && !trace.products(i).isEmpty();
@@ -943,7 +1029,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
                     boolean direct = CenterGraphSync.direct(node.process);
                     int color = node.target(port) == CenterGraph.UNCONNECTED ? 0xFFDC9360
                         : port == 0 && !direct ? 0xFFE4AF6D : 0xFF9DCAB9;
-                    String label = direct ? tr("direct") : outletName(port);
+                    String label = direct ? tr("direct") : outletName(node, port);
                     if (x >= 0 && x + NODE_W <= width && row >= 0 && row + ROW <= height) {
                         caption(context, label, x + 2, row, reached ? 43 : NODE_W - 23, ROW, color);
                         if (reached) drawProducts(context, i, port, x + 40, row);
@@ -1063,7 +1149,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
 
         private int hit(int x, int y) {
             for (int i = nodes.length - 1; i >= 0; i--) {
-                int maxY = nodes[i][1] + portOffset(editor.graph.nodes.get(i)) + CenterGraphSync.outlets(editor.graph.nodes.get(i).process) * ROW + 11;
+                int maxY = nodes[i][1] + portOffset(editor.graph.nodes.get(i)) + CenterGraphSync.outlets(editor.graph.nodes.get(i)) * ROW + 11;
                 if (x >= nodes[i][0] && x <= nodes[i][0] + NODE_W + 3 && y >= nodes[i][1] && y < maxY) return i;
             }
             if (Math.abs(y - getArea().height / 2) <= 11) {
@@ -1093,36 +1179,49 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
             if (left < right && top < bottom) GuiDraw.drawRect(left, top, right - left, bottom - top, color);
         }
 
+        private void drawCircuits(CenterGraph graph, int width, int height, int busY, int inputX, int outputX,
+            int ruleX, int ruleY, int rules) {
+            List<int[]> boxes = new java.util.ArrayList<>();
+            List<int[]> edges = new java.util.ArrayList<>();
+            boxes.add(new int[] { inputX, busY - 8, inputX + BUS_W, busY + 8 });
+            boxes.add(new int[] { outputX, busY - 8, outputX + BUS_W, busY + 8 });
+            if (nodes.length > 0) edges.add(new int[] { inputX + BUS_W, busY, nodes[0][0], nodes[0][1] + 9, LINE, 0 });
+            Set<Integer> extraEntries = new LinkedHashSet<>();
+            for (var entry : graph.entryRoutes()) if (entry.node != 0 && extraEntries.add(entry.node))
+                edges.add(new int[] { inputX + BUS_W, busY, nodes[entry.node][0], nodes[entry.node][1] + 9, LINE, 0 });
+            if (sample != null && busY >= 29) {
+                int x = Math.max(7, inputX - 55);
+                boxes.add(new int[] { x, busY - 17, x + 18, busY });
+                edges.add(new int[] { x + 18, busY - 9, inputX, busY, 0xFFE0AD71, 0 });
+            }
+            for (int i = 0; i < Math.min(8, rules); i++) {
+                int y = ruleY + i * 17;
+                if (y < 0) continue;
+                boxes.add(new int[] { ruleX, y, ruleX + BUS_W, y + 16 });
+                edges.add(new int[] { ruleX + BUS_W, y + 8, inputX, busY, LINE, 0 });
+            }
+            for (int i = 0; i < nodes.length; i++) {
+                Node node = graph.nodes.get(i);
+                int ports = CenterGraphSync.outlets(node);
+                int x = nodes[i][0], y = nodes[i][1];
+                boxes.add(new int[] { x, y, x + NODE_W, y + portOffset(node) + ports * ROW + 11 });
+                for (int port = 0; port < ports; port++) {
+                    int target = node.target(port);
+                    if (target == CenterGraph.UNCONNECTED) continue;
+                    int toX = target < 0 ? outputX : nodes[target][0];
+                    int toY = target < 0 ? busY : nodes[target][1] + 9;
+                    edges.add(new int[] { x + NODE_W, portY(i, port), toX, toY,
+                        port == 0 ? 0xFFE2AD68 : LINE, port == 0 ? 0 : 1 });
+                }
+            }
+            circuits.draw(width, height, offX, offY, BACKGROUND, GRID, edges, boxes);
+        }
+
         private void wire(int x, int y, int endX, int endY, int color) {
-            wire(x, y, endX, endY, color, false);
-        }
-
-        private void wire(int x, int y, int endX, int endY, int color, boolean dotted) {
             int middle = (x + endX) / 2;
-            line(x, y, middle, y, color, dotted);
-            line(middle, y, middle, endY, color, dotted);
-            line(middle, endY, endX, endY, color, dotted);
-        }
-
-        private void line(int x, int y, int endX, int endY, int color, boolean dotted) {
-            int left = Math.min(x, endX), top = Math.min(y, endY);
-            int length = Math.abs(endX - x) + Math.abs(endY - y) + 1;
-            if (!dotted) {
-                rect(left, top, Math.abs(endX - x) + 1, Math.abs(endY - y) + 1, color);
-                return;
-            }
-            boolean horizontal = y == endY;
-            int cross = horizontal ? top : left;
-            if (cross < 0 || cross >= (horizontal ? getArea().height : getArea().width)) return;
-            int start = horizontal ? left : top;
-            int bound = horizontal ? getArea().width : getArea().height;
-            int first = Math.max(0, -start) / 5 * 5;
-            int last = Math.min(length, bound - start);
-            for (int at = first; at < last; at += 5) {
-                int dash = Math.min(3, last - at);
-                if (horizontal) rect(left + at, top, dash, 1, color);
-                else rect(left, top + at, 1, dash, color);
-            }
+            rect(Math.min(x, middle), y, Math.abs(middle - x) + 1, 1, color);
+            rect(middle, Math.min(y, endY), 1, Math.abs(endY - y) + 1, color);
+            rect(Math.min(middle, endX), endY, Math.abs(endX - middle) + 1, 1, color);
         }
 
         private boolean selectInput(int x, int y) {
@@ -1196,7 +1295,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
             int outputs = nodes[hit][1] + portOffset(editor.graph.nodes.get(hit));
             int port = (pressY - outputs) / ROW;
             editor.selectNode(hit);
-            if (pressY >= outputs && port < CenterGraphSync.outlets(editor.node().process)) {
+            if (pressY >= outputs && port < CenterGraphSync.outlets(editor.node())) {
                 editor.port = port;
                 editor.readPort();
                 if (pressX >= nodes[hit][0] + NODE_W - 7 && !CenterGraphSync.direct(editor.node().process)) {
@@ -1254,7 +1353,7 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
                     applyAuxiliary(target, auxiliary);
                     return;
                 }
-                if (row >= 0 && row / ROW < CenterGraphSync.outlets(node.process)
+                if (row >= 0 && row / ROW < CenterGraphSync.outlets(node)
                     && !CenterGraphSync.direct(node.process)) editor.acceptSample(target, row / ROW);
             } else if (getContext().getMouseX() <= Math.max(27, getArea().width / 7) + BUS_W)
                 editor.acceptSample(-1, 0);
@@ -1379,7 +1478,9 @@ public final class CenterGraphGui extends MTEMultiBlockBaseGui<MTEMineralIntegra
                 .toLowerCase(java.util.Locale.ROOT));
     }
 
-    private static String outletName(int port) {
+    private static String outletName(Node node, int port) {
+        if (node != null && port >= node.process.outletCount())
+            return tr("preset.branch", port - node.process.outletCount() + 1);
         return port == 0 ? tr("primary") : tr("secondary", port);
     }
 

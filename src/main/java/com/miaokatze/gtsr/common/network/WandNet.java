@@ -15,10 +15,8 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 import com.miaokatze.gtsr.common.debug.MachineDebugRegistry;
 import com.miaokatze.gtsr.common.debug.WandClient;
-import com.miaokatze.gtsr.common.gui.CriticalMachineTerminalFactory;
 import com.miaokatze.gtsr.common.items.HubTerminal;
 import com.miaokatze.gtsr.common.items.SingularityTuningWand;
-import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -311,9 +309,8 @@ public final class WandNet {
                         || !player.worldObj.blockExists(target.x, target.y, target.z)) continue;
                     if (player.worldObj.getTileEntity(target.x, target.y, target.z) instanceof IGregTechTileEntity base
                         && base.getMetaTileID() == target.metaId
-                        && usable(player, base)
-                        && base.getMetaTileEntity() instanceof MTECriticalMachine)
-                        CriticalMachineTerminalFactory.open(player, base);
+                        && usable(player, base))
+                        HubTerminal.openMachineTerminal(player, base);
                     continue;
                 }
                 if (!(held.getItem() instanceof SingularityTuningWand)) continue;

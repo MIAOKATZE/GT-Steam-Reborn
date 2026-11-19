@@ -27,6 +27,7 @@ import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph.Node;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph.OutletFilter;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
@@ -58,7 +59,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
         FREE_NODE,
         DUPLICATE,
         OUTLET_ALL,
-        AUXILIARY
+        AUXILIARY,
+        PRESET
     }
 
     private static final Action[] ACTIONS = Action.values();
@@ -106,6 +108,7 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
     private volatile Snapshot snapshot = Snapshot.EMPTY;
     private volatile String status = "status.loading";
     private volatile boolean waiting;
+    private volatile long importedGraph = -1;
     private long sentRevision = -1, incomingRevision;
     private int sentCapacity = -1, incomingCapacity, incomingCount;
     private boolean sentWritable, incomingWritable;
@@ -145,15 +148,21 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
         this.status = status;
     }
 
+    long takeImportedGraph() {
+        long id = importedGraph;
+        importedGraph = -1;
+        return id;
+    }
+
     void edit(Action action, Snapshot base, long graph, int a, int b, String text) {
         if (waiting) return;
         if (!base.writable()) {
             setStatus("status.read_only");
             return;
         }
-        if (text.length() > MAX_TEXT || action == Action.ADD && base.graphs()
-            .size() >= base.capacity()) {
-            setStatus(action == Action.ADD ? "status.capacity" : "status.invalid");
+        boolean adding = action == Action.ADD || action == Action.PRESET;
+        if (text.length() > MAX_TEXT || adding && base.graphs().size() >= base.capacity()) {
+            setStatus(adding ? "status.capacity" : "status.invalid");
             return;
         }
         waiting = true;
@@ -253,6 +262,7 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
         }
         if (id == RESULT) {
             int result = buffer.readUnsignedByte();
+            if (result == 0 && buffer.readableBytes() == Long.BYTES) importedGraph = buffer.readLong();
             setStatus(switch (result) {
                 case 0 -> "status.saved";
                 case 1 -> "status.stale";
@@ -330,7 +340,11 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                 }
                 int result = apply(action, revision, graph, a, b, text);
                 if (result == 0 || result == 1) detectAndSendChanges(false);
-                syncToClient(RESULT, outgoing -> outgoing.writeByte(result));
+                long imported = result == 0 && action == Action.PRESET ? machine.lastGraphId() : -1;
+                syncToClient(RESULT, outgoing -> {
+                    outgoing.writeByte(result);
+                    if (imported > 0) outgoing.writeLong(imported);
+                });
             } finally {
                 queued.set(false);
             }
@@ -342,7 +356,13 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
         if (machine.graphRevision() != revision) return 1;
         List<CenterGraph> graphs = new ArrayList<>(machine.graphSnapshot());
         try {
-            if (action == Action.ADD) {
+            if (action == Action.PRESET) {
+                if (graphs.size() >= machine.graphCapacity()) return 2;
+                var preset = CenterPresets.get(text);
+                String name = preset.name;
+                for (int suffix = 2; nameTaken(graphs, name); suffix++) name = preset.name + " " + suffix;
+                graphs.add(preset.graph(name));
+            } else if (action == Action.ADD) {
                 if (graphs.size() >= machine.graphCapacity()) return 2;
                 boolean hasFallback = graphs.stream()
                     .anyMatch(g -> g.enabled && g.fallback());
@@ -379,39 +399,40 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
         }
     }
 
+    private static boolean nameTaken(List<CenterGraph> graphs, String name) {
+        for (CenterGraph graph : graphs) if (graph.name.equals(name)) return true;
+        return false;
+    }
+
     private static CenterGraph replace(CenterGraph graph, Action action, int a, int b, String text) {
-        return switch (action) {
-            case TOGGLE -> new CenterGraph(
-                graph.id,
-                graph.name,
-                graph.priority,
-                !graph.enabled,
-                graph.rules(),
-                graph.nodes);
-            case RENAME -> new CenterGraph(
-                graph.id,
-                text.trim(),
-                graph.priority,
-                graph.enabled,
-                graph.rules(),
-                graph.nodes);
-            case PRIORITY -> new CenterGraph(graph.id, graph.name, a, graph.enabled, graph.rules(), graph.nodes);
-            case RULES -> new CenterGraph(
-                graph.id,
-                graph.name,
-                graph.priority,
-                graph.enabled,
-                parseRules(text),
-                graph.nodes);
-            case FILTER, TARGET, APPEND_NODE, REMOVE_NODE, MOVE, CIRCUIT, FREE_NODE, DUPLICATE, OUTLET_ALL, AUXILIARY -> new CenterGraph(
-                graph.id,
-                graph.name,
-                graph.priority,
-                graph.enabled,
-                graph.rules(),
-                editNodes(graph.nodes, action, a, b, text));
+        String name = graph.name;
+        int priority = graph.priority;
+        boolean enabled = graph.enabled;
+        List<String> rules = graph.rules();
+        List<Node> nodes = graph.nodes;
+        List<CenterGraph.EntryRoute> entries = graph.entryRoutes();
+        switch (action) {
+            case TOGGLE -> enabled = !enabled;
+            case RENAME -> name = text.trim();
+            case PRIORITY -> priority = a;
+            case RULES -> rules = parseRules(text);
+            case FILTER, TARGET, APPEND_NODE, REMOVE_NODE, MOVE, CIRCUIT, FREE_NODE, DUPLICATE, OUTLET_ALL, AUXILIARY -> {
+                nodes = editNodes(nodes, action, a, b, text);
+                if (action == Action.REMOVE_NODE && !entries.isEmpty()) {
+                    List<Integer> removed = nodeSelection(text, a, graph.nodes.size());
+                    List<CenterGraph.EntryRoute> remapped = new ArrayList<>();
+                    for (var entry : entries) {
+                        if (removed.contains(entry.node)) continue;
+                        int destination = entry.node;
+                        for (int old : removed) if (old < entry.node) destination--;
+                        if (destination > 0) remapped.add(new CenterGraph.EntryRoute(destination, entry.rule));
+                    }
+                    entries = remapped;
+                }
+            }
             default -> throw new IllegalArgumentException();
-        };
+        }
+        return graph.reconfigure(name, priority, enabled, rules, nodes, entries);
     }
 
     private static List<Node> editNodes(List<Node> existing, Action action, int index, int selected, String text) {
@@ -531,7 +552,7 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
     }
 
     private static void checkPort(Node node, int slot) {
-        if (direct(node.process) || slot >= outlets(node.process)) throw new IllegalArgumentException();
+        if (direct(node.process) || slot >= outlets(node)) throw new IllegalArgumentException();
     }
 
     private static Node target(Node node, int slot, int next) {
@@ -550,11 +571,10 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
     }
 
     static int outlets(CenterProcess process) {
-        return switch (process) {
-            case CRUSHER, WASHER, CHEMICAL_BATH, THERMAL_CENTRIFUGE, SEPARATOR -> 3;
-            case SIMPLE_WASHER, CENTRIFUGE -> 2;
-            case SIFTER -> 6;
-            default -> 1;
-        };
+        return process.outletCount();
+    }
+
+    static int outlets(Node node) {
+        return Math.max(node.process.outletCount(), node.targetCount());
     }
 }

@@ -86,6 +86,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private int selectedSlot, totalTicks, elapsed, steamKind, plannedTier = -1, plannedMask;
     private int textureTier = -1;
     private long steamTotal, energyTotal, sequence, nextProbe, coolingSteam;
+    private final int[] boostFluids = new int[4];
 
     public MTEMineralIntegrationCenter(int id, String name, String regionalName) {
         super(id, name, regionalName);
@@ -102,7 +103,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
 
     @Override
     protected gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui<?> getGui() {
-        return new com.miaokatze.gtsr.common.gui.CenterGraphGui(this);
+        return new com.miaokatze.gtsr.common.gui.CenterMachineGui(this);
     }
 
     @Override
@@ -220,6 +221,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     protected MultiblockTooltipBuilder createTooltip() {
         return new MultiblockTooltipBuilder().addMachineType(StatCollector.translateToLocal("gtsr.ore_center.tooltip.type"))
             .addInfo("The controller plans and runs whole processing batches.")
+            .addInfo(StatCollector.translateToLocal("gtsr.ore_center.tooltip.terminal"))
             .addInfo("Sneak-screwdriver selects a module pad. Use screwdriver to install or return a package.")
             .addInfo(StatCollector.translateToLocal("gtsr.ore_center.structure.tier"))
             .addStructureInfo(StatCollector.translateToLocal("gtsr.ore_center.structure.tier"))
@@ -326,13 +328,42 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         return "No compatible package in the input bus.";
     }
 
-    public NBTTagCompound terminalState() {
+    public NBTTagCompound operationStatus() {
         IGregTechTileEntity te = getBaseMetaTileEntity();
         NBTTagCompound tag = new NBTTagCompound();
+        int sectors = structure.sectorMask(te);
         tag.setInteger("Tier", structure.tier(te));
-        tag.setInteger("Sectors", structure.sectorMask(te));
-        tag.setBoolean("Formed", structure.sectorMask(te) != 0 && hasRequiredPorts());
+        tag.setInteger("Sectors", sectors);
+        tag.setBoolean("Formed", sectors != 0 && hasRequiredPorts());
         tag.setBoolean("Active", te.isActive());
+        int installed = 0;
+        for (int i = 0; i < grades.length; i++) if (grades[i] > 0 && (sectors & 1 << i / 6) != 0) installed++;
+        tag.setInteger("Installed", installed);
+        tag.setInteger("Graphs", graphs.size());
+        tag.setInteger("Elapsed", elapsed);
+        tag.setInteger("Duration", totalTicks);
+        tag.setLong("Energy", energyTotal);
+        tag.setLong("Steam", steamTotal);
+        SteamGrade steam = STEAMS[steamKind];
+        tag.setInteger("SteamDensity", steam.getDivisor());
+        Fluid steamFluid = steam.resolveFluid();
+        if (steamFluid != null) tag.setString("SteamFluid", steamFluid.getName());
+        tag.setLong("Power", getMaxInputEu());
+        tag.setLong("Voltage", getMaxInputVoltage());
+        NBTTagList boosts = new NBTTagList();
+        for (int i = 0; i < boostFluids.length; i++) {
+            NBTTagCompound row = new NBTTagCompound();
+            Fluid material = CenterPlanner.boostFluid(i);
+            if (material != null) row.setString("FluidName", material.getName());
+            row.setInteger("Amount", boostFluids[i]);
+            boosts.appendTag(row);
+        }
+        tag.setTag("BoostCosts", boosts);
+        return tag;
+    }
+
+    public NBTTagCompound terminalState() {
+        NBTTagCompound tag = operationStatus();
         tag.setIntArray("Modules", modules.clone());
         tag.setIntArray("Grades", grades.clone());
         int[] packs = new int[MODULES.length * 3];
@@ -345,13 +376,6 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             }
         }
         tag.setIntArray("Packs", packs);
-        tag.setInteger("Elapsed", elapsed);
-        tag.setInteger("Duration", totalTicks);
-        tag.setLong("Energy", energyTotal);
-        tag.setLong("Steam", steamTotal);
-        tag.setInteger("SteamDensity", STEAMS[steamKind].getDivisor());
-        tag.setLong("Power", getMaxInputEu());
-        tag.setLong("Voltage", getMaxInputVoltage());
         NBTTagList fluids = new NBTTagList();
         for (FluidSlot slot : fluidSlots()) {
             FluidStack fluid = slot.get();
@@ -421,6 +445,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             && MODULES[modules[i]] == CenterModule.LOGISTICS
             && structure.moduleIntact(te, i, CenterModule.LOGISTICS, grades[i])) count++;
         return count;
+    }
+
+    public long lastGraphId() {
+        return graphs.isEmpty() ? -1 : graphs.get(graphs.size() - 1).id;
     }
 
     public List<CenterGraph> graphSnapshot() {
@@ -669,6 +697,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         steamTotal = debugIgnoreFluids ? 0 : batch.steam;
         energyTotal = debugIgnoreEnergy ? 0 : batch.energy;
         steamKind = accepted;
+        System.arraycopy(batch.boostFluids, 0, boostFluids, 0, boostFluids.length);
         sequence++;
         pendingItems.addAll(batch.outputs);
         pendingFluids.addAll(batch.outputFluids);
@@ -860,6 +889,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setInteger("CenterSteamKind", steamKind);
         tag.setLong("CenterSteam", steamTotal);
         tag.setLong("CenterCoolingSteam", coolingSteam);
+        tag.setIntArray("CenterBoostFluids", boostFluids.clone());
         tag.setLong("CenterEnergy", energyTotal);
         tag.setLong("CenterSequence", sequence);
         tag.setLong("CenterGraphRevision", graphRevision);
@@ -899,6 +929,9 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         steamKind = Math.floorMod(tag.getInteger("CenterSteamKind"), STEAMS.length);
         steamTotal = Math.max(0, tag.getLong("CenterSteam"));
         coolingSteam = Math.max(0, tag.getLong("CenterCoolingSteam"));
+        int[] fluidCosts = tag.getIntArray("CenterBoostFluids");
+        for (int i = 0; i < boostFluids.length; i++)
+            boostFluids[i] = i < fluidCosts.length ? Math.max(0, fluidCosts[i]) : 0;
         energyTotal = Math.max(0, tag.getLong("CenterEnergy"));
         sequence = tag.getLong("CenterSequence");
         graphRevision = Math.max(0, tag.getLong("CenterGraphRevision"));
