@@ -935,6 +935,16 @@ public final class TestLabRuntime {
         }
     }
 
+    ForgeChunkManager.Ticket suspendTaskChunk(TestLabTask task, WorldServer target, ChunkCoordIntPair chunk) {
+        if (active != task || world != target) throw new IllegalStateException("Chunk is outside the active lab task");
+        var forcing = ForgeChunkManager.getPersistentChunksFor(world).get(chunk);
+        if (forcing.size() != 1) throw new IllegalStateException("Expected exactly one owner for the lab chunk");
+        ForgeChunkManager.Ticket ticket = forcing.iterator().next();
+        if (!tickets.contains(ticket)) throw new IllegalStateException("Chunk ticket belongs to another owner");
+        ForgeChunkManager.unforceChunk(ticket, chunk);
+        return ticket;
+    }
+
     static void releaseOwnedTicket(ForgeChunkManager.Ticket ticket) {
         // Do not infer ticket validity from forced chunks: a live ticket can have no chunks yet.
         // Before Forge's shutdown teardown, release failures must still propagate to the caller.

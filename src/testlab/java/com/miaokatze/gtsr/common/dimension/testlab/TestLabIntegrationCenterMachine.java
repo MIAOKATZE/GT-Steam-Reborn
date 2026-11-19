@@ -16,7 +16,10 @@ import java.util.zip.GZIPInputStream;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.WorldServer;
+import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -67,6 +70,9 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
     private ItemStack ore, product;
     private FluidStack withheld, coolingAtCheckpoint;
     private NBTTagCompound checkpoint;
+    private ChunkCoordIntPair controllerChunk;
+    private ForgeChunkManager.Ticket controllerTicket;
+    private boolean reloadedController;
 
     @Override
     public String id() {
@@ -91,6 +97,9 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
         z = originZ + 36;
         cursor = phase = 0;
         pauseAt = -1;
+        controllerChunk = new ChunkCoordIntPair(x >> 4, z >> 4);
+        controllerTicket = null;
+        reloadedController = false;
         positions.clear();
         hatchTexturesByTier.clear();
         addOwnership("tower-service-0", 0, 0, 0, 0, false);
@@ -293,6 +302,37 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                     "NBT restore lost saved progress");
                 steam.setFillableStack(withheld);
                 pauseAt = elapsedTicks;
+                controllerTicket = TestLabRuntime.INSTANCE.suspendTaskChunk(this, world, controllerChunk);
+                world.theChunkProviderServer
+                    .unloadChunksIfNotNearSpawn(controllerChunk.chunkXPos, controllerChunk.chunkZPos);
+                phase = 15;
+            } else if (phase == 15) {
+                if (world.theChunkProviderServer.chunkExists(controllerChunk.chunkXPos, controllerChunk.chunkZPos)) {
+                    require(elapsedTicks - pauseAt < 20, "Controller chunk never unloaded on the native provider tick");
+                    return null;
+                }
+                require(center.batchProgress() == checkpoint.getInteger("CenterElapsed"),
+                    "Controller ticked while its chunk was unloading");
+                ForgeChunkManager.forceChunk(controllerTicket, controllerChunk);
+                controllerTicket = null;
+                TestLabFixtures.requireChunk(world, controllerChunk.chunkXPos, controllerChunk.chunkZPos);
+                IGregTechTileEntity restoredController = tile(world, 0);
+                require(restoredController != controller, "Chunk reload reused the original live controller");
+                controller = restoredController;
+                center = (MTEMineralIntegrationCenter) controller.getMetaTileEntity();
+                input = tile(world, 5);
+                output = tile(world, -5);
+                steam = (MTEHatchInput) tile(world, 7).getMetaTileEntity();
+                ordinaryInput = (MTEHatchInput) tile(world, 3).getMetaTileEntity();
+                cooling = (MTESteamCoolingHatch) tile(world, -7).getMetaTileEntity();
+                require(center.batchSequence() == initialSequence + 1
+                    && center.batchProgress() == checkpoint.getInteger("CenterElapsed"),
+                    "Native chunk read did not restore the paid batch");
+                require(input.getStackInSlot(0) == null && quantity(output, product) == 0,
+                    "Native chunk reload duplicated input or output");
+                require(controller.isAllowedToWork(), "Reload changed the controller's work switch");
+                reloadedController = true;
+                pauseAt = elapsedTicks;
                 phase = 5;
             } else if (phase == 5) {
                 if (elapsedTicks >= pauseAt + 5) require(
@@ -352,15 +392,16 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                     report.put("legacyItemWaiverIgnored", true);
                     report.put("atomicOutputAfterPartialSpace", true);
                     report.put("savedFormationResumed", true);
+                    report.put("nativeControllerChunkUnloadedAndReloaded", reloadedController);
                     report.put("nativeGtBatchDisplay", true);
                     report.put("steamAtCheckpoint", steamAtPause);
                     report.put("condensedDistilledWater", waterAmount);
                     report.put("footprintSamples", positions.size());
                     report.put("constructNanos", buildNanos);
-                    report.put("restoreScope", "live controller NBT and paired cooling tank checkpoint");
+                    report.put("restoreScope", "in-place checkpoint and native chunk reload into a new controller");
                     return new TestLabReport.Result(
                         TestLabReport.Status.PASS,
-                        "Live assembly, steam stall, in-place NBT restoration and unblocking the output",
+                        "Live assembly, real controller chunk reload and atomic output",
                         report);
                 }
                 require(outputCount <= expected, "Output was duplicated");
@@ -453,6 +494,12 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             z,
             item.get(1)
                 .getItemDamage());
+    }
+
+    private IGregTechTileEntity tile(WorldServer world, int offset) {
+        TileEntity restored = world.getTileEntity(x + offset, y, z);
+        require(restored instanceof IGregTechTileEntity, "GT tile not restored at offset " + offset);
+        return (IGregTechTileEntity) restored;
     }
 
     private void supply() {

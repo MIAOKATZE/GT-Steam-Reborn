@@ -21,11 +21,14 @@ import net.minecraft.item.crafting.CraftingManager;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.WorldServer;
+import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.items.CenterModuleItems;
+import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.BoosterType;
+import com.miaokatze.gtsr.common.machine.cluster.MTEBasicAmplifierUnit;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterPlanner;
@@ -227,9 +230,65 @@ final class TestLabIntegrationCenter implements TestLabTask {
         details.put("bonusTrials", trials);
         details.put("bonusExpected", mean);
         details.put("bonusActual", extras);
+        details.put("secondaryBonus", verifySecondaryBonus(early, crushing, bronze));
         details.put("registeredRecipes", registrations);
         details.put("graphControls", "bounded generator syntax, allow/deny per port, persisted order and switch");
         return new TestLabReport.Result(TestLabReport.Status.PASS, "Native selection, priority, batch costs and seeded bonus", details);
+    }
+
+    private Map<String, Object> verifySecondaryBonus(CenterGraph graph, GTRecipe recipe, int[] modules) {
+        int output = -1;
+        int bestChance = 0;
+        for (int i = 1; i < recipe.mOutputs.length; i++) {
+            int chance = recipe.getOutputChance(i);
+            if (recipe.mOutputs[i] != null && chance > bestChance && chance < 10000) {
+                bestChance = chance;
+                output = i;
+            }
+        }
+        require(output >= 0, "Expected a probabilistic byproduct from the native raw copper recipe");
+        ItemStack product = recipe.mOutputs[output];
+        int inputSize = recipe.mInputs[0].stackSize;
+        Fluid reagent = MTEBasicAmplifierUnit.resolveBoosterFluid(BoosterType.SECONDARY_OUTPUT);
+        require(reagent != null, "Secondary booster reagent is not registered");
+        FluidStack supply = new FluidStack(reagent, 4096);
+        int[] boosted = modules.clone();
+        boosted[CenterModule.SECONDARY.ordinal()] = 1;
+        List<CenterGraph> graphs = Arrays.asList(graph);
+        ItemStack[] input = { copper };
+        CenterPlanner.Batch off = plan(graphs, input, NO_FLUIDS, boosted, 0, 1, 0, 0, SEED);
+        require(off.bonuses.isEmpty(), "A dry secondary booster produced extra minerals");
+        int trials = 0;
+        int extraLots = 0;
+        for (int i = 0; i < 256; i++) {
+            CenterPlanner.Batch batch = plan(graphs, input, new FluidStack[] { supply }, boosted,
+                0, 1, 0, 0, SEED + 113L * i);
+            int consumed = quantity(batch.consumed, copper);
+            int charged = batch.consumedFluids.stream()
+                .filter(supply::isFluidEqual)
+                .mapToInt(stack -> stack.amount)
+                .sum();
+            require(charged == 3 * consumed, "Incorrect secondary reagent charge");
+            int extra = quantity(batch.bonuses, product);
+            require(extra % product.stackSize == 0 && quantity(batch.outputs, product) >= extra,
+                "Secondary bonus was not settled to the native output product");
+            extraLots += extra / product.stackSize;
+            trials += consumed / inputSize;
+        }
+        double probability = Math.min(1 - bestChance / 10000D, bestChance / 1_000_000D);
+        double mean = trials * probability;
+        double deviation = Math.sqrt(mean * (1 - probability));
+        require(extraLots > 0 && Math.abs(extraLots - mean) <= 6 * deviation,
+            "Secondary bonus does not match the configured relative 1% increase: " + extraLots + "/" + mean);
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("item", product.toString());
+        details.put("fluid", reagent.getName());
+        details.put("litresPerRootOre", 3);
+        details.put("nativeChance", bestChance);
+        details.put("trials", trials);
+        details.put("expectedAdditionalLots", mean);
+        details.put("actualAdditionalLots", extraLots);
+        return details;
     }
 
     private void verifyGraphFilters(CenterGraph early, List<CenterGraph.Node> dry, GTRecipe crushing, GTRecipe separating,

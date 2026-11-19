@@ -586,7 +586,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         for (int i = 0; i < grades.length; i++) {
             if (grades[i] == 0) continue;
             CenterModule module = MODULES[modules[i]];
-            if (structure.moduleLoaded(te, i, module, grades[i]) && !structure.moduleIntact(te, i, module, grades[i])) {
+            if (structure.moduleBroken(i, module, grades[i])) {
                 grades[i] = 0;
                 planning = null;
                 te.markDirty();

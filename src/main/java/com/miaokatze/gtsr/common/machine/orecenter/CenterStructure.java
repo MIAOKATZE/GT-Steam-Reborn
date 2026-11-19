@@ -3,6 +3,7 @@
 
 package com.miaokatze.gtsr.common.machine.orecenter;
 
+import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,6 +58,7 @@ public final class CenterStructure {
     private static final int[] SERVICE_PORT_X = { 3, -3, 5, -5, 7, -7, -6 };
     private static final String SERVICE_TOWER = "tower-service-";
     private static final Map<String, Shape> SHAPES = new HashMap<>();
+    private static final String[][][] MODULE_KEYS = moduleKeys();
     private final CriticalStructureMonitor tower = new CriticalStructureMonitor();
     private final CriticalStructureMonitor[] sectors = new CriticalStructureMonitor[6];
     private final ModuleCheck[] modules = new ModuleCheck[36];
@@ -441,10 +443,26 @@ public final class CenterStructure {
             || !module && substitutedPort(shape, i, frame, xx, yy, zz) ? Sample.MATCH : Sample.BROKEN;
     }
 
+    private static String[][][] moduleKeys() {
+        CenterModule[] types = CenterModule.values();
+        String[][][] keys = new String[6][types.length][3];
+        for (CenterModule module : types) {
+            String id = module.key.toLowerCase(Locale.ROOT);
+            for (int pad = 0; pad < keys.length; pad++) {
+                for (int grade = 1; grade <= 3; grade++)
+                    keys[pad][module.ordinal()][grade - 1] = "module-" + pad + "-" + id + "-" + grade;
+            }
+        }
+        return keys;
+    }
+
     private static String moduleKey(int slot, CenterModule module, int grade) {
-        String id = module.key.toLowerCase(Locale.ROOT);
-        if (id.equals("primary")) id = "yield";
-        return "module-" + slot % 6 + "-" + id + "-" + grade;
+        return MODULE_KEYS[slot % 6][module.ordinal()][grade - 1];
+    }
+
+    boolean moduleBroken(int slot, CenterModule module, int grade) {
+        ModuleCheck check = checkModule(slot, module, grade);
+        return check != null && (check.damaged || check.monitor.getStatus() == Status.BROKEN);
     }
 
     public boolean moduleLoaded(IGregTechTileEntity te, int slot, CenterModule module, int grade) {
@@ -919,7 +937,8 @@ public final class CenterStructure {
         if (cached != null) return cached;
         InputStream resource = CenterStructure.class.getResourceAsStream("/assets/gtsr/orecenter/" + key + ".gz");
         if (resource == null) return null;
-        try (DataInputStream in = new DataInputStream(new GZIPInputStream(resource))) {
+        // Buffer decoded bytes as well as compressed input. The primitive reads below are only one or two bytes wide.
+        try (DataInputStream in = new DataInputStream(new BufferedInputStream(new GZIPInputStream(resource, 8192)))) {
             int colors = in.readUnsignedShort(), count = in.readInt();
             if (colors < 1 || colors > 255 || count < 1 || count > 200000) throw new IOException("Invalid block count");
             Block[] blocks = new Block[colors];
