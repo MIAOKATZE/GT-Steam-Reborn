@@ -154,7 +154,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         if (getBaseMetaTileEntity().getWorld() instanceof StructurePreviewWorld preview) preview.gtsr$markStructurePreview();
         textureTier = selectedTier(stack) - 1;
         construct(stack, false);
-        structure.showPreviewPorts(getBaseMetaTileEntity());
+        structure.showPreviewPorts(getBaseMetaTileEntity(), textureTier);
     }
 
     @Override
@@ -199,14 +199,17 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         clearHatches();
         steamHatches.clear();
         coolingHatches.clear();
-        structure.collectHatches(te, hatch -> {
-            IMetaTileEntity meta = hatch.getMetaTileEntity();
-            if (!acceptsPort(meta)) return;
-            if (meta.getClass() == MTESteamCoolingHatch.class) coolingHatches.add((MTESteamCoolingHatch) meta);
-            else if (meta.getClass() == MTESteamInputHatchGeneric.class
-                || meta.getClass() == MTEHatchPressureSteamInput.class
-                || meta.getClass() == MTEOverpressureTurbineInputHatch.class) steamHatches.add((MTEHatch) meta);
-            else addToMachineList(hatch, 10);
+        structure.collectHatches(te, (hatch, casingTexture) -> {
+            MTEHatch port = (MTEHatch) hatch.getMetaTileEntity();
+            Class<?> type = port.getClass();
+            if (type == MTESteamCoolingHatch.class) coolingHatches.add((MTESteamCoolingHatch) port);
+            else if (type == MTESteamInputHatchGeneric.class || type == MTEHatchPressureSteamInput.class
+                || type == MTEOverpressureTurbineInputHatch.class) steamHatches.add(port);
+            else {
+                addToMachineList(hatch, casingTexture);
+                return;
+            }
+            port.updateTexture(casingTexture);
         });
     }
 

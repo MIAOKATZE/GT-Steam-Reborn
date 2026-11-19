@@ -66,7 +66,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
         PRESET,
         ARRANGE,
         UNDO,
-        REDO
+        REDO,
+        MOVE_BUS
     }
 
     private static final Action[] ACTIONS = Action.values();
@@ -464,6 +465,14 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
     }
 
     private static CenterGraph replace(CenterGraph graph, Action action, int a, int b, String text) {
+        if (action == Action.MOVE_BUS) {
+            var position = new CenterGraph.BusPosition(a, b);
+            return switch (text) {
+                case "input" -> graph.withBusPositions(position, graph.outputPosition);
+                case "output" -> graph.withBusPositions(graph.inputPosition, position);
+                default -> throw new IllegalArgumentException("Unknown graph bus");
+            };
+        }
         String name = graph.name;
         int priority = graph.priority;
         boolean enabled = graph.enabled;
@@ -491,7 +500,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
             }
             default -> throw new IllegalArgumentException();
         }
-        return graph.reconfigure(name, priority, enabled, rules, nodes, entries);
+        CenterGraph updated = graph.reconfigure(name, priority, enabled, rules, nodes, entries);
+        return action == Action.ARRANGE ? updated.withBusPositions(null, null) : updated;
     }
 
     private static List<Node> editNodes(List<Node> existing, Action action, int index, int selected, String text) {
@@ -534,7 +544,7 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
             return nodes;
         }
         if (action == Action.ARRANGE) {
-            nodes.replaceAll(node -> node.withPosition(CenterGraph.AUTO_POSITION, CenterGraph.AUTO_POSITION));
+            nodes.replaceAll(Node::withoutPosition);
             return nodes;
         }
         if (action == Action.OUTLET_ALL) {
