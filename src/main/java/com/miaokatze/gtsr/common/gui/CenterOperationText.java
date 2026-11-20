@@ -70,6 +70,7 @@ final class CenterOperationText {
 
     private static String structureState(NBTTagCompound state, int sectors) {
         if (state.getBoolean("Formed")) return EnumChatFormatting.GREEN + local("native.formed");
+        if (state.getBoolean("CheckingFormation")) return EnumChatFormatting.YELLOW + local("native.rechecking");
         return EnumChatFormatting.RED + local(sectors == 0 ? "native.unformed" : "native.ports");
     }
 

@@ -71,6 +71,8 @@ final class TestLabMachineTask implements TestLabTask {
     private final List<String> beforeThermalFixtureSnapshots = new ArrayList<>();
     private int directThermalWrites;
     private TestLabHeavySteamTurbineProbe heavyTurbineProbe;
+    private boolean verifyTurbineReload;
+    private TestLabTurbineReload turbineReload;
 
     TestLabMachineTask(MetaTileEntityID id, int variant) {
         this(id, id, variant);
@@ -80,6 +82,14 @@ final class TestLabMachineTask implements TestLabTask {
         this.targetId = targetId;
         this.machineId = hostId;
         this.variant = variant;
+    }
+
+    static TestLabMachineTask turbineReload(MetaTileEntityID machine) {
+        TestLabMachineTask task = new TestLabMachineTask(
+            machine,
+            machine == MetaTileEntityID.HEAVY_STEAM_TURBINE ? 3 : 1);
+        task.verifyTurbineReload = true;
+        return task;
     }
 
     static TestLabTask hatchTask(MetaTileEntityID id) {
@@ -113,6 +123,8 @@ final class TestLabMachineTask implements TestLabTask {
 
     @Override
     public String id() {
+        if (verifyTurbineReload) return targetId.name()
+            .toLowerCase(Locale.ROOT) + "_reload";
         if (targetId == MetaTileEntityID.HEAVY_STEAM_TURBINE && variant == 3) return "heavy_steam_turbine_superheated";
         return targetId.name()
             .toLowerCase(Locale.ROOT) + (variant == 1 ? "" : "_tier" + variant);
@@ -332,6 +344,10 @@ final class TestLabMachineTask implements TestLabTask {
             return null;
         }
         if (elapsedTicks - startedProcessing < 5) return null;
+        if (verifyTurbineReload) {
+            if (turbineReload == null) turbineReload = new TestLabTurbineReload(controller, ports);
+            return turbineReload.tick(this, world, elapsedTicks);
+        }
         sampleRedstone();
         itemConsumed |= countInputItems() < inputItemCount;
         boolean consumed = itemConsumed;
@@ -849,6 +865,7 @@ final class TestLabMachineTask implements TestLabTask {
 
     @Override
     public void stop(WorldServer world) {
+        if (turbineReload != null) turbineReload.stop(world);
         for (IGregTechTileEntity port : ports) {
             TestLabSupply.remove(port);
             port.disableWorking();

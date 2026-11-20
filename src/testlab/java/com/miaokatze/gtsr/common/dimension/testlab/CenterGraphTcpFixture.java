@@ -75,6 +75,9 @@ public final class CenterGraphTcpFixture {
     private long revision;
     private boolean fullCenterVerified;
     private final boolean fullCenter = Boolean.getBoolean(PREFIX + "fullCenter");
+    private final boolean presetLoad = Boolean.getBoolean(PREFIX + "presetLoad");
+    private TestLabCenterPresetLoad workload;
+    private int workloadTicks;
     private EntityPlayerMP businessActor;
 
     static boolean requested() {
@@ -99,6 +102,10 @@ public final class CenterGraphTcpFixture {
                 verifyWorld(world);
                 write(receiptDir, "server-ready.json", Collections.singletonMap("runId", runId));
                 ready = true;
+            }
+            if (presetLoad) {
+                tickPresetLoad(server, world);
+                return;
             }
             if (center == null) {
                 for (Object candidate : server.getConfigurationManager().playerEntityList) {
@@ -201,12 +208,42 @@ public final class CenterGraphTcpFixture {
             done = true;
         } catch (Exception failure) {
             done = true;
+            if (workload != null) try {
+                workload.stop(
+                    MinecraftServer.getServer()
+                        .worldServerForDimension(0));
+            } catch (RuntimeException cleanup) {
+                failure.addSuppressed(cleanup);
+            }
             GTSteamReborn.LOG.error("Ore center dedicated graph fixture failed", failure);
             Map<String, Object> status = report(runId, "FAIL");
             status.put("error", failure.toString());
             status.put("changes", changes);
             write(receiptDir, "server-checks.json", status);
         }
+    }
+
+    private void tickPresetLoad(MinecraftServer server, WorldServer world) {
+        if (workload == null) {
+            for (Object candidate : server.getConfigurationManager().playerEntityList) {
+                EntityPlayerMP actor = (EntityPlayerMP) candidate;
+                if (!actorId.equals(actor.getUniqueID()) || actor.worldObj != world) continue;
+                require(!actor.canCommandSenderUseCommand(2, "miaotest"), "Business actor is OP2");
+                workload = new TestLabCenterPresetLoad();
+                workload.startTcp(world, actor, receiptDir);
+                break;
+            }
+            return;
+        }
+        require(workloadTicks < workload.timeoutTicks(), "Preset load timed out: " + workload.debug(world));
+        TestLabReport.Result result = workload.tick(world, ++workloadTicks);
+        if (result == null) return;
+        workload.stop(world);
+        Map<String, Object> status = report(runId, "PASS");
+        status.put("actorOp", false);
+        status.put("preset", result.details);
+        write(receiptDir, "server-checks.json", status);
+        done = true;
     }
 
     private void verifyWorld(WorldServer world) throws IOException {

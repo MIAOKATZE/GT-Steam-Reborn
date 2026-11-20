@@ -88,6 +88,10 @@ public final class TestLabCatalog {
         tasks.add(new TestLabIntegrationCenter(true));
         tasks.add(new TestLabIntegrationCenterMachine());
         tasks.add(new TestLabIntegrationCenterEntityPressure());
+        tasks.add(new TestLabCenterPresetLoad());
+        tasks.add(new TestLabCenterSaturation());
+        tasks.add(TestLabMachineTask.turbineReload(MetaTileEntityID.HEAVY_STEAM_TURBINE));
+        tasks.add(TestLabMachineTask.turbineReload(MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY));
         return Collections.unmodifiableList(tasks);
     }
 

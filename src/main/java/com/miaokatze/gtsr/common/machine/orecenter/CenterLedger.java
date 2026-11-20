@@ -12,10 +12,12 @@ import gregtech.api.util.GTUtility;
 /** Bounded controller ledger. Quantities are recorded at debit, delivery and bonus generation respectively. */
 final class CenterLedger {
 
-    private static final int LIMIT = 256;
+    private static final int LIMIT = 2048;
     private final Map<GTUtility.ItemId, Entry> entries = new LinkedHashMap<>();
+    private long revision;
 
     private static final class Entry {
+
         final ItemStack sample;
         final long[] totals;
 
@@ -30,14 +32,23 @@ final class CenterLedger {
         GTUtility.ItemId id = GTUtility.ItemId.createNoCopy(stack);
         Entry entry = entries.get(id);
         if (entry == null) {
-            if (entries.size() == LIMIT || stack.hasTagCompound() && stack.getTagCompound().toString().length() > 512)
-                return;
+            if (entries.size() == LIMIT || stack.hasTagCompound() && stack.getTagCompound()
+                .toString()
+                .length() > 512) return;
             ItemStack sample = stack.copy();
             sample.stackSize = 1;
             entry = new Entry(sample, new long[3]);
             entries.put(GTUtility.ItemId.createNoCopy(sample), entry);
         }
-        entry.totals[column] += Math.min(amount, Long.MAX_VALUE - entry.totals[column]);
+        long added = Math.min(amount, Long.MAX_VALUE - entry.totals[column]);
+        if (added > 0) {
+            entry.totals[column] += added;
+            revision++;
+        }
+    }
+
+    long revision() {
+        return revision;
     }
 
     NBTTagList save() {
@@ -57,12 +68,14 @@ final class CenterLedger {
             NBTTagCompound row = rows.getCompoundTagAt(i);
             ItemStack item = ItemStack.loadItemStackFromNBT(row.getCompoundTag("Item"));
             if (item == null) continue;
-            entries.put(GTUtility.ItemId.createNoCopy(item), new Entry(item,
-                new long[] { row.getLong("C0"), row.getLong("C1"), row.getLong("C2") }));
+            entries.put(
+                GTUtility.ItemId.createNoCopy(item),
+                new Entry(item, new long[] { row.getLong("C0"), row.getLong("C1"), row.getLong("C2") }));
         }
     }
 
     void clear() {
         entries.clear();
+        revision++;
     }
 }

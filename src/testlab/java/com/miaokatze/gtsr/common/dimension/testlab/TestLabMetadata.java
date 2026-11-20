@@ -19,6 +19,8 @@ final class TestLabMetadata {
                 "rock_breaker_sites",
                 TestLabIntegrationCenter.PLANNER,
                 TestLabIntegrationCenterMachine.ID,
+                "heavy_steam_turbine_reload",
+                "mega_steam_turbine_array_reload",
                 "cluster_unit_furnace_output_split",
                 "cluster_unit_ore_washer_water_bulk",
                 "cluster_unit_ore_washer_residual_distilled_bulk",
@@ -43,17 +45,19 @@ final class TestLabMetadata {
             || REGRESSIONS.contains(task.id());
         String group = task instanceof TestLabIntegrationCenter || task instanceof TestLabIntegrationCenterMachine
             || task instanceof TestLabIntegrationCenterEntityPressure
-            ? "ore-integration-center"
-            : task instanceof TestLabAmmoniaNaturalTask ? "ammonia-natural"
-            : task instanceof TestLabFollowupTask ? "followup"
-                : task instanceof TestLabHubTask ? "hub-storage"
-                    : task instanceof TestLabClusterTask ? "cluster"
-                        : task instanceof TestLabCriticalTask ? "critical-construction"
-                            : task instanceof TestLabDrillingTask ? "mining"
-                                : task.id()
-                                    .startsWith("ui.") ? "ui-model-sync"
+            || task instanceof TestLabCenterPresetLoad
+            || task instanceof TestLabCenterSaturation
+                ? "ore-integration-center"
+                : task instanceof TestLabAmmoniaNaturalTask ? "ammonia-natural"
+                    : task instanceof TestLabFollowupTask ? "followup"
+                        : task instanceof TestLabHubTask ? "hub-storage"
+                            : task instanceof TestLabClusterTask ? "cluster"
+                                : task instanceof TestLabCriticalTask ? "critical-construction"
+                                    : task instanceof TestLabDrillingTask ? "mining"
                                         : task.id()
-                                            .startsWith("structure.") ? "structure" : "machine";
+                                            .startsWith("ui.") ? "ui-model-sync"
+                                                : task.id()
+                                                    .startsWith("structure.") ? "structure" : "machine";
         tags.add("group:" + group);
         tags.add("world:isolated-persistent-lab");
         tags.add("mutation:owned-fixtures");

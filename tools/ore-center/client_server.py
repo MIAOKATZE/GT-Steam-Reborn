@@ -71,7 +71,7 @@ def wait_for_client(client, log_path, deadline):
         wait_for(completed, client, deadline, 'Native client completion')
 
 
-def verify_automated_result(evidence, run_id, artifacts, client, receipt):
+def verify_automated_result(evidence, run_id, artifacts, client, receipt, preset_load=False, profile_frames=False):
     client_report = host.read(evidence / 'client-checks.json')
     if client_report.get('status') != 'PASS':
         raise RuntimeError(f'Native client failed in phase {client_report.get("phase")}: {client_report.get("error")}')
@@ -82,10 +82,26 @@ def verify_automated_result(evidence, run_id, artifacts, client, receipt):
         for artifact in artifacts:
             if report.get('artifacts', {}).get(artifact['modId'], {}).get('jarSha256') != artifact['sha256']:
                 raise RuntimeError(f'{name} loaded a different {artifact["modId"]} jar')
-    screenshot = evidence / 'reopened-native-graph.png'
+    if profile_frames:
+        frames = [evidence / f'native-frame-{name}.png' for name in ('overview', 'idle', 'active')]
+        if client.returncode != 0 or not all(frame.is_file() for frame in frames):
+            raise RuntimeError('Native frame profile did not capture all three views')
+        receipt['frames'] = [{'path': str(frame), 'sha256': host.sha(frame)} for frame in frames]
+        receipt['frameProfile'] = client_report['frameProfile']
+        return
+    screenshot = evidence / ('native-preset-stats.png' if preset_load else 'reopened-native-graph.png')
     if client.returncode != 0 or not screenshot.is_file():
         raise RuntimeError('Native client did not exit cleanly with its reopened graph frame')
     receipt['frame'] = {'path': str(screenshot), 'sha256': host.sha(screenshot)}
+    if preset_load:
+        recipe = evidence / 'native-preset-recipe.png'
+        if not recipe.is_file():
+            raise RuntimeError('Native GT recipe frame missing')
+        receipt['recipeFrame'] = {'path': str(recipe), 'sha256': host.sha(recipe)}
+        crown = [evidence / ('native-preset-crown-' + pose + '.png') for pose in ('a', 'b')]
+        if not all(image.is_file() for image in crown) or host.sha(crown[0]) == host.sha(crown[1]):
+            raise RuntimeError('Native crown did not provide two distinct frames')
+        receipt['crownFrames'] = [{'path': str(image), 'sha256': host.sha(image)} for image in crown]
 
 
 def run(args):
@@ -119,7 +135,9 @@ def run(args):
     run_id = str(uuid.uuid4())
     evidence = host.unredirected(args.evidence.absolute())
     evidence.mkdir(parents=True, exist_ok=False)
-    case = 'ore_integration_center.native_review' if args.review_port else 'ore_integration_center.graph_tcp'
+    case = ('ore_integration_center.world_frame_profile' if args.profile_frames else
+            'ore_integration_center.preset_load_tcp' if args.preset_load else
+            'ore_integration_center.native_review' if args.review_port else 'ore_integration_center.graph_tcp')
     receipt = {'runId': run_id, 'lane': 'client-server', 'case': case,
                'status': 'ERROR', 'serverInstance': str(server_root), 'clientInstance': str(client_root),
                'endpoint': f'127.0.0.1:{port}', 'actorUuid': client_qa.ACTOR_UUID, 'memory': budget, 'cleanup': {}}
@@ -167,7 +185,8 @@ def run(args):
             props.update({'level-name': world.name, 'level-type': 'FLAT', 'online-mode': 'false', 'white-list': 'true',
                           'op-permission-level': '2', 'server-ip': '127.0.0.1', 'enable-rcon': 'false',
                           'enable-query': 'false', 'spawn-protection': '0', 'spawn-monsters': 'false',
-                          'spawn-animals': 'false', 'spawn-npcs': 'false', 'view-distance': '10' if args.large_view or args.review_port else '5'})
+                          'spawn-animals': 'false', 'spawn-npcs': 'false',
+                          'view-distance': '10' if args.large_view or args.review_port or args.preset_load else '5'})
             server_settings = {
                 'server.properties': ('\n'.join(f'{key}={value}' for key, value in props.items()) + '\n').encode(),
                 'ops.json': b'[]',
@@ -177,8 +196,10 @@ def run(args):
                 path = server_root / name
                 server_settings[name] = path.read_bytes() if path.exists() else empty
             stack.enter_context(client_qa.settings(server_root, server_settings, evidence / 'server-settings', lambda: running(server)))
+            distance = 10 if args.profile_frames else 3
             client_settings = {'options.txt': ('fullscreen:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\n'
-                                                f'guiScale:{3 if args.large_view else 2}\nlang:{args.language}\nrenderDistance:3\n').encode('ascii')}
+                                                f'guiScale:{3 if args.large_view else 2}\nlang:{args.language}\nrenderDistance:{distance}\n'
+                                                + ('enableVsync:false\nmaxFps:260\n' if args.profile_frames else '')).encode('ascii')}
             for name in ('usernamecache.json', 'optionsnf.txt'):
                 path = client_root / name
                 if path.is_file():
@@ -194,6 +215,10 @@ def run(args):
                       '-Dgtsr.graphTcp.actor=' + client_qa.ACTOR_UUID]
             if args.large_view:
                 common.append('-Dgtsr.graphTcp.fullCenter=true')
+            if args.preset_load:
+                common.append('-Dgtsr.graphTcp.presetLoad=true')
+            if args.profile_frames:
+                common.append('-Dgtsr.graphTcp.profileFrames=true')
             if args.review_port:
                 common += ['-Dgtsr.graphTcp.interactive=true']
             server_command = [server_item['server_java'], '-Xms1G', '-Xmx3G', '-Djava.awt.headless=true',
@@ -245,7 +270,7 @@ def run(args):
                 receipt['reviewFrames'] = state['frame']
                 receipt['browserInputBatches'] = state['seq']
             else:
-                verify_automated_result(evidence, run_id, artifacts, client, receipt)
+                verify_automated_result(evidence, run_id, artifacts, client, receipt, args.preset_load, args.profile_frames)
         if receipt['cleanup'] != {'clientForcedStop': False, 'desktopClosed': True,
                                   'serverForcedStop': False, 'worldDeleted': True}:
             raise RuntimeError(f'Cleanup incomplete: {receipt["cleanup"]}')
@@ -271,10 +296,18 @@ def main():
     parser.add_argument('--deadline', type=int, default=900)
     parser.add_argument('--language', choices=['en_US', 'zh_CN'], default='en_US')
     parser.add_argument('--large-view', action='store_true', help='match the 2560×1334 GUI scale 3 crash case')
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--preset-load', action='store_true', help='run the production workload and verify its live recipe and stats')
+    modes.add_argument('--profile-frames', action='store_true', help='sample cold, idle and active views in the real client')
     parser.add_argument('--execute', action='store_true')
     parser.add_argument('--review-port', type=int, choices=[20742],
                         help='serve the interactive native panel on the configured local browser port')
-    return run(parser.parse_args())
+    args = parser.parse_args()
+    if (args.preset_load or args.profile_frames) and args.review_port:
+        parser.error('Preset workload and interactive review are separate cases')
+    if args.profile_frames:
+        args.preset_load = True
+    return run(args)
 
 
 if __name__ == '__main__':

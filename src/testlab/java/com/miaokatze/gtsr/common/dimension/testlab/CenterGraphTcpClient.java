@@ -4,10 +4,13 @@
 package com.miaokatze.gtsr.common.dimension.testlab;
 
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -17,6 +20,8 @@ import net.minecraft.client.gui.GuiDisconnected;
 import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.util.ScreenShotHelper;
@@ -29,9 +34,15 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.viewport.GuiContext;
 import com.cleanroommc.modularui.screen.viewport.LocatedWidget;
+import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.widget.sizer.Area;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.gtnewhorizon.structurelib.StructureLibAPI;
+import com.miaokatze.gtsr.client.machinevisual.MachineVisualClient;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
@@ -70,6 +81,12 @@ public final class CenterGraphTcpClient {
     private final List<String> pageFrames = new ArrayList<>();
     private String lastTrace = "";
     private final boolean interactive = Boolean.getBoolean(CenterGraphTcpFixture.PREFIX + "interactive");
+    private final boolean presetLoad = Boolean.getBoolean(CenterGraphTcpFixture.PREFIX + "presetLoad");
+    private final CenterFrameProfile frameProfile = Boolean.getBoolean(CenterGraphTcpFixture.PREFIX + "profileFrames")
+        ? new CenterFrameProfile(mc, receipts)
+        : null;
+    private int presetStage;
+    private long crownFirstPose = -1, crownStartReplays;
     private final CenterNativeReviewInput reviewer = interactive ? new CenterNativeReviewInput(mc, receipts) : null;
 
     static void register() {
@@ -104,8 +121,9 @@ public final class CenterGraphTcpClient {
                 advance();
                 return;
             }
-            if (!interactive) CenterGraphTcpFixture
-                .require(System.nanoTime() - since < TimeUnit.SECONDS.toNanos(120), "Client phase timed out: " + phase);
+            if (!interactive) CenterGraphTcpFixture.require(
+                System.nanoTime() - since < TimeUnit.SECONDS.toNanos(presetLoad ? 390 : 120),
+                "Client phase timed out: " + phase + "/" + presetStage);
             if (mc.currentScreen instanceof GuiDisconnected) {
                 IChatComponent reason = (IChatComponent) readField(mc.currentScreen, "field_146304_f");
                 throw new IllegalStateException("Dedicated TCP connection ended: " + reason.getUnformattedText());
@@ -115,7 +133,22 @@ public final class CenterGraphTcpClient {
                 return;
             }
 
+            if (frameProfile != null) {
+                Path server = receipts.resolve("server-checks.json");
+                JsonObject result = Files.isRegularFile(server) ? json(server) : null;
+                if (result != null) CenterGraphTcpFixture.require(
+                    "PASS".equals(
+                        result.get("status")
+                            .getAsString()),
+                    "Server frame workload failed: " + result.get("error"));
+                if (frameProfile.tick() && result != null) finish(null);
+                return;
+            }
             ModularScreen screen = screen();
+            if (presetLoad) {
+                verifyPresetLoad(screen);
+                return;
+            }
             if (interactive) {
                 if (screen == null) open();
                 return;
@@ -259,8 +292,14 @@ public final class CenterGraphTcpClient {
 
     @SubscribeEvent
     public void render(TickEvent.RenderTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || done) return;
+        if (done) return;
         try {
+            if (frameProfile != null) {
+                if (event.phase == TickEvent.Phase.START) frameProfile.renderStart();
+                else frameProfile.renderEnd();
+                return;
+            }
+            if (event.phase != TickEvent.Phase.END) return;
             if (interactive) {
                 ModularScreen current = screen();
                 if (current != null && !reviewer.isReady()) {
@@ -273,7 +312,8 @@ public final class CenterGraphTcpClient {
                 return;
             }
             if (!screenshot && capturePage == null) return;
-            String frame = screenshot ? FRAME : "native-" + capturePage + ".png";
+            String frame = screenshot ? presetLoad ? "native-preset-stats.png" : FRAME
+                : "native-" + capturePage + ".png";
             ScreenShotHelper
                 .saveScreenshot(receipts.toFile(), frame, mc.displayWidth, mc.displayHeight, mc.getFramebuffer());
             // The vanilla screenshot helper always creates its screenshots/ subdirectory.
@@ -293,6 +333,145 @@ public final class CenterGraphTcpClient {
     private void advance() {
         phase++;
         since = System.nanoTime();
+    }
+
+    private void verifyPresetLoad(ModularScreen terminal) throws Exception {
+        Path resultFile = receipts.resolve("server-checks.json");
+        JsonObject result = Files.isRegularFile(resultFile) ? json(resultFile) : null;
+        if (result != null && !"PASS".equals(
+            result.get("status")
+                .getAsString()))
+            throw new IllegalStateException("Server preset failed: " + result.get("error"));
+        if (capturePage != null) return;
+        if (presetStage == 0) {
+            Path active = receipts.resolve("preset-active.json");
+            if (!Files.isRegularFile(active)) return;
+            if (terminalSlot < 0) {
+                terminalSlot = mc.thePlayer.inventory.currentItem;
+                int empty = (terminalSlot + 1) % 9;
+                CenterGraphTcpFixture.require(
+                    mc.thePlayer.inventory.getStackInSlot(empty) == null,
+                    "Preset recipe view requires an empty selected slot");
+                mc.thePlayer.closeScreen();
+                mc.thePlayer.inventory.currentItem = empty;
+                openCooldown = 0;
+                return;
+            }
+            ModularScreen current = ModularScreen.getCurrent();
+            if (mc.currentScreen == null || current == null) {
+                open();
+                return;
+            }
+            var manager = current.getSyncManager()
+                .getMainPSM();
+            var output = manager.getSyncHandlerFromMapKey("itemOutput:0");
+            CenterGraphTcpFixture
+                .require(output instanceof GenericListSyncHandler, "Native GT recipe item synchronization is missing");
+            Map<String, Long> actual = new LinkedHashMap<>();
+            for (Object value : ((GenericListSyncHandler<?>) output).getValue()) {
+                if (!(value instanceof ItemStack item)) continue;
+                actual.merge(TestLabCenterPresetLoad.key(item), (long) item.stackSize, Long::sum);
+            }
+            JsonObject batch = json(active);
+            var elapsed = manager.getSyncHandlerFromMapKey("progressTime:0");
+            var duration = manager.getSyncHandlerFromMapKey("maxProgressTime:0");
+            CenterGraphTcpFixture.require(
+                elapsed instanceof IntSyncValue && duration instanceof IntSyncValue,
+                "Native GT progress synchronization is missing");
+            int total = ((IntSyncValue) duration).getIntValue();
+            int currentTick = ((IntSyncValue) elapsed).getIntValue();
+            if (total != batch.get("duration")
+                .getAsInt() || currentTick <= 0
+                || currentTick >= total
+                || !actual.equals(quantities(batch.getAsJsonObject("products")))) return;
+            capturePage = "preset-recipe";
+            presetStage = 1;
+            return;
+        }
+        if (presetStage == 1) {
+            mc.thePlayer.closeScreen();
+            CenterGraphTcpFixture.write(receipts, "preset-camera-crown.json", Collections.emptyMap());
+            crownStartReplays = MachineVisualClient.motionMeshReplays;
+            presetStage = 4;
+            return;
+        }
+        if (presetStage == 4) {
+            if (mc.thePlayer.posY < CenterGraphTcpFixture.Y + 61) return;
+            TileEntity tile = mc.theWorld
+                .getTileEntity(CenterGraphTcpFixture.X, CenterGraphTcpFixture.Y, CenterGraphTcpFixture.Z);
+            if (!(tile instanceof IGregTechTileEntity gt)
+                || !(gt.getMetaTileEntity() instanceof MTEMineralIntegrationCenter center)) return;
+            int safe = MachineVisualClient.safeGroupMask(center),
+                uploaded = MachineVisualClient.uploadedGroupMask(center);
+            long replays = MachineVisualClient.motionMeshReplays - crownStartReplays;
+            if ((safe & uploaded) == 0 || replays <= 0 || !MachineVisualClient.isAnimating(center)) {
+                CenterGraphTcpFixture.require(
+                    result == null,
+                    "Crown never reached active cached rendering: bound=" + safe
+                        + " uploaded="
+                        + uploaded
+                        + " replays="
+                        + replays);
+                return;
+            }
+            long pose = MachineVisualClient.decorativeTime(center);
+            if (pose < 0) return;
+            if (crownFirstPose < 0) {
+                crownFirstPose = pose;
+                capturePage = "preset-crown-a";
+            } else if (pose >= crownFirstPose + 450) {
+                capturePage = "preset-crown-b";
+                presetStage = 5;
+            }
+            return;
+        }
+        if (presetStage == 5) {
+            CenterGraphTcpFixture.write(receipts, "preset-camera-home.json", Collections.emptyMap());
+            mc.thePlayer.inventory.currentItem = terminalSlot;
+            openCooldown = 0;
+            presetStage = 2;
+            return;
+        }
+        if (result == null) return;
+        if (terminal == null) {
+            open();
+            return;
+        }
+        if (presetStage == 2) {
+            click(terminal, "page_stats");
+            presetStage = 3;
+            return;
+        }
+        Object editor = readField(control(terminal, "tabs"), "editor");
+        Object sync = readField(editor, "sync");
+        NBTTagList rows = (NBTTagList) readField(sync, "ledger");
+        JsonObject preset = result.getAsJsonObject("preset");
+        String[] columns = { "ledgerDebits", "ledgerDelivered", "ledgerBonuses" };
+        for (int column = 0; column < columns.length; column++) {
+            Map<String, Long> actual = new LinkedHashMap<>();
+            for (int i = 0; i < rows.tagCount(); i++) {
+                NBTTagCompound row = rows.getCompoundTagAt(i);
+                long total = row.getLong("C" + column);
+                ItemStack item = ItemStack.loadItemStackFromNBT(row.getCompoundTag("Item"));
+                if (item != null && total > 0) actual.put(TestLabCenterPresetLoad.key(item), total);
+            }
+            if (!actual.equals(quantities(preset.getAsJsonObject(columns[column])))) return;
+        }
+        screenshot = true;
+    }
+
+    private static JsonObject json(Path file) throws Exception {
+        return new JsonParser().parse(new String(Files.readAllBytes(file), StandardCharsets.UTF_8))
+            .getAsJsonObject();
+    }
+
+    private static Map<String, Long> quantities(JsonObject object) {
+        Map<String, Long> result = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonElement> item : object.entrySet()) result.put(
+            item.getKey(),
+            item.getValue()
+                .getAsLong());
+        return result;
     }
 
     private boolean previewCopper(ModularScreen screen, Object editor) throws ReflectiveOperationException {
@@ -488,7 +667,7 @@ public final class CenterGraphTcpClient {
         TileEntity tile = mc.theWorld.getTileEntity(x, y, z);
         if (!(tile instanceof IGregTechTileEntity)
             || !(((IGregTechTileEntity) tile).getMetaTileEntity() instanceof MTEMineralIntegrationCenter)) return;
-        if (!fullCenter && phase == 1 && projectedHints == 0) {
+        if (!presetLoad && !fullCenter && phase == 1 && projectedHints == 0) {
             IGregTechTileEntity base = (IGregTechTileEntity) tile;
             MTEMineralIntegrationCenter controller = (MTEMineralIntegrationCenter) base.getMetaTileEntity();
             ForgeDirection facing = base.getFrontFacing();
@@ -710,7 +889,8 @@ public final class CenterGraphTcpClient {
         report.put("trialTicks", trialTicks);
         report.put("assemblySectors", verifiedAssemblyMask);
         report.put("pageFrames", pageFrames);
-        report.put("reopenedFrame", error == null ? FRAME : null);
+        if (frameProfile != null) report.put("frameProfile", frameProfile.report());
+        report.put("reopenedFrame", error == null ? presetLoad ? "native-preset-stats.png" : FRAME : null);
         CenterGraphTcpFixture.write(receipts, "client-checks.json", report);
         mc.shutdown();
     }

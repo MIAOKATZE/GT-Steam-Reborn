@@ -8,6 +8,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -57,6 +58,7 @@ public final class CenterStructure {
     private static final int[] HATCH_X = { -5, -3, -1, 1, 3, 5 };
     private static final int[] SERVICE_PORT_X = { 3, -3, 5, -5, 7, -7, -6 };
     private static final String SERVICE_TOWER = "tower-service-";
+    private static final int PORT_RESTORE_GRACE_TICKS = 600;
     private static final Map<String, Shape> SHAPES = new HashMap<>();
     private static final String[][][] MODULE_KEYS = moduleKeys();
     private final CriticalStructureMonitor tower = new CriticalStructureMonitor();
@@ -67,11 +69,11 @@ public final class CenterStructure {
     private int formedSectors;
     private int scanCursor;
     private final long[] lastScan = new long[43];
-    private int anchorIndex = -1;
     private boolean attachClaims = true;
     private int survivalCursor, survivalTier = -1, survivalMask;
     private boolean serviceFront;
     private SavedFormation savedFormation;
+    private long nextRestoreCheck, portRestoreUntil;
     private static int[] legacyPlinthPorts, servicePlinthPorts;
 
     private static final class SavedFormation {
@@ -116,7 +118,10 @@ public final class CenterStructure {
     }
 
     boolean isCheckingFormation(IGregTechTileEntity te) {
-        if (savedFormation != null || facing != te.getFrontFacing()) return true;
+        if (facing != te.getFrontFacing()) return true;
+        if (tower.hasKnownDamage()) return false;
+        if (savedFormation != null && formedSectors == 0 || te.getWorld()
+            .getTotalWorldTime() < portRestoreUntil) return true;
         if (towerTier < 0) return false;
         Status status = tower.getStatus();
         if (status == Status.PENDING || status == Status.UNLOADED) return true;
@@ -203,7 +208,7 @@ public final class CenterStructure {
         return block == GregTechAPI.sBlockCasings3 || block == GregTechAPI.sBlockCasings4;
     }
 
-    private static boolean portCasing(Shape shape, int i) {
+    static boolean portCasing(Shape shape, int i) {
         if (!shape.tower) return false;
         Block block = shape.block(i);
         int meta = shape.metadata(i);
@@ -287,6 +292,7 @@ public final class CenterStructure {
         }
         restoreFormation(frame, found, service);
         if (towerTier < 0) return;
+        frame.awaitingPorts = frame.world.getTotalWorldTime() < portRestoreUntil;
 
         // A single monitor gets a slice per tick. Missing wings and unused pads don't consume a slice.
         if (tower.getStatus() == Status.PENDING) {
@@ -302,6 +308,7 @@ public final class CenterStructure {
             }
             int i = monitor - 1;
             if (i < sectors.length) {
+                if (savedFormation != null && (savedFormation.sectors & 1 << i) != 0) continue;
                 Shape piece = shape("sector-" + i);
                 Sample marker = sample(piece, 0, frame, 0, 0, 0, 0, false);
                 if (marker != Sample.MATCH) {
@@ -317,7 +324,7 @@ public final class CenterStructure {
             }
             int slot = i - sectors.length;
             ModuleCheck module = modules[slot];
-            if (module == null) continue;
+            if (module == null || savedFormation != null && (savedFormation.modules & 1L << slot) != 0) continue;
             int[] at = SLOTS[slot];
             claims.attach(frame, slot, this);
             scan(
@@ -340,35 +347,69 @@ public final class CenterStructure {
         if (saved == null) return;
         if (!saved.matches(frame) || found >= 0 && saved.tier != found) {
             savedFormation = null;
+            portRestoreUntil = 0;
             return;
         }
         if (found < 0) {
-            if (sample(shape("tower-0"), anchorIndex, frame, 0, 0, 0, 0, false) != Sample.UNLOADED)
+            if (!TierAnchor.INSTANCE.unloaded(frame)) {
                 savedFormation = null;
+                portRestoreUntil = 0;
+            }
             return;
         }
+        long now = frame.world.getTotalWorldTime();
+        if (now < nextRestoreCheck) return;
+        nextRestoreCheck = now + 20;
         Shape body = towerShape(found, saved.service);
-        if (!footprintLoaded(body, frame, 0, 0, 0)) return;
-        savedFormation = null;
-        if (saved.service != service) return;
-        tower.restoreValidation(body.count());
+        if (portRestoreUntil == 0) {
+            if (!footprintLoaded(body, frame, 0, 0, 0)) return;
+            if (saved.service != service) {
+                savedFormation = null;
+                return;
+            }
+            tower.restoreValidation(body.count());
+            portRestoreUntil = now + PORT_RESTORE_GRACE_TICKS;
+        }
+        int waitingSectors = 0;
+        long waitingModules = 0;
         for (int i = 0; i < sectors.length; i++) if ((saved.sectors & 1 << i) != 0) {
             Shape wing = shape("sector-" + i);
-            if (sample(wing, 0, frame, 0, 0, 0, 0, false) == Sample.MATCH && footprintLoaded(wing, frame, 0, 0, 0)) {
+            Sample marker = sample(wing, 0, frame, 0, 0, 0, 0, false);
+            if (marker == Sample.BROKEN) sectors[i].invalidate();
+            else if (marker == Sample.UNLOADED || !footprintLoaded(wing, frame, 0, 0, 0)) waitingSectors |= 1 << i;
+            else {
                 sectors[i].restoreValidation(wing.count());
                 formedSectors |= 1 << i;
             }
         }
         for (int slot = 0; slot < modules.length; slot++) {
             ModuleCheck module = modules[slot];
-            if (module == null || module.damaged
-                || (saved.modules & 1L << slot) == 0
-                || (formedSectors & 1 << (slot / 6)) == 0) continue;
+            if (module == null || module.damaged || (saved.modules & 1L << slot) == 0) continue;
+            int sector = 1 << (slot / 6);
+            if ((waitingSectors & sector) != 0) {
+                waitingModules |= 1L << slot;
+                continue;
+            }
+            if ((formedSectors & sector) == 0) continue;
             Shape piece = shape(module.resource);
             int[] at = SLOTS[slot];
-            if (sample(piece, 0, frame, at[0], at[1], at[2], at[3], true) == Sample.MATCH
-                && footprintLoaded(piece, frame, at[0], at[2], at[3])) module.monitor.restoreValidation(piece.count());
+            Sample marker = sample(piece, 0, frame, at[0], at[1], at[2], at[3], true);
+            if (marker == Sample.BROKEN) module.monitor.invalidate();
+            else if (marker == Sample.UNLOADED || !footprintLoaded(piece, frame, at[0], at[2], at[3]))
+                waitingModules |= 1L << slot;
+            else module.monitor.restoreValidation(piece.count());
         }
+        savedFormation = waitingSectors == 0 && waitingModules == 0 ? null
+            : new SavedFormation(
+                saved.facing,
+                saved.dimension,
+                saved.x,
+                saved.y,
+                saved.z,
+                saved.tier,
+                saved.service,
+                waitingSectors,
+                waitingModules);
     }
 
     private static boolean footprintLoaded(Shape shape, Frame frame, int x, int z, int rotation) {
@@ -384,8 +425,22 @@ public final class CenterStructure {
             minZ = Math.min(minZ, cz);
             maxZ = Math.max(maxZ, cz);
         }
-        for (int cx = minX; cx <= maxX; cx++) for (int cz = minZ; cz <= maxZ; cz++) if (!frame.world.getChunkProvider()
-            .chunkExists(cx, cz)) return false;
+        BitSet unloaded = null;
+        int depth = maxZ - minZ + 1;
+        for (int cx = minX; cx <= maxX; cx++) for (int cz = minZ; cz <= maxZ; cz++) {
+            if (frame.world.getChunkProvider()
+                .chunkExists(cx, cz)) continue;
+            if (unloaded == null) unloaded = new BitSet();
+            unloaded.set((cx - minX) * depth + cz - minZ);
+        }
+        if (unloaded == null) return true;
+        // Sparse wings need only the chunks containing real blocks, not every corner of their bounds.
+        for (int column : shape.columns()) {
+            int sx = (short) (column >> 16), sz = (short) column;
+            int localX = x + rotateX(sx, sz, rotation), localZ = z + rotateZ(sx, sz, rotation) + 19;
+            int cx = frame.x(localX, localZ) >> 4, cz = frame.z(localX, localZ) >> 4;
+            if (unloaded.get((cx - minX) * depth + cz - minZ)) return false;
+        }
         return true;
     }
 
@@ -395,28 +450,64 @@ public final class CenterStructure {
         return (int) Math.max(1, Math.min(64, now - prev));
     }
 
-    private int detectTier(Frame frame) {
-        Shape first = shape("tower-0");
-        if (anchorIndex < 0) {
-            for (int i = 0; i < first.count(); i++) {
-                if (portCasing(first, i) || first.y[i] < 5) continue;
-                int index = i;
-                boolean allDifferent = true;
-                for (int j = 0; j < 4; j++) for (int k = j + 1; k < 4; k++) {
-                    Shape a = shape("tower-" + j), b = shape("tower-" + k);
-                    if (a.block(index) == b.block(index) && a.metadata(index) == b.metadata(index))
-                        allDifferent = false;
-                }
-                if (allDifferent) {
-                    anchorIndex = i;
-                    break;
-                }
-            }
-            if (anchorIndex < 0) throw new IllegalStateException("No ore center tier key");
+    private static int detectTier(Frame frame) {
+        TierAnchor anchor = TierAnchor.INSTANCE;
+        int x = frame.x(anchor.x, anchor.z), y = frame.y + anchor.y, z = frame.z(anchor.x, anchor.z);
+        if (y < 0 || y >= frame.world.getHeight() || !frame.loaded(x, z)) return -1;
+        Block block = frame.world.getBlock(x, y, z);
+        int metadata = frame.world.getBlockMetadata(x, y, z);
+        for (int i = 0; i < anchor.blocks.length; i++) {
+            if (block == anchor.blocks[i] && metadata == anchor.metadata[i]) return i;
         }
-        for (int i = 0; i < 4; i++)
-            if (sample(shape("tower-" + i), anchorIndex, frame, 0, 0, 0, 0, false) == Sample.MATCH) return i;
         return -1;
+    }
+
+    private static final class TierAnchor {
+
+        static final TierAnchor INSTANCE = find();
+        final int x, y, z;
+        final Block[] blocks = new Block[4];
+        final int[] metadata = new int[4];
+
+        TierAnchor(Shape[] towers, int index) {
+            x = towers[0].x[index];
+            y = towers[0].y[index] - 2;
+            z = towers[0].z[index] + 19;
+            for (int tier = 0; tier < towers.length; tier++) {
+                blocks[tier] = towers[tier].block(index);
+                metadata[tier] = towers[tier].metadata(index);
+            }
+        }
+
+        boolean unloaded(Frame frame) {
+            int worldY = frame.y + y;
+            return worldY >= 0 && worldY < frame.world.getHeight() && !frame.loaded(frame.x(x, z), frame.z(x, z));
+        }
+
+        private static TierAnchor find() {
+            Shape[] towers = { shape("tower-0"), shape("tower-1"), shape("tower-2"), shape("tower-3") };
+            Shape first = towers[0];
+            for (int index = 0; index < first.count(); index++) {
+                if (first.y[index] < 5 || portCasing(first, index)) continue;
+                boolean valid = true;
+                for (int tier = 1; tier < towers.length && valid; tier++) {
+                    Shape other = towers[tier];
+                    if (index >= other.count() || other.x[index] != first.x[index]
+                        || other.y[index] != first.y[index]
+                        || other.z[index] != first.z[index]
+                        || portCasing(other, index)) {
+                        valid = false;
+                        break;
+                    }
+                    for (int lower = 0; lower < tier; lower++) {
+                        if (other.block(index) == towers[lower].block(index)
+                            && other.metadata(index) == towers[lower].metadata(index)) valid = false;
+                    }
+                }
+                if (valid) return new TierAnchor(towers, index);
+            }
+            throw new IllegalStateException("No ore center tier key");
+        }
     }
 
     private static boolean scan(CriticalStructureMonitor monitor, Shape shape, Frame frame, int x, int y, int z,
@@ -438,9 +529,18 @@ public final class CenterStructure {
         int xx = frame.x(rx, rz), yy = frame.y + y + shape.y[i] - 2 - (module ? 64 : 0), zz = frame.z(rx, rz);
         if (yy < 0 || yy >= frame.world.getHeight()) return Sample.BROKEN;
         if (!frame.loaded(xx, zz)) return Sample.UNLOADED;
-        return (frame.world.getBlock(xx, yy, zz) == shape.block(i)
-            && frame.world.getBlockMetadata(xx, yy, zz) == shape.metadata(i))
-            || !module && substitutedPort(shape, i, frame, xx, yy, zz) ? Sample.MATCH : Sample.BROKEN;
+        Block actual = frame.world.getBlock(xx, yy, zz);
+        if (actual == shape.block(i) && frame.world.getBlockMetadata(xx, yy, zz) == shape.metadata(i))
+            return Sample.MATCH;
+        if (!module && shape.tower && actual == GregTechAPI.sBlockMachines && portCasing(shape, i)) {
+            TileEntity tile = frame.world.getTileEntity(xx, yy, zz);
+            if (tile instanceof IGregTechTileEntity gt) {
+                var meta = gt.getMetaTileEntity();
+                if (MTEMineralIntegrationCenter.acceptsPort(meta)) return Sample.MATCH;
+                if (meta == null && frame.awaitingPorts) return Sample.UNLOADED;
+            } else if (tile == null && frame.awaitingPorts) return Sample.UNLOADED;
+        }
+        return Sample.BROKEN;
     }
 
     private static String[][][] moduleKeys() {
@@ -603,8 +703,8 @@ public final class CenterStructure {
                 te.getZCoord(),
                 towerTier,
                 serviceFront,
-                formedSectors,
-                verifiedModules);
+                formedSectors | (saved == null ? 0 : saved.sectors),
+                verifiedModules | (saved == null ? 0 : saved.modules));
         }
         if (saved != null) {
             app.setInteger("FormationVersion", 1);
@@ -644,6 +744,7 @@ public final class CenterStructure {
                 : null;
         facing = ForgeDirection.UNKNOWN;
         towerTier = -1;
+        nextRestoreCheck = portRestoreUntil = 0;
         formedSectors = scanCursor = 0;
         tower.reset();
         for (CriticalStructureMonitor sector : sectors) sector.reset();
@@ -995,6 +1096,7 @@ public final class CenterStructure {
         final World world;
         final int x, y, z;
         final ForgeDirection facing;
+        boolean awaitingPorts;
 
         Frame(IGregTechTileEntity te) {
             world = te.getWorld();
@@ -1028,6 +1130,7 @@ public final class CenterStructure {
         final short[] x, z;
         final byte[] y, ids;
         private long[] lookup;
+        private int[] columns;
 
         Shape(boolean tower, boolean service, int shell, Block[] blocks, byte[] metas, short[] x, byte[] y, short[] z,
             byte[] ids) {
@@ -1052,6 +1155,17 @@ public final class CenterStructure {
 
         int metadata(int i) {
             return Byte.toUnsignedInt(metas[Byte.toUnsignedInt(ids[i])]);
+        }
+
+        int[] columns() {
+            if (columns != null) return columns;
+            int depth = maxZ - minZ + 1;
+            BitSet used = new BitSet((maxX - minX + 1) * depth);
+            for (int i = 0; i < x.length; i++) used.set((x[i] - minX) * depth + z[i] - minZ);
+            columns = used.stream()
+                .map(offset -> (minX + offset / depth) << 16 | (minZ + offset % depth) & 0xFFFF)
+                .toArray();
+            return columns;
         }
 
         void prepareLookup() {

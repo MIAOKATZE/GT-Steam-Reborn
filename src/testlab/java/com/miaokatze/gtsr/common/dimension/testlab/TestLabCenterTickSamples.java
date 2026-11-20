@@ -176,7 +176,9 @@ public final class TestLabCenterTickSamples implements CenterTickTiming.Observer
                 .toLowerCase(Locale.ROOT);
             result.put(
                 key + "NanosPerTick",
-                distribution(s -> s.stage[index], part == Stage.PLANNING ? PLANNING_BUDGET_NS : Long.MAX_VALUE));
+                distribution(
+                    s -> s.stage[index],
+                    part == Stage.PLANNING ? PLANNING_BUDGET_NS : part == Stage.TOTAL ? 1_000_000 : Long.MAX_VALUE));
             result.put(
                 key + "Calls",
                 rows.stream()
@@ -192,6 +194,7 @@ public final class TestLabCenterTickSamples implements CenterTickTiming.Observer
         result.put("worstLabWorldTicks", worst(s -> s.worldNanos));
         result.put("worstStructureTicks", worst(s -> s.stage[structure]));
         result.put("worstPlanningTicks", worst(s -> s.stage[planning]));
+        result.put("worstControllerTicks", worst(s -> s.stage[Stage.TOTAL.ordinal()]));
         for (int i = 0; i < activeCount; i++) {
             if (planningByMachine[i] == 0) throw new IllegalStateException("No planner ticks sampled for center " + i);
             machines.get(i)

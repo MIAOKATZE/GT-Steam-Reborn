@@ -6,10 +6,10 @@ package com.miaokatze.gtsr.common.gui;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.Iterator;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -29,8 +29,8 @@ import com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph.Node;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph.OutletFilter;
-import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
@@ -133,7 +133,7 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
     private int nextCapacityPoll;
     private final List<CenterGraph> incoming = new ArrayList<>();
     private NBTTagCompound sentTerminal;
-    private NBTTagList sentLedger;
+    private long sentLedgerRevision;
     private volatile NBTTagCompound terminal = new NBTTagCompound();
     private volatile NBTTagList ledger = new NBTTagList();
     private int nextStatePoll;
@@ -183,7 +183,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
             return;
         }
         boolean adding = action == Action.ADD || action == Action.PRESET;
-        if (text.length() > MAX_TEXT || adding && base.graphs().size() >= base.capacity()) {
+        if (text.length() > MAX_TEXT || adding && base.graphs()
+            .size() >= base.capacity()) {
             setStatus(adding ? "status.capacity" : "status.invalid");
             return;
         }
@@ -216,19 +217,19 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
 
     private void sendTerminal(boolean init) {
         NBTTagCompound state = machine.terminalState();
-        NBTTagList rows = machine.terminalLedger();
+        long ledgerRevision = machine.terminalLedgerRevision();
         boolean stateChanged = init || !state.equals(sentTerminal);
-        boolean ledgerChanged = init || !rows.equals(sentLedger);
+        boolean ledgerChanged = init || ledgerRevision != sentLedgerRevision;
         if (!stateChanged && !ledgerChanged) return;
         NBTTagCompound message = new NBTTagCompound();
         if (stateChanged) message.setTag("State", state);
-        if (ledgerChanged) message.setTag("Ledger", rows);
+        if (ledgerChanged) message.setTag("Ledger", machine.terminalLedger());
         try {
             byte[] payload = CompressedStreamTools.compress(message);
             if (payload.length > 1_048_576) throw new IOException("Mineral terminal payload exceeds its bound");
             syncToClient(TERMINAL, buffer -> buffer.writeBytes(payload));
             sentTerminal = state;
-            sentLedger = rows;
+            sentLedgerRevision = ledgerRevision;
         } catch (IOException error) {
             throw new IllegalStateException("Cannot serialize mineral terminal", error);
         }
@@ -362,7 +363,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                 }
                 int result = apply(action, revision, graph, a, b, text);
                 if (result == 0 || result == 1) detectAndSendChanges(false);
-                long imported = result == 0 && (action == Action.PRESET || action == Action.ADD) ? machine.lastGraphId() : -1;
+                long imported = result == 0 && (action == Action.PRESET || action == Action.ADD) ? machine.lastGraphId()
+                    : -1;
                 syncToClient(RESULT, outgoing -> {
                     outgoing.writeByte(result);
                     if (imported > 0) outgoing.writeLong(imported);
@@ -388,14 +390,7 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                 if (graphs.size() >= machine.graphCapacity()) return 2;
                 boolean hasFallback = graphs.stream()
                     .anyMatch(g -> g.enabled && g.fallback());
-                graphs.add(
-                    new CenterGraph(
-                        0,
-                        "",
-                        0,
-                        !hasFallback,
-                        Collections.emptyList(),
-                        Collections.emptyList()));
+                graphs.add(new CenterGraph(0, "", 0, !hasFallback, Collections.emptyList(), Collections.emptyList()));
             } else {
                 int index = -1;
                 for (int i = 0; i < graphs.size(); i++) {
@@ -419,7 +414,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                         CenterGraph updated = replace(graph, action, a, b, text);
                         graphs.set(index, updated);
                         if (!machine.applyGraphEdit(player, revision, graphs)) return 2;
-                        if (!graph.save().equals(updated.save())) {
+                        if (!graph.save()
+                            .equals(updated.save())) {
                             remember(undo, new Change(graph, updated));
                             redo.removeIf(change -> change.before.id == id);
                         }
@@ -440,7 +436,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
             Change change = changes.next();
             if (change.before.id != graph.id) continue;
             CenterGraph current = reverting ? change.after : change.before;
-            if (!current.save().equals(graph.save())) {
+            if (!current.save()
+                .equals(graph.save())) {
                 undo.removeIf(entry -> entry.before.id == graph.id);
                 redo.removeIf(entry -> entry.before.id == graph.id);
                 return 1;
@@ -537,8 +534,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                 if (remap[i] == CenterGraph.BUS) continue;
                 Node current = existing.get(i);
                 int[] targets = current.targets();
-                for (int slot = 0; slot < targets.length; slot++) if (targets[slot] >= 0)
-                    targets[slot] = remap[targets[slot]];
+                for (int slot = 0; slot < targets.length; slot++)
+                    if (targets[slot] >= 0) targets[slot] = remap[targets[slot]];
                 nodes.add(current.withConfiguration(targets, current.circuit, current.filters()));
             }
             return nodes;
@@ -551,8 +548,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
             for (int i = 0; i < nodes.size(); i++) {
                 Node node = nodes.get(i);
                 int[] targets = node.targets();
-                for (int p = 0; p < targets.length; p++) if (targets[p] == CenterGraph.UNCONNECTED)
-                    targets[p] = CenterGraph.BUS;
+                for (int p = 0; p < targets.length; p++)
+                    if (targets[p] == CenterGraph.UNCONNECTED) targets[p] = CenterGraph.BUS;
                 nodes.set(i, node.withConfiguration(targets, node.circuit, node.filters()));
             }
             return nodes;
@@ -588,8 +585,10 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                     String[] coordinates = row.split(",");
                     if (coordinates.length != 3) throw new IllegalArgumentException();
                     int i = Integer.parseInt(coordinates[0]);
-                    nodes.set(i, nodes.get(i).withPosition(Integer.parseInt(coordinates[1]),
-                        Integer.parseInt(coordinates[2])));
+                    nodes.set(
+                        i,
+                        nodes.get(i)
+                            .withPosition(Integer.parseInt(coordinates[1]), Integer.parseInt(coordinates[2])));
                 }
             }
             case CIRCUIT -> nodes.set(index, node.withConfiguration(node.targets(), selected, node.filters()));
@@ -614,7 +613,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
     }
 
     private static List<String> parseRules(String text) {
-        if (text.trim().isEmpty()) return Collections.emptyList();
+        if (text.trim()
+            .isEmpty()) return Collections.emptyList();
         List<String> result = new ArrayList<>();
         for (String line : text.split("[;\\r\\n]")) {
             String rule = line.trim();

@@ -343,6 +343,7 @@ public final class TestLabRuntime {
     }
 
     public static int originX(String id) {
+        if (TestLabCenterPresetLoad.ID.equals(id) || TestLabCenterSaturation.ID.equals(id)) return 2048;
         return 128 + slot(id) % 4 * 256;
     }
 
@@ -577,7 +578,8 @@ public final class TestLabRuntime {
                 activePrepared = false;
                 ticks = 0;
                 loadIndex = 0;
-                targetChunks = active.requiresFixtureChunks() ? 169 : 0;
+                int width = active.fixtureChunkWidth();
+                targetChunks = active.requiresFixtureChunks() ? width * width : 0;
                 originX = active.requiresFixtureChunks() ? originX(active.id()) : 0;
                 originZ = active.requiresFixtureChunks() ? originZ(active.id()) : 0;
                 report.activeTask = active.id();
@@ -608,7 +610,10 @@ public final class TestLabRuntime {
                 for (int burst = 0; loadIndex < targetChunks && burst < 16
                     && (burst == 0 || deadline.hasTimeRemaining()); burst++) {
                     int i = loadIndex++;
-                    ChunkCoordIntPair chunk = new ChunkCoordIntPair((originX >> 4) + i % 13, (originZ >> 4) + i / 13);
+                    int width = active.fixtureChunkWidth();
+                    ChunkCoordIntPair chunk = new ChunkCoordIntPair(
+                        (originX >> 4) + i % width,
+                        (originZ >> 4) + i / width);
                     int offset = i;
                     ForgeChunkManager.Ticket ticket = null;
                     for (ForgeChunkManager.Ticket candidate : tickets) {
@@ -810,7 +815,7 @@ public final class TestLabRuntime {
             .get(GTSteamReborn.MODID)
             .getMod();
         int capacity = 0;
-        while (capacity < 169) {
+        while (capacity < targetChunks) {
             ForgeChunkManager.Ticket ticket = ForgeChunkManager
                 .requestTicket(mod, world, ForgeChunkManager.Type.NORMAL);
             if (ticket == null) {
@@ -937,9 +942,11 @@ public final class TestLabRuntime {
 
     ForgeChunkManager.Ticket suspendTaskChunk(TestLabTask task, WorldServer target, ChunkCoordIntPair chunk) {
         if (active != task || world != target) throw new IllegalStateException("Chunk is outside the active lab task");
-        var forcing = ForgeChunkManager.getPersistentChunksFor(world).get(chunk);
+        var forcing = ForgeChunkManager.getPersistentChunksFor(world)
+            .get(chunk);
         if (forcing.size() != 1) throw new IllegalStateException("Expected exactly one owner for the lab chunk");
-        ForgeChunkManager.Ticket ticket = forcing.iterator().next();
+        ForgeChunkManager.Ticket ticket = forcing.iterator()
+            .next();
         if (!tickets.contains(ticket)) throw new IllegalStateException("Chunk ticket belongs to another owner");
         ForgeChunkManager.unforceChunk(ticket, chunk);
         return ticket;
