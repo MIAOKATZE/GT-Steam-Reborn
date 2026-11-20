@@ -15,7 +15,7 @@
 | 前置 / Requirement | 版本 / Version |
 | --- | --- |
 | GTNH | 2.9.0 |
-| [MIAOKATZE Core](https://github.com/MIAOKATZE/MIAOKATZE-Core) | 0.2.16+（本开发分支） |
+| [MIAOKATZE Core](https://github.com/MIAOKATZE/MIAOKATZE-Core) | 0.2.29+（本开发分支） |
 
 从源码构建这版时，先准备 Core 0.2.16 的 dev 包。该坐标未发布时，用 `-PmiaokatzeCoreRepository=<本地依赖目录>` 指向含该 dev 包与 POM 的 Maven 布局目录；勿用旧版 Core 编译。
 
