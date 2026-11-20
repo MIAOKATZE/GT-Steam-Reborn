@@ -1093,7 +1093,7 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     }
 
     /**
-     * 增幅液四档单价段（{@link ClusterParams#amplifierFluidLps}，v2.1.5 L/计费轮 开批一次扣口径）：
+     * 增幅液四档单价段（{@link ClusterParams#amplifierFluidLps}，v2.1.5 L/计费轮 每批一次扣口径）：
      * {@code 5/20/100/200 L/计费轮}（并行增幅示例）。
      */
     protected static String boosterTierLps(ClusterParams.BoosterType type) {

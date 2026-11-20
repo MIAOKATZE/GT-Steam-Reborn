@@ -13,7 +13,7 @@ import java.util.List;
  *
  * <p>
  * 聚合规则：仅统计 {@code cluster != null} 且 {@link MTEBasicAmplifierUnit#isFluidAvailable()}
- * 且最近一次开批预检通过（非 {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()}）的
+ * 且最近一次批次预检通过（非 {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()}）的
  * 「生效」模块；失效模块双重豁免——增益与蒸汽惩罚倍率同时不计，但计入失效数（失效语义
  * 缺流体或存量不足首轮单价，见 {@link #getFailedCount()}）。「在场」= 已接入
  * 集群（{@code getCluster() != null}），未接入集群的 STANDBY 模块既不计生效也不计失效。
@@ -30,7 +30,7 @@ import java.util.List;
  * 节汽模块不惩罚（协同率常量仅剩增幅流体联动加成路径 {@code amplifierFluidPerSecExact} 使用）；</li>
  * <li>增幅液支付（L/计费轮）不在本聚合内判定或实扣：首轮预检与扩批支付预检、提交点实扣
  * 共用 {@code MTEBasicAmplifierUnit.batchCost/tryConsumeForBatch} 同一 helper
- * （预检 = 实扣同一口径，禁止二次 ceil）；失效标记由 {@code ClusterChainExecutor} 开批预检段
+ * （预检 = 实扣同一口径，禁止二次 ceil）；失效标记由 {@code ClusterChainExecutor} 批次预检段
  * 统一登记后重聚合生效；</li>
  * <li>空列表（含 null）直接返回 {@link #EMPTY} 单例，与全零快照语义等价。</li>
  * </ul>
@@ -39,7 +39,7 @@ import java.util.List;
  * 失效双重豁免验证示例（速度增幅 tier1/惩罚 1.4 最近预检失效，主产物增幅 tier3/惩罚 2.0 与节汽
  * 增幅生效）：速度项 {@code getSpeedBonus()=0}、主产物增益照常累加、节汽项
  * {@code getSaverBonusRaw()} 照常，惩罚项 {@code getPenaltyProduct()=2.0}（主产物组实际值，
- * 速度组 1.4 同步豁免不计；节汽无惩罚）；若速度增幅液恢复并通过下次开批预检，则
+ * 速度组 1.4 同步豁免不计；节汽无惩罚）；若速度增幅液恢复并通过下次批次预检，则
  * {@code getSpeedBonus()} 照常累加、{@code getPenaltyProduct()=1.4×2.0=2.8}。
  */
 public final class BoosterState {
@@ -71,8 +71,8 @@ public final class BoosterState {
     /** 在场但缺流体的失效模块数。 */
     private final int failedCount;
 
-    // v1.20.16 失效语义注记：failedCount 现为「最近开批预检失效计数」（含缺流体与存量不足
-    // 整批单价两种，标记由 ClusterChainExecutor 开批预检段登记），字段含义不变。
+    // v1.20.16 失效语义注记：failedCount 现为「最近批次预检失效计数」（含缺流体与存量不足
+    // 整批单价两种，标记由 ClusterChainExecutor 批次预检段登记），字段含义不变。
 
     private BoosterState(int parallelBonus, double speedBonus, double primaryBonus, double secondaryBonus,
         double saverBonusRaw, double penaltyProduct, List<MTEBasicAmplifierUnit> activeUnits, int failedCount) {
@@ -91,14 +91,14 @@ public final class BoosterState {
      *
      * <p>
      * 生效 = 已接入集群 && 锁定流体可用（{@link MTEBasicAmplifierUnit#isFluidAvailable()}）
-     * && 最近一次开批预检通过（非 {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()}，
-     * 标记由 {@code ClusterChainExecutor} 开批预检段按首轮基础量统一登记，未参与过
+     * && 最近一次批次预检通过（非 {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()}，
+     * 标记由 {@code ClusterChainExecutor} 批次预检段按首轮基础量统一登记，未参与过
      * 预检的模块默认通过）。不满足者不入快照：<b>无增益也无蒸汽惩罚</b>，计失效数；未接入集群
      * （STANDBY）的模块与 null 元素直接跳过。无生效且无失效模块时返回 {@link #EMPTY} 单例
      * （空列表/null 入参同此，语义等价）。
      *
      * <p>
-     * 增幅液支付（L/计费轮）不在本聚合内判定或实扣：开批预检与提交点一次扣共用
+     * 增幅液支付（L/计费轮）不在本聚合内判定或实扣：批次预检与提交点一次扣共用
      * {@code MTEBasicAmplifierUnit.batchCost/tryConsumeForBatch} 同一 helper（预检 = 实扣同一口径）。
      *
      * <p>
@@ -211,8 +211,8 @@ public final class BoosterState {
     }
 
     /**
-     * @return 失效模块数（v1.20.16 起 = 最近开批预检失效计数：在场=已接入集群但锁定流体缺失，
-     *         或最近一次开批预检存量不足首轮基础量；STANDBY 模块与未参与过预检的模块不计）。
+     * @return 失效模块数（v1.20.16 起 = 最近批次预检失效计数：在场=已接入集群但锁定流体缺失，
+     *         或最近一次批次预检存量不足首轮基础量；STANDBY 模块与未参与过预检的模块不计）。
      */
     public int getFailedCount() {
         return failedCount;

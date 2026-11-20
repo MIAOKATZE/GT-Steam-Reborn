@@ -5509,6 +5509,7 @@ gtsr.ore_center.status.speed=Speed · %s %s mB/batch
 gtsr.ore_center.status.parallel=Parallel · %s %s mB/batch
 gtsr.ore_center.status.yield=Primary · %s %s mB/batch
 gtsr.ore_center.status.secondary=Secondary · %s %s mB/batch
+gtsr.ore_center.status.charged_rounds= (%s rounds)
 gtsr.ore_center.graph.preset.open=Generator Presets
 gtsr.ore_center.graph.preset.title=GTNH Ore Processing Generator Presets
 gtsr.ore_center.graph.preset.nodes=%s processing stages

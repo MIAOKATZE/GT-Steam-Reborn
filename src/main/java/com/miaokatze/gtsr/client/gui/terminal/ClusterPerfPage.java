@@ -790,7 +790,7 @@ final class ClusterPerfPage implements ClusterPage {
         }
         // 推导：本批消耗
         entry.expansion.add(derivHead("本批消耗"));
-        entry.expansion.add(EnumChatFormatting.YELLOW + "本批 = 单价 × 本批实际矿数（开批时一次扣除）");
+        entry.expansion.add(EnumChatFormatting.YELLOW + "本批 = 单价 × 本批实际矿数（每批开始时一次扣除）");
         entry.expansion.add(EnumChatFormatting.WHITE + "= " + priceTxt + " L/矿 × " + par + " 矿");
         entry.expansion.add(EnumChatFormatting.GREEN + "= " + batchTxt + " L/批");
         entry.expansion.add(
@@ -1003,7 +1003,7 @@ final class ClusterPerfPage implements ClusterPage {
             entry.expansion
                 .add(EnumChatFormatting.WHITE + "= " + rateText(Math.max(0, cost[0])) + " L/矿 × " + par + " 矿");
             entry.expansion.add(EnumChatFormatting.GREEN + "= " + batchTxt + " L/批");
-            entry.expansion.add(EnumChatFormatting.DARK_GRAY + "开批一次扣除 · 批越小扣越少（按秒口径退役）");
+            entry.expansion.add(EnumChatFormatting.DARK_GRAY + "每批一次扣除 · 批越小扣越少（按秒口径退役）");
             String formula = costFormulaText(cost);
             appendEntry(out, entry, "gtsr.terminal.perf.tip.cost", formula.isEmpty() ? null : formula);
         }

@@ -137,7 +137,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private int textureTier = -1;
     private long steamTotal, energyTotal, sequence, nextProbe, coolingSteam;
     private final int[] boostFluids = new int[4];
-    private int batchModules;
+    private int batchModules, batchRounds;
 
     public MTEMineralIntegrationCenter(int id, String name, String regionalName) {
         super(id, name, regionalName);
@@ -480,6 +480,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setInteger("Duration", totalTicks);
         tag.setLong("Energy", energyTotal);
         tag.setInteger("BatchModules", batchModules);
+        tag.setInteger("BatchRounds", batchRounds);
         tag.setLong("Steam", steamTotal);
         SteamGrade steam = STEAMS[steamKind];
         tag.setInteger("SteamDensity", steam.getDivisor());
@@ -929,6 +930,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         steamKind = accepted;
         System.arraycopy(batch.boostFluids, 0, boostFluids, 0, boostFluids.length);
         batchModules = batch.usedModules;
+        batchRounds = batch.chargedRounds;
         sequence++;
         pendingItems.addAll(batch.outputs);
         pendingFluids.addAll(batch.outputFluids);
@@ -1241,6 +1243,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setLong("CenterCoolingSteam", coolingSteam);
         tag.setIntArray("CenterBoostFluids", boostFluids.clone());
         tag.setInteger("CenterBatchModules", batchModules);
+        tag.setInteger("CenterBatchRounds", batchRounds);
         tag.setLong("CenterEnergy", energyTotal);
         tag.setLong("CenterSequence", sequence);
         tag.setLong("CenterGraphRevision", graphRevision);
@@ -1281,6 +1284,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         coolingSteam = Math.max(0, tag.getLong("CenterCoolingSteam"));
         int[] fluidCosts = tag.getIntArray("CenterBoostFluids");
         batchModules = tag.getInteger("CenterBatchModules");
+        batchRounds = tag.getInteger("CenterBatchRounds");
         for (int i = 0; i < boostFluids.length; i++)
             boostFluids[i] = i < fluidCosts.length ? Math.max(0, fluidCosts[i]) : 0;
         energyTotal = Math.max(0, tag.getLong("CenterEnergy"));

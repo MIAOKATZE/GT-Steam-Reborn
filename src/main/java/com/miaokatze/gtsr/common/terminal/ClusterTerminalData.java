@@ -155,7 +155,7 @@ public final class ClusterTerminalData {
     /**
      * 增幅页：tank/可用性（{@code amountLiters:available} 条目 CSV，20t 采样）。
      * v1.20.16 位语义演进（协议键名/键数量不变，同 jar 双端交付）：{@code available} 从
-     * 「流体存在位（isFluidAvailable）」改为「最近开批预检通过位」——1=最近一次开批预检通过、
+     * 「流体存在位（isFluidAvailable）」改为「最近批次预检通过位」——1=最近一次批次预检通过、
      * 0=本批失效（读 {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()} 取反），使终端
      * 增幅行与物流模块状态显示同步呈现断供失效（用户拍板口径）。
      */
@@ -601,7 +601,7 @@ public final class ClusterTerminalData {
 
     /**
      * 增幅 live 串：条目逗号分隔，条目内 {@code amount:available}（tank 存量 L 与可用位；供给只读）。
-     * v1.20.16 位语义演进：{@code available} = 最近开批预检通过位（1=通过、0=本批失效，读
+     * v1.20.16 位语义演进：{@code available} = 最近批次预检通过位（1=通过、0=本批失效，读
      * {@link MTEBasicAmplifierUnit#isLastBatchPrecheckFailed()} 取反）——原「流体存在位」
      * （isFluidAvailable）退役，断供失效在终端与物流模块状态同步显示；详见 {@link #KEY_BO_LIVE}。
      */
@@ -645,7 +645,7 @@ public final class ClusterTerminalData {
     /**
      * 增幅实耗串：条目逗号分隔（与 KEY_BO_STRUCT 同序同过滤，下标一一对应），条目内
      * {@code priceX10:base:pct:tier:typeOrdinal...}——首字段为每计费轮单价 ×10 定点（L/轮；
-     * v2.1.5 开批按向上取整的计费轮数一次扣除，客户端仅可据当前单价估算），次字段基础表值，
+     * v2.1.5 启动批次按向上取整的计费轮数一次扣除，客户端仅可据当前单价估算），次字段基础表值，
      * 其后为施加方三元组 {@code pct:tier:typeOrdinal}（{@code amplifierSurchargeSources()} 真值）。
      * v1.20.16 语义演进：原「联动加成后实际秒耗 ×10（含短批反比倍率）」退役，键名与条目结构
      * 不变（详见 {@link #KEY_BO_COST}）。

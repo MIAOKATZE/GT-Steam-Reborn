@@ -50,7 +50,7 @@ import gregtech.common.tileentities.machines.outputme.MTEHatchOutputBusME;
  * <p>
  * 热量门控（§3.6.4 取料前低温门控，SR-Cluster-r5 决策 2）：冷却检查通过后、取料登记前检查宿主
  * {@link ClusterBatchHost#heatFraction()}；&lt;1.0 时直接返回 0——不取料、不 runChain、不输出、
- * 不扣水/化浴液、不记吞吐、零副作用（低温不再吞批/停机，仅暂停开批；热量回满后自动恢复，
+ * 不扣水/化浴液、不记吞吐、零副作用（低温不再吞批/停机，仅暂停启动新批次；热量回满后自动恢复，
  * 无 owner 通知与软锤复位需求）。
  *
  * <p>
@@ -79,7 +79,7 @@ import gregtech.common.tileentities.machines.outputme.MTEHatchOutputBusME;
  * 配方运行绑定（r-logi-power-bind）：预检通过的批不再当场发放产出——扣料吞入、配方流体实扣、
  * 配方时间写入后整批产出 {@link MTEBasicLogisticsUnit#stashPendingOutputs 暂存}于物流单元，
  * 待配方进度读零后由单元自身 onPostTick 经 {@link #emitPendingOutputs} 排空（总线满则逐 t
- * 空转重试，零消耗零丢料）。单元输出总线仅本执行器写入，开批预检结论在排空前有效；持有暂存
+ * 空转重试，零消耗零丢料）。单元输出总线仅本执行器写入，批次预检结论在排空前有效；持有暂存
  * 产出的单元拒绝开新批（防覆盖丢产出）。
  *
  * <p>
@@ -95,7 +95,7 @@ import gregtech.common.tileentities.machines.outputme.MTEHatchOutputBusME;
  * 余数计整 tick），结果至少 1 tick（ExecutionPlan
  * 时间口径，含物流段时间；空 processedLinks 即纯物流时间），冷却由物流单元服务端 onPostTick
  * 逐刻 -1（v1.20.17 方案 C：与配方进度同速、恰于配方完成刻归零，关电/断供收尾路径同样照减），
- * 主控每刻 runChains 资格检查对冷却 ≤0 的单元开批（批周期 = 配方时间整、批间零空转）；该值
+ * 主控每刻 runChains 资格检查对冷却 ≤0 的单元启动批次（批周期 = 配方时间整、批间零空转）；该值
  * 同时驱动物流单元配方运行进度与工作态窗口（见 MTEBasicLogisticsUnit.onBatchProcessed）。
  *
  * <p>
@@ -149,7 +149,7 @@ public final class ClusterChainExecutor {
         if (unit.getChainCooldownTicks() > 0) return 0;
 
         // 3) 暂存产出未排空（O(1)；r-logi-power-bind）：在飞产出/待排空产出仍占着输出预检结论，
-        // 开新批会覆盖 stash 丢产出——拒绝开批（零副作用）
+        // 开新批会覆盖 stash 丢产出——拒绝启动批次（零副作用）
         if (unit.hasPendingOutputs()) return 0;
 
         // 4) 链可执行（重谓词 O(L×2N)，最后付）：FSM 终态 + 逐链步 countUnits/hasEnabledUnit
@@ -157,7 +157,7 @@ public final class ClusterChainExecutor {
         if (!chain.isExecutable(topology)) return 0;
 
         // 5) 低温门控（§3.6.4 取料前，决策 2）：热量不满 → 直接返 0 零副作用——不取料/不加工/
-        // 不输出/不扣批流体/不记吞吐/不停机（低温不再吞批，热量回满后自动恢复开批）
+        // 不输出/不扣批流体/不记吞吐/不停机（低温不再吞批，热量回满后自动恢复启动批次）
         if (batchHost.heatFraction() < 1.0) return 0;
 
         // 5) 并行与输入：从物流单元自己的输入总线收集全部非 OTHER 形态的物品（决策 3：
@@ -399,10 +399,10 @@ public final class ClusterChainExecutor {
     // ==================== 取料（IOF :306-319，I/O 经物流单元输入总线） ====================
 
     /**
-     * 增幅开批预检：对全部在场增幅模块（已接入集群 && 结构 tier 有效）按
+     * 增幅批次预检：对全部在场增幅模块（已接入集群 && 结构 tier 有效）按
      * 首轮基础量逐台预检（{@link MTEBasicAmplifierUnit#canPayForBatch}，
      * 与提交点实扣 {@link MTEBasicAmplifierUnit#tryConsumeForBatch} 同一 helper 同一数值），
-     * 结果写入各模块「最近开批预检失效」标记（缺流体/存量不足 → 失效），随后按标记重聚合并返回
+     * 结果写入各模块「最近批次预检失效」标记（缺流体/存量不足 → 失效），随后按标记重聚合并返回
      * 本批参与快照（失效模块剔除：无增益、不计蒸汽惩罚乘子）。
      * <p>
      * 纪律（R3）：预检/实扣对象一律为增幅模块自身输入仓（{@code MTEBasicAmplifierUnit} API），

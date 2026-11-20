@@ -27,7 +27,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  *
  * <p>
  * 数据流：{@code KEY_BO_STRUCT}（结构字段 {@code typeOrdinal:tier:segment:flags}——结构 revision 界）、
- * {@code KEY_BO_LIVE}（tank 余量+最近开批预检通过位，20t）、{@code KEY_BO_COST}（单价×10 定点
+ * {@code KEY_BO_LIVE}（tank 余量+最近批次预检通过位，20t）、{@code KEY_BO_COST}（单价×10 定点
  * L/矿口径+联动加成三元组，20t）、{@code KEY_BO_SUM}（8 字段汇总 ×100 定点，20t）。
  * <b>live 每帧重读纪律</b>（v1.11.22 缺流定格教训）：
  * 行底色/行基色/供给列/状态列/汇总卡/规则行全部由 draw 每帧重读缓存——缺流→补液无需重开 GUI 即恢复；
@@ -125,7 +125,7 @@ final class ClusterBoosterPage implements ClusterPage {
 
     /**
      * 单模块行（六列与表头对齐）。失效表现（行红底 + 行基色红 + 状态「缺 X，增益失效」）每帧重读
-     * KEY_BO_LIVE 预检通过位（v1.20.16：最近开批预检失效位，与物流模块状态同步），补液后
+     * KEY_BO_LIVE 预检通过位（v1.20.16：最近批次预检失效位，与物流模块状态同步），补液后
      * 无需重开 GUI 即恢复；正常行深底+绿「生效」。供给列只读动态直读
      * KEY_BO_LIVE（20t 周期真值）+ KEY_BO_COST 单价（L/矿 口径）。
      */

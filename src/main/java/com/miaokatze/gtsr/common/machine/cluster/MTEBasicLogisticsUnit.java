@@ -85,7 +85,7 @@ import gregtech.common.tileentities.machines.MTEHatchInputBusME;
  * （tick，见 {@link ChainLink#getBaseTicks()}/ExecutionPlan 时间口径，经执行器写入
  * {@link #chainCooldownTicks}）驱动 GT 多方块真实进度——{@link #onBatchProcessed(int)} 置
  * mMaxProgresstime/mProgresstime 起一炉真实配方运行（mEUt=0 无能耗，{@code checkProcessing} 恒
- * NO_RECIPE 不受影响）：输入已在开批时整批扣料吞入、产出整批暂存于 {@link #pendingOutputs}，
+ * NO_RECIPE 不受影响）：输入已在每批开始时整批扣料吞入、产出整批暂存于 {@link #pendingOutputs}，
  * 基类 runMachine 逐 t 计数、整批时长内 {@link #isUnitRunning()} 保持 true（active 贯穿），
  * 进度读完后由 {@link #onPostTick} 经 {@link ClusterChainExecutor#emitPendingOutputs} 排空暂存产出
  * （输出总线满则逐 t 空转重试，零消耗零丢料），随后归零回 STANDBY；处理窗口 = 本批配方时间全长。
@@ -134,8 +134,8 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     private List<String> lastBatchFluidSummary = java.util.Collections.emptyList();
 
     /**
-     * 队列模式（S1 新增，NBT 持久键 {@code clusterQueueMode}，默认关）：开启后执行器开批闸要求
-     * 收集输入中存在单种 item+meta 数量 ≥ 本批有效并行才开批（整批按同种矿队列推进），否则零副作用
+     * 队列模式（S1 新增，NBT 持久键 {@code clusterQueueMode}，默认关）：开启后执行器启动批次闸要求
+     * 收集输入中存在单种 item+meta 数量 ≥ 本批有效并行才启动批次（整批按同种矿队列推进），否则零副作用
      * 返 0（静默，状态机保持 STANDBY 口径）。螺丝刀右击切换。
      */
     private boolean queueMode;
@@ -215,7 +215,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /**
      * 暂存产出（NBT 键 clusterPendingOutputs，进度沿用 GT 父类保存）：
-     * 开批时执行器经输出预检证明整批放得下后扣料吞入，整批产出并不当场发放，而是暂存于此——
+     * 每批开始时执行器经输出预检证明整批放得下后扣料吞入，整批产出并不当场发放，而是暂存于此——
      * 待虚拟配方进度读零（{@link #onPostTick} 检测 {@code mMaxProgresstime <= 0}）后经
      * {@link ClusterChainExecutor#emitPendingOutputs} 排空，输出总线满则逐 t 空转重试
      * （零消耗零丢料）。重载只恢复已付批次的产出与剩余进度，不重新扣料、扣液或记吞吐。
@@ -475,7 +475,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * 一炉真实配方运行——
      * <ul>
      * <li>mMaxProgresstime = 本批配方时间（tick）、mProgresstime = 0：GT 基类 runMachine 以 mEUt=0
-     * 逐 t 推进真实进度条（输入开批已扣、产出已暂存 {@link #pendingOutputs}），完成时自行归零，
+     * 逐 t 推进真实进度条（该批输入已经扣除、产出已暂存 {@link #pendingOutputs}），完成时自行归零，
      * 随后 {@link #onPostTick} 排空暂存产出；</li>
      * <li>窗口 = 本批真实配方尚未完成的进度区间：窗口内
      * {@link #isUnitRunning()} 为 true（正面运行叠层与 active 贯穿整批时长）、
@@ -523,7 +523,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
 
     /**
      * 终止在飞配方运行（主控断供中止 supplyAbort 调用）：进度、批冷却与排空退避归零、暂存产出
-     * 丢弃——输入在开批时已整批扣料吞入，此处不回填输入总线（吞料语义）；处理窗口闩同步清零
+     * 丢弃——输入在每批开始时已整批扣料吞入，此处不回填输入总线（吞料语义）；处理窗口闩同步清零
      * （工作态显示立即回 STANDBY）。对空闲单元调用为无害归零。
      */
     public void abortPendingRun() {
@@ -807,7 +807,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
     // ------------------------------------------------------------------
 
     /**
-     * 下次可尝试开批剩余 tick：成功开批由执行器写入整批配方时间，随后用于启动真实进度。
+     * 下次可尝试启动新批次剩余 tick：批次成功启动由执行器写入整批配方时间，随后用于启动真实进度。
      * 持有已付暂存产出期间，{@link #onPostTick} 与读档路径都从 GT 剩余进度重建此值，
      * 保持批间零空转。流体/输出预检失败则写入固定短退避；空闲退避为瞬态，逐刻递减。
      */
@@ -818,7 +818,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
         return chainCooldownTicks;
     }
 
-    /** 设置本批配方时间，成功开批后由真实配方剩余进度保持同步。 */
+    /** 设置本批配方时间，批次成功启动后由真实配方剩余进度保持同步。 */
     public void setChainCooldownTicks(long ticks) {
         this.chainCooldownTicks = ticks;
     }
@@ -834,7 +834,7 @@ public class MTEBasicLogisticsUnit extends MTEClusterUnitBase<MTEBasicLogisticsU
      * 排空失败退避计数（T2④）：暂存产出排空失败（输出总线满）后武装为
      * {@link ClusterParams#DRAIN_RETRY_BACKOFF_TICKS}，退避期内 {@link #onPostTick} 逐刻递减并
      * 跳过排空重试，避免输出满期间每 tick 逐组探测-实放全量重跑。刻意独立于
-     * {@link #chainCooldownTicks}——排空发生在配方读零之后，混写会污染批冷却节拍语义（成功开批
+     * {@link #chainCooldownTicks}——排空发生在配方读零之后，混写会污染批冷却节拍语义（批次成功启动
      * 覆写关系不可推理）。瞬态不落 NBT——读档丢失 = 多试一次排空，无害。
      */
     private int drainRetryDelayTicks;
