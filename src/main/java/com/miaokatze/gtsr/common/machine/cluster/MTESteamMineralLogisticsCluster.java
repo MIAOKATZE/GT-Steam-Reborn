@@ -76,13 +76,13 @@ import io.netty.buffer.Unpooled;
  * 粒子窗口驱动 → 每 20t 结算编排（吞吐窗口发布 → 物流单元软锤/低温边沿轮询 → 关机早退 /
  * 预热结算 / 运行结算 + 增幅短缺播报锁存 + 断供中止）→ 每 tick 批启动资格检查（v1.20.17
  * 方案 C：批冷却由物流单元逐刻递减、恰于配方完成刻归零，主控每刻 runChains 对冷却 ≤0 的
- * 开机单元开批——批周期 = 配方时间整、批间零空转；20t 结算内的冷却递减与链执行退役）。
+ * 开机单元启动批次——批周期 = 配方时间整、批间零空转；20t 结算内的冷却递减与链执行退役）。
  * 配方运行绑定
  * （r-logi-power-bind）：关机只阻止开下一批，在飞批次继续按结算口径计费（蒸汽/润滑按 wip 口径）
  * 直至配方读完产出排空；运行中断供（v1.20.16 收窄：仅蒸汽/润滑结算失败）立即终止在飞配方
  * （吞料）、主控断电并一次性通知物主（gtsr.chat.cluster.supply_abort）；增幅液短缺不再中止
- * ——开批预检不足仅该模块本批失效（无加成不计乘子）+ 一次性播报
- * （gtsr.chat.booster_shortage，见 {@link #reportBoosterShortageIfNeeded}），消耗在开批提交点
+ * ——批次预检不足仅该模块本批失效（无加成不计乘子）+ 一次性播报
+ * （gtsr.chat.booster_shortage，见 {@link #reportBoosterShortageIfNeeded}），消耗在每批提交时
  * 按计费轮数×单价一次扣（ClusterChainExecutor）。主控不再持有总线/集中供电模型（plan §3.3.2）：
  * 输入/输出总线归物流模块，热离/磁选能源仓由单元自身扣减。
  *
@@ -142,7 +142,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /**
      * 开关机（GUI ToggleButton 驱动）；新放置默认 true（plan §3.6.1：成型+流体足即预热）。
      * 配方运行绑定语义（r-logi-power-bind）：关机只阻止开下一批，在飞批次继续按结算口径
-     * 计费（蒸汽/润滑按 wip 口径；增幅液 v1.20.16 起为开批提交点一次扣）直至配方读完产出排空；
+     * 计费（蒸汽/润滑按 wip 口径；增幅液 v1.20.16 起为每批提交时一次扣）直至配方读完产出排空；
      * 断供中止也会经 {@link #supplyAbort} 置 false（主控断电）。
      */
     protected boolean machineEnabled = true;
@@ -169,8 +169,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /**
      * 增幅液短缺一次性播报锁存（v1.20.16，NBT 持久 "boosterShortageNotified"）：任一在场增幅模块
-     * 最近开批预检失效且未播报 → 向物主发一次 gtsr.chat.booster_shortage（lang 值由 lang 切片落地）；
-     * 全部参与模块的开批预检重新全部通过（成功运行）时复位，允许下一次短缺再次播报
+     * 最近批次预检失效且未播报 → 向物主发一次 gtsr.chat.booster_shortage（lang 值由 lang 切片落地）；
+     * 全部参与模块的批次预检重新全部通过（成功运行）时复位，允许下一次短缺再次播报
      * （结构同 MTELargeSolarOverpressureArray.mNoWaterNotified）。增幅短缺不触发
      * {@link #supplyAbort}（吞料断电收窄为蒸汽/润滑），本播报为唯一主动提示。
      */
@@ -841,7 +841,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
         // 每 tick 批启动资格检查（v1.20.17 方案 C：批间零空转自然衔接）——批冷却已由物流单元
         // 服务端 onPostTick 逐刻递减、恰于"批提交后第 R 刻"=配方完成刻归零，此处对冷却 ≤0 的
-        // 单元 runChains 开批（批周期 = 配方时间整）。门控 O(1)：集群成型（mMachine，上方未成型
+        // 单元 runChains 启动批次（批周期 = 配方时间整）。门控 O(1)：集群成型（mMachine，上方未成型
         // 早退已保证）&& 开机（GUI 开关+物理电源）&& 供给锁存；executeBatch 内部自挡低温
         // （heatFraction<1）/暂存未排空/取料不足/链不可执行/冷却>0（零副作用零开销级返回），
         // 预热期与关电收尾在此天然不开新批。
@@ -903,8 +903,8 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /**
      * 蒸汽/润滑 20t 结算编排（完整状态口径，plan §3.6.2 数值总表 + r-logi-power-bind 配方运行绑定；
-     * v1.20.16 增幅液退出按秒结算——消耗改开批提交点一次扣，短缺改一次性播报；v1.20.17 方案 C
-     * 批冷却递减与链执行移出结算——冷却由单元侧逐刻递减、开批由 onPostTick 每刻资格检查承接，
+     * v1.20.16 增幅液退出按秒结算——消耗改每批提交时一次扣，短缺改一次性播报；v1.20.17 方案 C
+     * 批冷却递减与链执行移出结算——冷却由单元侧逐刻递减、启动批次由 onPostTick 每刻资格检查承接，
      * 结算回归纯计费节拍）。
      *
      * <p>
@@ -915,7 +915,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * <li><b>预热结算（未满热且无在飞批次）</b>：2000+10 原口径；</li>
      * <li><b>运行结算（满热，或无在飞批次之外的一切在飞收尾态）</b>：固定项 + 加权链路段 C——
      * C 聚合按 powerOn 选 {@link #enabledLogisticsUnits()}（开机=全量可执行链需量）或
-     * 在飞 WIP 单元列表（关电收尾只对在飞配方计费）；增幅液由链批执行器在开批提交点按计费轮数×单价
+     * 在飞 WIP 单元列表（关电收尾只对在飞配方计费）；增幅液由链批执行器在每批提交时按计费轮数×单价
      * 一次扣（短缺仅本批该模块失效 + {@link #reportBoosterShortageIfNeeded} 一次性播报）。</li>
      * </ul>
      * 断供中止（v1.20.16 收窄为蒸汽与润滑：wip&gt;0 时结算 r.ok=false）：
@@ -956,7 +956,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
             // （FIXED_CLUSTER_STEAM_LPS × FIXED_STEAM_TIER_MULT[tier]，r6-S6 新口径）+ 加权链路段 C；
             // C 聚合按 powerOn 选全量启用单元（开机）或在飞 WIP 单元（关电收尾只对在飞计费）；
             // 切片 5b：聚合只计 isModuleEnabled 的物流单元（混合成型态不高估需量）。
-            // v1.20.16：聚合不再乘短批反比倍率（按秒口径退役）；增幅支付改开批预检（执行器 5c）
+            // v1.20.16：聚合不再乘短批反比倍率（按秒口径退役）；增幅支付改批次预检（执行器 5c）
             booster = BoosterState.aggregate(topology.getBoosterUnits());
             double c = ExecutionPlan.computeAggregateSteamC(
                 powerOn ? enabledLogisticsUnits() : wipUnits,
@@ -965,12 +965,12 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 booster);
             r = economy.settleRunFull(this, runFixedSteamLps(), c);
             if (r.ok) {
-                // v1.20.17 方案 C：批冷却递减与链开批移出 20t 结算——冷却由物流单元服务端
+                // v1.20.17 方案 C：批冷却递减与链路启动移出 20t 结算——冷却由物流单元服务端
                 // onPostTick 逐刻 -1（与配方进度同速、恰于配方完成刻归零，关电收尾/断供边沿照减），
-                // 开批由 onPostTick 每刻资格检查（runChains，内部自挡关电/低温/冷却未到/暂存未排空）
+                // 启动批次由 onPostTick 每刻资格检查（runChains，内部自挡关电/低温/冷却未到/暂存未排空）
                 // 承接，结算回归纯计费节拍；本块仅保留计费成功后的收尾逻辑。
-                // v1.20.16：增幅液按秒实扣段退役（消耗改开批提交点一次扣，见 ClusterChainExecutor
-                // 步骤 10）；短缺播报锁存（任一参与模块最近开批预检失效→一次性播报，全部重新通过→复位）
+                // v1.20.16：增幅液按秒实扣段退役（消耗改每批提交时一次扣，见 ClusterChainExecutor
+                // 步骤 10）；短缺播报锁存（任一参与模块最近批次预检失效→一次性播报，全部重新通过→复位）
                 reportBoosterShortageIfNeeded();
             }
             // 断供中止（wip>0，v1.20.16 收窄为蒸汽/润滑）：结算失败 → 终止全部在飞配方（吞料）、
@@ -986,7 +986,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /**
      * 断供中止（r-logi-power-bind，运行中断供立即终止在飞配方；v1.20.16 收窄为蒸汽/润滑结算失败，
      * 增幅液短缺不再进入本路径）：全部物流单元
-     * {@link MTEBasicLogisticsUnit#abortPendingRun}（输入开批已扣、产出暂存丢弃=吞料，进度/批冷却/
+     * {@link MTEBasicLogisticsUnit#abortPendingRun}（该批输入已经扣除、产出暂存丢弃=吞料，进度/批冷却/
      * 处理窗口归零）→ 主控断电（setMachineEnabled(false)，重新开机需玩家手动开启）→ 供给锁存清位；
      * 一次性 latch supplyAbortNotified（NBT 持久、重新开机清除）为 false 时置 true 并向物主发
      * gtsr.chat.cluster.supply_abort（范式同 MTELargeSolarOverpressureArray.stopForMissingWater）。
@@ -1005,10 +1005,10 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
 
     /**
      * 增幅液短缺一次性播报（v1.20.16，20t 结算内运行结算 ok 分支调用；仅服务器主线程）：
-     * 任一在场增幅模块最近开批预检失效（缺流体或存量不足首轮单价——标记由
-     * {@code ClusterChainExecutor} 开批预检段经 {@code markBatchPrecheckResult} 登记）且未播报 →
+     * 任一在场增幅模块最近批次预检失效（缺流体或存量不足首轮单价——标记由
+     * {@code ClusterChainExecutor} 批次预检段经 {@code markBatchPrecheckResult} 登记）且未播报 →
      * 向物主发一次 gtsr.chat.booster_shortage（lang 值由 lang 切片落地）；此后全部参与模块
-     * （已接入集群 && 结构 tier 有效）的开批预检重新全部通过（成功运行）时复位锁存
+     * （已接入集群 && 结构 tier 有效）的批次预检重新全部通过（成功运行）时复位锁存
      * {@link #boosterShortageNotified}，允许下一次短缺再次播报。增幅短缺不中止批执行与供电
      * （supplyAbort 收窄为蒸汽/润滑），本播报为唯一主动提示。
      */
@@ -1028,7 +1028,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
                 GTSRMachineEvent.sendToOwner(getBaseMetaTileEntity().getOwnerUuid(), "gtsr.chat.booster_shortage");
             }
         } else {
-            // 全部参与模块最近一次开批预检通过（成功运行）→ 复位，允许下一次短缺再播
+            // 全部参与模块最近一次批次预检通过（成功运行）→ 复位，允许下一次短缺再播
             boosterShortageNotified = false;
         }
     }
@@ -1154,7 +1154,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /**
      * 链执行钩子（v1.20.17 方案 C：由 {@link #onPostTick} 每 tick 批启动资格检查调用——批冷却
      * 已由物流单元服务端 onPostTick 逐刻递减、与虚拟配方进度同速恰于配方完成刻归零，本方法每刻
-     * 对冷却 ≤0 的单元尝试开批，批周期 = 配方时间整、批间零空转；关电不开新批语义由调用方门控
+     * 对冷却 ≤0 的单元尝试启动新批次，批周期 = 配方时间整、批间零空转；关电不开新批语义由调用方门控
      * （mMachine && machineEnabled && isAllowedToWork && thermalSupplyOkLatched）保持）。轻量
      * O(1)/单元资格检查：冷却 &gt;0 即跳过，其余交 {@code ClusterChainExecutor.executeBatch}
      * 三参批执行（本类即 ClusterBatchHost）——执行器自带门控（暂存未排空/低温/取料不足/链不可

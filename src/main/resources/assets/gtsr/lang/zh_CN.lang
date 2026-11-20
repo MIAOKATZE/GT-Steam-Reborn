@@ -5505,6 +5505,7 @@ gtsr.ore_center.status.speed=速度 · %s %s mB/批
 gtsr.ore_center.status.parallel=并行 · %s %s mB/批
 gtsr.ore_center.status.yield=主产物 · %s %s mB/批
 gtsr.ore_center.status.secondary=副产物 · %s %s mB/批
+gtsr.ore_center.status.charged_rounds=（%s 轮）
 gtsr.ore_center.graph.preset.open=生成器预设
 gtsr.ore_center.graph.preset.title=GTNH 矿物处理生成器预设
 gtsr.ore_center.graph.preset.nodes=工序 %s 个

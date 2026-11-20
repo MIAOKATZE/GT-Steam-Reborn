@@ -82,7 +82,7 @@ final class TestLabCenterPresetLoad implements TestLabTask {
     private MTEMineralIntegrationCenter center;
     private MTEHatchInput steam;
     private CenterGraph graph;
-    private int x, y, z, cursor, module, installedAt, phase, workload, waitSince, submitted;
+    private int x, y, z, cursor, module, installedAt, phase, workload, waitSince;
     private long lastSequence, sampledEU, expectedEU, expectedSteam, initialEU;
     private final long[] reagents = new long[4];
     private final int[] initialTanks = new int[5];
@@ -472,14 +472,12 @@ final class TestLabCenterPresetLoad implements TestLabTask {
         initialEU = energy.getEUCapacity();
         energy.increaseStoredEnergyUnits(initialEU - energy.getStoredEU(), false);
         require(energy.getStoredEU() == initialEU, "Failed to stock native EU hatch");
-        submitted = 0;
         for (int slot = 0; slot < 15; slot++) {
             Materials mineral = run == 0 ? OreMix.STOCK[slot % OreMix.STOCK.length] : Materials.Copper;
             ItemStack ore = GTOreDictUnificator.get(OrePrefixes.rawOre, mineral, STACK_SIZE);
             require(ore != null, "Missing raw ore " + mineral);
             input.setInventorySlotContents(slot, ore);
             beginningInputs.merge(key(ore), (long) ore.stackSize, Long::sum);
-            submitted += ore.stackSize;
         }
         lastStock = inventory(input);
         require(lastStock.equals(beginningInputs), "Native input bus did not hold all offered ore");
@@ -505,6 +503,7 @@ final class TestLabCenterPresetLoad implements TestLabTask {
         expectedEU += batch.getLong("CenterEnergy");
         int[] add = batch.getIntArray("CenterBoostFluids");
         require(add.length == reagents.length, "Missing batch boost costs");
+        require(batch.getInteger("CenterBatchRounds") == 1, "Ordinary mode must charge one round");
         for (int i = 0; i < add.length; i++) reagents[i] += add[i];
         require(
             center.getProgresstime() == center.batchProgress() && center.maxProgresstime() > 0
@@ -566,7 +565,8 @@ final class TestLabCenterPresetLoad implements TestLabTask {
             "Wrong native energy payment; expected=" + expectedEU + " actual=" + sampledEU);
         require(STEAM_STOCK - volume(steam) == expectedSteam, "Wrong native steam payment");
         for (int i = 0; i < BOOSTS.length; i++) require(
-            initialTanks[i] - volume(supplies[i]) == reagents[i] && reagents[i] == (long) CHARGES[i] * submitted,
+            initialTanks[i] - volume(supplies[i]) == reagents[i]
+                && reagents[i] == (long) CHARGES[i] * batchDebits.size(),
             "Wrong declared or actual booster charge " + BOOSTS[i]);
         int water = initialTanks[4] - volume(supplies[4]);
         require(water > 0, "The native wash route did not consume water");

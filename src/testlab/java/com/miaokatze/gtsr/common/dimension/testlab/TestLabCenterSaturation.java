@@ -47,6 +47,8 @@ final class TestLabCenterSaturation implements TestLabTask {
 
     static final String ID = "perf.ore_integration_center.saturation";
     private static final int VARIETIES = 256, CYCLES = 6;
+    // Tungstensteel III with three paid III speed and parallel modules: 4096 × 80 × 3 × 2.
+    private static final int EXECUTIONS_PER_ROUND = 1_966_080;
     private static final CenterModule[] MODULES = TestLabCenterPresetLoad.MODULES.clone();
     static {
         for (int sector = 0; sector < 6; sector++)
@@ -322,7 +324,11 @@ final class TestLabCenterSaturation implements TestLabTask {
         expectedEnergy += batch.getLong("CenterEnergy");
         expectedSteam += (batch.getLong("CenterSteam") + density - 1) / density;
         int[] additives = batch.getIntArray("CenterBoostFluids");
-        require(additives[0] == perCycle * 135 && additives[1] == perCycle * 108, "Booster levels were not fully paid");
+        int chargedRounds = 1 + (load.executions - 1) / EXECUTIONS_PER_ROUND;
+        require(batch.getInteger("CenterBatchRounds") == chargedRounds, "Incorrect number of combined work rounds");
+        require(
+            additives[0] == chargedRounds * 135 && additives[1] == chargedRounds * 108,
+            "Combined work rounds were not fully paid");
         expectedSpeed += additives[0];
         expectedParallel += additives[1];
         pending = new LinkedHashMap<>();
@@ -338,6 +344,7 @@ final class TestLabCenterSaturation implements TestLabTask {
         info.put("acceptedTick", tick);
         info.put("recipeTicks", center.maxProgresstime());
         info.put("rawOre", perCycle);
+        info.put("chargedRounds", chargedRounds);
         batches.add(info);
         GTSteamReborn.LOG.info(
             "Ore center saturated batch {} accepted at tick {} for {} ticks",

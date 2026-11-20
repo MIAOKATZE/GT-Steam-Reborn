@@ -188,7 +188,7 @@ final class TestLabIntegrationCenter implements TestLabTask {
 
         int[] boosted = bronze.clone();
         boosted[CenterModule.YIELD.ordinal()] = 1;
-        FluidStack acid = Materials.SulfuricAcid.getFluid(4_096L);
+        FluidStack acid = Materials.SulfuricAcid.getFluid(8L);
         require(acid != null, "Missing registered sulfuric acid");
         int availableAcid = acid.amount;
         FluidStack[] fluids = { acid };
@@ -201,9 +201,30 @@ final class TestLabIntegrationCenter implements TestLabTask {
             sameSeedFirst.consumedFluids.stream()
                 .filter(acid::isFluidEqual)
                 .mapToInt(value -> value.amount)
-                .sum() == 8 * quantity(sameSeedFirst.consumed, copper),
-            "Primary booster must charge one sulfuric-acid rate per accepted ore");
+                .sum() == 8,
+            "Primary booster must charge one sulfuric-acid rate for the whole parallel round");
         require(unboosted.consumedFluids.stream().noneMatch(acid::isFluidEqual), "Unavailable additive was consumed");
+        ItemStack tin = GTOreDictUnificator.get(OrePrefixes.rawOre, Materials.Tin, 64L);
+        require(tin != null, "Missing registered GT raw tin");
+        CenterPlanner.Batch mixed = plan(
+            Arrays.asList(later, graph(0, true, "rawOreTin", crush)),
+            new ItemStack[] { copper, tin },
+            fluids,
+            boosted,
+            0,
+            1,
+            0,
+            0,
+            SEED);
+        require(
+            quantity(mixed.consumed, copper) == 64 && quantity(mixed.consumed, tin) == 64,
+            "Mixed paths did not process both inputs in one batch");
+        require(
+            mixed.consumedFluids.stream()
+                .filter(acid::isFluidEqual)
+                .mapToInt(stack -> stack.amount)
+                .sum() == 8,
+            "Two running graphs must share one charge for the first round");
 
         int extras = 0, trials = 0;
         for (int i = 0; i < 96; i++) {
@@ -251,7 +272,7 @@ final class TestLabIntegrationCenter implements TestLabTask {
         int inputSize = recipe.mInputs[0].stackSize;
         Fluid reagent = MTEBasicAmplifierUnit.resolveBoosterFluid(BoosterType.SECONDARY_OUTPUT);
         require(reagent != null, "Secondary booster reagent is not registered");
-        FluidStack supply = new FluidStack(reagent, 4096);
+        FluidStack supply = new FluidStack(reagent, 3);
         int[] boosted = modules.clone();
         boosted[CenterModule.SECONDARY.ordinal()] = 1;
         List<CenterGraph> graphs = Arrays.asList(graph);
@@ -268,7 +289,7 @@ final class TestLabIntegrationCenter implements TestLabTask {
                 .filter(supply::isFluidEqual)
                 .mapToInt(stack -> stack.amount)
                 .sum();
-            require(charged == 3 * consumed, "Incorrect secondary reagent charge");
+            require(charged == 3, "Incorrect secondary reagent charge for one parallel round");
             int extra = quantity(batch.bonuses, product);
             require(extra % product.stackSize == 0 && quantity(batch.outputs, product) >= extra,
                 "Secondary bonus was not settled to the native output product");

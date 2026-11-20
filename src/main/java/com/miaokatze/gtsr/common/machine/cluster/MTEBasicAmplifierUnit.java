@@ -32,10 +32,10 @@ import gregtech.api.util.GTUtility;
  * 增幅模块基类：集群五类增幅（并行/速度/主产物/副产物/蒸汽效率）的公共骨架。
  * <p>
  * 正面 {@code (0,3,0)} 为输入仓位（'A' 元素先尝试 InputHatch，再回退 tiered 外壳——输入仓可置
- * 任意 A 位，至少一个否则不成型），开批经济结算经 {@link #tryConsumeForBatch}
+ * 任意 A 位，至少一个否则不成型），启动批次经济结算经 {@link #tryConsumeForBatch}
  * 按计费轮数×单价一次扣除；首轮预检失败零扣、该模块本批无增益无惩罚。
  * <p>
- * 锁定流体直接从 H 输入仓读取，开批按实际计费轮数一次扣除；不再启用内部流体槽，
+ * 锁定流体直接从 H 输入仓读取，启动批次按实际计费轮数一次扣除；不再启用内部流体槽，
  * 管道直灌面随之关闭。
  * 手工容器交互（桶/胶囊）沿承 {@link MTEClusterUnitBase} 家族语义（关闭），流体出入一律走管道/ME。
  * <p>
@@ -62,9 +62,9 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     private Fluid lockedFluid;
 
     /**
-     * 最近一次开批预检失效标记（瞬态，v1.20.16）：true = 最近一次开批预检未通过（缺流体或存量
+     * 最近一次批次预检失效标记（瞬态，v1.20.16）：true = 最近一次批次预检未通过（缺流体或存量
      * 不足首轮单价）——本模块该批无增益、不计蒸汽惩罚乘子；从未参与预检时为 false。
-     * 由 {@code ClusterChainExecutor} 开批预检段经 {@link #markBatchPrecheckResult} 登记，
+     * 由 {@code ClusterChainExecutor} 批次预检段经 {@link #markBatchPrecheckResult} 登记，
      * {@code BoosterState.aggregate} 与主控一次性播报锁存共用（V3 最小侵入接线）。
      */
     private boolean lastBatchPrecheckFailed;
@@ -143,7 +143,7 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
      * </pre>
      *
      * 加成明细见 {@link #amplifierSurchargeSources()}；无施加方且无同种模块时退化为基础表值。
-     * 开批一次扣 = {@link #batchCost}(计费轮数)；64 份并行计一轮，合并 10 轮计十轮，尾轮向上取整。
+     * 每批一次扣 = {@link #batchCost}(计费轮数)；64 份并行计一轮，合并 10 轮计十轮，尾轮向上取整。
      */
     public double amplifierFluidPerSecExact() {
         int tier = getUnitStructureTier();
@@ -199,7 +199,7 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
      * 批量支付原语（{@link #tryConsumeForBatch} 的底层实现）：先跨输入仓合计预检足额、足额才整笔
      * 实扣（不足零扣原子语义——{@code depleteFluidAcross} 允许部分提取，直接调用会破坏
      * 「不足零扣」）；不足（或参数非正）返回 false 且零扣——该模块本批应从 BoosterState 剔除
-     * （无增益、无蒸汽惩罚乘子），剔除动作由开批预检段（{@code ClusterChainExecutor}）完成。
+     * （无增益、无蒸汽惩罚乘子），剔除动作由批次预检段（{@code ClusterChainExecutor}）完成。
      * 增幅液只走本模块自身输入仓 API（跨模块结算），禁止接入物流仓 BatchFluidLedger 管线。
      */
     public boolean tryConsumeAmplifierFluid(int liters) {
@@ -212,7 +212,7 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
 
     /**
      * 本批增幅液消耗（L）：{@code 单价 × 计费轮数}，单一 helper 一次取整
-     * （轮数非正或单价非正返回 0）；开批支付预检（{@link #canPayForBatch}）与提交实扣
+     * （轮数非正或单价非正返回 0）；启动批次支付预检（{@link #canPayForBatch}）与提交实扣
      * （{@link #tryConsumeForBatch}）共用本值，保证「预检的量 = 实扣的量」（禁止二次 ceil）。
      *
      * @param rounds 本次计费轮数（并行不乘矿数，尾轮向上取整；空批为 0）
@@ -225,8 +225,8 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     }
 
     /**
-     * 开批支付预检（只读、零副作用）：本模块输入仓合计存量 ≥ {@link #batchCost(int)}。
-     * 仅判定，不写「最近开批预检失效」标记（标记由 {@code ClusterChainExecutor} 预检段统一登记）。
+     * 启动批次支付预检（只读、零副作用）：本模块输入仓合计存量 ≥ {@link #batchCost(int)}。
+     * 仅判定，不写「最近批次预检失效」标记（标记由 {@code ClusterChainExecutor} 预检段统一登记）。
      */
     public boolean canPayForBatch(int rounds) {
         int cost = batchCost(rounds);
@@ -236,9 +236,9 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     }
 
     /**
-     * 开批批量实扣：按 {@link #batchCost(int)} 经
+     * 每批一次实扣：按 {@link #batchCost(int)} 经
      * {@link #tryConsumeAmplifierFluid} 先预检后整扣；不足（或轮数非正/锁定流体缺失）返回 false
-     * 且零扣——调用方已在开批预检段将不足模块从本批增益/蒸汽惩罚中剔除（批照常执行、输入照常收取）。
+     * 且零扣——调用方已在批次预检段将不足模块从本批增益/蒸汽惩罚中剔除（批照常执行、输入照常收取）。
      */
     public boolean tryConsumeForBatch(int rounds) {
         return tryConsumeAmplifierFluid(batchCost(rounds));
@@ -325,7 +325,7 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
     }
 
     /**
-     * @return 最近一次开批预检是否失效（true = 缺流体或存量不足整批单价：无增益、不计蒸汽惩罚乘子；
+     * @return 最近一次批次预检是否失效（true = 缺流体或存量不足整批单价：无增益、不计蒸汽惩罚乘子；
      *         从未参与预检为 false）。聚合失效计数（{@code BoosterState} failedCount）与主控一次性
      *         播报锁存读本标记。
      */
@@ -333,7 +333,7 @@ public abstract class MTEBasicAmplifierUnit extends MTEClusterUnitBase<MTEBasicA
         return lastBatchPrecheckFailed;
     }
 
-    /** 开批预检结果登记（仅服务器主线程，{@code ClusterChainExecutor} 开批路径调用）。 */
+    /** 批次预检结果登记（仅服务器主线程，{@code ClusterChainExecutor} 启动批次路径调用）。 */
     public void markBatchPrecheckResult(boolean passed) {
         lastBatchPrecheckFailed = !passed;
     }

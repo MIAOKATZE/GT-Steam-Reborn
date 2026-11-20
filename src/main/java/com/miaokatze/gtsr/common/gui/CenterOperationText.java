@@ -60,10 +60,13 @@ final class CenterOperationText {
                 NBTTagCompound cost = state.getTagList("BoostCosts", 10)
                     .getCompoundTagAt(boost);
                 String fluid = fluidName(cost.getString("FluidName"));
-                yield yellow + local(
+                int amount = cost.getInteger("Amount");
+                int rounds = state.getInteger("BatchRounds");
+                String line = yellow + local(
                     BOOSTS[boost],
                     (nativeGui ? EnumChatFormatting.AQUA.toString() : "") + fluid,
-                    white + format(cost.getInteger("Amount")));
+                    white + format(amount));
+                yield rounds > 0 && amount > 0 ? line + local("charged_rounds", format(rounds)) : line;
             }
         };
     }

@@ -44,7 +44,7 @@ public final class CenterPlanner {
         public final List<ItemStack> bonuses;
         public final List<FluidStack> consumedFluids, outputFluids;
         public final int ticks;
-        final int roots;
+        final int roots, chargedRounds;
         final int[] boostFluids;
         final int usedModules;
         public final long steam, energy;
@@ -54,8 +54,9 @@ public final class CenterPlanner {
             this.outputs = new ArrayList<>(plan.outputs.values());
             this.bonuses = new ArrayList<>(plan.bonuses.values());
             this.boostFluids = new int[BOOSTS.length];
+            this.chargedRounds = plan.chargedRounds();
             if (!plan.ignoreFluids)
-                for (int i = 0; i < boostFluids.length; i++) boostFluids[i] = plan.rootPaid * plan.boostPrice[i];
+                for (int i = 0; i < boostFluids.length; i++) boostFluids[i] = chargedRounds * plan.boostPrice[i];
             int used = 0;
             for (CenterModule module : MODULES)
                 if (module.kind == 1 && plan.weight[module.ordinal()] == 1) used |= 1 << module.ordinal();
@@ -317,7 +318,8 @@ public final class CenterPlanner {
             return fallback;
         }
 
-        private void configureBoosts() {
+        private int configureBoosts() {
+            int affordableRounds = batchRounds;
             for (int i = 0; i < BOOSTS.length; i++) {
                 Boost b = BOOSTS[i];
                 int module = CenterModule.SPEED.ordinal() + i;
@@ -325,8 +327,8 @@ public final class CenterPlanner {
                 Fluid ingredient = boostFluid(i);
                 if (ingredient == null) continue;
                 for (int g = 0; g < best[module]; g++) {
-                    int required = proposedRoots * b.price[g];
-                    for (int repeat = 0; repeat < counts[module][g] && required > 0; repeat++) {
+                    int required = b.price[g];
+                    for (int repeat = 0; repeat < counts[module][g]; repeat++) {
                         FluidStack fluid = new FluidStack(ingredient, required);
                         if (!ignoreFluids && !useFluid(available, fluid, required)) break;
                         if (!ignoreFluids) mergeFluid(consumedFluids, fluid, required);
@@ -336,7 +338,14 @@ public final class CenterPlanner {
                         euMultiplier += b.eu[g];
                     }
                 }
+                if (!ignoreFluids && boostPrice[i] > 0 && affordableRounds > 1) {
+                    FluidStack fluid = new FluidStack(ingredient, 1);
+                    long remaining = 0;
+                    for (FluidStack stock : available) if (stock.isFluidEqual(fluid)) remaining += stock.amount;
+                    affordableRounds = (int) Math.min(affordableRounds, 1 + remaining / boostPrice[i]);
+                }
             }
+            return affordableRounds;
         }
 
         public Batch batch() {
@@ -365,11 +374,15 @@ public final class CenterPlanner {
                 used++;
             }
             if (!boostConfigured) {
-                configureBoosts();
+                if (proposedRoots == 0) {
+                    finished = true;
+                    return true;
+                }
+                int affordableRounds = configureBoosts();
                 for (WorkGraph work : graphs) for (CenterGraph.Node node : work.graph.nodes)
                     peakGrade = Math.max(peakGrade, best[node.process.module.ordinal()]);
                 workPerRound = (int) (BASE_WORK * machineSpeed() * peakGrade * parallelBoost());
-                workLimit = (int) Math.min(MAX_BATCH_WORK, (long) workPerRound * batchRounds);
+                workLimit = (int) Math.min(MAX_BATCH_WORK, (long) workPerRound * affordableRounds);
                 boostConfigured = true;
             }
             while (graphIndex < graphs.size() && !failed) {
@@ -561,12 +574,27 @@ public final class CenterPlanner {
             return (WIDTH[tier] + gain[1]) * (tier + 1) * sectors * parallelBoost() * laneBonus;
         }
 
-        private Batch conclude() {
+        private int chargedRounds() {
+            return 1 + (executions - 1) / workPerRound;
+        }
+
+        private boolean settleBoosts() {
+            if (ignoreFluids) return true;
+            // The first round was reserved before recipe matching. Recipes can also use these fluids,
+            // so verify the rest against the actual remaining stock before committing the batch.
+            int additionalRounds = chargedRounds() - 1;
+            if (additionalRounds == 0) return true;
             for (int i = 0; i < BOOSTS.length; i++) {
-                int refund = (proposedRoots - rootPaid) * boostPrice[i];
-                if (refund > 0) useFluid(consumedFluids, new FluidStack(boostFluid(i), refund), refund);
+                int cost = additionalRounds * boostPrice[i];
+                if (cost == 0) continue;
+                FluidStack fluid = new FluidStack(boostFluid(i), cost);
+                if (!useFluid(available, fluid, cost)) return false;
+                mergeFluid(consumedFluids, fluid, cost);
             }
-            consumedFluids.removeIf(f -> f.amount <= 0);
+            return true;
+        }
+
+        private Batch conclude() {
             double scale = 1 + .06 * (sectors - 1) + .025 * Math.max(0, graphs.size() - 1);
             double rounds = Math.max(1, (double) executions / workPerRound);
             int ticks = Math.max(
@@ -596,6 +624,10 @@ public final class CenterPlanner {
                 return null;
             }
             if (ticks > 24000) return null;
+            if (!settleBoosts()) {
+                workLimitReached = true;
+                return null;
+            }
             long steam = ignoreFluids ? 0
                 : (long) Math.ceil(
                     scale * (STEAM[tier] * (1 + .1 * (sectors - 1)) * ticks / 20
