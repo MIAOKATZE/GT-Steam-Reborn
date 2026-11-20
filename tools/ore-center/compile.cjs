@@ -64,6 +64,20 @@ for(let mask=1;mask<=63;mask++) {
 for(const [i,cells] of isolated.entries()) write('outer-'+i,cells);
 for(const [i,cells] of common.entries()) write('sector-'+i,cells);
 
+const visual = makeOreVoxelModel(0, [], 63);
+const crown = visual.motionGroups.find(group => group.key === 'crown-rotor');
+const members = crown.cells.map(([x, y, z]) => {
+    const material = visual.palette[visual.blocks[visual.index(x, y, z)]].key;
+    if (!['gear', 'shell', 'pipe'].includes(material)) throw Error('Unexpected crown material: '+material);
+    return { x, y:y-2, z:z+19, material:material==='pipe'?'shaft':material };
+});
+const centerMotion = { schema:1, id:'ore_center_crown', bounds:[-14,54,5,15,67,34], groups:[{
+    id:crown.key, kind:'rotate_y', axis:'y', travel:crown.travel,
+    periodMs:Math.round(2*Math.PI*1000/crown.travel),
+    pivot:[crown.pivot[0]-.5,crown.pivot[1]-2.5,crown.pivot[2]+18.5], members,
+}] };
+fs.writeFileSync(path.join(output, 'crown-motion.json'), JSON.stringify(centerMotion)+'\n');
+
 const boost = ['speed','parallel','yield','secondary'];
 const process = ['crusher','washer','sifter','centrifuge','electrolyzer','dryer','furnace','reactor','separator','extractor','thermalCentrifuge','smelting'];
 const palette = new Map(oreBlockPalette(0).map(p=>[p.key,p]));

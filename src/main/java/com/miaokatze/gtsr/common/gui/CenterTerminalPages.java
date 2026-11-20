@@ -135,7 +135,8 @@ final class CenterTerminalPages {
             page.scheduleResize();
         }).pos(43, 0).size(38, 13));
         bar.child(CriticalGuiStyle.label(() -> tr("assembly.readout", tr(state().getBoolean("Active") ? "assembly.running"
-            : state().getBoolean("Formed") ? "assembly.idle" : "assembly.unformed"),
+            : state().getBoolean("Formed") ? "assembly.idle"
+                : state().getBoolean("CheckingFormation") ? "assembly.rechecking" : "assembly.unformed"),
             Integer.bitCount(mask()), installed(), sync.snapshot().capacity()),
             () -> 0xFFEDE6D8, Alignment.CenterRight).left(84).right(2).top(0).height(13));
         page.child(bar);

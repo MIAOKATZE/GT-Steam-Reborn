@@ -20,6 +20,19 @@ public interface MachineVisualHost extends IMetaTileEntity, IMTERenderer {
 
     ExtendedFacing getExtendedFacing();
 
+    default ExtendedFacing visualFacing() {
+        return getExtendedFacing();
+    }
+
+    default boolean cacheMotionMeshes() {
+        return false;
+    }
+
+    /** Retain an already published mesh through a short queue transition while showing its static pose. */
+    default int motionIdleGraceTicks() {
+        return 0;
+    }
+
     @Override
     default void renderTESR(double x, double y, double z, float partialTick) {
         GTSteamReborn.proxy.renderMachineVisual(this, x, y, z, partialTick);
@@ -32,7 +45,7 @@ public interface MachineVisualHost extends IMetaTileEntity, IMTERenderer {
         double maxX = Double.NEGATIVE_INFINITY, maxY = maxX, maxZ = maxX;
         for (int a = 0; a < 8; a++) {
             double[] transformed = MachineVisualSpace.transform(
-                getExtendedFacing(),
+                visualFacing(),
                 (a & 1) == 0 ? d.minX - .5 : d.maxX - .5,
                 (a & 2) == 0 ? d.minY - .5 : d.maxY - .5,
                 (a & 4) == 0 ? d.minZ - .5 : d.maxZ - .5);

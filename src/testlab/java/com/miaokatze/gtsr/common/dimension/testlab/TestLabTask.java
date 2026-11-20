@@ -19,6 +19,10 @@ public interface TestLabTask {
         return true;
     }
 
+    default int fixtureChunkWidth() {
+        return 13;
+    }
+
     /** Describes direct server-thread work, never the asynchronous machine's entire tick cost. */
     default String performancePhase() {
         return id().startsWith("ui.") ? "ui.probe" : "machine.execute";

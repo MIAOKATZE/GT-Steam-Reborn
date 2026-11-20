@@ -23,6 +23,7 @@ final class CenterOreRule {
 
     static final int MAX_LENGTH = 1024;
     private static final int MAX_NAME = 192, MAX_DEPTH = 24, MAX_TRANSITIONS = 24000;
+    private static final int MAX_CACHED_NAMES = 512;
     private static final Pattern TAG = Pattern.compile("[A-Za-z0-9_]{1,192}");
     private static final Pattern ITEM = Pattern.compile("item:[A-Za-z0-9_.|/-]+:[A-Za-z0-9_.|/-]+@[0-9]{1,5}");
     private static final String PUNCTUATION = ".*+?^$()[]{}|\\-/";
@@ -96,7 +97,7 @@ final class CenterOreRule {
             Search search = new Search(name);
             boolean matched = search.find(entry, 0, anchored ? 0 : name.length());
             verdict = (byte) (search.remaining < 0 ? -1 : matched ? 1 : 0);
-            if (memo.size() >= 64) memo.remove(
+            if (memo.size() >= MAX_CACHED_NAMES) memo.remove(
                 memo.keySet()
                     .iterator()
                     .next());

@@ -32,6 +32,7 @@ import com.miaokatze.gtsr.common.machine.turbine.HeavySteamTurbineCycle.Settleme
 import com.miaokatze.gtsr.common.machine.turbine.HeavySteamTurbineStructureDef;
 import com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes;
 import com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes.SteamType;
+import com.miaokatze.gtsr.common.machine.turbine.TurbineLoadRecovery;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
@@ -55,6 +56,8 @@ import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
+import gregtech.api.util.shutdown.ShutDownReason;
+import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 import tectech.thing.metaTileEntity.hatch.MTEHatchDynamoMulti;
 
@@ -69,6 +72,7 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
     public int mMaterialTier = -1;
     private final List<MTEHatchDynamoMulti> multiDynamos = new ArrayList<>();
     private final MachineVisualState machineVisualState = new MachineVisualState();
+    private final TurbineLoadRecovery loadRecovery = new TurbineLoadRecovery();
     private int energyCredit, paidSteam, excessWater, pendingWater;
     private int pendingSteam, turbineEfficiency, workingTicks, idleTicks, fullFlowTicks;
     private int actualOutput, actualSteam, effectiveEfficiency;
@@ -574,6 +578,20 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         idleTicks = nbt.getInteger("idleTicks");
         fullFlowTicks = nbt.getInteger("fullFlowTicks");
         superheated = nbt.getBoolean("superheated");
+        loadRecovery.load(turbineEfficiency);
+    }
+
+    @Override
+    protected void onStructureCheckFinished(IGregTechTileEntity tile) {
+        super.onStructureCheckFinished(tile);
+        if (loadRecovery.waiting() && mMachine && mStartUpCheck > 0) mStartUpCheck = -1;
+    }
+
+    @Override
+    public void stopMachine(ShutDownReason reason) {
+        if (loadRecovery.waiting() && reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE) return;
+        loadRecovery.finish();
+        super.stopMachine(reason);
     }
 
     @Override
@@ -604,12 +622,14 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
         actualOutput = 0;
         actualSteam = 0;
         effectiveEfficiency = 0;
+        if (tile.isServerSide()) loadRecovery.beforeTick(tile, this, tick);
         super.onPostTick(tile, tick);
         // GT has not run the loaded cycle while its existing startup structure check is pending.
         // Keep saved rotor heat and partial-second counters frozen through the check tick (zero).
         if (tile.isServerSide() && mStartUpCheck < 0) {
             int previousEfficiency = turbineEfficiency;
             if (workedThisTick) {
+                loadRecovery.finish();
                 idleTicks = 0;
                 if (turbineEfficiency < 100) {
                     fullFlowTicks = 0;
@@ -631,7 +651,7 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
                         fullFlowTicks = 0;
                     }
                 }
-            } else {
+            } else if (!loadRecovery.waiting()) {
                 fullFlowTicks = 0;
                 if (++idleTicks == HeavySteamTurbineCycle.TICKS_PER_SECOND) {
                     turbineEfficiency = HeavySteamTurbineCycle.coolDown(turbineEfficiency);
@@ -642,6 +662,7 @@ public class MTEHeavySteamTurbine extends MTEGTSRMultiBlockBase<MTEHeavySteamTur
             mEfficiencyIncrease = 0;
             if (turbineEfficiency != previousEfficiency) markDirty();
         }
+        if (tile.isServerSide()) loadRecovery.afterTick(tile, this);
         machineVisualState.observe(this, tick, mMachine, mProgresstime, mMaxProgresstime, true);
     }
 }

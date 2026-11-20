@@ -3,6 +3,7 @@ package com.miaokatze.gtsr.common.machine.orecenter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -25,7 +26,9 @@ import net.minecraftforge.fluids.FluidStack;
 import com.gtnewhorizon.structurelib.alignment.IAlignmentLimits;
 import com.gtnewhorizon.structurelib.alignment.constructable.ChannelDataAccessor;
 import com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable;
+import com.gtnewhorizon.structurelib.alignment.enumerable.ExtendedFacing;
 import com.gtnewhorizon.structurelib.alignment.enumerable.Flip;
+import com.gtnewhorizon.structurelib.alignment.enumerable.Rotation;
 import com.gtnewhorizon.structurelib.structure.IStructureDefinition;
 import com.gtnewhorizon.structurelib.structure.ISurvivalBuildEnvironment;
 import com.gtnewhorizon.structurelib.structure.StructureDefinition;
@@ -38,6 +41,9 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.ClusterTier;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.SteamGrade;
 import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
+import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
 
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.INEIPreviewModifier;
@@ -48,14 +54,17 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.metatileentity.implementations.MTEHatchEnergy;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
 import gregtech.api.metatileentity.implementations.MTEHatchInputBus;
+import gregtech.api.metatileentity.implementations.MTEHatchInputBusCompressed;
 import gregtech.api.metatileentity.implementations.MTEHatchOutput;
 import gregtech.api.metatileentity.implementations.MTEHatchOutputBus;
+import gregtech.api.metatileentity.implementations.MTEHatchOutputBusCompressed;
 import gregtech.api.recipe.check.CheckRecipeResult;
 import gregtech.api.recipe.check.CheckRecipeResultRegistry;
 import gregtech.api.render.TextureFactory;
 import gregtech.api.structure.error.StructureError;
 import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.FluidEjectionHelper;
+import gregtech.api.util.GTUtility.ItemId;
 import gregtech.api.util.ItemEjectionHelper;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
@@ -65,7 +74,7 @@ import gregtech.api.util.shutdown.ShutDownReasonRegistry;
  * The controller owns inventory, payment, progress and all rolled output. Module buildings display its configuration.
  */
 public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMultiBlockBase<MTEMineralIntegrationCenter>
-    implements ISurvivalConstructable, INEIPreviewModifier {
+    implements ISurvivalConstructable, INEIPreviewModifier, MachineVisualHost {
 
     private static final IStructureDefinition<MTEMineralIntegrationCenter> PREVIEW = StructureDefinition
         .<MTEMineralIntegrationCenter>builder()
@@ -76,6 +85,40 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private static int budgetTick = Integer.MIN_VALUE;
     private static long workInTick;
     private final CenterStructure structure = new CenterStructure();
+    private final MachineVisualState visual = new MachineVisualState();
+
+    private static final class Visual {
+
+        static final MachineVisualDefinition CROWN = MachineVisualDefinition
+            .decorative("/assets/gtsr/orecenter/crown-motion.json");
+    }
+
+    @Override
+    public MachineVisualState visualState() {
+        return visual;
+    }
+
+    @Override
+    public MachineVisualDefinition visualDefinition() {
+        return Visual.CROWN;
+    }
+
+    @Override
+    public ExtendedFacing visualFacing() {
+        // The sparse structure uses +X when facing north, opposite to StructureLib's default A axis.
+        return ExtendedFacing.of(getExtendedFacing().getDirection(), Rotation.NORMAL, Flip.HORIZONTAL);
+    }
+
+    @Override
+    public boolean cacheMotionMeshes() {
+        return true;
+    }
+
+    @Override
+    public int motionIdleGraceTicks() {
+        return 8;
+    }
+
     private final int[] modules = new int[36], grades = new int[36];
     private final List<CenterGraph> graphs = new ArrayList<>();
     private long graphRevision, nextGraphId = 1;
@@ -86,6 +129,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private final List<MTESteamCoolingHatch> coolingHatches = new ArrayList<>();
     private final CenterLedger ledger = new CenterLedger();
     private CenterPlanner.Session planning;
+    private int planningRootLimit = CenterPlanner.MAX_ROOTS;
+    private boolean plannedBatchMode;
     private CenterStructure.DebugBuild debugBuild;
     private boolean debugIgnoreFluids, debugIgnoreEnergy;
     private int selectedSlot, totalTicks, elapsed, steamKind, plannedTier = -1, plannedMask;
@@ -204,6 +249,12 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     @Override
+    protected boolean hasStructureErrors() {
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        return super.hasStructureErrors() && (te == null || !te.isServerSide() || !structure.isCheckingFormation(te));
+    }
+
+    @Override
     public void stopMachine(ShutDownReason reason) {
         IGregTechTileEntity te = getBaseMetaTileEntity();
         if (reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE && te != null
@@ -233,8 +284,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         if (!(meta instanceof MTEHatch)) return false;
         Class<?> type = meta.getClass();
         return type == MTEHatchInput.class || type == MTEHatchInputBus.class
+            || type == MTEHatchInputBusCompressed.class
             || type == MTEHatchOutput.class
             || type == MTEHatchOutputBus.class
+            || type == MTEHatchOutputBusCompressed.class
             || type == MTEHatchEnergy.class
             || type == MTESteamCoolingHatch.class
             || type == MTESteamInputHatchGeneric.class
@@ -246,6 +299,28 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         return !mInputBusses.isEmpty() && !mOutputBusses.isEmpty()
             && !mInputHatches.isEmpty()
             && !mOutputHatches.isEmpty();
+    }
+
+    @Override
+    public boolean supportsBatchMode() {
+        return true;
+    }
+
+    @Override
+    public boolean getDefaultBatchMode() {
+        return false;
+    }
+
+    @Override
+    public void setBatchMode(boolean enabled) {
+        if (enabled == isBatchModeEnabled()) return;
+        super.setBatchMode(enabled);
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        if (te != null) te.markDirty();
+    }
+
+    private int maxPlanningRoots() {
+        return isBatchModeEnabled() ? CenterPlanner.MAX_BATCH_ROOTS : CenterPlanner.MAX_ROOTS;
     }
 
     @Override
@@ -394,6 +469,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setInteger("Tier", structure.tier(te));
         tag.setInteger("Sectors", sectors);
         tag.setBoolean("Formed", mMachine);
+        IGregTechTileEntity tile = getBaseMetaTileEntity();
+        tag.setBoolean("CheckingFormation", !mMachine && tile != null && structure.isCheckingFormation(tile));
         tag.setBoolean("Active", te.isActive());
         int installed = 0;
         for (int i = 0; i < grades.length; i++) if (grades[i] > 0 && (sectors & 1 << i / 6) != 0) installed++;
@@ -457,6 +534,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         return ledger.save();
     }
 
+    public long terminalLedgerRevision() {
+        return ledger.revision();
+    }
+
     public boolean resetTerminalLedger(EntityPlayer player) {
         if (!canEditGraphs(player)) return false;
         ledger.clear();
@@ -491,6 +572,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         nextGraphId = sequence;
         graphRevision++;
         planning = null;
+        planningRootLimit = maxPlanningRoots();
         te.markDirty();
         return true;
     }
@@ -553,6 +635,15 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
 
     @Override
     public void onPostTick(IGregTechTileEntity te, long tick) {
+        long measured = CenterTickTiming.begin();
+        try {
+            tickCenter(te, tick);
+        } finally {
+            CenterTickTiming.end(te, CenterTickTiming.Stage.TOTAL, measured);
+        }
+    }
+
+    private void tickCenter(IGregTechTileEntity te, long tick) {
         if (te.isServerSide() && debugBuild == null) refreshFormation(te, tick);
         long measured = CenterTickTiming.begin();
         try {
@@ -560,7 +651,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         } finally {
             CenterTickTiming.end(te, CenterTickTiming.Stage.BASE, measured);
         }
-        if (te.isClientSide()) return;
+        if (te.isClientSide()) {
+            visual.observe(this, tick, false, 0, 0, true);
+            return;
+        }
         try {
             tickBatch(te, tick);
         } finally {
@@ -568,10 +662,17 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             mMaxProgresstime = totalTicks;
             if (mOutputItems == null && !pendingItems.isEmpty() || mOutputFluids == null && !pendingFluids.isEmpty())
                 mirrorBatchOutputs();
+            visual.observe(this, tick, mMachine, elapsed, totalTicks, true);
         }
     }
 
     private void tickBatch(IGregTechTileEntity te, long tick) {
+        if (plannedBatchMode != isBatchModeEnabled()) {
+            plannedBatchMode = isBatchModeEnabled();
+            planning = null;
+            planningRootLimit = maxPlanningRoots();
+            te.markDirty();
+        }
         if (debugBuild != null) {
             te.setActive(false);
             runDebugBuild(te);
@@ -594,7 +695,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         }
         if (elapsed < totalTicks) {
             payTick(te);
-            if (elapsed < totalTicks) return;
+            if (elapsed < totalTicks) {
+                if (planning == null || planning.batch() == null) advancePlanning(te, tick, false);
+                return;
+            }
             drainOutput(te);
         } else if (tick % 10 == 0) {
             drainOutput(te);
@@ -602,6 +706,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         te.setActive(false);
         if (!pendingItems.isEmpty() || !pendingFluids.isEmpty()) return;
         totalTicks = elapsed = 0;
+        advancePlanning(te, tick, true);
+    }
+
+    private void advancePlanning(IGregTechTileEntity te, long tick, boolean allowCommit) {
         if (!te.isAllowedToWork()) return;
         if (tick < nextProbe) return;
         // Leave room for the final non-interruptible native lookup or inventory operation.
@@ -609,7 +717,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         long start = System.nanoTime();
         long measured = CenterTickTiming.begin();
         try {
-            planTick(te, tick, plannedTier, plannedMask);
+            planTick(te, tick, plannedTier, plannedMask, allowCommit);
         } finally {
             workInTick += System.nanoTime() - start;
             CenterTickTiming.end(te, CenterTickTiming.Stage.PLANNING, measured);
@@ -628,6 +736,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             }
             if (tier != plannedTier || mask != plannedMask) {
                 planning = null;
+                planningRootLimit = maxPlanningRoots();
                 plannedTier = tier;
                 plannedMask = mask;
                 checkStructure(true, te);
@@ -665,7 +774,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         }
     }
 
-    private void planTick(IGregTechTileEntity te, long tick, int tier, int mask) {
+    private void planTick(IGregTechTileEntity te, long tick, int tier, int mask, boolean allowCommit) {
         if (planning == null) {
             int[][] counts = new int[MODULES.length][3];
             int[] best = new int[MODULES.length];
@@ -684,13 +793,19 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             }
             List<CenterGraph> live = configuredGraphs ? assignedGraphs(logistics) : defaultGraphs(best);
             List<Slot> slots = itemSlots();
+            ItemStack[] items = slots.stream()
+                .map(Slot::get)
+                .filter(s -> s != null)
+                .toArray(ItemStack[]::new);
+            if (items.length == 0) {
+                planningRootLimit = maxPlanningRoots();
+                nextProbe = tick + 20;
+                return;
+            }
             List<FluidSlot> tanks = fluidSlots();
             planning = new CenterPlanner.Session(
                 live,
-                slots.stream()
-                    .map(Slot::get)
-                    .filter(s -> s != null)
-                    .toArray(ItemStack[]::new),
+                items,
                 tanks.stream()
                     .map(FluidSlot::get)
                     .filter(s -> s != null)
@@ -706,13 +821,25 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
                     ^ (long) te.getXCoord() * 341873128712L
                     ^ (long) te.getZCoord() * 132897987541L,
                 debugIgnoreFluids,
-                debugIgnoreEnergy);
+                debugIgnoreEnergy,
+                planningRootLimit,
+                plannedBatchMode ? getMaxBatchSize() : 1);
         }
-        if (!planning.advance(32, 250000)) return;
+        long slice = 350_000;
+        if (allowCommit) slice = 450_000;
+        else if (plannedBatchMode && totalTicks - elapsed <= 32) slice = 550_000;
+        if (!planning.advance(64, slice)) return;
         CenterPlanner.Batch batch = planning.batch();
+        // An already-paid batch remains the only transaction allowed to own the output buffer.
+        if (batch != null && !allowCommit) return;
+        int retryLimit = planning.smallerRootLimit();
         planning = null;
+        if (retryLimit > 0) {
+            planningRootLimit = retryLimit;
+            return;
+        }
         nextProbe = tick + 20;
-        if (batch != null) commit(te, batch, tier);
+        if (batch != null && commit(te, batch, tier)) nextProbe = tick + 1;
     }
 
     private List<CenterGraph> assignedGraphs(int logistics) {
@@ -741,37 +868,59 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         return result;
     }
 
-    private void commit(IGregTechTileEntity te, CenterPlanner.Batch batch, int tier) {
-        if (batch.consumed.isEmpty()) return;
+    private boolean commit(IGregTechTileEntity te, CenterPlanner.Batch batch, int tier) {
+        if (batch.consumed.isEmpty()) return false;
+        double capacity = outputCapacityRatio(batch);
+        if (capacity < 1) {
+            if (batch.roots > 1) planningRootLimit = Math.max(1, (int) (batch.roots * capacity));
+            return false;
+        }
         List<Slot> slots = itemSlots();
         List<FluidSlot> tanks = fluidSlots();
+        Map<ItemId, List<SlotStock>> stock = new HashMap<>();
+        for (Slot slot : slots) {
+            ItemStack item = slot.get();
+            if (item != null && item.stackSize > 0)
+                stock.computeIfAbsent(CenterPlanner.itemKey(item), key -> new ArrayList<>())
+                    .add(new SlotStock(slot, item.stackSize));
+        }
         Map<Slot, Integer> debits = new LinkedHashMap<>();
         for (ItemStack need : batch.consumed) {
             int left = need.stackSize;
-            for (Slot slot : slots) {
-                ItemStack stack = slot.get();
-                if (stack == null || !CenterPlanner.equal(stack, need)) continue;
-                int prior = debits.getOrDefault(slot, 0);
-                int n = Math.min(left, stack.stackSize - prior);
-                if (n > 0) debits.put(slot, prior + n);
+            List<SlotStock> matching = stock.get(CenterPlanner.itemKey(need));
+            if (matching == null) return false;
+            for (SlotStock entry : matching) {
+                int prior = debits.getOrDefault(entry.slot, 0);
+                int n = Math.min(left, entry.amount - prior);
+                if (n > 0) debits.put(entry.slot, prior + n);
                 left -= n;
                 if (left == 0) break;
             }
-            if (left > 0) return;
+            if (left > 0) return false;
         }
         Map<FluidSlot, Integer> ingredients = new IdentityHashMap<>();
         int accepted = 0;
         if (!debugIgnoreFluids) {
-            for (FluidStack fluid : batch.consumedFluids) if (!reserve(tanks, fluid, ingredients)) return;
+            for (FluidStack fluid : batch.consumedFluids) if (!reserve(tanks, fluid, ingredients)) return false;
             List<FluidSlot> dedicated = steamSlots();
             List<FluidSlot> supply = new ArrayList<>(dedicated);
             supply.addAll(tanks);
             accepted = chooseSteam(batch, tier, dedicated, ingredients);
             if (accepted < 0) accepted = chooseSteam(batch, tier, supply, ingredients);
-            if (accepted < 0) return;
+            if (accepted < 0) return false;
         }
-        if (!debugIgnoreEnergy && batch.energy > getMaxInputEu() * batch.ticks) return;
-        debits.forEach(Slot::take);
+        if (!debugIgnoreEnergy && batch.energy > getMaxInputEu() * batch.ticks) return false;
+        // AE inventory hooks publish each quantity change. Persist each touched bus once per paid batch.
+        Set<MTEHatchInputBusCompressed> compressed = null;
+        for (var debit : debits.entrySet()) {
+            if (debit.getKey() instanceof CompressedSlot slot) {
+                slot.extract(debit.getValue());
+                if (compressed == null) compressed = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+                compressed.add(slot.bus);
+            } else debit.getKey()
+                .take(debit.getValue());
+        }
+        if (compressed != null) compressed.forEach(MTEHatchInputBusCompressed::markDirty);
         ingredients.forEach(FluidSlot::take);
         elapsed = 0;
         totalTicks = batch.ticks;
@@ -787,6 +936,36 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         for (ItemStack item : batch.consumed) ledger.add(item, 0, item.stackSize);
         for (ItemStack item : batch.bonuses) ledger.add(item, 2, item.stackSize);
         te.markDirty();
+        return true;
+    }
+
+    /** Reject batches too large even for empty native ports before taking any supplies. */
+    private double outputCapacityRatio(CenterPlanner.Batch batch) {
+        long requiredSlots = 0, distinctSlots = 0;
+        double availableSlots = 0;
+        for (ItemStack item : batch.outputs) {
+            int limit = Math.max(1, Math.min(64, item.getMaxStackSize()));
+            requiredSlots += ((long) item.stackSize + limit - 1) / limit;
+        }
+        for (MTEHatchOutputBus bus : mOutputBusses) if (bus.isValid()) {
+            if (bus instanceof MTEHatchOutputBusCompressed packed) {
+                var inventory = packed.getAEInventory();
+                distinctSlots += inventory.getSlots();
+                availableSlots += inventory.getSlots() * (inventory.getAESlotLimit(0, null) / 64.0);
+            } else {
+                int slots = bus.getBaseMetaTileEntity()
+                    .getSizeInventory();
+                distinctSlots += slots;
+                availableSlots += slots;
+            }
+        }
+        long requiredFluid = 0, availableFluid = 0;
+        for (FluidStack fluid : batch.outputFluids) requiredFluid += fluid.amount;
+        for (MTEHatchOutput hatch : mOutputHatches) if (hatch.isValid()) availableFluid += hatch.getCapacity();
+        double itemFraction = requiredSlots == 0 ? 1
+            : Math.min(availableSlots / requiredSlots, (double) distinctSlots / batch.outputs.size());
+        double fluidFraction = requiredFluid == 0 ? 1 : (double) availableFluid / requiredFluid;
+        return Math.min(itemFraction, fluidFraction);
     }
 
     private static int chooseSteam(CenterPlanner.Batch batch, int tier, List<FluidSlot> sources,
@@ -811,16 +990,29 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private void payTick(IGregTechTileEntity te) {
         te.setActive(false);
         int density = STEAMS[steamKind].getDivisor();
-        Fluid fluid = STEAMS[steamKind].resolveFluid();
         long units = (steamTotal + density - 1) / density;
         int steam = (int) (units * (elapsed + 1) / totalTicks - units * elapsed / totalTicks);
         long eu = energyTotal * (elapsed + 1) / totalTicks - energyTotal * elapsed / totalTicks;
-        Map<FluidSlot, Integer> money = new java.util.LinkedHashMap<>();
-        if (steam > 0) {
+        Map<FluidSlot, Integer> money = null;
+        MTEHatch steamTank = null;
+        if (units > 0) {
+            // Dense steam can round a tick's debit to zero. Still require a live supply to advance.
+            int required = Math.max(1, steam);
+            Fluid fluid = STEAMS[steamKind].resolveFluid();
             if (fluid == null) return;
-            List<FluidSlot> supply = steamSlots();
-            supply.addAll(fluidSlots());
-            if (!reserve(supply, new FluidStack(fluid, steam), money)) return;
+            for (MTEHatch hatch : steamHatches) if (hatch.isValid()) {
+                FluidStack contents = hatch.getFluid();
+                if (contents == null || contents.getFluid() != fluid || contents.tag != null || contents.amount <= 0)
+                    continue;
+                if (contents.amount >= required) steamTank = hatch;
+                break;
+            }
+            if (steamTank == null) {
+                List<FluidSlot> supply = steamSlots();
+                supply.addAll(fluidSlots());
+                money = new LinkedHashMap<>();
+                if (!reserve(supply, new FluidStack(fluid, required), money)) return;
+            }
         }
         long stored = 0;
         for (MTEHatch hatch : mEnergyHatches) if (hatch.isValid()) {
@@ -831,9 +1023,13 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             if (stored >= eu) break;
         }
         if (stored < eu || eu > 0 && !drainEnergyInput(eu)) return;
-        money.forEach(FluidSlot::take);
+        if (steam > 0) {
+            if (steamTank != null) FluidSlot.take(steamTank, steam);
+            else money.forEach(FluidSlot::take);
+        }
         if (!coolingHatches.isEmpty()) coolingSteam += (long) steam * density;
         elapsed++;
+        visual.advanced(te.getTimer());
         te.setActive(elapsed < totalTicks);
         te.markDirty();
     }
@@ -852,17 +1048,31 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
 
     private void drainOutput(IGregTechTileEntity te) {
         if (pendingItems.isEmpty() && pendingFluids.isEmpty()) return;
-        ItemEjectionHelper itemOutput = null;
+        long measured = CenterTickTiming.begin();
+        try {
+            ejectBatch(te);
+        } finally {
+            CenterTickTiming.end(te, CenterTickTiming.Stage.OUTPUT, measured);
+        }
+    }
+
+    private void ejectBatch(IGregTechTileEntity te) {
+        Runnable itemOutput = null;
         FluidEjectionHelper fluidOutput = null;
         if (!pendingItems.isEmpty()) {
-            itemOutput = new ItemEjectionHelper(getOutputBusses(), true);
-            if (itemOutput.ejectItems(pendingItems, 1) != 1) return;
+            var busses = getOutputBusses();
+            itemOutput = CenterBatchOutput.emptyBusses(busses, pendingItems);
+            if (itemOutput == null) {
+                ItemEjectionHelper nativeOutput = new ItemEjectionHelper(busses, true);
+                if (nativeOutput.ejectItems(pendingItems, 1) != 1) return;
+                itemOutput = nativeOutput::commit;
+            }
         }
         if (!pendingFluids.isEmpty()) {
             fluidOutput = new FluidEjectionHelper(getOutputHatches(pendingFluids.toArray(new FluidStack[0])), true);
             if (fluidOutput.ejectFluids(pendingFluids, 1) != 1) return;
         }
-        if (itemOutput != null) itemOutput.commit();
+        if (itemOutput != null) itemOutput.run();
         if (fluidOutput != null) fluidOutput.commit();
         for (ItemStack item : pendingItems)
             if (CenterModuleItems.moduleOf(item) == null) ledger.add(item, 1, item.stackSize);
@@ -875,6 +1085,17 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private void mirrorBatchOutputs() {
         mOutputItems = pendingItems.isEmpty() ? null : pendingItems.toArray(new ItemStack[0]);
         mOutputFluids = pendingFluids.isEmpty() ? null : pendingFluids.toArray(new FluidStack[0]);
+    }
+
+    private static final class SlotStock {
+
+        final Slot slot;
+        final int amount;
+
+        SlotStock(Slot slot, int amount) {
+            this.slot = slot;
+            this.amount = amount;
+        }
     }
 
     private static class Slot {
@@ -896,6 +1117,34 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         }
     }
 
+    private static final class CompressedSlot extends Slot {
+
+        private final MTEHatchInputBusCompressed bus;
+
+        CompressedSlot(MTEHatchInputBusCompressed bus, int index) {
+            super(bus.getBaseMetaTileEntity(), index);
+            this.bus = bus;
+        }
+
+        @Override
+        ItemStack get() {
+            var stock = bus.getAEInventory()
+                .getAEStackInSlot(index);
+            return stock == null ? null : stock.getItemStack();
+        }
+
+        @Override
+        void take(int count) {
+            extract(count);
+            bus.markDirty();
+        }
+
+        void extract(int count) {
+            bus.getAEInventory()
+                .extractAEItem(index, count, false, true);
+        }
+    }
+
     private static class FluidSlot {
 
         final MTEHatch tank;
@@ -909,7 +1158,11 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         }
 
         void take(int count) {
-            FluidStack contents = get();
+            take(tank, count);
+        }
+
+        static void take(MTEHatch tank, int count) {
+            FluidStack contents = tank.getFluid();
             contents.amount -= count;
             if (contents.amount == 0 && tank instanceof MTEHatchInput input) input.setFillableStack(null);
             tank.getBaseMetaTileEntity()
@@ -920,6 +1173,11 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private List<Slot> itemSlots() {
         List<Slot> next = new ArrayList<>();
         for (MTEHatchInputBus bus : mInputBusses) if (bus.isValid()) {
+            if (bus instanceof MTEHatchInputBusCompressed packed) {
+                for (int i = 0; i < packed.getAEInventory()
+                    .getSlots(); i++) next.add(new CompressedSlot(packed, i));
+                continue;
+            }
             IGregTechTileEntity te = bus.getBaseMetaTileEntity();
             for (int i = 0; i < te.getSizeInventory(); i++) if (bus.isValidSlot(i)) next.add(new Slot(te, i));
         }
@@ -1052,7 +1310,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             i,
             graphs.get(i)
                 .withId(nextGraphId++));
-        for (int i = 0; i < items.tagCount() && i < 512; i++) {
+        for (int i = 0; i < items.tagCount() && i < CenterPlanner.MAX_OUTPUTS; i++) {
             NBTTagCompound saved = items.getCompoundTagAt(i);
             ItemStack item = ItemStack.loadItemStackFromNBT(saved);
             if (item != null && saved.getInteger("CenterQuantity") > 0) {
@@ -1060,7 +1318,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
                 pendingItems.add(item);
             }
         }
-        for (int i = 0; i < fluids.tagCount() && i < 512; i++) {
+        for (int i = 0; i < fluids.tagCount() && i < CenterPlanner.MAX_OUTPUTS; i++) {
             FluidStack fluid = FluidStack.loadFluidStackFromNBT(fluids.getCompoundTagAt(i));
             if (fluid != null && fluid.amount > 0) pendingFluids.add(fluid);
         }

@@ -30,21 +30,15 @@ public final class MachineVisualRenderer {
         MachineVisualClient.observe(host, 0);
         MachineVisualClient.Entry entry = MachineVisualClient.entry(host);
         if (entry == null) return;
-        if (entry.facing != host.getExtendedFacing()) {
+        if (entry.facing != host.visualFacing()) {
             MachineVisualVisibility.remove(entry);
             return;
         }
         if (entry.retired) return;
         entry.lastRenderFrame = MachineVisualClient.renderFrame();
-        boolean working = MachineVisualClient.isWorking(host);
         MachineVisualClient.renderCalls++;
-        GL11.glPushMatrix();
-        try {
-            GL11.glTranslated(x, y, z);
-            com.miaokatze.gtsr.client.workeffects.WorkEffectRenderer.render(host, working);
-        } finally {
-            GL11.glPopMatrix();
-        }
+        if (MachineVisualClient.isWorking(host))
+            com.miaokatze.gtsr.client.workeffects.WorkEffectRenderer.render(host, x, y, z);
         int ready = MachineVisualVisibility.ready(entry);
         int draw = entry.mask | entry.restoringMask;
         if (draw == 0) {
@@ -68,7 +62,7 @@ public final class MachineVisualRenderer {
             boolean turbine = host.getClass() == MTEMegaSteamTurbineArray.class;
             // The same lifecycle-owned native lists are used by Critical's stellar meshes.
             // The first native light/material sample belongs to this decorative animation until restoration.
-            boolean cached = turbine;
+            boolean cached = turbine || host.cacheMotionMeshes();
             if (cached) {
                 if (entry.meshCache == null) entry.meshCache = new MachineVisualMeshCache();
                 entry.meshCache.begin(

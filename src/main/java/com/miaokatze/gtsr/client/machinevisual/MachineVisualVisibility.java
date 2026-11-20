@@ -3,7 +3,9 @@
 
 package com.miaokatze.gtsr.client.machinevisual;
 
+import java.util.BitSet;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -49,6 +51,7 @@ public final class MachineVisualVisibility {
     private static volatile int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
     private static volatile int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
     public static long committedOutputs, retiredProxyCubes;
+    public static long motionDirtyRanges;
     /** Section cleanup actions, not decorative draw submissions or guessed timeout releases. */
     public static long restorationRequestsEnqueued, mandatoryRestorations, rendererRetirementAcks, absentRendererAcks;
 
@@ -443,6 +446,7 @@ public final class MachineVisualVisibility {
         MachineVisualRenderer.clearMesh(entry);
         entry.mask = mask;
         entry.restoringMask |= old & ~mask;
+        Map<Long, BitSet> invalidated = new HashMap<>();
         for (int i = 0; i < definition.groups.size(); i++) {
             int bit = 1 << i;
             if (((mask ^ old) & bit) == 0) continue;
@@ -467,11 +471,30 @@ public final class MachineVisualVisibility {
                     CELLS.put(next.key, next);
                 }
             }
-            for (CellEntry cell : entry.boundCells[i]) entry.world
-                .markBlockRangeForRenderUpdate(cell.x - 1, cell.y - 1, cell.z - 1, cell.x + 1, cell.y + 1, cell.z + 1);
+            for (CellEntry cell : entry.boundCells[i]) {
+                BitSet ranges = invalidated.computeIfAbsent(section(cell.x, cell.y, cell.z), key -> new BitSet(125));
+                int band = rebuildBand(cell.x) + 5 * rebuildBand(cell.y) + 25 * rebuildBand(cell.z);
+                if (ranges.get(band)) continue;
+                ranges.set(band);
+                entry.world.markBlockRangeForRenderUpdate(
+                    cell.x - 1,
+                    cell.y - 1,
+                    cell.z - 1,
+                    cell.x + 1,
+                    cell.y + 1,
+                    cell.z + 1);
+                motionDirtyRanges++;
+            }
             if ((old & bit) != 0 && (mask & bit) == 0) enqueueRestoration(entry, i);
         }
         releaseRestoredGroups();
+    }
+
+    /** Keep both boundary rows distinct: RenderGlobal adds another block of neighbour padding. */
+    private static int rebuildBand(int coordinate) {
+        int local = coordinate & 15;
+        if (local < 2) return local;
+        return local >= 14 ? local - 11 : 2;
     }
 
     /** Bind one complete rigid group once. A partial/wrong material group never suppresses native blocks. */

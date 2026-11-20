@@ -24,6 +24,7 @@ import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets;
 public final class TestLabContracts {
 
     public static void main(String[] args) throws Exception {
+        com.miaokatze.gtsr.common.machine.orecenter.CenterFixtureGeometry.verifyBulkSampler();
         bootstrapWithoutImplementation();
         catalogSelection();
         worldHooks();
@@ -35,7 +36,7 @@ public final class TestLabContracts {
         centerBusPositions();
         if (args.length > 0) exportDeclaredCases(java.nio.file.Paths.get(args[0]));
         System.out.println(
-            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 110/95/120 catalog, performance selection, independent report retry, request correlation, wand profiles, ore generator presets, graph bus positions");
+            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 114/95/120 catalog, performance selection, independent report retry, request correlation, wand profiles, ore generator presets, graph bus positions");
     }
 
     private static void centerPresets() throws IOException {
@@ -172,7 +173,7 @@ public final class TestLabContracts {
 
     private static void catalogSelection() {
         List<TestLabTask> tasks = TestLabCatalog.tasks();
-        require(tasks.size() == 110, "machine catalog coverage changed: " + tasks.size());
+        require(tasks.size() == 114, "machine catalog coverage changed: " + tasks.size());
         require(
             TestLabCatalog.isExplicitRegression("rock_breaker_sites"),
             "stone maker checks require explicit selection");

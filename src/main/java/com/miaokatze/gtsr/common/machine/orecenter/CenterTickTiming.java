@@ -11,7 +11,9 @@ public final class CenterTickTiming {
     public enum Stage {
         BASE,
         STRUCTURE,
-        PLANNING
+        PLANNING,
+        OUTPUT,
+        TOTAL
     }
 
     @FunctionalInterface

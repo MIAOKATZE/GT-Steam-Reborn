@@ -79,9 +79,9 @@ public final class WorkEffectRenderer implements IResourceManagerReloadListener 
         }
     }
 
-    /** Caller supplies a fresh authoritative working snapshot and an unrotated controller-local GL origin. */
-    public static void render(MachineVisualHost host, boolean working) {
-        if (!working || !foregroundAvailable) return;
+    /** Caller has verified a fresh working snapshot. Set the GL origin only for a visible firebox effect. */
+    public static void render(MachineVisualHost host, double renderX, double renderY, double renderZ) {
+        if (!foregroundAvailable) return;
         WorkEffectDefinition definition = WorkEffectDefinitions.forHost(host);
         if (definition == null || definition.fireboxes()
             .isEmpty()) return;
@@ -90,8 +90,10 @@ public final class WorkEffectRenderer implements IResourceManagerReloadListener 
         if (!CloudParticleQueue.isLive(host, world)) return;
         Block block = GregTechAPI.sBlockCasings3;
         boolean steelOnly = host instanceof MTESiemensMartinFurnace || host instanceof MTEReinforcedBrickBlastFurnace;
+        GL11.glPushMatrix();
         GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
         try {
+            GL11.glTranslated(renderX, renderY, renderZ);
             Minecraft.getMinecraft()
                 .getTextureManager()
                 .bindTexture(FOREGROUND);
@@ -135,6 +137,7 @@ public final class WorkEffectRenderer implements IResourceManagerReloadListener 
             tess.draw();
         } finally {
             GL11.glPopAttrib();
+            GL11.glPopMatrix();
         }
     }
 

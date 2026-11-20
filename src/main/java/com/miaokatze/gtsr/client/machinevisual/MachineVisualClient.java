@@ -221,6 +221,10 @@ public final class MachineVisualClient {
                 entry.snapshot,
                 entry.definition.groups.size(),
                 entry.restoringMask);
+            if (entry.candidateMask != 0) entry.lastWorkingMotion = tick;
+            else if (entry.mask != 0 && canRetainMotion(entry, fresh)) {
+                entry.candidateMask = entry.mask & ~entry.restoringMask;
+            }
             if (!entry.definition.groups.isEmpty()) motion.add(entry);
             if (fresh) com.miaokatze.gtsr.client.workeffects.WorkEffectParticles.tick(entry.host, tick);
         }
@@ -261,7 +265,7 @@ public final class MachineVisualClient {
             Entry entry = iterator.next();
             IGregTechTileEntity tile = entry.tile;
             if (entry.retired || entry.definition != entry.host.visualDefinition()
-                || entry.facing != entry.host.getExtendedFacing()
+                || entry.facing != entry.host.visualFacing()
                 || ((net.minecraft.tileentity.TileEntity) tile).isInvalid()
                 || tile.getMetaTileEntity() != entry.host
                 || entry.world != world
@@ -411,6 +415,15 @@ public final class MachineVisualClient {
             : 0;
     }
 
+    private static boolean canRetainMotion(Entry entry, boolean fresh) {
+        MachineVisualSnapshot snapshot = entry.snapshot;
+        return fresh && snapshot != null
+            && snapshot.formed()
+            && snapshot.motionShape()
+            && !snapshot.stopIntent()
+            && tick - entry.lastWorkingMotion <= entry.host.motionIdleGraceTicks();
+    }
+
     static int memberCost(Entry entry, int mask) {
         int cost = 0;
         for (int i = 0; i < entry.definition.groups.size(); i++)
@@ -485,7 +498,7 @@ public final class MachineVisualClient {
         if (entry == null || entry.nonce != frame.nonce
             || gt.getMetaTileID() != frame.registryId
             || entry.definition.revision != frame.revision
-            || host.getExtendedFacing()
+            || host.visualFacing()
                 .getIndex() != frame.orientation
             || entry.snapshot != null
                 && (frame.session != entry.snapshot.session || frame.generation != entry.snapshot.generation
@@ -545,7 +558,7 @@ public final class MachineVisualClient {
         volatile int mask;
         int candidateMask;
         long lastMotionGrant = Long.MIN_VALUE, lastCandidateScan = Long.MIN_VALUE, motionLeaseUntil,
-            lastVisibleTick = Long.MIN_VALUE;
+            lastVisibleTick = Long.MIN_VALUE, lastWorkingMotion;
         int restoringMask;
         boolean retired;
         final long[] maskEpochs = new long[8];
@@ -557,7 +570,7 @@ public final class MachineVisualClient {
             definition = host.visualDefinition();
             tile = host.getBaseMetaTileEntity();
             world = tile.getWorld();
-            facing = host.getExtendedFacing();
+            facing = host.visualFacing();
             originX = tile.getXCoord();
             originY = tile.getYCoord();
             originZ = tile.getZCoord();
@@ -575,7 +588,7 @@ public final class MachineVisualClient {
                 && snapshot != null
                 && snapshot.formed()
                 && now - receivedAt <= 2000000000L
-                && snapshot.orientation == host.getExtendedFacing()
+                && snapshot.orientation == host.visualFacing()
                     .getIndex();
         }
     }

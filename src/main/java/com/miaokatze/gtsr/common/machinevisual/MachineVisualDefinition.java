@@ -74,6 +74,47 @@ public final class MachineVisualDefinition {
             maxZ);
     }
 
+    /** Decorative groups for a structure whose block layout is defined separately. */
+    public static MachineVisualDefinition decorative(String resource) {
+        try (InputStream stream = MachineVisualDefinition.class.getResourceAsStream(resource)) {
+            if (stream == null) throw new IllegalStateException("Missing machine motion " + resource);
+            byte[] bytes = com.google.common.io.ByteStreams.toByteArray(stream);
+            JsonObject data = new JsonParser().parse(new String(bytes, StandardCharsets.UTF_8))
+                .getAsJsonObject();
+            if (data.get("schema")
+                .getAsInt() != 1) throw new IllegalArgumentException("Machine motion schema");
+            List<Group> groups = new ArrayList<>();
+            for (JsonElement group : data.getAsJsonArray("groups")) groups.add(new Group(group.getAsJsonObject()));
+            if (groups.size() > 8) throw new IllegalArgumentException("Machine group limit");
+            JsonArray bounds = data.getAsJsonArray("bounds");
+            long revision = java.nio.ByteBuffer.wrap(
+                MessageDigest.getInstance("SHA-256")
+                    .digest(bytes))
+                .getLong();
+            return new MachineVisualDefinition(
+                data.get("id")
+                    .getAsString(),
+                revision,
+                groups,
+                new String[0][],
+                new int[3],
+                bounds.get(0)
+                    .getAsDouble(),
+                bounds.get(1)
+                    .getAsDouble(),
+                bounds.get(2)
+                    .getAsDouble(),
+                bounds.get(3)
+                    .getAsDouble(),
+                bounds.get(4)
+                    .getAsDouble(),
+                bounds.get(5)
+                    .getAsDouble());
+        } catch (java.io.IOException | java.security.NoSuchAlgorithmException error) {
+            throw new IllegalStateException("Unable to load machine motion " + resource, error);
+        }
+    }
+
     public String[][] shapeLayers() {
         String[][] copy = new String[shape.length][];
         for (int i = 0; i < shape.length; i++) copy[i] = shape[i].clone();
