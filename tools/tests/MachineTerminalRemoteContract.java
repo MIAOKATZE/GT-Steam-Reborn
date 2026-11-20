@@ -111,6 +111,33 @@ public final class MachineTerminalRemoteContract {
                 + " status=" + MachineTerminalHistory.status(player, entry));
             check(MachineTerminalHistory.hasRemoteAccess(player, original), "Only active target receives the range exception");
             check(original.machine.getCriticalState().canUse(player), "Real Critical canUse permits distant owner without recursive access calls");
+            EntityPlayerMP visitor = (EntityPlayerMP) unsafe.allocateInstance(EntityPlayerMP.class);
+            field(visitor, Entity.class, "entityUniqueID", UUID.fromString("562e48d9-e220-4f1f-a963-3712d46a7408"));
+            visitor.worldObj = world;
+            check("ready".equals(MachineTerminalHistory.status(visitor, entry)),
+                "A machine with a recorded owner but no native lock allows other eligible visitors, even with the owner session present");
+            field(original, BaseMetaTileEntity.class, "mLockUpgrade", true);
+            check("denied".equals(MachineTerminalHistory.status(visitor, entry)),
+                "Native GT lock still rejects a nonowner");
+            check("ready".equals(MachineTerminalHistory.status(player, entry)),
+                "Native GT lock still admits the actual owner");
+            original.owner = null;
+            MachineTerminalHistory.Entry unowned = new MachineTerminalHistory.Entry(entry.dimension, entry.x, entry.y,
+                entry.z, entry.metaId, entry.kind, entry.targetId, "", entry.name);
+            check("denied".equals(MachineTerminalHistory.status(visitor, unowned)),
+                "A locked target with no known owner fails closed");
+            field(original, BaseMetaTileEntity.class, "mLockUpgrade", false);
+            Field storedName = BaseMetaTileEntity.class.getDeclaredField("mOwnerName");
+            Field storedUuid = BaseMetaTileEntity.class.getDeclaredField("mOwnerUuid");
+            storedName.setAccessible(true);
+            storedUuid.setAccessible(true);
+            storedName.set(original, "");
+            storedUuid.set(original, null);
+            check("ready".equals(MachineTerminalHistory.status(visitor, unowned)),
+                "An unlocked unowned target stays usable");
+            check(original.owner == null && storedUuid.get(original) == null && "".equals(storedName.get(original)),
+                "Remote authorization does not claim an unowned tile");
+            original.owner = player.getUniqueID();
             player.inventory.currentItem = 1;
             check(!data.canUseRemote(player), "Switching hotbar slot immediately invalidates authorization");
             player.inventory.currentItem = 0;

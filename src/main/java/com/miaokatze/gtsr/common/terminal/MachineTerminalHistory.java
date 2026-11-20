@@ -34,6 +34,7 @@ import com.miaokatze.gtsr.common.machine.tcds.MTEThermoChemicalDenseSteamGenerat
 import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.BaseMetaTileEntity;
 
 /** GTSR terminal records are server-owned player data; item NBT carries only a terminal identity. */
 public final class MachineTerminalHistory {
@@ -210,10 +211,12 @@ public final class MachineTerminalHistory {
     static boolean authorized(EntityPlayer player, IGregTechTileEntity base) {
         return player instanceof EntityPlayerMP && !(player instanceof FakePlayer)
             && !player.isDead
+            && base instanceof BaseMetaTileEntity gt
             && base.canAccessData()
             && !base.isDead()
-            && (base.getOwnerUuid() == null || base.getOwnerUuid()
-                .equals(player.getUniqueID()))
+            // Match GT's read-only right-click lock rule without invoking its owner-claiming helper.
+            && (!gt.privateAccess() || player.getUniqueID()
+                .equals(gt.getOwnerUuid()))
             && base.getMetaTileEntity() != null
             && (base.getMetaTileEntity() instanceof MTECriticalMachine critical ? critical.getCriticalState()
                 .permitsTerminalAccess(player)

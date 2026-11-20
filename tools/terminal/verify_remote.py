@@ -113,13 +113,13 @@ def main():
     if hashes != {"candidate": sha256(candidate), "core": sha256(core),
         "testSources": {str(source.relative_to(ROOT)): sha256(source) for source in sources}}:
         raise RuntimeError("Candidate, Core or test source changed during verification")
-    if "PASS MachineTerminalRemoteContract checks=19" not in result:
-        raise AssertionError("Expected 19 detached authorization/NBT contracts")
+    if "PASS MachineTerminalRemoteContract checks=25" not in result:
+        raise AssertionError("Expected 25 detached authorization/NBT contracts")
     receipt = {
         "status": "PASS", "mode": "jar-only", "productOverlay": False, "compiledSources": [str(source) for source in sources],
         "candidateJar": str(candidate), "coreJar": str(core), "sha256": hashes, "classes": str(classes),
         "classCount": len(emitted), "result": result.strip(), "historyPanelResult": panel_result.strip(),
-        "scope": "19 real production authorization and NBT-codec checks with detached World/GT/player fixtures. "
+        "scope": "25 real production authorization and NBT-codec checks with detached World/GT/player fixtures. "
             "FML Loader and side are isolated fixtures. BaseMetaTileEntity has NOT been transformed by Mixin; "
             "identity checks exercise the exact State.write/read codec used by production hooks. "
             "No live Mixin injection/startup, successful GUI opening, slot transaction, packet dispatch or client rendering claim.",
