@@ -98,11 +98,13 @@ public class MachineLoader {
     }
 
     private static void registerAllMachines() {
-        GTSRItemList.OreIntegrationCenter.set(
-            new MTEMineralIntegrationCenter(
-                MetaTileEntityID.ORE_INTEGRATION_CENTER.ID,
-                "gtsr.ore_integration_center",
-                "Mineral Processing Integration Center"));
+        if (MTEMineralIntegrationCenter.REGISTRATION_ENABLED) {
+            GTSRItemList.OreIntegrationCenter.set(
+                new MTEMineralIntegrationCenter(
+                    MetaTileEntityID.ORE_INTEGRATION_CENTER.ID,
+                    "gtsr.ore_integration_center",
+                    "Mineral Processing Integration Center"));
+        }
         GTSRItemList.CriticalLoom
             .set(new MTECriticalMachine(MetaTileEntityID.CRITICAL_LOOM.ID, "gtsr.critical.loom", "Mimetic Loom", null));
         GTSRItemList.CriticalSolar.set(
@@ -611,7 +613,9 @@ public class MachineLoader {
         CreativeTabManager.addItemToTab(GTSRItemList.DenseStateManipulator.get(1));
         // --- 集群家族：总控、七工作单元、五增幅器与物流单元（顺序与注册一致） ---
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterController.get(1));
-        CreativeTabManager.addItemToTab(GTSRItemList.OreIntegrationCenter.get(1));
+        if (MTEMineralIntegrationCenter.REGISTRATION_ENABLED) {
+            CreativeTabManager.addItemToTab(GTSRItemList.OreIntegrationCenter.get(1));
+        }
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitCrusher.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitOreWasher.get(1));
         CreativeTabManager.addItemToTab(GTSRItemList.ClusterUnitCentrifuge.get(1));

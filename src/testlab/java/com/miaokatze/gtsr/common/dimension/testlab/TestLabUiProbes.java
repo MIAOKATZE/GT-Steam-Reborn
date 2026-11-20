@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
+import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 
 /** Server-only production UI probes, deliberately independent of machine structure construction. */
 public final class TestLabUiProbes {
@@ -17,6 +18,8 @@ public final class TestLabUiProbes {
     public static List<TestLabTask> tasks() {
         List<TestLabTask> tasks = new ArrayList<>();
         for (MetaTileEntityID id : MetaTileEntityID.values()) {
+            if (id == MetaTileEntityID.ORE_INTEGRATION_CENTER && !MTEMineralIntegrationCenter.REGISTRATION_ENABLED)
+                continue;
             tasks.add(new TestLabUiTask(id, false));
             if (id.name()
                 .startsWith("CRITICAL_") && id != MetaTileEntityID.CRITICAL_SINGULARITY_COMPRESSOR) {

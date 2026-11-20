@@ -20,6 +20,7 @@ import com.miaokatze.gtsr.common.items.SteamEntangledSingularity;
 import com.miaokatze.gtsr.common.items.SteamTurbineCycleOverlimitChip;
 import com.miaokatze.gtsr.common.items.TCDSDenseSteamChip;
 import com.miaokatze.gtsr.common.items.VeinPyrolyzerChip;
+import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 public class ItemLoader {
@@ -35,7 +36,7 @@ public class ItemLoader {
         registerRareGasSeparationChip();
         registerAmmoniaCatalysts();
         registerSteamEntangledSingularity();
-        CenterModuleItems.register();
+        if (MTEMineralIntegrationCenter.REGISTRATION_ENABLED) CenterModuleItems.register();
         registerCriticalSteamEntangledSingularity();
         GTSRItemList.IrradiatedMoonDust
             .setAndRegister(new com.miaokatze.gtsr.common.items.IrradiatedDust(true), "IrradiatedMoonDust", true);

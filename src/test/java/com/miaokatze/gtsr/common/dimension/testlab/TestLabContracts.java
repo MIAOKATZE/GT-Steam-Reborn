@@ -19,6 +19,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import com.miaokatze.gtsr.common.debug.MachineDebugRegistry;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets;
+import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 
 /** Executable contracts: no server, client, GL context or world is created. */
 public final class TestLabContracts {
@@ -36,7 +37,7 @@ public final class TestLabContracts {
         centerBusPositions();
         if (args.length > 0) exportDeclaredCases(java.nio.file.Paths.get(args[0]));
         System.out.println(
-            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, 114/95/120 catalog, performance selection, independent report retry, request correlation, wand profiles, ore generator presets, graph bus positions");
+            "GTSR TestLab contracts PASS: disabled linkage, explicit missing support, catalog gating, performance selection, independent report retry, request correlation, wand profiles, ore generator presets, graph bus positions");
     }
 
     private static void centerPresets() throws IOException {
@@ -172,8 +173,9 @@ public final class TestLabContracts {
     }
 
     private static void catalogSelection() {
+        boolean centerEnabled = MTEMineralIntegrationCenter.REGISTRATION_ENABLED;
         List<TestLabTask> tasks = TestLabCatalog.tasks();
-        require(tasks.size() == 114, "machine catalog coverage changed: " + tasks.size());
+        require(tasks.size() == (centerEnabled ? 114 : 108), "machine catalog coverage changed: " + tasks.size());
         require(
             TestLabCatalog.isExplicitRegression("rock_breaker_sites"),
             "stone maker checks require explicit selection");
@@ -181,15 +183,17 @@ public final class TestLabContracts {
             TestLabIntegrationCenter.PLANNER,
             TestLabIntegrationCenter.PRESSURE,
             TestLabIntegrationCenterMachine.ID,
-            TestLabIntegrationCenterEntityPressure.ID)) {
-            require(TestLabCatalog.isExplicitRegression(id), "ore-center check requires explicit selection: " + id);
+            TestLabIntegrationCenterEntityPressure.ID,
+            TestLabCenterPresetLoad.ID,
+            TestLabCenterSaturation.ID)) {
+            require(TestLabCatalog.isExplicitRegression(id) == centerEnabled, "unexpected ore-center case: " + id);
             require(
                 new TestLabSupport().cases()
                     .stream()
                     .anyMatch(
                         entry -> entry.id()
-                            .equals(id)),
-                "ore-center check absent from the unified catalog: " + id);
+                            .equals(id)) == centerEnabled,
+                "unexpected ore-center case in the unified catalog: " + id);
         }
         int defaults = 0, representatives = 0;
         for (TestLabTask task : tasks) {
@@ -223,21 +227,22 @@ public final class TestLabContracts {
         require(representatives == 6, "explicit performance representatives changed: " + representatives);
         require(
             TestLabUiProbes.tasks()
-                .size() == 120,
+                .size() == (centerEnabled ? 120 : 119),
             "UI catalog lost cases");
         require(
             TestLabUiProbes.tasks()
                 .stream()
                 .anyMatch(
                     task -> task.id()
-                        .equals("ui.ore_integration_center")),
-            "Missing generic controller UI probe for the registered ore integration center");
+                        .equals("ui.ore_integration_center")) == centerEnabled,
+            "Ore center controller UI probe must follow the registration switch");
         require(
             new TestLabSupport().cases().stream().anyMatch(entry -> entry.id().equals(CenterGraphTcpFixture.CASE_ID)
-                && entry.lane().equals("client-server") && !entry.defaultSuite() && entry.requiresRealActor()),
-            "Ore-center graph TCP must be an explicit dual-instance case");
+                && entry.lane().equals("client-server") && !entry.defaultSuite() && entry.requiresRealActor())
+                == centerEnabled,
+            "Ore-center graph TCP must follow the registration switch and require two instances");
         List<TestLabTask> performance = TestLabPerformanceTasks.select("all", null);
-        require(performance.size() == 140, "performance plan changed: " + performance.size());
+        require(performance.size() == (centerEnabled ? 140 : 139), "performance plan changed: " + performance.size());
         for (TestLabTask task : performance) require(
             !task.id()
                 .contains("followup_"),

@@ -10,6 +10,7 @@ import java.util.List;
 
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
+import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 
 /** The enum is the coverage authority: new registered IDs automatically appear in the lab. */
 public final class TestLabCatalog {
@@ -84,12 +85,14 @@ public final class TestLabCatalog {
         tasks.add(new TestLabAmmoniaNaturalTask(true));
         tasks.add(new TestLabSingularityProfile());
         tasks.add(new TestLabStoneBreakers());
-        tasks.add(new TestLabIntegrationCenter(false));
-        tasks.add(new TestLabIntegrationCenter(true));
-        tasks.add(new TestLabIntegrationCenterMachine());
-        tasks.add(new TestLabIntegrationCenterEntityPressure());
-        tasks.add(new TestLabCenterPresetLoad());
-        tasks.add(new TestLabCenterSaturation());
+        if (MTEMineralIntegrationCenter.REGISTRATION_ENABLED) {
+            tasks.add(new TestLabIntegrationCenter(false));
+            tasks.add(new TestLabIntegrationCenter(true));
+            tasks.add(new TestLabIntegrationCenterMachine());
+            tasks.add(new TestLabIntegrationCenterEntityPressure());
+            tasks.add(new TestLabCenterPresetLoad());
+            tasks.add(new TestLabCenterSaturation());
+        }
         tasks.add(TestLabMachineTask.turbineReload(MetaTileEntityID.HEAVY_STEAM_TURBINE));
         tasks.add(TestLabMachineTask.turbineReload(MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY));
         return Collections.unmodifiableList(tasks);
@@ -103,9 +106,13 @@ public final class TestLabCatalog {
 
     public static List<String> machineIds() {
         List<String> result = new ArrayList<>();
-        for (MetaTileEntityID id : MetaTileEntityID.values()) result.add(
-            id.name()
-                .toLowerCase(java.util.Locale.ROOT));
+        for (MetaTileEntityID id : MetaTileEntityID.values()) {
+            if (id == MetaTileEntityID.ORE_INTEGRATION_CENTER && !MTEMineralIntegrationCenter.REGISTRATION_ENABLED)
+                continue;
+            result.add(
+                id.name()
+                    .toLowerCase(java.util.Locale.ROOT));
+        }
         return Collections.unmodifiableList(result);
     }
 }

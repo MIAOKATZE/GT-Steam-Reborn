@@ -76,6 +76,9 @@ import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMultiBlockBase<MTEMineralIntegrationCenter>
     implements ISurvivalConstructable, INEIPreviewModifier, MachineVisualHost {
 
+    /** Temporary source-level release switch. Keep the existing meta ID reserved while disabled. */
+    public static final boolean REGISTRATION_ENABLED = false;
+
     private static final IStructureDefinition<MTEMineralIntegrationCenter> PREVIEW = StructureDefinition
         .<MTEMineralIntegrationCenter>builder()
         .addChannel(CenterStructure.SECTOR_CHANNEL, 1, 6)
