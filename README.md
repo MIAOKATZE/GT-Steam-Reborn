@@ -9,15 +9,15 @@
   <img alt="Minecraft 1.7.10" src="https://img.shields.io/badge/Minecraft-1.7.10-blue.svg">
   <img alt="Forge 10.13.4.1614" src="https://img.shields.io/badge/Forge-10.13.4.1614-blue.svg">
   <a href="https://github.com/GTNewHorizons/GT-New-Horizons-Modpack"><img alt="GTNH 2.9.0" src="https://img.shields.io/badge/GTNH-2.9.0-orange.svg"></a>
-  <a href="https://github.com/MIAOKATZE/GT-Steam-Reborn/releases"><img alt="GTSR 2.1.42" src="https://img.shields.io/badge/GTSR-2.1.42-green.svg"></a>
+  <img alt="GTSR latest release" src="https://img.shields.io/github/v/release/MIAOKATZE/GT-Steam-Reborn?label=GTSR&amp;color=green">
 </p>
 
 | 前置 / Requirement | 版本 / Version |
 | --- | --- |
 | GTNH | 2.9.0 |
-| [MIAOKATZE Core](https://github.com/MIAOKATZE/MIAOKATZE-Core) | 0.2.16+（本开发分支） |
+| [MIAOKATZE Core](https://github.com/MIAOKATZE/MIAOKATZE-Core) | [见对应版本的 Release / See the corresponding release](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases) |
 
-从源码构建这版时，先准备 Core 0.2.16 的 dev 包。该坐标未发布时，用 `-PmiaokatzeCoreRepository=<本地依赖目录>` 指向含该 dev 包与 POM 的 Maven 布局目录；勿用旧版 Core 编译。
+从源码构建时，使用依赖声明指定版本的 Core dev 包；该坐标未发布时，用 `-PmiaokatzeCoreRepository=<本地依赖目录>` 指向含该 dev 包与 POM 的 Maven 布局目录。
 
 GTSR 为 GTNH 增加蒸汽工业、远程物流和奇点科技。你可以扩建青铜加工基地，用枢纽连接跨维度的储罐与矿场，再推进过热、致密蒸汽与高级设备。
 
@@ -51,7 +51,7 @@ In the inventory, hover a supported controller and press the configured key (**V
 
 | GTNH         | GTSR 版本范围 / Version range | 下载 / Download |
 | ------------ | -------------- | :--------------: |
-| 2.9.0 正式版 / final | 2.1.0 ~ + | [v2.1.9](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.1.9) |
+| 2.9.0 正式版 / final | 2.1.0 ~ + | [最新发布版 / Latest release](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/latest) |
 | 2.9.0 RC-1 / RC-2 | 2.0.0 ~ 2.0.46 | [v2.0.46](https://github.com/MIAOKATZE/GT-Steam-Reborn/releases/tag/v2.0.46) |
 
 客户端和服务端均安装运行 JAR 与相应前置，替换旧包。 / Install the runtime JAR and required dependencies on both client and server.
