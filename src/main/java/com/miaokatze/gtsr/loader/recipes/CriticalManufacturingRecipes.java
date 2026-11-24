@@ -50,7 +50,7 @@ final class CriticalManufacturingRecipes {
         // Equal-tier ore-dictionary circuit alternatives remain accepted by the research assembly line.
         controller(
             GTSRItemList.CriticalLoom,
-            ItemList.Robot_Arm_UHV,
+            shell("loom_controller", 1),
             new Object[] { ItemList.Hull_MAX.get(8), shell("reinforced_panel", 64), shell("loom_guide", 64),
                 shell("loom_controller", 32), circuit(Materials.UHV, 16), circuit(Materials.UV, 32),
                 GTSRItemList.CriticalSteamEntangledSingularity.get(64), ItemList.Robot_Arm_UHV.get(16),
@@ -66,7 +66,7 @@ final class CriticalManufacturingRecipes {
             120);
         controller(
             GTSRItemList.CriticalSolar,
-            ItemList.Emitter_UHV,
+            shell("thermal_confinement_coil", 1),
             new Object[] { ItemList.Hull_MAX.get(8), shell("ceramic_armor", 64), shell("blue_field_glass", 64),
                 shell("gravity_modulator", 32), circuit(Materials.UHV, 16), circuit(Materials.UV, 32),
                 GTSRItemList.CriticalSteamEntangledSingularity.get(64), ItemList.Field_Generator_UHV.get(16),
@@ -82,7 +82,7 @@ final class CriticalManufacturingRecipes {
             120);
         controller(
             GTSRItemList.CriticalTurbine,
-            ItemList.Electric_Motor_UHV,
+            shell("superconducting_contact", 1),
             new Object[] { ItemList.Hull_MAX.get(8), shell("reinforced_panel", 64),
                 shell("superconducting_contact", 64), shell("coolant_channel", 32), circuit(Materials.UHV, 16),
                 circuit(Materials.UV, 32), GTSRItemList.CriticalSteamEntangledSingularity.get(64),
@@ -100,7 +100,7 @@ final class CriticalManufacturingRecipes {
             120);
         controller(
             GTSRItemList.CriticalBattery,
-            ItemList.Electric_Pump_UHV,
+            shell("violet_phase_glass", 1),
             new Object[] { ItemList.Hull_MAX.get(8), shell("ceramic_armor", 64), shell("coolant_channel", 64),
                 shell("superconducting_contact", 32), circuit(Materials.UHV, 16), circuit(Materials.UV, 32),
                 GTSRItemList.CriticalSteamEntangledSingularity.get(64), ItemList.Electric_Pump_UHV.get(32),
@@ -116,7 +116,7 @@ final class CriticalManufacturingRecipes {
             120);
         controller(
             GTSRItemList.CriticalSun,
-            ItemList.Field_Generator_UHV,
+            shell("stellar_plasma_skin", 1),
             new Object[] { ItemList.Hull_MAX.get(16), shell("gravity_modulator", 64), shell("blue_field_glass", 64),
                 shell("superconducting_contact", 64), circuit(Materials.UHV, 32), circuit(Materials.UV, 64),
                 GTSRItemList.CriticalSteamEntangledSingularity.get(64), ItemList.Field_Generator_UHV.get(32),
@@ -131,10 +131,10 @@ final class CriticalManufacturingRecipes {
             240);
     }
 
-    private static void controller(GTSRItemList output, ItemList research, Object[] items, int solder, int naquadria,
+    private static void controller(GTSRItemList output, ItemStack research, Object[] items, int solder, int naquadria,
         FluidStack third, int pbi, int seconds) {
         boolean added = TTRecipeAdder.addResearchableAssemblylineRecipe(
-            research.get(1),
+            research,
             48000,
             64,
             (int) TierEU.RECIPE_UHV,
