@@ -49,12 +49,22 @@ public final class TestLabContracts {
             require(graph.runnable(), group.id + " is not runnable after import");
             require(graph.nodes.size() == group.nodeCount(), group.id + " lost processing stages");
             NBTTagCompound tag = graph.save();
-            require(CenterGraph.load(tag).save().equals(tag), group.id + " did not round trip");
-            require(net.minecraft.nbt.CompressedStreamTools.compress(tag).length <= 65536,
+            require(
+                CenterGraph.load(tag)
+                    .save()
+                    .equals(tag),
+                group.id + " did not round trip");
+            require(
+                net.minecraft.nbt.CompressedStreamTools.compress(tag).length <= 65536,
                 group.id + " does not fit the native graph packet");
             if (group.id.startsWith("regular-")) {
-                require(graph.entryRoutes().size() == 2, group.id + " lost the extra entry points");
-                require(graph.nodes.stream().anyMatch(node -> node.targetCount() > node.process.outletCount()),
+                require(
+                    graph.entryRoutes()
+                        .size() == 2,
+                    group.id + " lost the extra entry points");
+                require(
+                    graph.nodes.stream()
+                        .anyMatch(node -> node.targetCount() > node.process.outletCount()),
                     group.id + " lost the multiway output routes");
             }
             ready++;
@@ -63,9 +73,14 @@ public final class TestLabContracts {
     }
 
     private static void centerBusPositions() throws ReflectiveOperationException {
-        var group = CenterPresets.all().stream().filter(candidate -> candidate.id.equals("regular-MPMC"))
-            .findFirst().orElseThrow(() -> new AssertionError("missing copper preset fixture"));
-        var base = CenterGraph.load(group.graph(group.name).save());
+        var group = CenterPresets.all()
+            .stream()
+            .filter(candidate -> candidate.id.equals("regular-MPMC"))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("missing copper preset fixture"));
+        var base = CenterGraph.load(
+            group.graph(group.name)
+                .save());
         require(base.inputPosition == null && base.outputPosition == null, "legacy bus defaults");
 
         Class<?> sync = Class.forName("com.miaokatze.gtsr.common.gui.CenterGraphSync");
@@ -73,22 +88,36 @@ public final class TestLabContracts {
         var replace = sync.getDeclaredMethod("replace", CenterGraph.class, action, int.class, int.class, String.class);
         replace.setAccessible(true);
         Function<String, Object> command = name -> Arrays.stream(action.getEnumConstants())
-            .filter(value -> ((Enum<?>) value).name().equals(name)).findFirst()
+            .filter(
+                value -> ((Enum<?>) value).name()
+                    .equals(name))
+            .findFirst()
             .orElseThrow(() -> new AssertionError("missing graph command " + name));
         Object move = command.apply("MOVE_BUS");
         var inputMoved = (CenterGraph) replace.invoke(null, base, move, -40, 70, "input");
         require(inputMoved.outputPosition == null, "moving input assigned the output position");
         var moved = (CenterGraph) replace.invoke(null, inputMoved, move, 900, -20, "output");
         var saved = CenterGraph.load(moved.save());
-        require(saved.inputPosition.x == -40 && saved.inputPosition.y == 70 && saved.outputPosition.x == 900
-            && saved.outputPosition.y == -20, "independent bus positions saved and restored");
-        require(saved.withBusPositions(null, null).save().equals(base.save()), "moving buses changed processing");
+        require(
+            saved.inputPosition.x == -40 && saved.inputPosition.y == 70
+                && saved.outputPosition.x == 900
+                && saved.outputPosition.y == -20,
+            "independent bus positions saved and restored");
+        require(
+            saved.withBusPositions(null, null)
+                .save()
+                .equals(base.save()),
+            "moving buses changed processing");
         var renamed = (CenterGraph) replace.invoke(null, saved, command.apply("RENAME"), 0, 0, "review");
-        require(renamed.inputPosition == saved.inputPosition && renamed.outputPosition == saved.outputPosition,
+        require(
+            renamed.inputPosition == saved.inputPosition && renamed.outputPosition == saved.outputPosition,
             "editing a graph lost bus positions");
         var arranged = (CenterGraph) replace.invoke(null, renamed, command.apply("ARRANGE"), 0, 0, "");
-        require(arranged.inputPosition == null && arranged.outputPosition == null
-            && arranged.nodes.stream().allMatch(node -> node.x == CenterGraph.AUTO_POSITION), "reset layout");
+        require(
+            arranged.inputPosition == null && arranged.outputPosition == null
+                && arranged.nodes.stream()
+                    .allMatch(node -> node.x == CenterGraph.AUTO_POSITION),
+            "reset layout");
         try {
             replace.invoke(null, saved, move, -8193, 0, "input");
             throw new AssertionError("out-of-bounds bus accepted");
@@ -103,23 +132,27 @@ public final class TestLabContracts {
         var machine = MachineDebugRegistry.findFamily("construction");
         require("singularity".equals(MachineDebugRegistry.activeFamily(wand)), "old wand default mode");
         require(MachineDebugRegistry.writeProfile(wand, singularity, null, new int[] { 2, 4 }), "singularity profile");
-        var profiles = wand.getTagCompound().getCompoundTag("gtsrDebugProfiles");
+        var profiles = wand.getTagCompound()
+            .getCompoundTag("gtsrDebugProfiles");
         var legacy = new NBTTagCompound();
         legacy.setInteger("requirements", 3);
         legacy.setInteger("speed", 3);
         legacy.setInteger("energy", 1);
         profiles.setTag("construction", legacy);
-        require(Arrays.equals(MachineDebugRegistry.readProfile(wand, machine, null), new int[] { 1, 1, 1, 0 }),
+        require(
+            Arrays.equals(MachineDebugRegistry.readProfile(wand, machine, null), new int[] { 1, 1, 1, 0 }),
             "legacy material and energy toggles migrate without arming Quick Build");
         MachineDebugRegistry.selectFamily(wand, machine);
         require(MachineDebugRegistry.writeProfile(wand, machine, null, new int[] { 0, 1, 0, 1 }), "machine profile");
         require(!MachineDebugRegistry.writeProfile(wand, machine, null, new int[] { 0, 1, 0, 2 }), "invalid toggle");
         ItemStack copy = wand.copy();
         require("construction".equals(MachineDebugRegistry.activeFamily(copy)), "machine mode survives stack copy");
-        require(Arrays.equals(MachineDebugRegistry.readProfile(copy, machine, null), new int[] { 0, 1, 0, 1 }),
+        require(
+            Arrays.equals(MachineDebugRegistry.readProfile(copy, machine, null), new int[] { 0, 1, 0, 1 }),
             "machine profile survives stack copy");
         MachineDebugRegistry.selectFamily(copy, singularity);
-        require(Arrays.equals(MachineDebugRegistry.readProfile(copy, singularity, null), new int[] { 2, 4 }),
+        require(
+            Arrays.equals(MachineDebugRegistry.readProfile(copy, singularity, null), new int[] { 2, 4 }),
             "mode selection preserves singularity configuration");
     }
 
@@ -175,7 +208,20 @@ public final class TestLabContracts {
     private static void catalogSelection() {
         boolean centerEnabled = MTEMineralIntegrationCenter.REGISTRATION_ENABLED;
         List<TestLabTask> tasks = TestLabCatalog.tasks();
-        require(tasks.size() == (centerEnabled ? 114 : 108), "machine catalog coverage changed: " + tasks.size());
+        require(tasks.size() == (centerEnabled ? 115 : 109), "machine catalog coverage changed: " + tasks.size());
+        TestLabTask recipeAudit = tasks.stream()
+            .filter(
+                task -> task.id()
+                    .equals(TestLabRecipeConflicts.ID))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("recipe audit missing"));
+        require(TestLabCatalog.isExplicitRegression(recipeAudit.id()), "recipe audit must require explicit selection");
+        require(!recipeAudit.requiresFixtureChunks(), "recipe audit must not generate fixture terrain");
+        require(
+            TestLabMetadata.describe(recipeAudit)
+                .tags()
+                .contains("mutation:none"),
+            "recipe audit must be read-only");
         require(
             TestLabCatalog.isExplicitRegression("rock_breaker_sites"),
             "stone maker checks require explicit selection");
@@ -192,7 +238,8 @@ public final class TestLabContracts {
                     .stream()
                     .anyMatch(
                         entry -> entry.id()
-                            .equals(id)) == centerEnabled,
+                            .equals(id))
+                    == centerEnabled,
                 "unexpected ore-center case in the unified catalog: " + id);
         }
         int defaults = 0, representatives = 0;
@@ -234,11 +281,19 @@ public final class TestLabContracts {
                 .stream()
                 .anyMatch(
                     task -> task.id()
-                        .equals("ui.ore_integration_center")) == centerEnabled,
+                        .equals("ui.ore_integration_center"))
+                == centerEnabled,
             "Ore center controller UI probe must follow the registration switch");
         require(
-            new TestLabSupport().cases().stream().anyMatch(entry -> entry.id().equals(CenterGraphTcpFixture.CASE_ID)
-                && entry.lane().equals("client-server") && !entry.defaultSuite() && entry.requiresRealActor())
+            new TestLabSupport().cases()
+                .stream()
+                .anyMatch(
+                    entry -> entry.id()
+                        .equals(CenterGraphTcpFixture.CASE_ID)
+                        && entry.lane()
+                            .equals("client-server")
+                        && !entry.defaultSuite()
+                        && entry.requiresRealActor())
                 == centerEnabled,
             "Ore-center graph TCP must follow the registration switch and require two instances");
         List<TestLabTask> performance = TestLabPerformanceTasks.select("all", null);

@@ -31,7 +31,7 @@ final class CriticalManufacturingRecipes {
     static void register() {
         for (CriticalShellCatalog.Family family : CriticalShellCatalog.Family.values()) {
             for (int identity = 0; identity < family.identities.size(); identity++) {
-                ItemStack[] consumed = CriticalShellCatalog.ingredients(family);
+                ItemStack[] consumed = CriticalShellCatalog.ingredients(family.identities.get(identity));
                 Object[] inputs = Arrays.copyOf(consumed, consumed.length + 1, Object[].class);
                 if (family == CriticalShellCatalog.Family.C) {
                     inputs[1] = circuit(Materials.UV, 8);

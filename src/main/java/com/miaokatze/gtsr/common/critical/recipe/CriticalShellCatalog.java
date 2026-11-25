@@ -77,7 +77,17 @@ public final class CriticalShellCatalog {
         return CriticalRecipes.ore(prefix, material, count);
     }
 
-    /** Consumed inputs only; caller adds the non-consumed programmed circuit for each physical identity. */
+    /** Identity-specific inputs avoid native single-wire bundling recipes without changing material cost. */
+    public static ItemStack[] ingredients(String alias) {
+        ItemStack[] inputs = ingredients(family(alias));
+        switch (CriticalMaterialDefinitions.canonicalId(alias)) {
+            case "v2_superconducting_contact" -> inputs[1] = ore(OrePrefixes.wireGt02, Materials.SuperconductorUV, 16);
+            case "v2_luminous_rail" -> inputs[1] = ore(OrePrefixes.wireGt04, Materials.SuperconductorUV, 8);
+        }
+        return inputs;
+    }
+
+    /** Shared family inputs; manufacturing uses the identity-specific overload and adds a programmed circuit. */
     public static ItemStack[] ingredients(Family family) {
         return switch (family) {
             case S -> new ItemStack[] { ore(OrePrefixes.plate, Materials.TungstenSteel, 32),

@@ -85,6 +85,7 @@ public final class TestLabCatalog {
         tasks.add(new TestLabAmmoniaNaturalTask(true));
         tasks.add(new TestLabSingularityProfile());
         tasks.add(new TestLabStoneBreakers());
+        tasks.add(new TestLabRecipeConflicts());
         if (MTEMineralIntegrationCenter.REGISTRATION_ENABLED) {
             tasks.add(new TestLabIntegrationCenter(false));
             tasks.add(new TestLabIntegrationCenter(true));

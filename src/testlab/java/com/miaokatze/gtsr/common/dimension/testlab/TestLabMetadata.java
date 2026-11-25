@@ -17,6 +17,7 @@ final class TestLabMetadata {
         new LinkedHashSet<>(
             Arrays.asList(
                 "rock_breaker_sites",
+                TestLabRecipeConflicts.ID,
                 TestLabIntegrationCenter.PLANNER,
                 TestLabIntegrationCenterMachine.ID,
                 "heavy_steam_turbine_reload",
@@ -38,6 +39,15 @@ final class TestLabMetadata {
     private TestLabMetadata() {}
 
     static LabCase describe(TestLabTask task) {
+        if (task instanceof TestLabRecipeConflicts) {
+            return new LabCase(
+                task.id(),
+                task.displayName(),
+                "server",
+                new LinkedHashSet<>(Arrays.asList("group:recipes", "mutation:none", "input:no-os-input", "followup")),
+                false,
+                false);
+        }
         Set<String> tags = new LinkedHashSet<>();
         boolean client = task.id()
             .startsWith("ui.client.");
