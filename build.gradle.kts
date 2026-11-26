@@ -464,3 +464,14 @@ tasks.withType<Jar>().configureEach {
 
 // Package and verify the project-specific code and independent-asset licenses.
 apply(from = "gradle/licensing.gradle.kts")
+
+apply(from = "gradle/gtnh-compatibility.gradle")
+
+val verifyGTNHBootstrapProfiles = tasks.register<JavaExec>("verifyGTNHBootstrapProfiles") {
+    group = "verification"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.bootstrap.GTNHCompatibilityBootstrapContract")
+    maxHeapSize = "128m"
+}
+tasks.named("check") { dependsOn(verifyGTNHBootstrapProfiles) }

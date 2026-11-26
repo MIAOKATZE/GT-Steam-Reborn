@@ -1,0 +1,103 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import java.security.MessageDigest
+
+abstract class GTNHFixtureReport extends DefaultTask {
+    @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
+    abstract ConfigurableFileCollection getArtifacts()
+
+    @Input
+    abstract ListProperty<String> getCoordinates()
+
+    @OutputFile
+    abstract RegularFileProperty getReport()
+
+    @TaskAction
+    void fingerprint() {
+        def result = [coordinates: coordinates.get(), artifacts: artifacts.files.sort { it.name }.collect { artifact ->
+            def digest = MessageDigest.getInstance('SHA-256')
+            artifact.withInputStream { stream ->
+                byte[] buffer = new byte[65536]
+                int count
+                while ((count = stream.read(buffer)) != -1) digest.update(buffer, 0, count)
+            }
+            [file: artifact.absolutePath, sha256: digest.digest().encodeHex().toString()]
+        }]
+        def target = report.get().asFile
+        target.parentFile.mkdirs()
+        target.text = JsonOutput.prettyPrint(JsonOutput.toJson(result)) + '\n'
+        logger.lifecycle("Resolved isolated GTNH fixture graph: ${target}")
+    }
+}
+
+abstract class GTNHLinkageArguments implements CommandLineArgumentProvider {
+    @Input
+    abstract Property<String> getLabel()
+
+    @Classpath
+    abstract ConfigurableFileCollection getProductionClasses()
+
+    @Classpath
+    abstract ConfigurableFileCollection getPlatformApis()
+
+    @Override
+    Iterable<String> asArguments() {
+        return [label.get(), productionClasses.asPath, platformApis.asPath]
+    }
+}
+
+// Detached fixture graphs: none extends or is inherited by the production compile/runtime graph.
+def compatibilityMatrix = new JsonSlurper().parse(file('gradle/gtnh-compatibility.json'))
+dependencies { testImplementation('org.ow2.asm:asm-tree:9.9') }
+// Forge's legacy asm-debug-all is a different module, so dependency conflict resolution cannot replace it.
+def linkageAsm = configurations.create('gtnhLinkageAsm') {
+    canBeConsumed = false
+    canBeResolved = true
+}
+dependencies.add(linkageAsm.name, 'org.ow2.asm:asm-tree:9.9')
+def linkageTasks = []
+def profiles = compatibilityMatrix.profiles.collectEntries { profile ->
+    def graph = configurations.create('gtnh' + profile.version.replace('.', '') + 'Fixture') {
+        canBeConsumed = false
+        canBeResolved = true
+        transitive = false
+    }
+    profile.dependencies.each { module, version ->
+        def classifier = module == 'GT5-Unofficial' ? '' : ':dev'
+        dependencies.add(graph.name, "com.github.GTNewHorizons:${module}:${version}${classifier}")
+    }
+    def coordinateList = profile.dependencies.collect { module, version ->
+        "com.github.GTNewHorizons:${module}:${version}" + (module == 'GT5-Unofficial' ? '' : ':dev')
+    }
+    def resolution = tasks.register('resolveGTNH' + profile.version.replace('.', '') + 'Fixtures', GTNHFixtureReport) {
+        artifacts.from(graph)
+        coordinates.set(coordinateList)
+        report.set(layout.buildDirectory.file('reports/compatibility/resolved-' + profile.version + '.json'))
+    }
+    linkageTasks.add(tasks.register('verifyGTNH' + profile.version.replace('.', '') + 'Linkage', JavaExec) {
+        group = 'verification'
+        dependsOn(tasks.named('testClasses'))
+        classpath = linkageAsm + sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+        mainClass.set('com.miaokatze.gtsr.bootstrap.PlatformLinkageContracts')
+        def arguments = objects.newInstance(GTNHLinkageArguments)
+        arguments.label.set(profile.version)
+        arguments.productionClasses.from(sourceSets.main.output.classesDirs)
+        arguments.platformApis.from(graph)
+        argumentProviders.add(arguments)
+        maxHeapSize = '2g'
+    })
+    [(profile.version): resolution]
+}
+
+tasks.register('verifyGTNHPlatformLinkage') {
+    group = 'verification'
+    description = 'Check the same modern production bytecode against each isolated original API graph.'
+    dependsOn(linkageTasks)
+}
+
+tasks.register('resolveGTNHCompatibilityFixtures') {
+    group = 'verification'
+    description = 'Resolve and fingerprint isolated GTNH 2.9.0/2.9.1/2.9.2 fixture graphs (no game launch).'
+    dependsOn(profiles.values())
+}
