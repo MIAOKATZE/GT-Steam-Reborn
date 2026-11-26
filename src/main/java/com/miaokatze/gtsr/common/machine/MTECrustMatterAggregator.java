@@ -480,7 +480,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
             .addElement('B', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 3))
             .addElement('C', ofBlock(GameRegistry.findBlock("gregtech", "gt.blockcasings2"), 13))
             .addElement('D', ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID))
-            // E = 防爆玻璃（beta-1: IC2 blockAlloyGlass/meta0；beta-2: gt.blockglass1/meta10，经 GTVersionCompat 适配）
+            // E = 防爆玻璃（三版共用 sBlockGlass1/meta10，GTVersionCompat 直接读取）
             .addElement(
                 'E',
                 ofBlock(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta()))
@@ -1723,7 +1723,7 @@ public class MTECrustMatterAggregator extends MTESingularityMachineBase implemen
                     + " L/s ("
                     + StatCollector.translateToLocal(keyPrefix + "steam_cost_dense")
                     + ")")
-            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            // GT .265/.275/.277 共用 beginStructureBlock(width, height, length, hollow) 参数序。
             .beginStructureBlock(26, 8, 26, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
             .addCasingInfoMin(StatCollector.translateToLocal("gt.blockcasings2.0.name"), MIN_CASINGS, false)

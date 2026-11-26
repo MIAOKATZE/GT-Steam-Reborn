@@ -9,7 +9,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.util.HatchElementBuilder;
 import gregtech.api.util.IGTHatchAdder;
 
-/** Source-compatible facade over the RC2 builder's public delegates. */
+/** Existing facade over public builder delegates shared by GT5U .265/.275/.277; no version dispatch. */
 public final class HatchElementBuilderCompat {
 
     private HatchElementBuilderCompat() {}

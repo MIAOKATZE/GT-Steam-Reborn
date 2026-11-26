@@ -195,7 +195,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
 
         @Override
         public String getDisplayName() {
-            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTUtility.translate 于 beta-3 移除，改用 vanilla StatCollector（三版本通用）
+            // 使用三版共用的 1.7.10 原版 StatCollector 翻译。
             return StatCollector.translateToLocal(translationKey);
         }
 
@@ -324,7 +324,7 @@ public class MTEGearSteamCompressor extends MTEGTSRMultiBlockBase<MTEGearSteamCo
                     'E',
                     onElementPass(
                         MTEGearSteamCompressor::onCasingAdded,
-                        // 防爆玻璃：通过兼容层自动适配 beta-1（IC2 blockAlloyGlass）与 beta-2（GT5U sBlockGlass1 meta 10）
+                        // 防爆玻璃：三版共用 GregTechAPI.sBlockGlass1 meta10，现有门面直接读取
                         ofBlock(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta())))
                 .addElement(
                     'F',

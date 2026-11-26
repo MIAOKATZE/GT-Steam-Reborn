@@ -171,7 +171,7 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor>
      * v1.10.62：覆写 GT5U ICasingTextureProvider 钩子（GT5U SolarFactory 同款），控制器贴图按
      * getCasingTextureID()（== 2 判定）推导——修复未成型时字节同步回绕值 127 被基类
      * isHighPressure() >= 2 误判为钢外壳（刚放置即显示等级2底材）的问题。
-     * 不加 @Override：该接口仅 beta-2 存在（beta-1 无 ICasingTextureProvider），beta-1 下本方法为惰性方法。
+     * GT .265/.275/.277 的 MTESteamMultiBlockBase 均实现 ICasingTextureProvider，此方法为共有钩子。
      */
     public ITexture getCasingTexture() {
         return Textures.BlockIcons.getCasingTextureForId(getCasingTextureID());
@@ -445,10 +445,8 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor>
         return Textures.BlockIcons.OVERLAY_FRONT_STEAM_COMPRESSOR_ACTIVE;
     }
 
-    // beta-2 兼容：MTESteamMultiBlockBase 将 getActiveGlowOverlay/getInactiveGlowOverlay 改为 abstract
-    // 返回 Textures.BlockIcons.VOID（GT5U 官方"空纹理"常量，渲染器跳过 InvisibleIcon，无发光层）
-    // 不能返回 null，否则 beta-2 的 createTextureWithCasing 会导致 GTTextureBuilder.build() 抛出
-    // "iconContainer not specified!" 崩溃（创造物品栏渲染时触发）
+    // GT .265/.275/.277 的 MTESteamMultiBlockBase 均要求实现两个 glow overlay 钩子。
+    // 无发光层使用 Textures.BlockIcons.VOID，为原生纹理构造器提供非 null 图标。
     @Override
     protected IIconContainer getActiveGlowOverlay() {
         return Textures.BlockIcons.VOID;
@@ -481,7 +479,7 @@ public class MTEAirCompressor extends MTESteamMultiBlockBase<MTEAirCompressor>
                 EnumChatFormatting.GREEN + StatCollector.translateToLocal("gtsr.tooltip.shared.superheated_quadruples"))
             .addInfo(
                 EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal("gtsr.tooltip.air_compressor.nether"))
-            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            // GT .265/.275/.277 共用 beginStructureBlock(width, height, length, hollow) 参数序。
             .beginStructureBlock(
                 visualDefinition().size(0),
                 visualDefinition().size(1),

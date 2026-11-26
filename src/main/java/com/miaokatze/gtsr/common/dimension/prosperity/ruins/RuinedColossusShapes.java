@@ -103,8 +103,8 @@ import com.miaokatze.gtsr.common.dimension.prosperity.ruins.ruin.StructureBurial
  * <td>{@code v}</td>
  * <td>{@code gt.blockglass1} m10</td>
  * <td>防爆玻璃</td>
- * <td>{@code BlockGlass1.java:43 register(10, ReinforcedGlass)}（beta-2/3 口径，与
- * {@code GTVersionCompat} 的 else 分支同源）；块对象 = 新键 {@link CityBlockResolver#K_GT_GLASS}</td>
+ * <td>GTNH 2.9.0–2.9.2：{@code BlockGlass1} 注册 meta10 为 ReinforcedGlass，与
+ * {@code GTVersionCompat} 的直接字段访问一致；块对象 = {@link CityBlockResolver#K_GT_GLASS}</td>
  * </tr>
  * </table>
  * <b>禁面（本表结构上写不出来，因此不需要"记得别写"）</b>：{@code gt.blockmachines} 任意 meta

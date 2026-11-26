@@ -680,7 +680,7 @@ public class MTECriticalSingularityCompressor extends MTESingularityMachineBase 
         // T6 三值机制说明（用户拍板追加）：在既有描述之后、结构段之前追加，键未配置时零输出
         addOverlimitTooltipLines(tt, keyPrefix);
         tt.addSeparator()
-            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            // GT .265/.275/.277 共用 beginStructureBlock(width, height, length, hollow) 参数序。
             .beginStructureBlock(27, 21, 27, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
             .addCasingInfoMin(StatCollector.translateToLocal("gt.blockcasings8.6.name"), MIN_CASINGS, false)

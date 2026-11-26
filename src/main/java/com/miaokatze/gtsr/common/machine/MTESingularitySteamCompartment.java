@@ -220,23 +220,15 @@ public class MTESingularitySteamCompartment extends MTEHatchPressureSteamInput
         onCompartmentHubTick(aBaseMetaTileEntity, aTick);
     }
 
-    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起 description packet 改走
-    // writeToStream/readFromStream 流路径且基类 NBT 覆写点已删除（beta-3 编译目标下 @Override
-    // 不再成立），本组 NBT 方法仅 beta-1/2 经运行时虚分派生效——去 @Override 去 super
-    // （super 链 MTEHatch 只写/读 texturePage/textureIndex 两键，GTSR 无设置入口恒 0=0，
-    // 两键随 super 移除而丢失=行为中性）。
-
-    // [GT-compat] beta-3 stream 同步：首行 super 承接 MTEHatch beta-3 覆写的
-    // texturePage/textureIndex 两 int 承重，再委托接口助手补 bound+fluid 两字段
-    // （字段序与 getDescriptionData 增量一致）；beta-1/2 基类无此覆写点，仅 beta-3 生效。
+    // GT .265/.275/.277 均走此描述包钩子：super 保留 MTEHatch 的 texturePage/textureIndex 两 int，
+    // 助手再追加 customName UTF8、bound bool、fluid UTF8；没有额外 NBT 兼容分支。
     @Override
     public void writeToStream(ByteBuf buf) {
         super.writeToStream(buf);
         writeCompartmentToStream(buf);
     }
 
-    // [GT-compat] beta-3 stream 同步：读序与 writeToStream 严格对称
-    // （super 两 int → bound bool → fluid UTF8 名）。
+    // 读序严格对称：super 两 int → customName UTF8 → bound bool → fluid UTF8。
     @Override
     public void readFromStream(ByteBuf buf) {
         super.readFromStream(buf);

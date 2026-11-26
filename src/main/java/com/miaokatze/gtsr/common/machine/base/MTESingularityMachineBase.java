@@ -319,7 +319,7 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
 
         @Override
         public String getDisplayName() {
-            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：GTUtility.translate 于 beta-3 移除，改用 vanilla StatCollector（三版本通用）
+            // 使用三版共用的 1.7.10 原版 StatCollector 翻译。
             return StatCollector.translateToLocal(translationKey);
         }
 

@@ -489,10 +489,8 @@ public class MTECrustSteamBorer extends MTESteamMultiBlockBase<MTECrustSteamBore
         return Textures.BlockIcons.OVERLAY_FRONT_ORE_DRILL_ACTIVE;
     }
 
-    // beta-2 兼容：MTESteamMultiBlockBase 将 getActiveGlowOverlay/getInactiveGlowOverlay 改为 abstract
-    // 返回 Textures.BlockIcons.VOID（GT5U 官方"空纹理"常量，渲染器跳过 InvisibleIcon，无发光层）
-    // 不能返回 null，否则 beta-2 的 createTextureWithCasing 会导致 GTTextureBuilder.build() 抛出
-    // "iconContainer not specified!" 崩溃（创造物品栏渲染时触发）
+    // GT .265/.275/.277 的 MTESteamMultiBlockBase 均要求实现两个 glow overlay 钩子。
+    // 无发光层使用 Textures.BlockIcons.VOID，为原生纹理构造器提供非 null 图标。
     @Override
     protected IIconContainer getActiveGlowOverlay() {
         return Textures.BlockIcons.VOID;

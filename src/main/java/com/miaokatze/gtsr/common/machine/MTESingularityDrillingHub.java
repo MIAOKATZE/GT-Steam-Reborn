@@ -343,7 +343,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                 .addElement('E', ofBlock(GregTechAPI.sBlockCasings3, 14))
                 .addElement(
                     'F',
-                    // 防爆玻璃：通过兼容层自动适配 beta-1（IC2 blockAlloyGlass）与 beta-2（GT5U sBlockGlass1 meta 10）
+                    // 防爆玻璃：三版共用 GregTechAPI.sBlockGlass1 meta10，现有门面直接读取
                     ofBlock(GTVersionCompat.getReinforcedGlassBlock(), GTVersionCompat.getReinforcedGlassMeta()))
                 .addElement('G', ofBlock(GregTechAPI.sBlockFrames, Materials.Steel.mMetaItemSubID))
                 .build();
@@ -1247,10 +1247,8 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
         return OVERLAY_ON;
     }
 
-    // beta-2 兼容：MTESteamMultiBlockBase 将 getActiveGlowOverlay/getInactiveGlowOverlay 改为 abstract
-    // 返回 Textures.BlockIcons.VOID（GT5U 官方"空纹理"常量，渲染器跳过 InvisibleIcon，无发光层）
-    // 不能返回 null，否则 beta-2 的 createTextureWithCasing 会导致 GTTextureBuilder.build() 抛出
-    // "iconContainer not specified!" 崩溃（创造物品栏渲染时触发）
+    // GT .265/.275/.277 的 MTESteamMultiBlockBase 均要求实现两个 glow overlay 钩子。
+    // 无发光层使用 Textures.BlockIcons.VOID，为原生纹理构造器提供非 null 图标。
     @Override
     protected IIconContainer getActiveGlowOverlay() {
         return Textures.BlockIcons.VOID;

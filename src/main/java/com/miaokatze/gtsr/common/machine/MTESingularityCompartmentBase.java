@@ -469,18 +469,9 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
 
     // ===== 客户端渲染同步（description packet）=====
 
-    /** getDescriptionData 增量：正面流体窗渲染状态（绑定 + 窗显示流体名——罐内流体或记忆流体）。 */
+    // ===== GTNH 2.9.0–2.9.2 四仓共用的客户端描述包增量 =====
 
-    /** onDescriptionPacket 增量：客户端渲染副本落地。 */
-
-    // ===== 客户端渲染同步（beta-3 stream：writeToStream/readFromStream 增量）=====
-
-    /**
-     * [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起 description packet 改走
-     * writeToStream/readFromStream 流路径，本助手承担四仓 stream 增量（正面流体窗渲染状态）。
-     * 字段序与 RC2 stream 两键一致（bound、fluid），与旧 NBT
-     * 路径同样无条件写全（fluid 空串也写长度前缀，无省略哨兵），与读侧严格对称。
-     */
+    /** customName UTF8 → bound bool → 窗显示流体名 UTF8（罐内流体或记忆流体）；空串也写长度。 */
     default void writeCompartmentToStream(ByteBuf buf) {
         HubCompartmentState s = getHubState();
         ByteBufUtils.writeUTF8String(buf, getCustomName());
@@ -488,11 +479,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         ByteBufUtils.writeUTF8String(buf, getDisplayedWindowFluidName());
     }
 
-    /**
-     * [GT-compat] beta 兼容层（beta1/beta2/beta3）：readFromStream 增量，客户端渲染副本落地。
-     * 与 RC2 stream 对称读（bound bool → fluid UTF8 名），但
-     * 不调 issueTextureUpdate——beta-3 流路径的贴图刷新时机由基类统一负责，助手只落状态。
-     */
+    /** 与写侧对称，只更新客户端副本；描述包读完后由 GT 基座统一刷新纹理。 */
     default void readCompartmentFromStream(ByteBuf buf) {
         HubCompartmentState s = getHubState();
         s.customName = ByteBufUtils.readUTF8String(buf);
@@ -573,8 +560,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
      * 顶面 [近亲基材, 框架]（无流体窗，俯视即可区分收/发仓）；正面三层
      * [近亲基材, 流体窗（罐内流体/枢纽类型默认，未绑定也使用默认流体）, 语义固定框架]；其余面近亲基类材质原样。
      * 底材结构成型时跟随结构，未成型回退 LV。
-     * v1.10.89：底材经兼容层反射读取（beta-2 MTEHatch#getCasingTexture 为 beta-2-only 符号，
-     * beta-1 无 ICasingTextureProvider 接口，恒回退 LV 机壳=v1.10.83 前行为）。
+     * 底材由现有门面直接调用三版共有的 MTEHatch#getCasingTexture；原生未设态返回 null 时回退 LV。
      */
     default ITexture[] buildCompartmentTextures(ITexture[] kinTextures, ForgeDirection side, ForgeDirection facing,
         int colorIndex) {
