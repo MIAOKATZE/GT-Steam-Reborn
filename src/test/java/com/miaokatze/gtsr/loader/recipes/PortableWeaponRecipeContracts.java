@@ -35,7 +35,7 @@ import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTRecipeBuilder;
 
 /**
- * Production registration and native GT .265 lookup with isolated item identities and three source-equivalent
+ * Production registration and native GT .277 lookup with isolated item identities and three source-equivalent
  * schematic recipes. No FML mod lifecycle, game, complete modpack recipe graph or third-party transformer runs.
  */
 public final class PortableWeaponRecipeContracts {
@@ -65,7 +65,7 @@ public final class PortableWeaponRecipeContracts {
             RecipeMaps.assemblerRecipes.getAllRecipes()
                 .isEmpty(),
             "fixture starts with an empty assembler map");
-        // GT .265 AssemblerRecipes.java:974-1002. These are fixtures, not an invocation of the upstream loader.
+        // GT .277 AssemblerRecipes.java:974-1002. These are fixtures, not an invocation of the upstream loader.
         GTRecipe[] schematics = { schematic(Materials.Steel, Materials.LV, 4, 4, 600, 15),
             schematic(Materials.Aluminium, Materials.MV, 3, 2, 300, 30),
             schematic(Materials.StainlessSteel, Materials.HV, 2, 1, 150, 48) };
@@ -263,7 +263,7 @@ public final class PortableWeaponRecipeContracts {
         // The published dev jar inlines/removes GT_Version; its Mod annotation retains the actual artifact version.
         String version = GTMod.class.getAnnotation(cpw.mods.fml.common.Mod.class)
             .version();
-        check(version.contains("5.09.54.265"), "native GT dependency is .265: " + version);
+        check("5.09.54.277".equals(version), "native GT dependency is .277: " + version);
         System.out.println(
             "SOURCE GT " + GTRecipe.class.getProtectionDomain()
                 .getCodeSource()

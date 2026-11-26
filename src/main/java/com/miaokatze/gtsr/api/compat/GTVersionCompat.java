@@ -14,7 +14,7 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
 
-/** Small RC2 API facade. No version detection, reflection fallback or routine diagnostics. */
+/** Stable public facade for GTNH 2.9.0–2.9.2. Environment checks belong to bootstrap. */
 public final class GTVersionCompat {
 
     private GTVersionCompat() {}
@@ -52,7 +52,7 @@ public final class GTVersionCompat {
             case "chemicalDehydratorNonCellRecipes" -> RecipeMaps.chemicalDehydratorNonCellRecipes;
             case "multiblockRockBreakerRecipes" -> RecipeMaps.multiblockRockBreakerRecipes;
             case "simpleWasherRecipes" -> RecipeMaps.simpleWasherRecipes;
-            default -> throw new IllegalArgumentException("Unknown RC2 recipe map: " + fieldName);
+            default -> throw new IllegalArgumentException("Unknown GregTech recipe map: " + fieldName);
         };
     }
 
