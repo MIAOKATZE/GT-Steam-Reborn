@@ -274,9 +274,14 @@ public final class WandNet {
 
     private static boolean usable(EntityPlayerMP player, IGregTechTileEntity base) {
         return base != null && base.canAccessData()
-            && base.isUseableByPlayer(player)
             && base.getWorld() == player.worldObj
-            && player.getDistanceSq(base.getXCoord() + 0.5, base.getYCoord() + 0.5, base.getZCoord() + 0.5) <= 64;
+            && player.getDistanceSq(base.getXCoord() + 0.5, base.getYCoord() + 0.5, base.getZCoord() + 0.5) <= 64
+            // GT's inventory usability query claims an unowned tile. A handheld inspection of a
+            // critical machine must use its read-only shared gate, as the direct item route does.
+            && (base.getMetaTileEntity() instanceof com.miaokatze.gtsr.common.machine.MTECriticalMachine critical
+                ? critical.getCriticalState()
+                    .canUse(player)
+                : base.isUseableByPlayer(player));
     }
 
     public static final class ServerDrain {
@@ -309,8 +314,7 @@ public final class WandNet {
                         || !player.worldObj.blockExists(target.x, target.y, target.z)) continue;
                     if (player.worldObj.getTileEntity(target.x, target.y, target.z) instanceof IGregTechTileEntity base
                         && base.getMetaTileID() == target.metaId
-                        && usable(player, base))
-                        HubTerminal.openMachineTerminal(player, base);
+                        && usable(player, base)) HubTerminal.openMachineTerminal(player, base);
                     continue;
                 }
                 if (!(held.getItem() instanceof SingularityTuningWand)) continue;
@@ -340,7 +344,8 @@ public final class WandNet {
                     if (profile.values.length == 0) {
                         MachineDebugRegistry.selectFamily(held, adapter);
                         SESSIONS.remove(player.getUniqueID());
-                    } else if (!adapter.family().equals(MachineDebugRegistry.activeFamily(held))
+                    } else if (!adapter.family()
+                        .equals(MachineDebugRegistry.activeFamily(held))
                         || !MachineDebugRegistry.writeProfile(held, adapter, null, profile.values)) continue;
                     player.inventoryContainer.detectAndSendChanges();
                 }
@@ -419,7 +424,8 @@ public final class WandNet {
                     .getMetaTileEntity() != session.meta()
                 || !usable(player, session.base())) return;
             var adapter = MachineDebugRegistry.findActive(
-                held, session.base()
+                held,
+                session.base()
                     .getMetaTileEntity());
             if (adapter == null || !adapter.canUse(
                 session.base()
