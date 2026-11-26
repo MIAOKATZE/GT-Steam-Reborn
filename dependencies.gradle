@@ -85,6 +85,7 @@ dependencies {
 // Shared library API; immutable candidate versions may be supplied for isolated integration builds.
 dependencies {
     // The two authored machine pages use the shared native page and chart API.
+    // Public compile API baseline only; Forge/FPL runtime minimum is 0.2.31.
     def coreVersion = project.findProperty("miaokatzeCoreVersion") ?: "0.2.29"
     def coreDevJar = project.findProperty("miaokatzeCoreDevJar")
     if (coreDevJar) {

@@ -943,7 +943,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
                     + "64s\u21921s"
                     + EnumChatFormatting.GRAY
                     + StatCollector.translateToLocal("gtsr.tooltip.ammonia_plant.catalyst_detail.3"))
-            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            // GT .265/.275/.277 共用 beginStructureBlock(width, height, length, hollow) 参数序。
             .beginStructureBlock(13, 14, 10, false)
             .addCasingInfoMin(
                 StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),

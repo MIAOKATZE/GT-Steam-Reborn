@@ -14,7 +14,11 @@ import gregtech.api.metatileentity.implementations.MTEHatch;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
 
-/** Stable public facade for GTNH 2.9.0–2.9.2. Environment checks belong to bootstrap. */
+/**
+ * GTNH 2.9.0–2.9.2 shared public API facade, checked against GT5U .265/.275/.277.
+ * These calls use the same modern symbols on all three versions; no runtime probing or fallback is needed.
+ * Keep existing public signatures for callers. Environment reporting belongs to bootstrap.
+ */
 public final class GTVersionCompat {
 
     private GTVersionCompat() {}
@@ -41,6 +45,7 @@ public final class GTVersionCompat {
         return Textures.BlockIcons.customAlpha(domain, path);
     }
 
+    /** Legacy GT++ map names now resolve directly to the shared RecipeMaps fields; unknown names fail explicitly. */
     public static RecipeMap<?> gppRecipeMap(String fieldName) {
         return switch (fieldName) {
             case "rocketFuels" -> RecipeMaps.rocketFuels;

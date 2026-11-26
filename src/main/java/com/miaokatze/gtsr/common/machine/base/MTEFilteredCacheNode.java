@@ -493,9 +493,8 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     }
 
     /**
-     * GUI 窗口标题：有自定义名时优先显示自定义名，否则回退父类默认本地化名。
-     * 与 MTERemoteWorkerNode.getLocalName 同理：MUI1 主窗口双端各自构建，
-     * 客户端名字依赖 description packet 同步（见本类 getDescriptionData/onDescriptionPacket）。
+     * 本地化名称：有自定义名时优先显示自定义名，否则回退父类默认名。
+     * 客户端自定义名由本类 writeToStream/readFromStream 随 GT 描述包同步。
      */
     @Override
     public String getLocalName() {
@@ -728,19 +727,11 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
         }
     }
 
-    // ===== 自定义名客户端同步（description packet）=====
-    // GT5U 机制：CommonBaseMetaTileEntity.getDescriptionPacket 调 IMetaTileEntity.getDescriptionData()，
-    // 非 null 返回值作为 "mte" 标签随 S35PacketUpdateTileEntity 发出；客户端 onDataPacket 回调
-    // onDescriptionPacket()。初始区块同步与 issueTileUpdate() 触发的重发都走此链路。
-    // 注意必须始终返回非 null：返回 null 时客户端收不到回调，「清除自定义名」将无法同步到客户端。
-    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-1/2 运行时经虚分派继续生效；beta-3 走 writeToStream/readFromStream，正式版发布时移除本分支
-
-    // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-1/2 运行时经虚分派继续生效；beta-3 走 writeToStream/readFromStream，正式版发布时移除本分支
-
-    // [GT-compat] beta-3 ByteBuf 同步链（CommonBaseMetaTileEntity.writeDescriptionBuffer/readDescriptionBuffer
-    // → 本方法对）：字段与上面 NBT 版逐一对应，写读逐字节对称（bool 哨兵 + writeUTF8String）；
-    // 纹理刷新由基座 readDescriptionBuffer 尾部自动 issueTextureUpdate，此处不重复调用；
-    // super 为接口 default 空体（父链无中间覆写），调用无害且防将来父类加字段。
+    // ===== GTNH 2.9.0–2.9.2 客户端描述包同步（GT .265/.275/.277）=====
+    // CommonBaseMetaTileEntity 先写基座数据，再调用本方法；S35 的 NBT "X" 承载 ByteBuf 字节。
+    // 读侧调用 readFromStream 后由基座 issueTextureUpdate；这里保留 super 前缀并对称追加字段。
+    // 自定义名使用 bool 哨兵 + UTF8；false 明确清空客户端旧名。
+    // 后续依次写绑定、输出模式、枢纽类型和窗口流体名；空字符串同样写入长度前缀。
     @Override
     public void writeToStream(ByteBuf buf) {
         super.writeToStream(buf);

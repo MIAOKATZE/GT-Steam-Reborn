@@ -438,7 +438,7 @@ public class MTEDenseStateManipulator extends MTESingularityMachineBase implemen
         MultiblockTooltipBuilder tt = super.createTooltip();
         tt.addInfo(EnumChatFormatting.LIGHT_PURPLE + StatCollector.translateToLocal(keyPrefix + "desc7"));
         tt.addSeparator()
-            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            // GT .265/.275/.277 共用 beginStructureBlock(width, height, length, hollow) 参数序。
             .beginStructureBlock(30, 11, 21, false)
             .addController(StatCollector.translateToLocal(keyPrefix + "ctrl"))
             .addCasingInfoMin(StatCollector.translateToLocal("gt.blockcasings8.6.name"), MIN_CASINGS, false)

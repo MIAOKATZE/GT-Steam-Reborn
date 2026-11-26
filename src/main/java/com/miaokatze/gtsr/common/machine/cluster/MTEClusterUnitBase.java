@@ -334,7 +334,7 @@ public abstract class MTEClusterUnitBase<T extends MTEClusterUnitBase<T>> extend
     }
 
     /**
-     * 防爆玻璃元素（r9 helper：加工族 E 位共用，经 GTVersionCompat 双版本适配：beta-1 为 IC2 blockAlloyGlass:0，beta-2 为 gt.blockglass1:10）。
+     * 防爆玻璃元素：加工族 E 位共用，GTNH 2.9.0–2.9.2 均直接读取 sBlockGlass1:10。
      */
     @SuppressWarnings("rawtypes")
     protected IStructureElement glassElement() {

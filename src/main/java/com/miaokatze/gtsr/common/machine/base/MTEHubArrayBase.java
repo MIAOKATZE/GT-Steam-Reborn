@@ -953,16 +953,10 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         super.registerIcons(aBlockIconRegister);
     }
 
-    // [GT-compat] beta-1/2 NBT 描述包路径：beta-3 删除父类同名方法后去 @Override（编译期不再覆写
-    // 任何父类方法），beta-1/2 运行时仍经虚分派覆写父类；super 落到 MTEGTSRMultiBlockBase 垫片，
-    // 由垫片承住 beta-2 父类的 center/朝向键（radius 见垫片注释的降级说明）。
-
     /**
-     * [GT-compat] beta-3 流同步路径：首行 super 承住 MTEEnhancedMultiBlockBase 的
-     * center XYZ float×3 + radius int + 朝向 byte（beta-3 :553-560 顺序），本类追加
-     * mSetTier int + hubFluid UTF8 串。与旧 NBT 路径同策略无条件写全（fluid 空串也写长度
-     * 前缀，无省略哨兵——NBT getString 对缺键本就返回空串），读侧严格对称；beta-1/2 运行时
-     * gregtech.api 无任何流调用方，本对方法为死代码。
+     * GTNH 2.9.0–2.9.2 共用 ByteBuf 描述包路径（GT .265/.275/.277）。
+     * super 保留 Enhanced 基类的 center XYZ float×3、radius int、朝向 byte 前缀；
+     * 本类再追加 mSetTier int、显示流体名 UTF8，空串也写长度前缀；读侧顺序必须一致。
      */
     @Override
     public void writeToStream(ByteBuf buf) {
@@ -971,10 +965,7 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
         ByteBufUtils.writeUTF8String(buf, displayFluidNameForSync());
     }
 
-    /**
-     * [GT-compat] beta-3 流读侧：与 {@link #writeToStream(ByteBuf)} 对称（int tier → UTF8 fluid），
-     * 不调 issueTextureUpdate——beta-3 流路径的贴图刷新时机由基类统一负责（同四仓 stream 增量约定）。
-     */
+    /** 与写侧对称读取；CommonBaseMetaTileEntity.readDescriptionBuffer 在读完后统一刷新纹理。 */
     @Override
     public void readFromStream(ByteBuf buf) {
         super.readFromStream(buf);

@@ -16,7 +16,12 @@ import com.miaokatze.gtsr.common.machine.base.MTEFilteredCacheNode;
 import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.common.gui.modularui.singleblock.base.MTEDigitalTankBaseGui;
 
-/** Cache-node GUI for GTNH 2.9.0–2.9.2; both upstream hooks share the same filtered slot. */
+/**
+ * Cache-node GUI for GTNH 2.9.0–2.9.2 (GT5U .265/.275/.277).
+ * .265 dispatches createFluidSlot(panel, syncManager, tank); .275/.277 dispatch createSlot(panel, syncManager).
+ * Both hooks build the same filtered slot locally: a super call would link a descriptor absent on the other API.
+ * Remove the three-argument bridge only when the supported baseline excludes GTNH 2.9.0 / GT .265.
+ */
 public class MTEFilteredCacheNodeGui extends MTEDigitalTankBaseGui<MTEFilteredCacheNode> {
 
     public MTEFilteredCacheNodeGui(MTEFilteredCacheNode machine) {
@@ -28,7 +33,9 @@ public class MTEFilteredCacheNodeGui extends MTEDigitalTankBaseGui<MTEFilteredCa
         return createFilteredSlot();
     }
 
-    // GT .265 dispatches this exact descriptor; it no longer exists in the .277 superclass.
+    // Intentionally no @Override: absent from the .275/.277 compile-time superclass, but the same descriptor
+    // still overrides the .265 runtime hook by JVM virtual dispatch. The supplied tank is replaced with the
+    // machine-backed adapter below so capacity, fill/drain, filtering and setLockIfEmpty stay identical.
     protected FluidSlot createFluidSlot(ModularPanel panel, PanelSyncManager syncManager, IFluidTank fluidTank) {
         return createFilteredSlot();
     }

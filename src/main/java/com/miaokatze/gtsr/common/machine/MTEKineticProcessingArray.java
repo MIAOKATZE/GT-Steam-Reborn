@@ -205,8 +205,7 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
 
         @Override
         public String getDisplayName() {
-            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：正式版发布时移除本分支并切换至最新 API
-            // GTUtility.translate 在 GT5U beta-3 中已移除，改用 1.7.10 原版 StatCollector 单参保真
+            // 使用 1.7.10 原版 StatCollector 单参翻译；GTNH 2.9.0–2.9.2 共用此调用。
             return StatCollector.translateToLocal(translationKey);
         }
 
@@ -555,11 +554,9 @@ public class MTEKineticProcessingArray extends MTEGTSRMultiBlockBase<MTEKineticP
      * GT++ 工业脱水机（与 GT5U/GT++ 官方多方块实现同表驱动）。
      * 其他机器（如打包机、酿造机）保持原配方表不变（官方多方块同表）。
      * <p>
-     * [GT-compat] beta 兼容层（beta1/beta2/beta3）：正式版发布时移除本分支并切换至最新 API。
-     * GTPPRecipeMaps 类在 GT5U beta-3 中被删除（7 个配方映射字段迁入 gregtech.api.recipe.RecipeMaps，
-     * 字段名类型不变），故 GT++ 配方映射字段引用经 {@link GTVersionCompat#gppRecipeMap(String)} 反射
-     * 双宿主按序探测；探测失败返回 null 时：比较分支因 original 非空前置判空天然不匹配（引用相等无 NPE），
-     * 返回分支返回 null 使机器退回"无配方表"待机（checkInternalMachine 对 recipeMap==null 自愈重查）。
+     * GTNH 2.9.0–2.9.2 的这些配方图均位于 RecipeMaps（GT .265/.275/.277）。
+     * 现有 {@link GTVersionCompat#gppRecipeMap(String)} 门面直接读取公开字段；
+     * 不探测旧宿主、不吞链接异常。只有输入 original 本身为空时，此方法返回 null。
      * </p>
      */
     private static RecipeMap<?> mapToMultiblockRecipeMap(@Nullable RecipeMap<?> original) {

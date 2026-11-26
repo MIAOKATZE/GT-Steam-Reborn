@@ -21,9 +21,8 @@ import gregtech.api.recipe.RecipeMaps;
  * 物流链步不设本枚举项（物流由总控物流单元直接承担）：其基础耗时见
  * {@link ClusterParams#LOGISTICS_TIME_SEC}，无蒸汽消耗。
  * <p>
- * SIMPLE_WASH（简易洗矿）依赖 GT++ 的 simpleWasherRecipes 配方图；GTSR 对 GT++ 无编译期依赖，
- * 故经懒反射探测（见 {@link #getRecipeMap()}）：无 GT++ 时该步配方图缺失，链路不设单独可用性
- * 门控，执行侧按无配方透传；探测一次性失败即永久缓存缺失，不抛错、不重试。
+ * SIMPLE_WASH（简易洗矿）使用 GTNH 2.9.0–2.9.2 共有的 RecipeMaps.simpleWasherRecipes，
+ * 经现有静态门面取得；不探测独立 GT++ 类，也不把 API 链接失败转成“无配方”透传。
  */
 public enum ChainLink {
 
@@ -33,7 +32,7 @@ public enum ChainLink {
     /** 锻造：矿物锤锻成形。 */
     HAMMER(4, 8000),
 
-    /** 简易洗矿（GT++）：轻量水洗；依赖 GT++ simpleWasherRecipes，无 GT++ 时该步配方图缺失、执行透传。 */
+    /** 简易洗矿：轻量水洗，使用 GT5U 内置的 simpleWasherRecipes 配方图。 */
     SIMPLE_WASH(4, 200),
 
     /** 矿石清洗：洗去碎矿表面杂质。 */
@@ -67,10 +66,10 @@ public enum ChainLink {
     /** tick 与秒换算基准（20t = 1s）。 */
     public static final int TICKS_PER_SECOND = 20;
 
-    /** GT++ 简易洗矿配方图的懒缓存：探测成功前为 {@code null}，失败后永久为 {@code null}。 */
+    /** 简易洗矿配方图的首次读取缓存：读取前为 {@code null}，读取时直接引用公开字段。 */
     private static RecipeMap<?> simpleWasherMap;
 
-    /** GT++ 简易洗矿配方图是否已完成一次性探测（无论成败只探测一次，不重试）。 */
+    /** 保留既有首次读取标记；此处没有反射探测或异常回退。 */
     private static boolean simpleWasherProbed;
 
     /** 该链步无加速时的基础耗时（tick，20t = 1s）。 */
@@ -157,7 +156,7 @@ public enum ChainLink {
     }
 
     /**
-     * @return 该链步绑定的 GT 配方图；{@code SIMPLE_WASH} 经懒反射探测 GT++，缺失时返回 {@code null}
+     * @return 该链步绑定的 GT 配方图；{@code SIMPLE_WASH} 同样使用三版共有的公开配方图
      */
     public RecipeMap<?> getRecipeMap() {
         switch (this) {
@@ -188,15 +187,8 @@ public enum ChainLink {
     }
 
     /**
-     * 探测并返回 GT++ 的简易洗矿机配方图。
-     * <p>
-     * [GT-compat] beta 兼容层（beta1/beta2/beta3）：正式版发布时移除本分支并切换至最新 API。
-     * GTPPRecipeMaps 类在 GT5U beta-3 中被删除（字段迁入 gregtech.api.recipe.RecipeMaps，字段名不变），
-     * 故委托 {@link GTVersionCompat#gppRecipeMap(String)} 反射双宿主按序探测（其内部已吞异常并缓存
-     * 双失败终态）；本方法保留 simpleWasherProbed 一次性探测语义，探测失败仍返回 null
-     * （SIMPLE_WASH 链透传，调用方已有 null 处理），不崩、不重试。
-     *
-     * @return GT++ 简易洗矿配方图；GT++ 不存在或字段不可用时为 {@code null}
+     * 经 {@link GTVersionCompat#gppRecipeMap(String)} 直接读取三版共有的 simpleWasherRecipes。
+     * 保留既有首次读取缓存；它不是反射探测，也不吞异常或为不支持的 API 提供 null 回退。
      */
     private static RecipeMap<?> getSimpleWasherMap() {
         if (!simpleWasherProbed) {

@@ -57,14 +57,9 @@ public final class CityBlockResolver implements BlockSink {
      * GT5U 防爆玻璃（逻辑键，非注册名；游戏侧 = {@code GregTechAPI.sBlockGlass1} meta10，
      * 注册证据 {@code BlockGlass1.java:43}）。
      * <p>
-     * <b>为什么直引字段而不是走 {@code GTVersionCompat.getReinforcedGlassBlock()}</b>：那个访问器的
-     * beta-1 分支要 {@code GameRegistry.findBlock("IC2", ...)} 且其静态初始化读 FML
-     * {@code Loader.instance()}——本仓的离线断言链（{@code RuinFamilyCheck} 的 C 组就是这个形状）
-     * 要在无 Forge 装配的 JVM 里 {@code new CityBlockResolver(...)}，拖进那条静态链会直接
-     * {@code ExceptionInInitializerError}。本项目按 {@code AGENTS.md} 绑定 beta-3 映射 ⇒
-     * {@code sBlockGlass1} 就是当前环境的正解；万一跑在 beta-1 包上，本字段为 null，
-     * 走下面既有的"不 put ⇒ resolve 落空 ⇒ 调用方跳过该部件"防御链（巨构少几格玻璃，不炸生成链）。
-     * 这一条登记在本片回执的"未闭合边界"里。
+     * 与 GTVersionCompat 相同，GTNH 2.9.0–2.9.2 直接使用此字段，不按版本选择 IC2 方块。
+     * 解析表仅在游戏放置路径延迟初始化；离线形状构造不需触碰 GT 注册状态。
+     * 初始化时字段为空则不登记，resolve 落空后由调用方跳过该部件；这不是已验收的替代整包支持。
      */
     public static final String K_GT_GLASS = "gt5u:ReinforcedGlass";
 

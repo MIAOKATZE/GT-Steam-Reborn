@@ -365,7 +365,7 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
     @Nullable
     public static Integer getGlassTier(Block block, int meta) {
         if (block == Blocks.glass && meta == 0) return 1;
-        // 防爆玻璃：通过兼容层自动适配 beta-1（IC2 blockAlloyGlass）与 beta-2（GT5U sBlockGlass1 meta 10）
+        // 防爆玻璃：三版共用 GregTechAPI.sBlockGlass1 meta10，现有门面直接读取
         if (block == GTVersionCompat.getReinforcedGlassBlock() && meta == GTVersionCompat.getReinforcedGlassMeta())
             return 2;
         return null;
@@ -489,7 +489,7 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
                         MTELargeSolarOverpressureArray::getGlassTier,
                         ImmutableList.of(
                             Pair.of(Blocks.glass, 0),
-                            // 防爆玻璃：通过兼容层自动适配 beta-1（IC2 blockAlloyGlass）与 beta-2（GT5U sBlockGlass1 meta 10）
+                            // 防爆玻璃：三版共用 GregTechAPI.sBlockGlass1 meta10，现有门面直接读取
                             Pair.of(
                                 GTVersionCompat.getReinforcedGlassBlock(),
                                 GTVersionCompat.getReinforcedGlassMeta())),
@@ -899,7 +899,7 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
                     + " ("
                     + StatCollector.translateToLocal("gtsr.tooltip.solar_array.superheated_steam")
                     + ")")
-            // [GT-compat] beta 兼容层（beta1/beta2/beta3）：beta-3 起始参数序为 (w,h,l)，实参已按 beta-3 语义排列
+            // GT .265/.275/.277 共用 beginStructureBlock(width, height, length, hollow) 参数序。
             .beginStructureBlock(27, 7, 30, false)
             .addCasingInfoMin(
                 StatCollector.translateToLocal("gtsr.tooltip.shared.mechanical_casing"),
