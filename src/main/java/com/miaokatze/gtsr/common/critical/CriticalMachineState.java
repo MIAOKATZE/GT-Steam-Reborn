@@ -157,6 +157,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         0,
         0,
         0);
+    // Persisted construction actor and region/journal identity, never an exclusive device user.
+    // Retain the historical ownerUuid key so existing paid jobs keep their edit-permission actor.
     private String owner = "", structureId = "", jobId = "", batchId = "";
     private String status = "待配置";
     private String runtimeBlockerKey = "";
@@ -1306,13 +1308,10 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return Math.min(blockWorldZ(0, 0), blockWorldZ(max, max));
     }
 
-    /** Ownership/loom contract independent of distance and any current GUI session. */
+    /** Shared device access, independent of distance/session; passive mains still route to their loom journal. */
     public boolean permitsTerminalAccess(EntityPlayer p) {
-        return !loomOwnedMain && p != null
-            && !p.isDead
-            && (owner.isEmpty() || owner.equals(
-                p.getUniqueID()
-                    .toString()));
+        // A saved construction actor must never lock ordinary GUI, terminal or dismantle actions.
+        return !loomOwnedMain && p != null && !p.isDead;
     }
 
     public boolean canUse(EntityPlayer p) {
@@ -1814,14 +1813,9 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return true;
     }
 
-    /** A copied passive main has no journal to cancel. Only its authorized owner may remove an empty copy. */
+    /** Any nearby player may remove an empty orphan; retained journal assets still prohibit removal. */
     public boolean canRemoveOrphanedMain(EntityPlayer player) {
-        return loomOwnedMain && hasNoJournalAssets()
-            && player != null
-            && isUseableByPlayer(player)
-            && (owner.isEmpty() || owner.equals(
-                player.getUniqueID()
-                    .toString()));
+        return loomOwnedMain && hasNoJournalAssets() && player != null && isUseableByPlayer(player);
     }
 
     private boolean hasNoJournalAssets() {
@@ -4284,10 +4278,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     public boolean isUseableByPlayer(EntityPlayer p) {
         return p != null && !p.isDead
             && worldObj != null
+            && p.worldObj == worldObj
             && worldObj.getTileEntity(xCoord, yCoord, zCoord) == host
-            && (owner.isEmpty() || owner.equals(
-                p.getUniqueID()
-                    .toString()))
             && (p.getDistanceSq(xCoord + .5, yCoord + .5, zCoord + .5) <= 64 || isNearLinkedLoom(p));
     }
 

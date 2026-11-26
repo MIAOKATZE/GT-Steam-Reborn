@@ -116,6 +116,7 @@ public final class MachineTerminalRemoteContract {
             visitor.worldObj = world;
             check("ready".equals(MachineTerminalHistory.status(visitor, entry)),
                 "A machine with a recorded owner but no native lock allows other eligible visitors, even with the owner session present");
+            sharedCriticalAccess(player, visitor, world, original);
             field(original, BaseMetaTileEntity.class, "mLockUpgrade", true);
             check("denied".equals(MachineTerminalHistory.status(visitor, entry)),
                 "Native GT lock still rejects a nonowner");
@@ -170,6 +171,66 @@ public final class MachineTerminalRemoteContract {
         System.out.println("PASS MachineTerminalRemoteContract checks=" + checks + " (detached models; no live Mixin/UI assertion)");
     }
 
+    /** Execute actual state and packet-route gates against two detached real player/GT instances. */
+    private static void sharedCriticalAccess(EntityPlayerMP player, EntityPlayerMP visitor, SparseWorld world,
+        Target target) throws Exception {
+        int before = checks;
+        CriticalMachineState state = target.machine.getCriticalState();
+        field(state, CriticalMachineState.class, "owner", player.getUniqueID().toString());
+        check(state.permitsTerminalAccess(visitor), "Saved construction actor must not lock another terminal user");
+        check(MachineTerminalHistory.authorized(visitor, target), "History accepts another player's saved critical job");
+        double px = player.posX, py = player.posY, pz = player.posZ;
+        for (EntityPlayerMP actor : new EntityPlayerMP[] { player, visitor }) {
+            actor.posX = target.xCoord + .5; actor.posY = target.yCoord + .5; actor.posZ = target.zCoord + .5;
+            check(state.isUseableByPlayer(actor) && target.machine.isAccessAllowed(actor),
+                "Both nearby players can use the real critical inventory and ordinary machine gate");
+        }
+        NBTTagCompound saved = new NBTTagCompound();
+        state.writeToNBT(saved);
+        CriticalMachineState restored = new CriticalMachineState();
+        restored.readFromNBT(saved); restored.bindHost(target);
+        field(target.machine, MTECriticalMachine.class, "state", restored);
+        check(restored.canUse(visitor), "Reload preserves shared access to an already-owned saved machine");
+        field(restored, CriticalMachineState.class, "owner", "LegacyBuilderName");
+        check(restored.canUse(visitor), "Legacy actor names do not lock an existing machine");
+
+        Field name = BaseMetaTileEntity.class.getDeclaredField("mOwnerName"); name.setAccessible(true);
+        Field uuid = BaseMetaTileEntity.class.getDeclaredField("mOwnerUuid"); uuid.setAccessible(true);
+        Object previousName = name.get(target), previousUuid = uuid.get(target);
+        name.set(target, ""); uuid.set(target, null);
+        java.lang.reflect.Method usable = com.miaokatze.gtsr.common.network.WandNet.class
+            .getDeclaredMethod("usable", EntityPlayerMP.class, gregtech.api.interfaces.tileentity.IGregTechTileEntity.class);
+        usable.setAccessible(true);
+        check((Boolean) usable.invoke(null, visitor, target), "Packet terminal route accepts another nearby player");
+        check("".equals(name.get(target)) && uuid.get(target) == null,
+            "Packet terminal inspection never invokes GT's owner-claiming inventory gate");
+        name.set(target, previousName); uuid.set(target, previousUuid);
+
+        field(restored, CriticalMachineState.class, "loomOwnedMain", true);
+        check(restored.canRemoveOrphanedMain(visitor), "Another player may remove an empty orphan with a legacy actor");
+        field(restored, CriticalMachineState.class, "jobId", "retained-job");
+        check(!restored.canRemoveOrphanedMain(visitor), "Retained job identity still prevents asset-discarding removal");
+        field(restored, CriticalMachineState.class, "jobId", "");
+        field(restored, CriticalMachineState.class, "loomOwnedMain", false);
+        visitor.posX += 16;
+        check(!restored.canUse(visitor), "Shared access retains the local range limit without a grant");
+        visitor.posX -= 16;
+        visitor.isDead = true;
+        check(!restored.canUse(visitor), "A dead player cannot use shared equipment"); visitor.isDead = false;
+        visitor.worldObj = (SparseWorld) unsafe.allocateInstance(SparseWorld.class);
+        check(!restored.canUse(visitor), "Equal coordinates in another world cannot authorize local access");
+        visitor.worldObj = world;
+        world.tile = null;
+        check(!restored.canUse(visitor), "A removed or replaced tile cannot authorize local access"); world.tile = target;
+        field(restored, CriticalMachineState.class, "resourceNbtQuarantine", new NBTTagCompound());
+        check(!restored.canUse(visitor), "Unknown retained resources still quarantine mutations");
+        field(target.machine, MTECriticalMachine.class, "state", state);
+        field(state, CriticalMachineState.class, "owner", "");
+        player.posX = px; player.posY = py; player.posZ = pz;
+        System.out.println("PASS sharedCriticalAccess checks=" + (checks - before)
+            + " (detached production gates; no game or successful GUI claim)");
+    }
+
     /** Grant validity now includes the issuing live connection, not merely item/player identity. */
     private static void connect(EntityPlayerMP player, WorldServer world) throws Exception {
         AuthorityServer server = (AuthorityServer) unsafe.allocateInstance(AuthorityServer.class);
@@ -178,7 +239,7 @@ public final class MachineTerminalRemoteContract {
         AuthorityConfiguration configuration = (AuthorityConfiguration) unsafe.allocateInstance(AuthorityConfiguration.class);
         field(configuration, net.minecraft.server.management.ServerConfigurationManager.class,
             "playerEntityList", new java.util.ArrayList<>());
-        server.setConfigManager(configuration);
+        field(server, net.minecraft.server.MinecraftServer.class, "serverConfigManager", configuration);
         configuration.playerEntityList.add(player);
         net.minecraft.network.NetHandlerPlayServer connection = (net.minecraft.network.NetHandlerPlayServer)
             unsafe.allocateInstance(net.minecraft.network.NetHandlerPlayServer.class);
@@ -201,7 +262,7 @@ public final class MachineTerminalRemoteContract {
         @Override protected boolean startServer() { return false; }
         @Override public boolean canStructuresSpawn() { return false; }
         @Override public net.minecraft.world.WorldSettings.GameType getGameType() { return null; }
-        @Override public net.minecraft.world.EnumDifficulty getDifficulty() { return null; }
+        @Override public net.minecraft.world.EnumDifficulty func_147135_j() { return null; }
         @Override public boolean isHardcore() { return false; }
         @Override public int getOpPermissionLevel() { return 0; }
         @Override public boolean isDedicatedServer() { return false; }

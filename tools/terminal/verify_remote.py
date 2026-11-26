@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -40,6 +41,7 @@ def main():
     parser.add_argument("--jar", required=True, type=Path, help="Candidate GTSR dev jar; the sole product CodeSource")
     parser.add_argument("--core-jar", type=Path, default=ROOT.parent / "MIAOKATZE-Core/build/v015/maven/com/miaokatze/miaokatzecore/miaokatzecore/0.1.15/miaokatzecore-0.1.15-dev.jar")
     parser.add_argument("--out", required=True, type=Path, help="Owned verification directory below this repository's build/")
+    parser.add_argument("--gtnh-version", choices=("2.9.0", "2.9.1", "2.9.2"), default="2.9.2")
     parser.add_argument("--java-bin", type=Path, default=Path.home() / ".gradle/jdks/azul_systems__inc_-17-amd64-windows.2/bin")
     args = parser.parse_args()
     candidate = args.jar.resolve(strict=True)
@@ -65,14 +67,12 @@ def main():
     hashes = {"candidate": sha256(candidate), "core": sha256(core),
         "testSources": {str(source.relative_to(ROOT)): sha256(source) for source in sources}}
 
-    # Correct GT205/MUI .92 versions precede other transitive cached jars. No product baseline,
+    # The selected official compatibility graph precedes other transitive cached jars. No product baseline,
     # source overlay, build/classes/java/main or build/libs enumeration is ever added.
-    fixed = [
-        dependency("com.github.GTNewHorizons", "GT5-Unofficial", "5.09.54.205"),
-        dependency("com.github.GTNewHorizons", "ModularUI2", "2.3.92-1.7.10"),
-        dependency("com.github.GTNewHorizons", "ModularUI", "1.3.4"),
-        dependency("com.github.GTNewHorizons", "Applied-Energistics-2-Unofficial", "rv3-beta-1080-GTNH"),
-    ]
+    profiles = json.loads((ROOT / "gradle/gtnh-compatibility.json").read_text(encoding="utf-8"))["profiles"]
+    profile = next(p for p in profiles if p["version"] == args.gtnh_version)
+    fixed = [dependency("com.github.GTNewHorizons", artifact, profile["dependencies"][artifact])
+        for artifact in ("GT5-Unofficial", "ModularUI2", "ModularUI", "Applied-Energistics-2-Unofficial")]
     blocked = ("gtsr", "gt-steam-reborn", "steamreborn", "miaokatzecore", "miaokatze-core", "jabel")
     dependencies = []
     for cache in CACHES:
@@ -82,7 +82,11 @@ def main():
     minecraft = [ROOT / "build/rfg/recompiled_minecraft-1.7.10.jar", ROOT / "build/rfg/mclauncher-1.7.10.jar"]
     if not minecraft[0].is_file():
         raise FileNotFoundError("A completed development build must provide recompiled_minecraft-1.7.10.jar")
-    entries = list(dict.fromkeys([classes, candidate, core, *fixed, *minecraft, *dependencies]))
+    # The build's patched MC classes provide its mapped engine aliases, never GTSR product classes.
+    patched_mc = ROOT / "build/classes/java/patchedMc"
+    if any((patched_mc / "com/miaokatze").rglob("*.class")):
+        raise AssertionError("Product classes found in the MC engine overlay")
+    entries = list(dict.fromkeys([classes, candidate, core, patched_mc, *fixed, *minecraft, *dependencies]))
     for entry in entries:
         if "build/classes/java/main" in entry.as_posix().lower():
             raise AssertionError("Product source overlay entered jar-only classpath")
@@ -113,13 +117,15 @@ def main():
     if hashes != {"candidate": sha256(candidate), "core": sha256(core),
         "testSources": {str(source.relative_to(ROOT)): sha256(source) for source in sources}}:
         raise RuntimeError("Candidate, Core or test source changed during verification")
-    if "PASS MachineTerminalRemoteContract checks=25" not in result:
-        raise AssertionError("Expected 25 detached authorization/NBT contracts")
+    summary = re.search(r"PASS MachineTerminalRemoteContract checks=(\d+)", result)
+    shared = re.search(r"PASS sharedCriticalAccess checks=(\d+)", result)
+    if not summary or not shared or int(summary[1]) < 40 or int(shared[1]) < 15:
+        raise AssertionError("Expected existing remote contracts and two-player shared-critical regression checks")
     receipt = {
-        "status": "PASS", "mode": "jar-only", "productOverlay": False, "compiledSources": [str(source) for source in sources],
+        "status": "PASS", "mode": "jar-only", "gtnhVersion": args.gtnh_version, "productOverlay": False, "compiledSources": [str(source) for source in sources],
         "candidateJar": str(candidate), "coreJar": str(core), "sha256": hashes, "classes": str(classes),
         "classCount": len(emitted), "result": result.strip(), "historyPanelResult": panel_result.strip(),
-        "scope": "25 real production authorization and NBT-codec checks with detached World/GT/player fixtures. "
+        "scope": "Real production shared access, authorization and NBT-codec checks with detached World/GT/player fixtures. "
             "FML Loader and side are isolated fixtures. BaseMetaTileEntity has NOT been transformed by Mixin; "
             "identity checks exercise the exact State.write/read codec used by production hooks. "
             "No live Mixin injection/startup, successful GUI opening, slot transaction, packet dispatch or client rendering claim.",

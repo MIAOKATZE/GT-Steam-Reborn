@@ -205,7 +205,9 @@ public final class CriticalLoomLifecycleContract {
         check(recovered.getString("ownerUuid").equals(actor.toString()) && !recovered.hasKey("owner"), "New persistence uses the UUID semantic key");
         copy.ownerName = "DifferentName";
         copy.machine.getLocalCriticalState().readFromNBT(legacyCopied);
-        check(!copy.machine.canRemoveOrphanedMain(player), "Mismatched GT owner name cannot authorize UUID recovery");
+        check(copy.machine.canRemoveOrphanedMain(player), "Unrecoverable legacy actor name cannot lock an empty orphan");
+        NBTTagCompound unrecovered = new NBTTagCompound(); copy.machine.getLocalCriticalState().writeToNBT(unrecovered);
+        check(unrecovered.getString("ownerUuid").equals("BlueprintActor"), "Shared access does not invent a legacy actor UUID");
         copy.ownerName = "BlueprintActor";
         legacyCopied.setString("jobId", "protected-job");
         copy.machine.getLocalCriticalState().readFromNBT(legacyCopied);
