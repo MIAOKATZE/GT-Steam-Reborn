@@ -19,6 +19,8 @@ import time
 import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT.parent / 'tools/testlab'))
+import host
 KEYS = ('center', 'heavy', 'mega', 'critical_turbine')
 MAX_JOURNAL_BYTES = 64 * 1024 * 1024
 
@@ -264,7 +266,7 @@ def main(argv=None):
     parser.add_argument('--bundle', type=Path, required=True)
     parser.add_argument('--case', choices=KEYS, required=True)
     parser.add_argument('--phase', choices=('both', 'prepare', 'resume'), default='both')
-    parser.add_argument('--heap-mib', type=int, default=4096)
+    parser.add_argument('--heap-mib', type=int, choices=[host.HEAP_MIB], default=host.HEAP_MIB)
     parser.add_argument('--timeout', type=int, default=1800)
     parser.add_argument('--evidence', type=Path)
     parser.add_argument('--execute', action='store_true')

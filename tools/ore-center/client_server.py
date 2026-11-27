@@ -4,7 +4,6 @@ import argparse
 from contextlib import ExitStack
 import json
 from pathlib import Path
-import re
 import socket
 import subprocess
 import sys
@@ -43,10 +42,10 @@ def ready(port):
 
 
 def memory_budget():
-    query = '(Get-CimInstance Win32_OperatingSystem).FreeVirtualMemory'
-    free_commit_kib = subprocess.check_output(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', query],
-                                             text=True, timeout=20, creationflags=subprocess.CREATE_NO_WINDOW)
-    return {'availablePhysicalBytes': host.available_memory(), 'availableCommitBytes': int(free_commit_kib.strip()) * 1024}
+    # Both children share one system reserve; check before either JVM starts.
+    return {'availablePhysicalBytes': host.require_memory(jvms=2),
+            'requiredBytes': host.required_memory(jvms=2), 'jvms': 2,
+            'heapGiB': host.HEAP_GIB, 'reserveGiB': host.SYSTEM_RESERVE_GIB}
 
 
 def server_ready(evidence, run_id, port):
@@ -113,21 +112,13 @@ def run(args):
     for item, name in ((server_item, 'server'), (client_item, 'client')):
         if host.recovery_pending(item) or (item['_path'] / '.testlab-host/lease.json').exists():
             raise RuntimeError(f'Registered {name} is leased or has recovery pending')
-        java = Path(item[name + '_java']).with_name('java.exe')
-        version = subprocess.run([str(java), '-version'], capture_output=True, text=True, check=True, timeout=20,
-                                 creationflags=subprocess.CREATE_NO_WINDOW).stderr
-        if not re.search(r'version "26(?:[."-])', version):
-            raise RuntimeError(f'Registered {name} Java is not 26')
+        host.require_java26(item[name + '_java'])
         host.inventory(item['_path'] / 'mods')
     props = host.properties(server_root / 'server.properties')
     port = int(props['server-port'])
     if ready(port):
         raise RuntimeError('Registered server port is already listening')
     budget = memory_budget()
-    if budget['availableCommitBytes'] < (args.heap_gib + 5) * 1024 ** 3:
-        raise RuntimeError('Insufficient available Windows commit for the selected client, server, and reserve')
-    if args.execute and budget['availablePhysicalBytes'] < (args.heap_gib + 3) * 1024 ** 3:
-        raise RuntimeError('Available physical memory is below the combined client and server heaps')
     if not args.execute:
         print(f'Preflight complete for GTSR client + dedicated server at 127.0.0.1:{port}: {budget}')
         return 0
@@ -158,6 +149,7 @@ def run(args):
             '--width': '2560' if args.large_view else '1600',
             '--height': '1334' if args.large_view else '900',
         })
+        host.require_java26(client_command[0])
         client_command = [arg for arg in client_command if not arg.startswith(('-Xmx', '-Dgtsr.uiqa.enabled='))]
         with ExitStack() as stack:
             if args.review_port:
@@ -221,7 +213,7 @@ def run(args):
                 common.append('-Dgtsr.graphTcp.profileFrames=true')
             if args.review_port:
                 common += ['-Dgtsr.graphTcp.interactive=true']
-            server_command = [server_item['server_java'], '-Xms1G', '-Xmx3G', '-Djava.awt.headless=true',
+            server_command = [server_item['server_java'], '-Xms1G', f'-Xmx{host.HEAP_GIB}G', '-Djava.awt.headless=true',
                               '-Duser.language=en', '-Dgtsr.graphTcp.world=' + str(world), *common,
                               '@java9args.txt', '-jar', 'lwjgl3ify-forgePatches.jar', 'nogui']
             server_log = stack.enter_context((evidence / 'server-console.log').open('wb'))
@@ -252,8 +244,9 @@ def run(args):
             stack.callback(close_desktop)
             client_log_path = evidence / 'client-console.log'
             client_log = stack.enter_context(client_log_path.open('wb'))
-            client_command[1:1] = ['-Xmx' + str(args.heap_gib) + 'G', *common,
+            client_command[1:1] = [f'-Xmx{host.HEAP_GIB}G', *common,
                                    '-Dgtsr.graphTcp.port=' + str(port)]
+            host.require_memory()
             client = subprocess.Popen(client_command, cwd=client_root, stdout=client_log, stderr=subprocess.STDOUT,
                                       startupinfo=startup, creationflags=subprocess.CREATE_NO_WINDOW)
             stack.callback(lambda: receipt['cleanup'].update(clientForcedStop=host.stop_owned_process(
@@ -292,7 +285,7 @@ def main():
     parser.add_argument('--registry', type=Path, default=host.REGISTRY)
     parser.add_argument('--bundle', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
-    parser.add_argument('--heap-gib', type=int, choices=[4, 5], default=4)
+    parser.add_argument('--heap-gib', type=int, choices=[host.HEAP_GIB], default=host.HEAP_GIB)
     parser.add_argument('--deadline', type=int, default=900)
     parser.add_argument('--language', choices=['en_US', 'zh_CN'], default='en_US')
     parser.add_argument('--large-view', action='store_true', help='match the 2560×1334 GUI scale 3 crash case')

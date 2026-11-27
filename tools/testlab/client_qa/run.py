@@ -15,11 +15,6 @@ def ui_shutdown_complete(payload,environment):
     if not client_qa.integrated_shutdown_complete(payload):return False
     if payload.get('integratedLifecycle',{}).get('noServerCreated') is True:return True
     return environment.get('policyOwnsWorld') is True and environment.get('serverStopped') is True and environment.get('registered') is False
-def free_memory():
-    class Status(ctypes.Structure):
-        _fields_=[('length',ctypes.c_ulong),('load',ctypes.c_ulong),('total',ctypes.c_ulonglong),('available',ctypes.c_ulonglong),('pageTotal',ctypes.c_ulonglong),('pageAvailable',ctypes.c_ulonglong),('virtualTotal',ctypes.c_ulonglong),('virtualAvailable',ctypes.c_ulonglong),('extended',ctypes.c_ulonglong)]
-    s=Status();s.length=ctypes.sizeof(s);ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(s));return s.available
-
 def process_memory(proc):
     class Counters(ctypes.Structure):
         _fields_=[('cb',ctypes.c_ulong),('faults',ctypes.c_ulong)]+[(name,ctypes.c_size_t) for name in
@@ -31,7 +26,7 @@ def process_memory(proc):
 
 def main():
     global OUT, FIXTURE
-    p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path);p.add_argument('--owner-host-run');p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=4);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);p.add_argument('--hidden-desktop',action='store_true',default=True,help='Required private Windows desktop; no foreground fallback');p.add_argument('--allow-low-memory',action='store_true',help='Use only after the user explicitly requests launch below the advisory memory reserve; heap limit still applies');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path);p.add_argument('--owner-host-run');p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,choices=[4],default=4);p.add_argument('--reserve-gib',type=float,choices=[1],default=1);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);p.add_argument('--hidden-desktop',action='store_true',default=True,help='Required private Windows desktop; no foreground fallback');a=p.parse_args()
     if a.mode=='ticket-restart':p.error('Historical GT205/v12138 ticket-restart mode is retired; use tools/testlab/recovery_restart_driver.py and tools/critical/CriticalRecoveryContracts.java. No client or host operation was started.')
     native_tooltip=False
     if a.plan:
@@ -40,7 +35,6 @@ def main():
             a.language=declared.get("language","zh_CN")
             native_tooltip=True
     if os.name!='nt' or not a.hidden_desktop:raise RuntimeError('Private Windows desktop is mandatory; foreground fallback is forbidden')
-    if a.heap_gib>5:raise ValueError('User limit: client Java heap must not exceed 5GiB')
     import sys
     sys.path.insert(0,str(ROOT.parent/'tools/testlab'))
     import host
@@ -57,11 +51,11 @@ def main():
     result=OUT/'client-runs'/a.run;result.mkdir(parents=True,exist_ok=False)
     spec=read_json(OUT/'client-launch.json');compile_receipt=read_json(OUT/'qa-compile-receipt.json')
     helper=OUT/'gtsr-mui2-qa-owned-only.jar';assert sha(helper)==compile_receipt['jarSHA256']
-    if a.heap_gib<3 or a.reserve_gib<1 or not 2<=a.render_distance<=16:raise ValueError('Require heap3..5GiB, explicit reserve>=1GiB and render distance2..16')
-    available=free_memory();required=(a.heap_gib+a.reserve_gib)*1024**3
-    preflight=dict(availableBytes=available,requiredBytes=required,heapGiB=a.heap_gib,reserveGiB=a.reserve_gib,renderDistance=a.render_distance,leaseExists=LEASE.exists(),userAuthorizedLowMemory=a.allow_low_memory,state='PRECHECK')
+    if not 2<=a.render_distance<=16:raise ValueError('Require render distance2..16')
+    host.require_java26(spec['command'][0])
+    available=host.require_memory();required=host.required_memory()
+    preflight=dict(availableBytes=available,requiredBytes=required,heapGiB=host.HEAP_GIB,reserveGiB=host.SYSTEM_RESERVE_GIB,renderDistance=a.render_distance,leaseExists=LEASE.exists(),state='PRECHECK')
     (result/'preflight.json').write_text(json.dumps(preflight,indent=2),encoding='utf-8')
-    if available<required and not a.allow_low_memory:raise RuntimeError(f'Insufficient memory: {available/1024**3:.2f} GiB available, {required/1024**3:.2f} required; no process started')
     fd=os.open(LEASE,os.O_CREAT|os.O_EXCL|os.O_WRONLY);lease_token=dict(pid=os.getpid(),fixture=str(FIXTURE),run=a.run,created=time.time());os.write(fd,json.dumps(lease_token).encode('utf-8'));os.close(fd)
     owned_world=None;installed_helper=FIXTURE/'mods/gtsr-mui2-qa-owned-only.jar';helper_owned=False
     proc=None;desktop=None;payload=None;options=FIXTURE/'options.txt';original_options=options.read_bytes() if options.exists() else None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
@@ -111,7 +105,7 @@ def main():
         # Shared host owns candidate replacement/restoration; direct legacy replacement is refused.
         if not destination.is_file() or sha(destination)!=sha(a.jar):raise RuntimeError('Candidate must be installed by shared host with a recovery inventory')
         (FIXTURE/'options.txt').write_text(f'fullscreen:false\npauseOnLostFocus:false\nsoundCategory_master:0.0\nguiScale:{a.scale}\nlang:{a.language}\nrenderDistance:{a.render_distance}\n',encoding='utf-8')
-        cmd=[x for x in spec['command'] if not x.startswith('-Xmx')];cmd.insert(1,f'-Xmx{a.heap_gib}G')
+        cmd=[x for x in spec['command'] if not x.startswith('-Xmx')];cmd.insert(1,f'-Xmx{host.HEAP_GIB}G')
         cmd=[x for x in cmd if not x.startswith('-Dgtsr.uiqa.receipt=')]
         cmd[1:1]=['-Dgtsr.uiqa.mode='+a.mode,'-Dgtsr.uiqa.batch.keepOpen='+str(a.keep_open).lower(),'-Dgtsr.uiqa.launchEpochMillis='+str(int(time.time()*1000)),'-Dgtsr.uiqa.timeoutMillis='+str(max(60,a.deadline-30)*1000),'-Dgtsr.uiqa.language='+a.language,'-Dgtsr.uiqa.receipt='+str(result/'checks.json'),'-Dgtsr.uiqa.world='+owned_world.name, '-Dmiaotest.host.environment=true', '-Dmiaotest.host.worldPath='+str(owned_world), '-Dmiaotest.host.runId='+a.run, '-Dmiaotest.host.receiptDir='+str(result), '-Xlog:class+load=info:file='+os.path.relpath(result/'class-loading.log',FIXTURE).replace(chr(92),'/')]
         if a.plan:cmd.insert(1,'-Dgtsr.uiqa.plan='+str(a.plan.resolve(strict=True)))
@@ -126,8 +120,7 @@ def main():
                 if frozen['sha256']!=sha(a.plan):raise RuntimeError('Plan manifest SHA mismatch')
                 shutil.copy2(manifest,result/'plan-manifest.json')
         cmd[cmd.index('--width')+1]=str(a.width);cmd[cmd.index('--height')+1]=str(a.height)
-        release=Path(cmd[0]).parent.parent/'release'
-        if not release.is_file() or not re.search(r'JAVA_VERSION="26(?:[.\"+])',release.read_text()):raise ValueError('Actual client runtime must be Java 26')
+        host.require_java26(cmd[0])
         receipt.update(command=cmd,workingDirectory=str(FIXTURE),javaVersion=subprocess.run([cmd[0],'-version'],capture_output=True,text=True,encoding='utf-8',errors='replace').stderr,language=a.language,resolution=[a.width,a.height],guiScale=a.scale,heapGiB=a.heap_gib,reserveGiB=a.reserve_gib,renderDistance=a.render_distance)
         (result/'launch.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
         started=time.monotonic()
@@ -145,7 +138,7 @@ def main():
                         if (FIXTURE/'.testlab-host'/('stop-'+a.owner_host_run+'.json')).exists():
                             if a.mode=='ui':receipt['forcedStop']|=common_client_qa.cancel_owned_client(proc,client_identity,result,grace=30)
                             raise RuntimeError('Owned host requested cancellation')
-                        sample=dict(elapsedSeconds=time.monotonic()-started,availableBytes=free_memory(),**process_memory(proc))
+                        sample=dict(elapsedSeconds=time.monotonic()-started,availableBytes=host.available_memory(),**process_memory(proc))
                         memory.write(json.dumps(sample)+'\n');memory.flush()
                         remaining=a.deadline-(time.monotonic()-started)
                         if remaining<=0:raise subprocess.TimeoutExpired(cmd,a.deadline)

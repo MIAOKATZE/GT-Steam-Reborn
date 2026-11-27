@@ -67,9 +67,7 @@ def main():
     runner = replace_once(runner, "choices=['ui','gallery','gallery-batch','ticket-restart']", "choices=['ui','gallery','gallery-batch','ticket-restart','task03']")
     runner = runner.replace("default='ui'", "default='task03'")
     runner = runner.replace("p.add_argument('--keep-open'", "p.add_argument('--machine',default='air_compressor');p.add_argument('--offscreen-check',action='store_true');p.add_argument('--keep-open'", 1)
-    runner = replace_once(runner, "    if a.heap_gib>5:", "    if not a.hidden_desktop:raise ValueError('TASK03 owned client requires --hidden-desktop')\n    if a.heap_gib>4:")
-    runner = runner.replace("client Java heap must not exceed 5GiB", "client Java heap must not exceed 4GiB")
-    runner = runner.replace("p.add_argument('--heap-gib',type=int,default=5)", "p.add_argument('--heap-gib',type=int,default=4)")
+    # Inherit the source runner's fixed 4 GiB heap, 1 GiB reserve and shared host checks.
     runner = runner.replace("destination.chmod(0o666);shutil.copy2(a.jar,destination)", "\n        if destination.exists():destination.chmod(0o666)\n        shutil.copy2(a.jar,destination)")
     runner = runner.replace("f'fullscreen:false\\npauseOnLostFocus:false", "f'particles:0\\nfboEnable:true\\nfullscreen:false\\npauseOnLostFocus:false")
     runner = runner.replace("cmd[1:1]=['-Dgtsr.uiqa.mode='", "cmd[1:1]=['-Dgtsr.uiqa.enabled=true','-Dgtsr.task03.machine='+a.machine,'-Dgtsr.task03.offscreen='+str(a.offscreen_check).lower(),'-Dgtsr.uiqa.mode='")
