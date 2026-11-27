@@ -65,8 +65,10 @@ final class GTSRReviewedState {
             }
             case "profiles" -> {
                 String active = MachineDebugRegistry.activeFamily(stack);
-                page.line("§a" + StatCollector.translateToLocalFormatted(
-                    "gtsr.wand.debug.active", StatCollector.translateToLocal("gtsr.wand.debug.family." + active)));
+                page.line(
+                    "§a" + StatCollector.translateToLocalFormatted(
+                        "gtsr.wand.debug.active",
+                        StatCollector.translateToLocal("gtsr.wand.debug.family." + active)));
                 for (String family : MachineDebugRegistry.families()) {
                     var adapter = MachineDebugRegistry.findFamily(family);
                     var options = adapter.options(null);

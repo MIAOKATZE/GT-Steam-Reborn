@@ -42,6 +42,7 @@ public final class CenterGraphPreview {
     private int visits;
 
     public static final class Product {
+
         public final ItemStack item;
         public final FluidStack fluid;
         public final int port;
@@ -56,14 +57,16 @@ public final class CenterGraphPreview {
 
         public boolean canEnter(CenterProcess process) {
             if (process == CenterProcess.RECYCLER) return item != null;
-            if (process == CenterProcess.SMELTING)
-                return item != null && FurnaceRecipes.smelting().getSmeltingResult(item) != null;
+            if (process == CenterProcess.SMELTING) return item != null && FurnaceRecipes.smelting()
+                .getSmeltingResult(item) != null;
             var recipes = process.recipes();
-            return recipes != null && (item != null ? recipes.containsInput(item) : recipes.containsInput(fluid.getFluid()));
+            return recipes != null
+                && (item != null ? recipes.containsInput(item) : recipes.containsInput(fluid.getFluid()));
         }
     }
 
     private static final class Visit {
+
         final int node;
         final ItemStack item;
         final boolean intermediate;
@@ -104,31 +107,51 @@ public final class CenterGraphPreview {
     /** A read-only estimate of the configured route using the same bounded planner as the controller. */
     public static CenterPlanner.Session trial(CenterGraph graph, ItemStack item, int quantity, NBTTagCompound state) {
         int mask = state.getInteger("Sectors"), tier = state.getInteger("Tier");
-        if (graph == null || item == null || quantity < 1 || quantity > 4096 || !state.getBoolean("Formed")
-            || mask == 0 || tier < 0 || tier > 3) return null;
+        if (graph == null || item == null
+            || quantity < 1
+            || quantity > 4096
+            || !state.getBoolean("Formed")
+            || mask == 0
+            || tier < 0
+            || tier > 3) return null;
         CenterModule[] kinds = CenterModule.values();
         int[][] counts = new int[kinds.length][3];
         int[] modules = state.getIntArray("Modules"), grades = state.getIntArray("Grades");
         for (int i = 0; i < Math.min(36, Math.min(modules.length, grades.length)); i++) {
-            if ((mask & 1 << (i / 6)) == 0 || grades[i] < 1 || grades[i] > 3
-                || modules[i] < 0 || modules[i] >= kinds.length) continue;
+            if ((mask & 1 << (i / 6)) == 0 || grades[i] < 1
+                || grades[i] > 3
+                || modules[i] < 0
+                || modules[i] >= kinds.length) continue;
             counts[modules[i]][grades[i] - 1]++;
         }
         if (counts[CenterModule.LOGISTICS.ordinal()][0] + counts[CenterModule.LOGISTICS.ordinal()][1]
             + counts[CenterModule.LOGISTICS.ordinal()][2] == 0) return null;
         ItemStack sample = item.copy();
         sample.stackSize = quantity;
-        return new CenterPlanner.Session(Collections.singletonList(graph), new ItemStack[] { sample }, fluids(state), counts, tier,
-            Integer.bitCount(mask), state.getLong("Voltage"), state.getLong("Power"), CenterPlanner.HEAT[tier], 0L);
+        return new CenterPlanner.Session(
+            Collections.singletonList(graph),
+            new ItemStack[] { sample },
+            fluids(state),
+            counts,
+            tier,
+            Integer.bitCount(mask),
+            state.getLong("Voltage"),
+            state.getLong("Power"),
+            CenterPlanner.HEAT[tier],
+            0L);
     }
 
     public List<Product> products(int node) {
         return node < products.size() ? products.get(node) : Collections.emptyList();
     }
 
-    public boolean conditionalRecipe(int node) { return conditionalRecipes[node]; }
+    public boolean conditionalRecipe(int node) {
+        return conditionalRecipes[node];
+    }
 
-    public int entryNode() { return entryNode; }
+    public int entryNode() {
+        return entryNode;
+    }
 
     private GTRecipe previewRecipe(CenterGraph.Node node, RecipeMap<?> map, ItemStack[] items) {
         if (map == null || !map.containsInput(items[0])) return null;
@@ -138,11 +161,15 @@ public final class CenterGraphPreview {
                 for (GTRecipe recipe : map.getAllRecipes()) for (FluidStack fluid : recipe.mFluidInputs) {
                     if (fluid != null) supply.putIfAbsent(fluid.getFluid(), fluid);
                 }
-                return supply.values().toArray(new FluidStack[0]);
+                return supply.values()
+                    .toArray(new FluidStack[0]);
             });
             default -> fluids;
         };
-        return map.findRecipeQuery().items(items).fluids(inputs).dontCheckStackSizes(true)
+        return map.findRecipeQuery()
+            .items(items)
+            .fluids(inputs)
+            .dontCheckStackSizes(true)
             .filter(recipe -> CenterPlanner.usableRecipe(recipe, CenterPlanner.HEAT[3]))
             .find();
     }
@@ -152,14 +179,14 @@ public final class CenterGraphPreview {
             Visit visit = queue.remove();
             ItemStack input = visit.item.copy();
             input.stackSize = Math.max(1, input.stackSize);
-            if (!visited.get(visit.node).add(GTUtility.ItemId.createNoCopy(input))) continue;
+            if (!visited.get(visit.node)
+                .add(GTUtility.ItemId.createNoCopy(input))) continue;
             CenterGraph.Node node = graph.nodes.get(visit.node);
             long capacity = CenterPlanner.recipeVoltage(node.process, tier, voltage);
             ItemStack[] items = node.circuit == 0 ? new ItemStack[] { input }
                 : new ItemStack[] { input, ItemList.Circuit_Integrated.getWithDamage(0, node.circuit) };
             RecipeMap<?> map = node.process.recipes();
-            GTRecipe recipe = CenterPlanner.findRecipe(map, items, fluids, capacity,
-                CenterPlanner.HEAT[tier]);
+            GTRecipe recipe = CenterPlanner.findRecipe(map, items, fluids, capacity, CenterPlanner.HEAT[tier]);
             if (recipe == null || !recipe.isRecipeInputEqual(false, false, 1, fluids, items)) {
                 recipe = previewRecipe(node, map, items);
                 if (recipe != null) conditionalRecipes[visit.node] = true;
@@ -175,8 +202,8 @@ public final class CenterGraphPreview {
                 int chance = recipe.getOutputChance(slot);
                 if (stack == null || stack.stackSize <= 0 || chance == 0) continue;
                 int outlet = node.routedOutlet(slot, stack);
-                int port = node.process.direct ? 0 : Math.min(Math.max(node.process.outletCount(), node.targetCount()) - 1,
-                    outlet);
+                int port = node.process.direct ? 0
+                    : Math.min(Math.max(node.process.outletCount(), node.targetCount()) - 1, outlet);
                 output.add(new Product(stack.copy(), null, port, chance));
                 int target = node.targetAtOutlet(outlet, stack);
                 if (target >= 0 && queue.size() < MAX_VISITS) queue.add(new Visit(target, stack, false));

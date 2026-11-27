@@ -76,14 +76,18 @@ public final class SolarNativeTooltipFixture {
         this.hooks = hooks;
         JsonObject doc = new JsonParser().parse(new String(Files.readAllBytes(plan), StandardCharsets.UTF_8))
             .getAsJsonObject();
-        String script = doc.get("scriptOnly").getAsString();
+        String script = doc.get("scriptOnly")
+            .getAsString();
         centerScript = CENTER_SCRIPT.equals(script);
-        centerRenderCheck = centerScript && doc.has("renderStructure") && doc.get("renderStructure").getAsBoolean();
+        centerRenderCheck = centerScript && doc.has("renderStructure")
+            && doc.get("renderStructure")
+                .getAsBoolean();
         chartScript = CHART_SCRIPT.equals(script);
         require(SCRIPT.equals(script) || chartScript || centerScript, "Wrong script identity");
         cases = doc.getAsJsonArray("cases");
         expected = doc.getAsJsonObject("expectedArtifacts");
-        require(centerScript ? cases.size() == 6 : chartScript ? cases.size() >= 8 : cases.size() == 16,
+        require(
+            centerScript ? cases.size() == 6 : chartScript ? cases.size() >= 8 : cases.size() == 16,
             "Explicit native-tooltip case matrix required");
         if (centerScript) targetEntries.addAll(Arrays.asList("OreIntegrationCenter", "SpeedPackII", "ShellIII"));
         else if (chartScript) {
@@ -221,15 +225,23 @@ public final class SolarNativeTooltipFixture {
                 savedSlots = slot + 1;
                 if (centerScript && slot > 0) {
                     Class<?> items = type("com.miaokatze.gtsr.common.items.CenterModuleItems");
-                    targetStacks[slot] = slot == 1 ? call(items, "stack",
-                        field(type("com.miaokatze.gtsr.common.machine.orecenter.CenterModule"), "SPEED"), 2)
+                    targetStacks[slot] = slot == 1
+                        ? call(
+                            items,
+                            "stack",
+                            field(type("com.miaokatze.gtsr.common.machine.orecenter.CenterModule"), "SPEED"),
+                            2)
                         : call(items, "shell", 3);
                 } else {
                     targetStacks[slot] = call(
                         field(type("com.miaokatze.gtsr.common.api.enums.GTSRItemList"), targetEntries.get(slot)),
-                        "get", 1L, new Object[0]);
-                    require(call(type("gregtech.common.blocks.ItemMachines"), "getMetaTileEntity", targetStacks[slot])
-                        != null, "Registered GT machine " + targetEntries.get(slot));
+                        "get",
+                        1L,
+                        new Object[0]);
+                    require(
+                        call(type("gregtech.common.blocks.ItemMachines"), "getMetaTileEntity", targetStacks[slot])
+                            != null,
+                        "Registered GT machine " + targetEntries.get(slot));
                 }
                 call(serverInventory, "setInventorySlotContents|func_70299_a", slot, targetStacks[slot]);
             }
@@ -397,8 +409,10 @@ public final class SolarNativeTooltipFixture {
         if (!Boolean.TRUE.equals(call(data, "hasTierData"))) return false;
         require(((Number) call(data, "getMaxTotalTier")).intValue() == 4, "NEI main slider must have four tiers");
         Object definition = ((Map<?, ?>) call(data, "getChannelDefinitions")).get(channel);
-        require(definition != null && ((Number) call(definition, "getMinimumValue")).intValue() == 1
-            && ((Number) call(definition, "getMaximumValue")).intValue() == 6, "NEI named sector bounds");
+        require(
+            definition != null && ((Number) call(definition, "getMinimumValue")).intValue() == 1
+                && ((Number) call(definition, "getMaximumValue")).intValue() == 6,
+            "NEI named sector bounds");
         Object handler = openStructurePreview(meta, targetStacks[0], data);
         Object renderer = field(handler, "renderer");
         Object world = field(renderer, "world");
@@ -413,7 +427,8 @@ public final class SolarNativeTooltipFixture {
         require(tungsten.equals(metadata), "NEI values above 4 must preserve the tungstensteel structure");
         call(handler, "setChannelTier", channel, 6, true);
         int six = blocks.size();
-        require(six > 2 * one && ((Map<?, ?>) field(world, "tileMap")).size() >= 8,
+        require(
+            six > 2 * one && ((Map<?, ?>) field(world, "tileMap")).size() >= 8,
             "NEI six-sector preview and controller/hatch tiles are populated");
         if (centerRenderCheck) {
             receipt.put("neiSixSectorRendering", comparePreviewRendering(renderer, world));
@@ -425,21 +440,25 @@ public final class SolarNativeTooltipFixture {
             for (String key : Arrays.asList("neiOneSectorRendering", "neiSixSectorRendering", "neiLayerRendering"))
                 frames.add(((Map<?, ?>) receipt.get(key)).get("frameCRC32"));
             require(frames.size() == 3, "Preview configurations must yield distinct images");
-            Object solar = call(field(type("com.miaokatze.gtsr.common.api.enums.GTSRItemList"), "CriticalSolar"),
-                "get", 1L, new Object[0]);
+            Object solar = call(
+                field(type("com.miaokatze.gtsr.common.api.enums.GTSRItemList"), "CriticalSolar"),
+                "get",
+                1L,
+                new Object[0]);
             Object solarMeta = call(type("gregtech.common.blocks.ItemMachines"), "getMetaTileEntity", solar);
             Object solarData = call(type("blockrenderer6343.client.utils.ConstructableData"), "getTierData", solarMeta);
             Object solarRenderer = field(openStructurePreview(solarMeta, solar, solarData), "renderer");
             receipt.put("neiCriticalRendering", comparePreviewRendering(solarRenderer, field(solarRenderer, "world")));
         }
-        receipt.put("neiPreview", Arrays.asList("main:4", "sector:1..6", "clamped:9→4", "oneBlocks:" + one,
-            "sixBlocks:" + six));
+        receipt.put(
+            "neiPreview",
+            Arrays.asList("main:4", "sector:1..6", "clamped:9→4", "oneBlocks:" + one, "sixBlocks:" + six));
         return true;
     }
 
     private static Object openStructurePreview(Object meta, Object stack, Object data) throws Exception {
-        Object handler = type("blockrenderer6343.integration.gregtech.GTGuiMultiblockHandler")
-            .getConstructor().newInstance();
+        Object handler = type("blockrenderer6343.integration.gregtech.GTGuiMultiblockHandler").getConstructor()
+            .newInstance();
         java.util.function.Consumer<Object> ignoreSlots = ignored -> {};
         call(handler, "setOnCandidateChanged", ignoreSlots);
         call(handler, "setOnIngredientChanged", ignoreSlots);
@@ -467,8 +486,9 @@ public final class SolarNativeTooltipFixture {
         Object cache = field(renderer, "gtsr$previewCache");
         int retained = ((Number) field(cache, "retainedInts")).intValue();
         require(retained > 0 && retained <= 16_777_216, "Renderer must retain bounded geometry slices");
-        require(nativeFrame == cachedFrame, "Native and cached preview framebuffer mismatch: "
-            + nativeFrame + " vs " + cachedFrame);
+        require(
+            nativeFrame == cachedFrame,
+            "Native and cached preview framebuffer mismatch: " + nativeFrame + " vs " + cachedFrame);
         Map<String, Object> result = new LinkedHashMap<String, Object>();
         result.put("nativeNanos", nativeNanos);
         result.put("cachedNanos", cachedNanos);
@@ -489,8 +509,14 @@ public final class SolarNativeTooltipFixture {
         int x = ((Number) field(rect, "x")).intValue(), y = ((Number) field(rect, "y")).intValue();
         int width = ((Number) field(rect, "z")).intValue(), height = ((Number) field(rect, "w")).intValue();
         ByteBuffer pixels = ByteBuffer.allocateDirect(width * height * 4);
-        org.lwjgl.opengl.GL11.glReadPixels(x, y, width, height, org.lwjgl.opengl.GL11.GL_RGBA,
-            org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE, pixels);
+        org.lwjgl.opengl.GL11.glReadPixels(
+            x,
+            y,
+            width,
+            height,
+            org.lwjgl.opengl.GL11.GL_RGBA,
+            org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE,
+            pixels);
         require(org.lwjgl.opengl.GL11.glGetError() == 0, "Preview framebuffer GL error");
         int first = pixels.getInt(0);
         int i = Integer.BYTES;
@@ -747,19 +773,24 @@ public final class SolarNativeTooltipFixture {
         List<?> layouts = (List<?>) current.get("allTableLayouts");
         if (centerScript) {
             String text = String.valueOf(current.get("allTexts"));
-            String target = row.get("target").getAsString();
-            String tier = row.get("tier").getAsString();
+            String target = row.get("target")
+                .getAsString();
+            String tier = row.get("tier")
+                .getAsString();
             require(!actionPending && tier.equals(current.get("tier")), "Actual center tooltip tier");
             if (shift) {
-                require(text.contains("ore_center_sectors") && text.contains("输入总线") && layouts.isEmpty(),
+                require(
+                    text.contains("ore_center_sectors") && text.contains("输入总线") && layouts.isEmpty(),
                     "Actual native GT structure page");
             } else if (target.equals("OreIntegrationCenter")) {
                 require(text.contains("工艺图谱") && text.contains("必需接口"), "Actual center description");
                 require(layouts.size() == (tier.equals("COMMON") ? 1 : 0), "Center tier table count");
             } else if (target.equals("SpeedPackII")) {
-                require(text.contains("速度增幅") && text.contains("液量不足") && layouts.size() == 1,
+                require(
+                    text.contains("速度增幅") && text.contains("液量不足") && layouts.size() == 1,
                     "Actual speed module tooltip");
-            } else require(text.contains("用于制造") && text.contains("升级还需") && layouts.isEmpty(),
+            } else require(
+                text.contains("用于制造") && text.contains("升级还需") && layouts.isEmpty(),
                 "Actual crate shell tooltip");
             caseVerified = true;
         } else if (shift) {
@@ -1155,8 +1186,9 @@ public final class SolarNativeTooltipFixture {
             .getName()
             .equals("com.slprime.chromatictooltips.component.TextComponent"))
             out.addAll((List<String>) call(c, "getLines"));
-        if (centerScript && c.getClass().getSimpleName().equals("NativeInputComponent"))
-            out.add(String.valueOf(call(field(c, "line"), "plain")));
+        if (centerScript && c.getClass()
+            .getSimpleName()
+            .equals("NativeInputComponent")) out.add(String.valueOf(call(field(c, "line"), "plain")));
         try {
             Object children = call(c, "getComponents");
             if (children instanceof Iterable) for (Object child : (Iterable<?>) children) texts(child, out);

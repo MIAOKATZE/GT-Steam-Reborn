@@ -20,8 +20,8 @@ final class CenterCircuitWires {
     private int originX, originY;
     private List<Wire> wires = new ArrayList<>();
 
-    void draw(int width, int height, int gridX, int gridY, int gridStride, int background, int grid,
-        List<int[]> edges, List<int[]> boxes) {
+    void draw(int width, int height, int gridX, int gridY, int gridStride, int background, int grid, List<int[]> edges,
+        List<int[]> boxes) {
         int[][] input = new int[1 + edges.size() + boxes.size()][];
         input[0] = new int[] { edges.size() };
         int geometryIndex = 1;
@@ -32,8 +32,10 @@ final class CenterCircuitWires {
             previousInput = input;
         } else if (originX != gridX || originY != gridY) {
             for (Wire wire : wires) {
-                for (int k = 0; k < wire.runs.size(); k++)
-                    wire.runs.set(k, wire.runs.get(k).translated(gridX - originX, gridY - originY));
+                for (int k = 0; k < wire.runs.size(); k++) wire.runs.set(
+                    k,
+                    wire.runs.get(k)
+                        .translated(gridX - originX, gridY - originY));
             }
         }
         originX = gridX;
@@ -43,19 +45,34 @@ final class CenterCircuitWires {
             Platform.startDrawing(DrawMode.QUADS, VertexFormat.POS_COLOR, buffer -> {
                 for (Wire wire : wires) {
                     for (Run run : wire.runs) {
-                        if (run.horizontal ? run.axis < -5 || run.axis >= height + 5 || run.high < -5 || run.low >= width + 5
-                            : run.axis < -5 || run.axis >= width + 5 || run.high < -5 || run.low >= height + 5) continue;
+                        if (run.horizontal
+                            ? run.axis < -5 || run.axis >= height + 5 || run.high < -5 || run.low >= width + 5
+                            : run.axis < -5 || run.axis >= width + 5 || run.high < -5 || run.low >= height + 5)
+                            continue;
                         for (Hop hop : run.hops) {
                             float[] arc = arc(run, hop);
                             for (int i = 2; i < arc.length; i += 2) {
-                                stroke(buffer, width, height, arc[i - 2], arc[i - 1], arc[i], arc[i + 1], 2.4f, background);
+                                stroke(
+                                    buffer,
+                                    width,
+                                    height,
+                                    arc[i - 2],
+                                    arc[i - 1],
+                                    arc[i],
+                                    arc[i + 1],
+                                    2.4f,
+                                    background);
                             }
                             int x = run.horizontal ? hop.at : run.axis;
                             int y = run.horizontal ? run.axis : hop.at;
                             // Repaint the board grid where the bridge's broad stroke clears the crossing.
                             for (int ax = x - 4; ax <= x + 4; ax++) for (int ay = y - 4; ay <= y + 4; ay++) {
-                                if (ax < 0 || ay < 0 || ax >= width || ay >= height
-                                    || Math.floorMod(ax - gridX, gridStride) != 0 && Math.floorMod(ay - gridY, gridStride) != 0) continue;
+                                if (ax < 0 || ay < 0
+                                    || ax >= width
+                                    || ay >= height
+                                    || Math.floorMod(ax - gridX, gridStride) != 0
+                                        && Math.floorMod(ay - gridY, gridStride) != 0)
+                                    continue;
                                 if (nearArc(ax + .5f, ay + .5f, arc))
                                     quad(buffer, grid, ax, ay, ax, ay + 1, ax + 1, ay + 1, ax + 1, ay);
                             }
@@ -89,16 +106,16 @@ final class CenterCircuitWires {
             for (Run run : runs) {
                 TreeSet<Integer> crossings = new TreeSet<>();
                 for (Run earlier : prior) {
-                    if (run.horizontal != earlier.horizontal && run.inside(earlier.axis, 4) && earlier.inside(run.axis, 3))
-                        crossings.add(earlier.axis);
+                    if (run.horizontal != earlier.horizontal && run.inside(earlier.axis, 4)
+                        && earlier.inside(run.axis, 3)) crossings.add(earlier.axis);
                 }
                 for (int at : crossings) {
                     if (!run.hops.isEmpty() && at - run.hops.get(run.hops.size() - 1).at < 7) continue;
                     for (int side : new int[] { -1, 1 }) {
                         int x = run.horizontal ? at : run.axis + side * 2;
                         int y = run.horizontal ? run.axis + side * 2 : at;
-                        if (boxes.stream().noneMatch(box -> x + 3 > box[0] && x - 3 < box[2]
-                            && y + 3 > box[1] && y - 3 < box[3])) {
+                        if (boxes.stream()
+                            .noneMatch(box -> x + 3 > box[0] && x - 3 < box[2] && y + 3 > box[1] && y - 3 < box[3])) {
                             run.hops.add(new Hop(at, side));
                             break;
                         }
@@ -131,16 +148,15 @@ final class CenterCircuitWires {
                 yLanes.add(box[1] - pad);
                 yLanes.add(box[3] + pad);
             }
-            for (int x : xLanes)
-                best.offer(ax, ay, sx, ay, x, ay, x, by, ex, by, bx, by);
-            for (int y : yLanes)
-                best.offer(ax, ay, sx, ay, sx, y, ex, y, ex, by, bx, by);
+            for (int x : xLanes) best.offer(ax, ay, sx, ay, x, ay, x, by, ex, by, bx, by);
+            for (int y : yLanes) best.offer(ax, ay, sx, ay, sx, y, ex, y, ex, by, bx, by);
             if (best.path != null) return best.path;
         }
         return null;
     }
 
     private static final class Route {
+
         private final List<int[]> boxes;
         private final List<Run> prior;
         private final int padding;
@@ -173,9 +189,10 @@ final class CenterCircuitWires {
                 for (Run other : prior) {
                     if (run.horizontal == other.horizontal && run.axis == other.axis) {
                         score += 1.6 * Math.max(0, Math.min(run.high, other.high) - Math.max(run.low, other.low));
-                    } else if (run.horizontal != other.horizontal && run.inside(other.axis, 0) && other.inside(run.axis, 0)) {
-                        score += 3;
-                    }
+                    } else if (run.horizontal != other.horizontal && run.inside(other.axis, 0)
+                        && other.inside(run.axis, 0)) {
+                            score += 3;
+                        }
                 }
                 trial.add(run);
             }
@@ -187,13 +204,15 @@ final class CenterCircuitWires {
 
         private boolean blocked(Run run, int startX, int startY, int endX, int endY) {
             for (int[] box : boxes) {
-                boolean touchesTerminal = run.horizontal && (run.axis == startY && run.contains(startX)
-                    && inside(box, startX, startY) || run.axis == endY && run.contains(endX) && inside(box, endX, endY));
+                boolean touchesTerminal = run.horizontal
+                    && (run.axis == startY && run.contains(startX) && inside(box, startX, startY)
+                        || run.axis == endY && run.contains(endX) && inside(box, endX, endY));
                 if (touchesTerminal) continue;
                 int rowMin = run.horizontal ? box[1] : box[0], rowMax = run.horizontal ? box[3] : box[2];
                 int low = run.horizontal ? box[0] : box[1], high = run.horizontal ? box[2] : box[3];
                 if (run.axis > rowMin - padding && run.axis < rowMax + padding
-                    && run.low < high + padding && run.high > low - padding) return true;
+                    && run.low < high + padding
+                    && run.high > low - padding) return true;
             }
             return false;
         }
@@ -204,6 +223,7 @@ final class CenterCircuitWires {
     }
 
     private static final class Run {
+
         final int x, y, dx, dy, axis, low, high;
         final boolean horizontal;
         final List<Hop> hops = new ArrayList<>();
@@ -235,7 +255,9 @@ final class CenterCircuitWires {
     }
 
     private static final class Hop {
+
         final int at, direction;
+
         Hop(int at, int direction) {
             this.at = at;
             this.direction = direction;
@@ -243,9 +265,11 @@ final class CenterCircuitWires {
     }
 
     private static final class Wire {
+
         final List<Run> runs;
         final int color;
         final boolean dashed;
+
         Wire(List<Run> runs, int color, boolean dashed) {
             this.runs = runs;
             this.color = color;
@@ -296,7 +320,8 @@ final class CenterCircuitWires {
             segment(b, w, h, wire.color, run, Math.max(pos, start), Math.min(pos + 3, end), .49f);
     }
 
-    private static void segment(BufferBuilder b, int w, int h, int color, Run run, float start, float end, float radius) {
+    private static void segment(BufferBuilder b, int w, int h, int color, Run run, float start, float end,
+        float radius) {
         if (start >= end) return;
         if (run.horizontal) stroke(b, w, h, start, run.axis, end, run.axis, radius, color);
         else stroke(b, w, h, run.axis, start, run.axis, end, radius, color);
@@ -307,28 +332,56 @@ final class CenterCircuitWires {
         int dx = Integer.compare(last.dx, last.x), dy = Integer.compare(last.dy, last.y);
         float x = last.dx - dx * 4, y = last.dy - dy * 4;
         if (last.dx < 1 || last.dx >= w - 1 || last.dy < 2 || last.dy >= h - 2) return;
-        quad(b, wire.color, last.dx, last.dy, x - dy * 1.7f, y + dx * 1.7f,
-            x + dy * 1.7f, y - dx * 1.7f, x + dy * 1.7f, y - dx * 1.7f);
+        quad(
+            b,
+            wire.color,
+            last.dx,
+            last.dy,
+            x - dy * 1.7f,
+            y + dx * 1.7f,
+            x + dy * 1.7f,
+            y - dx * 1.7f,
+            x + dy * 1.7f,
+            y - dx * 1.7f);
     }
 
-    private static void stroke(BufferBuilder b, int w, int h, float x, float y, float ex, float ey, float radius, int color) {
+    private static void stroke(BufferBuilder b, int w, int h, float x, float y, float ex, float ey, float radius,
+        int color) {
         if (Math.max(x, ex) < 0 || Math.min(x, ex) >= w || Math.max(y, ey) < 0 || Math.min(y, ey) >= h) return;
         float dx = ex - x, dy = ey - y, length = (float) Math.sqrt(dx * dx + dy * dy);
         if (length == 0) return;
         float nx = dy * radius / length, ny = -dx * radius / length;
-        quad(b, color, bound(x + nx, w), bound(y + ny, h), bound(x - nx, w), bound(y - ny, h),
-            bound(ex - nx, w), bound(ey - ny, h), bound(ex + nx, w), bound(ey + ny, h));
+        quad(
+            b,
+            color,
+            bound(x + nx, w),
+            bound(y + ny, h),
+            bound(x - nx, w),
+            bound(y - ny, h),
+            bound(ex - nx, w),
+            bound(ey - ny, h),
+            bound(ex + nx, w),
+            bound(ey + ny, h));
     }
 
     private static float bound(float value, int max) {
         return Math.max(0, Math.min(max, value));
     }
 
-    private static void quad(BufferBuilder b, int color, float x, float y, float x2, float y2, float x3, float y3, float x4, float y4) {
+    private static void quad(BufferBuilder b, int color, float x, float y, float x2, float y2, float x3, float y3,
+        float x4, float y4) {
         int r = color >> 16 & 255, g = color >> 8 & 255, blue = color & 255;
-        b.pos(x, y, 0).color(r, g, blue, 255).endVertex();
-        b.pos(x2, y2, 0).color(r, g, blue, 255).endVertex();
-        b.pos(x3, y3, 0).color(r, g, blue, 255).endVertex();
-        b.pos(x4, y4, 0).color(r, g, blue, 255).endVertex();
+        b.pos(x, y, 0)
+            .color(r, g, blue, 255)
+            .endVertex();
+        b.pos(x2, y2, 0)
+            .color(r, g, blue, 255)
+            .endVertex();
+        b.pos(x3, y3, 0)
+            .color(r, g, blue, 255)
+            .endVertex();
+        b.pos(x4, y4, 0)
+            .color(r, g, blue, 255)
+            .endVertex();
     }
 }

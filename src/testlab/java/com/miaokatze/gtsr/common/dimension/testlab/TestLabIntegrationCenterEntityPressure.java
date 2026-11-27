@@ -73,8 +73,10 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
         require(world.provider instanceof TestLabWorldProvider, "Expected the owned Lab dimension");
         footprint = CenterFixtureGeometry.oneSector();
         for (int[] offset : footprint) {
-            require(120 + offset[0] >= 0 && 120 + offset[0] < FIXTURE_CHUNK_SPAN
-                && 36 + offset[2] >= 0 && 36 + offset[2] < FIXTURE_CHUNK_SPAN,
+            require(
+                120 + offset[0] >= 0 && 120 + offset[0] < FIXTURE_CHUNK_SPAN
+                    && 36 + offset[2] >= 0
+                    && 36 + offset[2] < FIXTURE_CHUNK_SPAN,
                 "Ore center footprint crosses its forced chunk window");
             require(offset[1] >= -2 && offset[1] < HEIGHT_STEP - 2, "Vertical ore center footprints overlap");
         }
@@ -88,7 +90,10 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
         fixturesStopped = restoring = false;
         ore = GTOreDictUnificator.get(OrePrefixes.rawOre, Materials.Copper, ORE_COUNT);
         require(ore != null, "Missing GT copper");
-        GTRecipe recipe = RecipeMaps.maceratorRecipes.findRecipeQuery().items(ore.copy()).voltage(32L).find();
+        GTRecipe recipe = RecipeMaps.maceratorRecipes.findRecipeQuery()
+            .items(ore.copy())
+            .voltage(32L)
+            .find();
         require(recipe != null && recipe.getOutputChance(0) == 10000, "Missing deterministic GT copper product");
         product = recipe.mOutputs[0].copy();
         expected = ORE_COUNT * product.stackSize;
@@ -126,8 +131,14 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
         } else if (pending.crusher && !pending.logistics && pending.center.installModuleFromBus(3)) {
             require(pending.input.getStackInSlot(0) == null, "Logistics pack was not paid by the native input bus");
             pending.logistics = true;
-            require(pending.center.setGraphs(Arrays.asList(new CenterGraph(7, true, Arrays.asList("rawOreCopper"),
-                Arrays.asList(new CenterGraph.Node(CenterProcess.CRUSHER, new int[] { -1, -1, -1 }))))),
+            require(
+                pending.center.setGraphs(
+                    Arrays.asList(
+                        new CenterGraph(
+                            7,
+                            true,
+                            Arrays.asList("rawOreCopper"),
+                            Arrays.asList(new CenterGraph.Node(CenterProcess.CRUSHER, new int[] { -1, -1, -1 }))))),
                 "Controller rejected valid copper graph");
             observed[activeCount] = pending.controller;
             pending.feed();
@@ -155,8 +166,10 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
         detail.put("footprintPositionsPerCenter", footprint.size());
         detail.put("windows", results);
         detail.put("fixtureRestore", "verified canonical terrain at journaled positions in this case's worksite");
-        return new TestLabReport.Result(TestLabReport.Status.PASS,
-            "Native copper production confirmed with one, two and three simultaneously scheduled centers", detail);
+        return new TestLabReport.Result(
+            TestLabReport.Status.PASS,
+            "Native copper production confirmed with one, two and three simultaneously scheduled centers",
+            detail);
     }
 
     private void serviceActiveMachines() {
@@ -177,7 +190,10 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
     }
 
     private static void checkTerrain(WorldServer world, int x, int y, int z) {
-        require(world.getChunkProvider().chunkExists(x >> 4, z >> 4), "Fixture coordinate has no owned loaded chunk");
+        require(
+            world.getChunkProvider()
+                .chunkExists(x >> 4, z >> 4),
+            "Fixture coordinate has no owned loaded chunk");
         Block expected = y == 63 ? Blocks.stone : y == 64 ? Blocks.quartz_block : Blocks.air;
         if (world.getBlock(x, y, z) != expected || world.getTileEntity(x, y, z) != null)
             throw new IllegalStateException("Fixture footprint already occupied at " + x + "," + y + "," + z);
@@ -202,20 +218,36 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
 
     @Override
     public String performancePhase() {
-        return restoring ? "orecenter.entities.restore" : samples != null && samples.isRecording()
-            ? "orecenter.entities.measure" : "orecenter.entities.prepare";
+        return restoring ? "orecenter.entities.restore"
+            : samples != null && samples.isRecording() ? "orecenter.entities.measure" : "orecenter.entities.prepare";
     }
 
     @Override
     public String debug(WorldServer world) {
         List<String> states = new ArrayList<>();
         for (Machine machine : machines) if (machine != null && machine.center != null) {
-            states.add("y=" + machine.y + ":sequence=" + machine.center.batchSequence() + ":progress="
-                + machine.center.batchProgress() + ":enabled=" + machine.controller.isAllowedToWork()
-                + ":completed=" + machine.completed + ":steam=" + (machine.steam == null ? 0 : machine.remainingSteam()));
+            states.add(
+                "y=" + machine.y
+                    + ":sequence="
+                    + machine.center.batchSequence()
+                    + ":progress="
+                    + machine.center.batchProgress()
+                    + ":enabled="
+                    + machine.controller.isAllowedToWork()
+                    + ":completed="
+                    + machine.completed
+                    + ":steam="
+                    + (machine.steam == null ? 0 : machine.remainingSteam()));
         }
-        return "centers=" + activeCount + " journal=" + cursor + " sampled=" + (samples == null ? 0 : samples.count())
-            + " restoring=" + restoring + " machines=" + states;
+        return "centers=" + activeCount
+            + " journal="
+            + cursor
+            + " sampled="
+            + (samples == null ? 0 : samples.count())
+            + " restoring="
+            + restoring
+            + " machines="
+            + states;
     }
 
     private static void require(boolean condition, String message) {
@@ -254,13 +286,20 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
         }
 
         private IGregTechTileEntity place(WorldServer world, int dx, ItemList item) {
-            return TestLabFixtures.machine(world, x + dx, y, z, item.get(1).getItemDamage());
+            return TestLabFixtures.machine(
+                world,
+                x + dx,
+                y,
+                z,
+                item.get(1)
+                    .getItemDamage());
         }
 
         void feed() {
-            FluidStack dense = FluidRegistry.getFluidStack(SteamGrade.DENSE_STEAM.getFluidName(),
-                STEAM_TARGET - remainingSteam());
-            require(dense != null && steam.fill(ForgeDirection.UNKNOWN, dense, true) == dense.amount,
+            FluidStack dense = FluidRegistry
+                .getFluidStack(SteamGrade.DENSE_STEAM.getFluidName(), STEAM_TARGET - remainingSteam());
+            require(
+                dense != null && steam.fill(ForgeDirection.UNKNOWN, dense, true) == dense.amount,
                 "The native input hatch rejected dense steam");
             supplied += dense.amount;
             initialSequence = center.batchSequence();
@@ -277,7 +316,8 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
             if (actual == 0) return;
             require(actual <= expected, "The physical output bus contains a duplicated copper product");
             if (actual < expected) return;
-            require(center.batchSequence() == initialSequence + 1 && input.getStackInSlot(0) == null,
+            require(
+                center.batchSequence() == initialSequence + 1 && input.getStackInSlot(0) == null,
                 "Output appeared without exactly one paid native batch");
             completed++;
             clear(output);
@@ -297,7 +337,9 @@ final class TestLabIntegrationCenterEntityPressure implements TestLabTask {
         Map<String, Object> measured() {
             int cycles = completed - startCompleted;
             long paid = supplied - remainingSteam() - startConsumed;
-            require(cycles > 0 && paid > 0, "Physical center completed no paid batch in its measurement window at Y=" + y);
+            require(
+                cycles > 0 && paid > 0,
+                "Physical center completed no paid batch in its measurement window at Y=" + y);
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("controller", Arrays.asList(x, y, z));
             row.put("constructNanos", buildNanos);

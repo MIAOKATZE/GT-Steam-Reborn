@@ -20,10 +20,10 @@ import net.minecraftforge.fluids.FluidStack;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.miaokatze.gtsr.common.critical.CriticalConfiguration;
+import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyPorts;
 import com.miaokatze.gtsr.common.critical.CriticalMachineKind;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
-import com.miaokatze.gtsr.common.critical.CriticalEnergyMath;
 import com.miaokatze.gtsr.common.critical.recipe.CriticalShellCatalog;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 

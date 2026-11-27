@@ -47,8 +47,8 @@ public class HubTerminal extends Item {
     @Override
     public boolean onItemUseFirst(ItemStack stack, EntityPlayer player, World world, int x, int y, int z, int side,
         float hitX, float hitY, float hitZ) {
-        if (!(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity base)
-            || !supportsMachineTerminal(base)) return false;
+        if (!(world.getTileEntity(x, y, z) instanceof IGregTechTileEntity base) || !supportsMachineTerminal(base))
+            return false;
         if (world.isRemote) com.miaokatze.gtsr.common.network.WandNet
             .sendTerminalTarget(x, y, z, player.dimension, base.getMetaTileID(), player.inventory.currentItem);
         else openMachineTerminal(player, base);
@@ -80,7 +80,8 @@ public class HubTerminal extends Item {
     }
 
     public static boolean openMachineTerminal(EntityPlayer player, IGregTechTileEntity base) {
-        return base.getMetaTileEntity() instanceof MTEMineralIntegrationCenter ? CenterTerminalFactory.open(player, base)
+        return base.getMetaTileEntity() instanceof MTEMineralIntegrationCenter
+            ? CenterTerminalFactory.open(player, base)
             : CriticalMachineTerminalFactory.open(player, base);
     }
 

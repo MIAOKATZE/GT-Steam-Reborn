@@ -43,8 +43,8 @@ public final class CenterTerminalFactory implements UIFactory<PosGuiData> {
 
     public static boolean open(EntityPlayer player, IGregTechTileEntity base) {
         if (!(player instanceof EntityPlayerMP serverPlayer) || player instanceof FakePlayer
-            || base == null || base.getWorld() != player.worldObj)
-            return false;
+            || base == null
+            || base.getWorld() != player.worldObj) return false;
         PosGuiData data = new PosGuiData(player, base.getXCoord(), base.getYCoord(), base.getZCoord());
         if (data.getTileEntity() != base || !INSTANCE.canInteractWith(player, data) || !hasTerminal(player))
             return false;

@@ -31,9 +31,13 @@ public final class CenterPresets {
             this.rule = rule;
         }
 
-        public String label() { return label; }
+        public String label() {
+            return label;
+        }
 
-        public String rule() { return rule; }
+        public String rule() {
+            return rule;
+        }
     }
 
     public static final class Preset {
@@ -44,14 +48,23 @@ public final class CenterPresets {
 
         private Preset(JsonObject source) {
             this.source = source;
-            id = source.get("id").getAsString();
-            name = source.get("label").getAsString();
-            group = source.get("category").getAsString();
-            description = source.get("description").getAsString();
+            id = source.get("id")
+                .getAsString();
+            name = source.get("label")
+                .getAsString();
+            group = source.get("category")
+                .getAsString();
+            description = source.get("description")
+                .getAsString();
             List<Expression> list = new ArrayList<>();
             for (JsonElement element : source.getAsJsonArray("expressions")) {
                 JsonObject row = element.getAsJsonObject();
-                list.add(new Expression(row.get("label").getAsString(), row.get("expression").getAsString()));
+                list.add(
+                    new Expression(
+                        row.get("label")
+                            .getAsString(),
+                        row.get("expression")
+                            .getAsString()));
             }
             expressions = Collections.unmodifiableList(list);
         }
@@ -61,7 +74,8 @@ public final class CenterPresets {
         }
 
         public int nodeCount() {
-            return importable() ? source.getAsJsonArray("nodes").size() : 0;
+            return importable() ? source.getAsJsonArray("nodes")
+                .size() : 0;
         }
 
         public CenterGraph graph(String name) {
@@ -71,22 +85,48 @@ public final class CenterPresets {
                 JsonObject row = element.getAsJsonObject();
                 JsonArray links = row.getAsJsonArray("links");
                 int[] targets = new int[links.size()];
-                for (int i = 0; i < targets.length; i++) targets[i] = links.get(i).getAsInt();
+                for (int i = 0; i < targets.length; i++) targets[i] = links.get(i)
+                    .getAsInt();
                 List<CenterGraph.OutletFilter> filters = new ArrayList<>();
                 for (JsonElement link : row.getAsJsonArray("filters")) {
                     JsonArray parts = link.getAsJsonArray();
-                    filters.add(new CenterGraph.OutletFilter(parts.get(0).getAsInt(), parts.get(1).getAsBoolean(),
-                        strings(parts.get(2).getAsJsonArray())));
+                    filters.add(
+                        new CenterGraph.OutletFilter(
+                            parts.get(0)
+                                .getAsInt(),
+                            parts.get(1)
+                                .getAsBoolean(),
+                            strings(
+                                parts.get(2)
+                                    .getAsJsonArray())));
                 }
-                nodes.add(new CenterGraph.Node(
-                    CenterProcess.valueOf(row.get("process").getAsString()), targets, 0, filters));
+                nodes.add(
+                    new CenterGraph.Node(
+                        CenterProcess.valueOf(
+                            row.get("process")
+                                .getAsString()),
+                        targets,
+                        0,
+                        filters));
             }
             List<CenterGraph.EntryRoute> entries = new ArrayList<>();
             for (JsonElement element : source.getAsJsonArray("entries")) {
                 JsonArray row = element.getAsJsonArray();
-                entries.add(new CenterGraph.EntryRoute(row.get(0).getAsInt(), row.get(1).getAsString()));
+                entries.add(
+                    new CenterGraph.EntryRoute(
+                        row.get(0)
+                            .getAsInt(),
+                        row.get(1)
+                            .getAsString()));
             }
-            return new CenterGraph(0, name, 0, true, strings(source.getAsJsonArray("rules")), nodes, entries,
+            return new CenterGraph(
+                0,
+                name,
+                0,
+                true,
+                strings(source.getAsJsonArray("rules")),
+                nodes,
+                entries,
                 strings(source.getAsJsonArray("exclusions")));
         }
     }
@@ -104,8 +144,8 @@ public final class CenterPresets {
         var stream = CenterPresets.class.getResourceAsStream("/assets/gtsr/orecenter/generator-presets.json");
         try (var reader = new InputStreamReader(Objects.requireNonNull(stream), StandardCharsets.UTF_8)) {
             List<Preset> presets = new ArrayList<>();
-            for (JsonElement row : new JsonParser().parse(reader).getAsJsonArray())
-                presets.add(new Preset(row.getAsJsonObject()));
+            for (JsonElement row : new JsonParser().parse(reader)
+                .getAsJsonArray()) presets.add(new Preset(row.getAsJsonObject()));
             return Collections.unmodifiableList(presets);
         } catch (java.io.IOException error) {
             throw new IllegalStateException("Cannot read center generator presets", error);
