@@ -21,7 +21,6 @@ import com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry;
 import com.miaokatze.gtsr.common.items.CenterModuleItems;
 import com.miaokatze.gtsr.register.GTSRItemOrderCatalog;
 
-import codechicken.nei.api.API;
 import gregtech.api.GregTechAPI;
 
 /** Client-only NEI presentation. Only stacks already supplied by the owned catalog can join a group. */
@@ -72,11 +71,7 @@ public final class GTSRNEIGroups {
     public static synchronized void register() {
         if (registered) return;
         Map<Group, List<ItemStack>> groups = collect(GTSRItemOrderCatalog.orderedItems());
-        for (Group group : Group.values()) {
-            List<ItemStack> stacks = groups.get(group);
-            if (stacks != null && !stacks.isEmpty()) API.addCollapsibleGroup(stacks)
-                .setName("gtsr.nei.group." + group.id);
-        }
+        NEICollapsibleCompat.register(groups);
         registered = true;
     }
 

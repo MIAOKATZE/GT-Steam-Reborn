@@ -3,16 +3,31 @@
 
 package com.miaokatze.gtsr.client.nei;
 
+import net.minecraftforge.common.MinecraftForge;
+
 import com.miaokatze.gtsr.Tags;
 
 import codechicken.nei.api.IConfigureNEI;
+import codechicken.nei.event.NEIConfigsLoadedEvent;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 
 /** NEI invokes plugins before loading collapsible groups, including its first asynchronous config load. */
 public final class NEIGTSRConfig implements IConfigureNEI {
 
+    private static boolean listening;
+
     @Override
     public void loadConfig() {
         GTSRNEIGroups.register();
+        if (!NEICollapsibleCompat.usesNativeApi() && !listening) {
+            MinecraftForge.EVENT_BUS.register(this);
+            listening = true;
+        }
+    }
+
+    @SubscribeEvent
+    public void configsLoaded(NEIConfigsLoadedEvent event) {
+        NEICollapsibleCompat.onConfigsLoaded();
     }
 
     @Override
