@@ -67,8 +67,8 @@ public final class GTSRItemOrderCatalog {
             AmmoniaCatalystNickel, AmmoniaCatalystPlatinum, AmmoniaCatalystUranium, AmmoniaCatalystOsmium,
             AmmoniaCatalystFeCo, AmmoniaCatalystRuthenium, AmmoniaCatalystQuantum },
         { SteamEntangledSingularity, CriticalSteamEntangledSingularity, IrradiatedMoonDust, IrradiatedStoneDust },
-        { SingularityTuningWand, PortableLM12, Ammo762Pack, MimicAmmo762Pack, PortableT20, Ammo20Pack, MimicAmmo20Pack,
-            PortableQLZ04, Ammo35Pack, MimicAmmo35Pack, PortableSingularity } };
+        { SingularityTuningWand, PortableLM12, PortableT20, PortableQLZ04, PortableSingularity, Ammo762Pack,
+            MimicAmmo762Pack, Ammo20Pack, MimicAmmo20Pack, Ammo35Pack, MimicAmmo35Pack } };
 
     // 这些可见物品原先只在 GT 页注册，纳入完整目录而不遍历共享机器物品的全部 metadata。
     private static final GTSRItemList[] ADDITIONAL_VISIBLE_ITEMS = { PortableLM12, Ammo762Pack, MimicAmmo762Pack,

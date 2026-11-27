@@ -229,7 +229,13 @@ val verifyBossCombatContracts = tasks.register<JavaExec>("verifyBossCombatContra
 val portableRecipeContractRuntime = configurations.create("portableRecipeContractRuntime") {
     isTransitive = false
 }
+// The catalog inspects GT meta-items whose native superclass implements AppleCore's IEdible API.
+val neiGroupingContractRuntime = configurations.create("neiGroupingContractRuntime") {
+    isTransitive = false
+}
 dependencies {
+    add(neiGroupingContractRuntime.name, "com.github.GTNewHorizons:AppleCore:3.3.13:dev")
+    add(neiGroupingContractRuntime.name, "com.github.GTNewHorizons:CodeChickenCore:1.4.24:dev")
     add(portableRecipeContractRuntime.name, "com.falsepattern:chunkapi-mc1.7.10:0.8.3:dev")
     add(portableRecipeContractRuntime.name, "com.falsepattern:endlessids-mc1.7.10:1.7.3:dev")
     add(portableRecipeContractRuntime.name, "com.falsepattern:falsepatternlib-mc1.7.10:1.12.0:dev")
@@ -338,6 +344,7 @@ mapOf(
     "verifyMegaTurbinePolicy" to "com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbinePolicyContract",
     "verifyMegaTurbineTooltip" to "com.miaokatze.gtsr.client.tooltip.MegaTurbineTooltipContract",
     "verifyReviewedTooltipCatalog" to "com.miaokatze.gtsr.client.tooltip.ReviewedTooltipCatalogContract",
+    "verifyNEIGrouping" to "com.miaokatze.gtsr.client.nei.NEIGroupingContracts",
     "verifySteamFluidDrillCycle" to "com.miaokatze.gtsr.common.machine.SteamFluidDrillCycleContract",
     "verifySingularityIdentityDrop" to "com.miaokatze.gtsr.common.blocks.SingularityIdentityDropContract",
     "verifyCenterQueueMigration" to "com.miaokatze.gtsr.common.machine.orecenter.CenterQueueMigrationContracts",
@@ -353,6 +360,7 @@ mapOf(
         classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath +
             sourceSets["main"].compileClasspath + portableRecipeContractRuntime
         mainClass.set(entry)
+        if (name == "verifyNEIGrouping") classpath += neiGroupingContractRuntime
         if (name == "verifyRecoveryRuntimeMixins") args("build/recovery-runtime-contract", "runtime")
         maxHeapSize = "256m"
         systemProperty("java.awt.headless", "true")
