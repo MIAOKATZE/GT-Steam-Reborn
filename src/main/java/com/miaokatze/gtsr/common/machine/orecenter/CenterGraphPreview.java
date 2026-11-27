@@ -106,6 +106,15 @@ public final class CenterGraphPreview {
 
     /** A read-only estimate of the configured route using the same bounded planner as the controller. */
     public static CenterPlanner.Session trial(CenterGraph graph, ItemStack item, int quantity, NBTTagCompound state) {
+        return trial(graph, item, quantity, state, quantity);
+    }
+
+    public static int retryLimit(CenterPlanner.Session trial) {
+        return trial.smallerRootLimit();
+    }
+
+    public static CenterPlanner.Session trial(CenterGraph graph, ItemStack item, int quantity, NBTTagCompound state,
+        int rootLimit) {
         int mask = state.getInteger("Sectors"), tier = state.getInteger("Tier");
         if (graph == null || item == null
             || quantity < 1
@@ -138,7 +147,14 @@ public final class CenterGraphPreview {
             state.getLong("Voltage"),
             state.getLong("Power"),
             CenterPlanner.HEAT[tier],
-            0L);
+            0L,
+            false,
+            false,
+            Math.min(quantity, rootLimit),
+            state.getBoolean("BatchMode")
+                ? Math
+                    .max(2, state.hasKey("ConfiguredBatchModifier") ? state.getInteger("ConfiguredBatchModifier") : 128)
+                : 1);
     }
 
     public List<Product> products(int node) {

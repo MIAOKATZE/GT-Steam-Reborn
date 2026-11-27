@@ -255,6 +255,9 @@ public final class CenterQueueMigrationContracts {
         saved.setInteger("CenterTotalParallel", 960);
         saved.setInteger("CenterBatchRoots", 915);
         saved.setInteger("CenterBatchRounds", 1);
+        saved.setInteger("CenterBatchCapacity", 12000);
+        saved.setBoolean("CenterBatched", true);
+        saved.setInteger("CenterBatchModifier", 128);
         saved.setBoolean("CenterBillBreakdownKnown", true);
         saved.setLong("CenterProcessingEnergy", 16000);
         saved.setLong("CenterMaintenanceEnergy", 4000);
@@ -283,6 +286,10 @@ public final class CenterQueueMigrationContracts {
                 && restored.getInteger("CenterBatchRounds") == 1,
             "new batch parallel, actual roots and charged round count survive NBT");
         check(
+            restored.getInteger("CenterBatchCapacity") == 12000 && restored.getBoolean("CenterBatched")
+                && restored.getInteger("CenterBatchModifier") == 128,
+            "fixed-target capacity, batching state and selected modifier survive NBT independently of P");
+        check(
             restored.getBoolean("CenterBillBreakdownKnown") && restored.getLong("CenterProcessingEnergy") == 16000
                 && restored.getLong("CenterMaintenanceEnergy") == 4000
                 && restored.getLong("CenterProcessingSteam") == 12000
@@ -295,6 +302,22 @@ public final class CenterQueueMigrationContracts {
         check(
             "status.read_only".equals(center.configureQueue(null, false)),
             "queue settings require the normal player authority");
+        saved.removeTag("CenterBatchCapacity");
+        saved.removeTag("CenterBatched");
+        saved.removeTag("CenterBatchModifier");
+        center.loadNBTData(saved);
+        center.saveNBTData(restored);
+        check(
+            restored.getInteger("CenterBatchCapacity") == 960 && !restored.getBoolean("CenterBatched")
+                && restored.getInteger("CenterBatchModifier") == 1,
+            "old paid batches display their original P without inferring the new batching state");
+        check(
+            restored.getInteger("CenterDuration") == 100 && restored.getInteger("CenterElapsed") == 37
+                && restored.getLong("CenterSteam") == 12345
+                && restored.getLong("CenterEnergy") == 20000
+                && restored.getLong("CenterProcessingEnergy") == 16000
+                && restored.getLong("CenterMaintenanceEnergy") == 4000,
+            "loading an old paid batch preserves its original progress and charges without recalculation");
         center.loadNBTData(new NBTTagCompound());
         center.saveNBTData(restored);
         check(

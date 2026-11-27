@@ -49,7 +49,9 @@ public final class CenterParallelBalanceContracts {
         weightedOrigins();
         mergedOrigins();
         multipliedAndBranchedOutputs();
-        partialBatchRounds();
+        fixedTargetBatching();
+        weightedBatching();
+        subTickBatching();
         processingBillsAndPowerGate();
         speedBoosterBilling();
         queueAndBoosterPayment();
@@ -102,28 +104,40 @@ public final class CenterParallelBalanceContracts {
     }
 
     private static CenterPlanner.Session session(List<CenterGraph> graphs, ItemStack[] inputs, int[][] modules,
-        int tier, int sectors, int rounds, boolean queue, long power, FluidStack... fluids) {
-        CenterPlanner.Session session = new CenterPlanner.Session(
-            graphs,
-            inputs,
-            fluids,
-            modules,
-            tier,
-            sectors,
-            8192,
-            power,
-            4500,
-            17,
-            false,
-            false,
-            CenterPlanner.MAX_BATCH_ROOTS,
-            rounds);
-        session.queueMode(queue);
-        int slices = 0;
-        while (!session.advance(7, Long.MAX_VALUE)) {
-            if (++slices > 10000) throw new AssertionError("Bounded planning did not finish");
+        int tier, int sectors, int modifier, boolean queue, long power, FluidStack... fluids) {
+        int rootLimit = CenterPlanner.MAX_BATCH_ROOTS;
+        for (int retry = 0; retry < 128; retry++) {
+            CenterPlanner.Session session = new CenterPlanner.Session(
+                graphs,
+                inputs,
+                fluids,
+                modules,
+                tier,
+                sectors,
+                8192,
+                power,
+                4500,
+                17,
+                false,
+                false,
+                rootLimit,
+                modifier);
+            session.queueMode(queue);
+            int slices = 0;
+            while (!session.advance(7, Long.MAX_VALUE)) {
+                if (++slices > 10000) throw new AssertionError("Bounded planning did not finish");
+            }
+            if (session.batch() != null) return session;
+            int nextLimit = session.smallerRootLimit();
+            if (nextLimit <= 0) return session;
+            if (queue && nextLimit < session.parallelLimit()) {
+                if (rootLimit <= session.parallelLimit()) return session;
+                nextLimit = session.parallelLimit();
+            }
+            check(nextLimit < rootLimit, "controller-style batch retries monotonically reduce the root limit");
+            rootLimit = nextLimit;
         }
-        return session;
+        throw new AssertionError("Controller-style shrinking did not converge");
     }
 
     private static CenterPlanner.Batch batch(CenterGraph graph, ItemStack[] inputs, int grade, int tier) {
@@ -136,6 +150,13 @@ public final class CenterParallelBalanceContracts {
     private static CenterPlanner.Batch require(CenterPlanner.Batch batch, String description) {
         check(batch != null, description);
         check(batch.ticks > 0 && batch.roots > 0 && batch.parallel > 0, "positive batch dimensions");
+        check(
+            batch.capacity >= batch.roots && batch.capacity >= batch.parallel
+                && batch.capacity <= CenterPlanner.MAX_BATCH_ROOTS,
+            "batch capacity bounds admitted inputs independently of physical parallel");
+        check(
+            batch.chargedRounds == 1 + (batch.roots - 1) / batch.parallel,
+            "charged recipe batches use actual inputs divided by physical P");
         check(
             batch.energy == Math.addExact(batch.processingEnergy, batch.maintenanceEnergy),
             "electric total contains processing and maintenance exactly once");
@@ -346,32 +367,152 @@ public final class CenterParallelBalanceContracts {
             "steam bill counts 10 crusher, 20 hammer and 30 sifter executions at native durations");
     }
 
-    private static void partialBatchRounds() throws Exception {
-        Item ore = item("round", true), output = item("round_product", false);
-        recipe(CenterProcess.CRUSHER, ore, 401, 2, stack(output, 1));
+    private static void fixedTargetBatching() throws Exception {
+        Item output = item("batch_product", false);
         CenterGraph graph = graph(node(CenterProcess.CRUSHER, CenterGraph.BUS));
-        CenterPlanner.Batch first = batch(graph, new ItemStack[] { stack(ore, 240) }, 1, 0);
-        CenterPlanner.Batch tail = batch(graph, new ItemStack[] { stack(ore, 17) }, 1, 0);
-        CenterPlanner.Batch both = require(
+        for (int time : new int[] { 10, 100, 128, 200 }) {
+            Item ore = item("batch_time_" + time, true);
+            recipe(CenterProcess.CRUSHER, ore, time * 2, 2, stack(output, 1));
+            int capacity = time < 128 ? 240 * 128 / time : 240;
+            long maintenance = -1;
+            for (int count : new int[] { 1, capacity / 2, capacity, capacity + 1 }) {
+                CenterPlanner.Batch result = require(
+                    session(
+                        Collections.singletonList(graph),
+                        new ItemStack[] { stack(ore, count) },
+                        modules(graph, 1),
+                        0,
+                        1,
+                        128,
+                        false,
+                        Long.MAX_VALUE).batch(),
+                    "fixed target batch at unrounded t=" + time);
+                check(
+                    result.parallel == 240 && result.capacity == capacity && result.roots == Math.min(count, capacity),
+                    "target capacity changes admission while physical P remains 240 at t=" + time);
+                check(
+                    result.ticks == Math.max(128, time) && result.batched == (time < 128)
+                        && result.weightedTicks == time,
+                    "one, half and full target capacity share the fixed duration at t=" + time);
+                if (maintenance >= 0) check(
+                    result.maintenanceSteam == maintenance,
+                    "maintenance follows the same target duration for partial and full target capacity");
+                maintenance = result.maintenanceSteam;
+            }
+            CenterPlanner.Batch ordinary = batch(graph, new ItemStack[] { stack(ore, capacity + 1) }, 1, 0);
+            check(
+                ordinary.parallel == 240 && ordinary.capacity == 240
+                    && ordinary.roots == 240
+                    && ordinary.ticks == time
+                    && !ordinary.batched,
+                "ordinary mode preserves P and native weighted time at t=" + time);
+            if (time == 10) {
+                CenterPlanner.Batch doubled = require(
+                    session(
+                        Collections.singletonList(graph),
+                        new ItemStack[] { stack(ore, 1000) },
+                        modules(graph, 1),
+                        0,
+                        1,
+                        2,
+                        false,
+                        Long.MAX_VALUE).batch(),
+                    "modifier two batch");
+                check(
+                    doubled.ticks == 20 && doubled.capacity == 480 && doubled.roots == 480 && doubled.batched,
+                    "modifier two grows the target to 2t while retaining physical P");
+            }
+        }
+    }
+
+    private static void weightedBatching() throws Exception {
+        Item shortOre = item("batch_short", true), longOre = item("batch_long", true);
+        Item output = item("batch_mixed_product", false);
+        recipe(CenterProcess.CRUSHER, shortOre, 20, 2, stack(output, 1));
+        recipe(CenterProcess.CRUSHER, longOre, 200, 2, stack(output, 1));
+        CenterGraph graph = graph(node(CenterProcess.CRUSHER, CenterGraph.BUS));
+        CenterPlanner.Batch first = null;
+        for (ItemStack[] inputs : new ItemStack[][] { { stack(shortOre, 720), stack(longOre, 80) },
+            { stack(longOre, 80), stack(shortOre, 720) } }) {
+            CenterPlanner.Batch mixed = require(
+                session(Collections.singletonList(graph), inputs, modules(graph, 1), 0, 1, 128, false, Long.MAX_VALUE)
+                    .batch(),
+                "global weighted mixed batch");
+            check(
+                mixed.roots == 800 && mixed.parallel == 240
+                    && mixed.capacity == 1616
+                    && mixed.ticks == 128
+                    && mixed.weightedTicks == 19
+                    && mixed.chargedRounds == 4,
+                "90/10 global raw weighting defines one target without ordered per-round duration");
+            check(mixed.processingSteam == 12667, "all mixed native recipe work is billed at ten percent once");
+            if (first != null) check(
+                mixed.energy == first.energy && mixed.steam == first.steam,
+                "mixed batch final bills are independent of input visitation order");
+            first = mixed;
+        }
+    }
+
+    private static void subTickBatching() throws Exception {
+        Item ore = item("batch_subtick", true), output = item("batch_subtick_product", false);
+        recipe(CenterProcess.CRUSHER, ore, 15, 2, stack(output, 1));
+        CenterGraph graph = graph(node(CenterProcess.CRUSHER, CenterGraph.BUS));
+        int capacity = 512 * 1920;
+        for (int count : new int[] { 1, capacity / 2, capacity, capacity + 1 }) {
+            CenterPlanner.Batch result = require(
+                session(
+                    Collections.singletonList(graph),
+                    new ItemStack[] { stack(ore, count) },
+                    modules(graph, 2),
+                    2,
+                    1,
+                    128,
+                    false,
+                    Long.MAX_VALUE).batch(),
+                "subtick fixed target batch");
+            check(
+                result.weightedTicks == .25 && result.parallel == 1920
+                    && result.capacity == capacity
+                    && result.roots == Math.min(count, capacity)
+                    && result.ticks == 128
+                    && result.batched,
+                "unrounded quarter-tick work retains 512P capacity and a 128 tick target");
+        }
+        CenterPlanner.Batch full = require(
             session(
                 Collections.singletonList(graph),
-                new ItemStack[] { stack(ore, 257) },
-                modules(graph, 1),
-                0,
+                new ItemStack[] { stack(ore, capacity) },
+                modules(graph, 2),
+                2,
+                1,
+                128,
+                false,
+                Long.MAX_VALUE).batch(),
+            "full subtick batch");
+        check(
+            full.chargedRounds == 512 && full.processingSteam == 2304000,
+            "subtick batch charges 512 actual native batches rather than enlarging P");
+        CenterPlanner.Batch ordinary = batch(graph, new ItemStack[] { stack(ore, capacity) }, 2, 2);
+        check(
+            ordinary.ticks == 1 && ordinary.weightedTicks == .25 && ordinary.roots == 1920 && !ordinary.batched,
+            "ordinary subtick execution rounds only duration and admits physical P");
+        CenterPlanner.Batch smallModifier = require(
+            session(
+                Collections.singletonList(graph),
+                new ItemStack[] { stack(ore, 20000) },
+                modules(graph, 2),
+                2,
                 1,
                 2,
                 false,
                 Long.MAX_VALUE).batch(),
-            "non-integral multiple batch");
+            "subtick modifier two target");
         check(
-            both.roots == 257 && both.parallel == 240 && both.chargedRounds == 2,
-            "partial final round retains the per-round parallel and charges two actual rounds");
-        check(both.ticks == first.ticks + tail.ticks, "batch sums the separately rounded full and partial durations");
-        check(
-            Math.abs(both.energy - first.energy - tail.energy) < both.chargedRounds
-                && Math.abs(both.steam - first.steam - tail.steam) < both.chargedRounds,
-            "batch sums native work and rounds its final bill once, with only sub-round-count integer differences");
-        check(both.processingSteam == 42941, "fractional native steam cost is rounded once in the final ledger");
+            smallModifier.ticks == 2 && smallModifier.capacity == 15360
+                && smallModifier.roots == 15360
+                && smallModifier.parallel == 1920
+                && smallModifier.chargedRounds == 8,
+            "subtick modifier two expands capacity using t=.25 while its target remains two ticks");
     }
 
     private static void processingBillsAndPowerGate() throws Exception {
@@ -409,11 +550,33 @@ public final class CenterParallelBalanceContracts {
                 enough).batch(),
             "sufficient average native power");
         check(exact.ticks == ample.ticks, "power admission never stretches the weighted process duration");
+        Item shortOre = item("electric_batched", true);
+        recipe(CenterProcess.THERMAL_CENTRIFUGE, shortOre, 50, 8, stack(output, 1));
+        CenterPlanner.Batch shortBatch = require(
+            session(
+                Collections.singletonList(graph),
+                new ItemStack[] { stack(shortOre, 12288) },
+                modules(graph, 1),
+                1,
+                1,
+                128,
+                false,
+                Long.MAX_VALUE).batch(),
+            "full fixed-target electric batch");
+        check(
+            shortBatch.parallel == 960 && shortBatch.capacity == 12288
+                && shortBatch.roots == 12288
+                && shortBatch.ticks == 128
+                && shortBatch.chargedRounds == 13,
+            "short electric recipes use one fixed target and retain physical P");
+        check(
+            shortBatch.processingEnergy == 491520,
+            "fixed-target electric batching pays ten percent of all 12288 native recipe executions");
     }
 
     private static void queueAndBoosterPayment() throws Exception {
         Item ore = item("queue", true), output = item("queue_product", false), missing = item("missing", true);
-        recipe(CenterProcess.CRUSHER, ore, 400, 2, stack(output, 1));
+        recipe(CenterProcess.CRUSHER, ore, 20, 2, stack(output, 1));
         CenterGraph graph = graph(node(CenterProcess.CRUSHER, CenterGraph.BUS));
         check(
             session(
@@ -514,14 +677,43 @@ public final class CenterParallelBalanceContracts {
                     new FluidStack(acid, 8)).batch(),
                 "paid boosted full and partial round");
             check(
-                two.chargedRounds == 2 && two.boostFluids[1] == 8 && two.ticks == paid.ticks + tail.ticks,
-                "boosted partial batch pays both original doses and both complete round durations");
+                two.chargedRounds == 2 && two.boostFluids[1] == 8
+                    && two.ticks == 20
+                    && two.capacity == 760
+                    && two.batched,
+                "modifier two uses the fixed target and charges both actual recipe batches");
             check(
-                two.processingSteam == 63500 && paid.processingSteam == 63334 && tail.processingSteam == 167,
+                two.processingSteam == 3175 && paid.processingSteam == 3167 && tail.processingSteam == 9,
                 "boosted batch sums unrounded native work and rounds only its final ledger");
             check(
                 two.maintenanceSteam == paid.maintenanceSteam + tail.maintenanceSteam,
-                "boosted maintenance covers the combined actual round durations");
+                "modifier two maintenance covers its twenty-tick fixed target");
+            Item quarterTick = item("paid_subtick", true);
+            recipe(CenterProcess.CRUSHER, quarterTick, 15, 2, stack(output, 1));
+            int[][] subtickModules = modules(graph, 2);
+            subtickModules[CenterModule.PARALLEL.ordinal()][0] = 1;
+            int physicalP = 2763, targetCapacity = physicalP * 512;
+            for (int doses : new int[] { 1, 2, 3, 512 }) {
+                CenterPlanner.Batch affordable = require(
+                    session(
+                        Collections.singletonList(graph),
+                        new ItemStack[] { stack(quarterTick, targetCapacity + 1) },
+                        subtickModules,
+                        2,
+                        1,
+                        128,
+                        false,
+                        Long.MAX_VALUE,
+                        new FluidStack(acid, doses * 4)).batch(),
+                    "subtick dose-limited batch");
+                check(
+                    affordable.parallel == physicalP && affordable.capacity == targetCapacity
+                        && affordable.roots == physicalP * doses
+                        && affordable.chargedRounds == doses
+                        && affordable.boostFluids[1] == doses * 4
+                        && affordable.ticks == 128,
+                    "actual dose count limits admitted roots without inflating physical P: " + doses);
+            }
         } finally {
             Materials.NitricAcid.mFluid = original;
         }
@@ -593,21 +785,45 @@ public final class CenterParallelBalanceContracts {
         recipe(CenterProcess.CRUSHER, overflow, 40, 2, stack(enormous, Integer.MAX_VALUE));
         CenterGraph crusher = graph(node(CenterProcess.CRUSHER, CenterGraph.BUS));
         ItemStack caller = stack(overflow, Integer.MAX_VALUE);
+        CenterPlanner.Batch overflowSafe = session(
+            Collections.singletonList(crusher),
+            new ItemStack[] { caller },
+            modules(crusher, 1),
+            0,
+            1,
+            1,
+            false,
+            Long.MAX_VALUE).batch();
         check(
-            session(
-                Collections.singletonList(crusher),
-                new ItemStack[] { caller },
-                modules(crusher, 1),
-                0,
-                1,
-                1,
-                false,
-                Long.MAX_VALUE).batch() == null && caller.stackSize == Integer.MAX_VALUE,
-            "native output multiplication overflow rejects planning without wrapping or mutating inventory");
+            (overflowSafe == null || overflowSafe.roots == 1 && overflowSafe.outputs.size() == 1
+                && overflowSafe.outputs.get(0).stackSize == Integer.MAX_VALUE) && caller.stackSize == Integer.MAX_VALUE,
+            "native output overflow safely rejects or shrinks without wrapping or mutating inventory");
         CenterPlanner.Batch hugeInput = batch(graph, new ItemStack[] { stack(ore, Integer.MAX_VALUE) }, 1, 3);
         check(
             hugeInput.roots == 5120 && hugeInput.energy > 0 && hugeInput.steam > 0,
             "large caller stack is capped to P while Long.MAX_VALUE power cannot overflow capacity arithmetic");
+        Item fast = item("capacity_limit", true);
+        recipe(CenterProcess.CRUSHER, fast, 1, 2, stack(output, 1));
+        CenterPlanner.Batch bounded = require(
+            session(
+                Collections.singletonList(crusher),
+                new ItemStack[] { stack(fast, Integer.MAX_VALUE) },
+                modules(crusher, 3),
+                3,
+                1,
+                128,
+                false,
+                Long.MAX_VALUE).batch(),
+            "global capacity ceiling");
+        check(
+            bounded.parallel == 5120 && bounded.capacity == 64000000
+                && bounded.roots == 64000000
+                && bounded.chargedRounds == 12500
+                && bounded.ticks == 128,
+            "subtick capacity clips to 64 million without enlarging P or truncating actual batch count");
+        check(
+            bounded.energy >= 0 && bounded.steam > 0,
+            "maximum admitted capacity keeps final bills nonnegative and within long range");
     }
 
     private static void tickRemainderBoundaries() {

@@ -56,6 +56,10 @@ final class CenterTerminalPages {
     private boolean resetArmed, trialRequested;
     private CenterPlanner.Session trialJob;
     private CenterPlanner.Batch trialBatch;
+    private CenterGraph trialGraphSnapshot;
+    private ItemStack trialSampleSnapshot;
+    private NBTTagCompound trialStateSnapshot;
+    private int trialQuantity, trialRootLimit;
     private long trialRevision = -1;
     private String trialStatus;
     private final TextFieldWidget batchSize = CenterGraphGui.field("calc_batch_size", 7);
@@ -163,8 +167,8 @@ final class CenterTerminalPages {
         ParentWidget<?> resources = card("center_assembly_resources").left(0)
             .right(0)
             .top(14)
-            .height(57);
-        for (int i = 0; i < 10; i++) {
+            .height(68);
+        for (int i = 0; i < 12; i++) {
             int row = i + 2;
             var readout = CriticalGuiStyle
                 .fitted(() -> CenterOperationText.line(state(), row), () -> 0xFFD9E6E2, Alignment.CenterLeft)
@@ -180,7 +184,7 @@ final class CenterTerminalPages {
 
         ParentWidget<?> queue = card("center_queue_controls").left(0)
             .right(0)
-            .top(73)
+            .top(84)
             .height(17);
         queue.child(
             button(
@@ -216,7 +220,7 @@ final class CenterTerminalPages {
         page.child(queue);
 
         ParentWidget<?> directory = card("center_assembly_directory").left(0)
-            .top(92)
+            .top(103)
             .bottom(0)
             .width(113)
             .setEnabledIf(w -> showDirectory);
@@ -240,7 +244,7 @@ final class CenterTerminalPages {
         ParentWidget<?> center = card("center_assembly_map")
             .left(() -> showDirectory ? 115 : 0, com.cleanroommc.modularui.widget.sizer.Unit.Measure.PIXEL)
             .right(() -> showDetails ? 182 : 0, com.cleanroommc.modularui.widget.sizer.Unit.Measure.PIXEL)
-            .top(92)
+            .top(103)
             .bottom(0);
         ParentWidget<?> mapHead = new ParentWidget<>()
             .background(
@@ -292,7 +296,7 @@ final class CenterTerminalPages {
         page.child(center);
 
         ParentWidget<?> detail = card("center_assembly_inspector").right(0)
-            .top(92)
+            .top(103)
             .bottom(0)
             .width(180)
             .setEnabledIf(w -> showDetails);
@@ -568,6 +572,10 @@ final class CenterTerminalPages {
         trialRequested = false;
         trialJob = null;
         trialBatch = null;
+        trialGraphSnapshot = null;
+        trialSampleSnapshot = null;
+        trialStateSnapshot = null;
+        trialQuantity = trialRootLimit = 0;
         trialRevision = -1;
         trialStatus = null;
     }
@@ -606,7 +614,12 @@ final class CenterTerminalPages {
             trialStatus = "terminal.trial_sample";
             return;
         }
-        trialJob = CenterGraphPreview.trial(trialGraph, sample, quantity, state());
+        trialGraphSnapshot = CenterGraph.load(trialGraph.save());
+        trialSampleSnapshot = sample.copy();
+        trialStateSnapshot = (NBTTagCompound) state().copy();
+        trialQuantity = trialRootLimit = quantity;
+        trialJob = CenterGraphPreview
+            .trial(trialGraphSnapshot, trialSampleSnapshot, trialQuantity, trialStateSnapshot, trialRootLimit);
         trialStatus = trialJob == null ? "terminal.trial_missing" : "terminal.trial_working";
     }
 
@@ -629,7 +642,7 @@ final class CenterTerminalPages {
         return graphs.isEmpty() ? null : graphs.get(Math.min(route, graphs.size() - 1));
     }
 
-    private static final int CALC_ROWS = 12;
+    private static final int CALC_ROWS = 15;
 
     private String amount(int row) {
         NBTTagCompound state = state();
@@ -650,15 +663,20 @@ final class CenterTerminalPages {
             case 3 -> state.getLong("Power") + " EU/t";
             case 4 -> parallel + " / " + used + " / " + Math.max(0, parallel - used);
             case 5 -> String
-                .format(Locale.ROOT, "%.3f t", batch != null ? batch.weightedTicks : state.getDouble("WeightedTicks"));
+                .format(Locale.ROOT, "%.6f t", batch != null ? batch.weightedTicks : state.getDouble("WeightedTicks"));
             case 6 -> (batch != null ? batch.processingEnergy : state.getLong("ProcessingEnergy")) + " EU";
             case 7 -> (batch != null ? batch.maintenanceEnergy : state.getLong("MaintenanceEnergy")) + " EU";
             case 8 -> (batch != null ? batch.processingSteam : state.getLong("ProcessingSteam")) + " L eq.";
             case 9 -> (batch != null ? batch.maintenanceSteam : state.getLong("MaintenanceSteam")) + " L eq.";
             case 10 -> time > 0 ? CenterOperationText.ceilDivide(energy, time) + " EU/t" : "0 EU/t";
-            default -> time > 0
+            case 11 -> time > 0
                 ? CenterOperationText.ceilDivide(CenterOperationText.ceilDivide(steam, density), time) + " L/t"
                 : "0 L/t";
+            case 12 -> Integer.toString(batch != null ? batch.capacity : state.getInteger("BatchCapacity"));
+            case 13 -> Integer.toString(batch != null ? batch.chargedRounds : state.getInteger("BatchRounds"));
+            default -> tr(
+                (batch != null ? batch.batched : state.getBoolean("Batched")) ? "calc.batched" : "calc.ordinary",
+                batch != null ? batch.batchModifier : state.getInteger("BatchModifier"));
         };
     }
 
@@ -1187,8 +1205,25 @@ final class CenterTerminalPages {
                 .revision() != trialRevision) resetTrial();
             if (trialJob != null && trialJob.advance(4, 200_000)) {
                 trialBatch = trialJob.batch();
-                trialJob = null;
-                trialStatus = trialBatch == null ? "terminal.trial_missing" : "terminal.trial_ready";
+                if (trialBatch != null) {
+                    trialJob = null;
+                    trialStatus = "terminal.trial_ready";
+                } else {
+                    int retry = CenterGraphPreview.retryLimit(trialJob);
+                    if (retry > 0 && retry < trialRootLimit) {
+                        trialRootLimit = retry;
+                        trialJob = CenterGraphPreview.trial(
+                            trialGraphSnapshot,
+                            trialSampleSnapshot,
+                            trialQuantity,
+                            trialStateSnapshot,
+                            trialRootLimit);
+                        trialStatus = trialJob == null ? "terminal.trial_retry_failed" : "terminal.trial_retry";
+                    } else {
+                        trialJob = null;
+                        trialStatus = retry == 0 ? "terminal.trial_missing" : "terminal.trial_retry_failed";
+                    }
+                }
             }
         }
 

@@ -145,6 +145,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private final int[] boostFluids = new int[4];
     private int batchModules, batchRounds;
     private int batchParallel, batchRoots;
+    private int batchCapacity, batchModifier = 1;
+    private boolean batched;
     private double weightedTicks;
     private long processingEnergy, maintenanceEnergy, processingSteam, maintenanceSteam;
     private boolean billBreakdownKnown;
@@ -499,6 +501,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         IGregTechTileEntity te = getBaseMetaTileEntity();
         NBTTagCompound tag = new NBTTagCompound();
         tag.setBoolean("QueueMode", queueMode);
+        tag.setBoolean("BatchMode", isBatchModeEnabled());
+        tag.setInteger("ConfiguredBatchModifier", isBatchModeEnabled() ? getMaxBatchSize() : 1);
         tag.setInteger("QueueParallel", queueParallel);
         int sectors = structure.sectorMask(te);
         tag.setInteger("Tier", structure.tier(te));
@@ -543,6 +547,9 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setInteger(prefix + "UsedParallel", used);
         tag.setInteger(prefix + "IdleParallel", Math.max(0, parallel - used));
         tag.setInteger(prefix + "BatchRoots", batchRoots);
+        tag.setInteger(prefix + "BatchCapacity", batchCapacity);
+        tag.setBoolean(prefix + "Batched", batched);
+        tag.setInteger(prefix + "BatchModifier", batchModifier);
         tag.setBoolean(prefix + "BillBreakdownKnown", billBreakdownKnown);
         tag.setLong(prefix + "ProcessingEnergy", processingEnergy);
         tag.setLong(prefix + "MaintenanceEnergy", maintenanceEnergy);
@@ -999,6 +1006,9 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         batchRounds = batch.chargedRounds;
         batchParallel = batch.parallel;
         batchRoots = batch.roots;
+        batchCapacity = batch.capacity;
+        batchModifier = batch.batchModifier;
+        batched = batch.batched;
         weightedTicks = batch.weightedTicks;
         processingEnergy = batch.processingEnergy;
         maintenanceEnergy = batch.maintenanceEnergy;
@@ -1390,6 +1400,13 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         energyTotal = Math.max(0, tag.getLong("CenterEnergy"));
         batchParallel = Math.max(0, Math.min(CenterPlanner.MAX_ROOTS, tag.getInteger("CenterTotalParallel")));
         batchRoots = Math.max(0, Math.min(CenterPlanner.MAX_BATCH_ROOTS, tag.getInteger("CenterBatchRoots")));
+        batchCapacity = tag.hasKey("CenterBatchCapacity")
+            ? Math.max(0, Math.min(CenterPlanner.MAX_BATCH_ROOTS, tag.getInteger("CenterBatchCapacity")))
+            : batchParallel;
+        batched = tag.getBoolean("CenterBatched");
+        batchModifier = tag.hasKey("CenterBatchModifier")
+            ? Math.max(1, Math.min(128, tag.getInteger("CenterBatchModifier")))
+            : 1;
         billBreakdownKnown = tag.getBoolean("CenterBillBreakdownKnown");
         processingEnergy = Math.max(0, tag.getLong("CenterProcessingEnergy"));
         maintenanceEnergy = Math.max(0, tag.getLong("CenterMaintenanceEnergy"));

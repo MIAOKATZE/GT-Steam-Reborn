@@ -13,7 +13,7 @@ import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 /** Common labels for the synchronized server totals shown by both center interfaces. */
 final class CenterOperationText {
 
-    static final int ROWS = 12;
+    static final int ROWS = 14;
     private static final String[] BOOSTS = { "speed", "parallel", "yield", "secondary" };
 
     private CenterOperationText() {}
@@ -62,8 +62,8 @@ final class CenterOperationText {
                 format(state.getInteger("IdleParallel")));
             case 9 -> yellow + local(
                 "weighted",
-                white + String.format(java.util.Locale.ROOT, "%.3f", state.getDouble("WeightedTicks")),
-                format(state.getInteger("BatchRounds")));
+                white + String.format(java.util.Locale.ROOT, "%.6f", state.getDouble("WeightedTicks")),
+                format(state.getInteger("BatchModifier")));
             case 10 -> !state.getBoolean("BillBreakdownKnown") ? local("legacy_bill")
                 : yellow + local(
                     "processing",
@@ -74,6 +74,14 @@ final class CenterOperationText {
                     "maintenance",
                     white + format(state.getLong("MaintenanceEnergy")),
                     format(state.getLong("MaintenanceSteam")));
+            case 12 -> yellow + local(
+                state.getBoolean("Batched") ? "batch_window" : "ordinary_window",
+                white + format(duration),
+                format(state.getInteger("BatchCapacity")));
+            case 13 -> yellow + local(
+                "batch_doses",
+                white + format(state.getInteger("BatchRoots")),
+                format(state.getInteger("BatchRounds")));
             default -> {
                 int boost = index - 4;
                 NBTTagCompound cost = state.getTagList("BoostCosts", 10)
