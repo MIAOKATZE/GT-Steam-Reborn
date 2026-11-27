@@ -59,15 +59,12 @@ final class CenterTerminalPages {
     private long trialRevision = -1;
     private String trialStatus;
     private final TextFieldWidget batchSize = CenterGraphGui.field("calc_batch_size", 7);
-    private final TextFieldWidget queueSize = CenterGraphGui.field("queue_minimum", 7);
-    private int savedQueueMinimum;
     private final TextFieldWidget search = CenterGraphGui.field("ledger_search", 64);
 
     CenterTerminalPages(CenterGraphSync sync, LongFunction<ItemStack> sampleForGraph) {
         this.sync = sync;
         this.sampleForGraph = sampleForGraph;
         batchSize.value(new com.cleanroommc.modularui.value.StringValue("64"));
-        queueSize.value(new com.cleanroommc.modularui.value.StringValue("4096"));
         for (CenterModule ignored : MODULES) moduleReferences.add(new ArrayList<>());
     }
 
@@ -155,62 +152,16 @@ final class CenterTerminalPages {
         }
         page.child(resources);
 
-        ParentWidget<?> queue = card("center_queue_controls").left(0)
-            .right(0)
-            .top(51)
-            .height(17);
-        queue.child(
-            button(
-                "queue_toggle",
-                () -> tr(state().getBoolean("QueueMode") ? "queue.on" : "queue.off"),
-                () -> sync.edit(
-                    CenterGraphSync.Action.QUEUE,
-                    sync.snapshot(),
-                    -1,
-                    state().getBoolean("QueueMode") ? 0 : 1,
-                    state().getInteger("QueueMinimum"),
-                    "")).pos(3, 2)
-                        .size(66, 13));
-        queue.child(
-            label(() -> tr("queue.minimum")).pos(73, 2)
-                .size(57, 13));
-        queue.child(
-            queueSize.pos(132, 2)
-                .size(52, 13)
-                .onUpdateListener(widget -> {
-                    int minimum = state().getInteger("QueueMinimum");
-                    if (minimum > 0 && minimum != savedQueueMinimum) {
-                        savedQueueMinimum = minimum;
-                        queueSize.getStringValue()
-                            .setStringValue(Integer.toString(minimum));
-                        queueSize.setText(Integer.toString(minimum));
-                    }
-                }));
-        queue.child(button("queue_apply", () -> tr("queue.apply"), () -> {
-            int minimum;
-            try {
-                minimum = Integer.parseInt(
-                    queueSize.getText()
-                        .trim());
-            } catch (NumberFormatException invalid) {
-                minimum = 0;
-            }
-            sync.edit(
-                CenterGraphSync.Action.QUEUE,
-                sync.snapshot(),
-                -1,
-                state().getBoolean("QueueMode") ? 1 : 0,
-                minimum,
-                "");
-        }).pos(187, 2)
-            .size(28, 13));
-        queue.child(
-            CriticalGuiStyle.fitted(() -> tr("queue.hint"), () -> 0xFFC0C9C8, Alignment.CenterLeft)
-                .asWidget()
-                .left(220)
-                .right(3)
-                .top(2)
-                .height(13));
+        ParentWidget<?> queue = card("center_queue_controls").left(0).right(0).top(51).height(17);
+        queue.child(button("queue_toggle", () -> tr(state().getBoolean("QueueMode") ? "queue.on" : "queue.off"),
+            () -> sync.edit(CenterGraphSync.Action.QUEUE, sync.snapshot(), -1,
+                state().getBoolean("QueueMode") ? 0 : 1, 0, ""))
+            .pos(3, 2).size(66, 13));
+        queue.child(CriticalGuiStyle.fitted(() -> state().getInteger("QueueParallel") > 0
+            ? tr("queue.parallel", state().getInteger("QueueParallel")) : tr("queue.detecting"),
+            () -> 0xFFE3B87B, Alignment.CenterLeft).asWidget().left(73).top(2).size(109, 13));
+        queue.child(CriticalGuiStyle.fitted(() -> tr("queue.hint"),
+            () -> 0xFFC0C9C8, Alignment.CenterLeft).asWidget().left(187).right(3).top(2).height(13));
         page.child(queue);
 
         ParentWidget<?> directory = card("center_assembly_directory").left(0).top(70).bottom(0).width(113)

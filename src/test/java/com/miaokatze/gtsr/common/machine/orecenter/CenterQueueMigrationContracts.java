@@ -19,6 +19,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.CraftingManager;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
@@ -28,6 +30,7 @@ import com.miaokatze.gtsr.loader.recipes.ClusterRecipes;
 import com.miaokatze.gtsr.loader.recipes.PortableWeaponRecipeContracts;
 
 import gregtech.api.enums.GTValues;
+import gregtech.api.enums.Materials;
 import gregtech.api.metatileentity.BaseMetaTileEntity;
 import gregtech.api.recipe.RecipeMaps;
 
@@ -76,21 +79,68 @@ public final class CenterQueueMigrationContracts {
             .eut(2)
             .addTo(RecipeMaps.maceratorRecipes);
 
-        ItemStack[] scarce = { ore(a, 2048), ore(b, 2047), ore(unrelated, 100000) };
-        check(plan(scarce, 4096) == null, "unrelated items cannot satisfy the queue minimum");
-        check(scarce[0].stackSize == 2048 && scarce[1].stackSize == 2047, "waiting leaves input stacks unchanged");
-        CenterPlanner.Batch mixed = plan(new ItemStack[] { ore(a, 2048), ore(b, 2048) }, 4096);
-        check(mixed != null && mixed.roots == 4096, "different ores combine to meet the exact threshold");
+        ItemStack[] scarce = { ore(a, 12), ore(b, 11), ore(unrelated, 100000) };
+        check(plan(scarce, true) == null, "unrelated items cannot fill the current 24 parallel lanes");
+        check(scarce[0].stackSize == 12 && scarce[1].stackSize == 11, "waiting leaves input stacks unchanged");
+        CenterPlanner.Batch mixed = plan(new ItemStack[] { ore(a, 12), ore(b, 12) }, true);
+        check(mixed != null && mixed.roots == 24, "different ores combine to fill current parallel exactly");
         check(mixed.consumed.size() == 2, "both ore identities are consumed by the accepted plan");
         check(
-            plan(new ItemStack[] { ore(a, 1024), ore(missing, 4096) }, 4096) == null,
-            "a matching ore without a native recipe cannot pad the committed batch");
-        CenterPlanner.Batch immediate = plan(new ItemStack[] { ore(a, 1) }, 1);
+            plan(new ItemStack[] { ore(a, 6), ore(missing, 24) }, true) == null,
+            "a matching ore without a native recipe cannot fill the committed parallel lanes");
+        CenterPlanner.Batch immediate = plan(new ItemStack[] { ore(a, 1) }, false);
         check(immediate != null && immediate.roots == 1, "disabled queue retains immediate small batches");
-        check(plan(new ItemStack[] { ore(a, 4095) }, 4096) == null, "one short of the minimum remains queued");
+        check(plan(new ItemStack[] { ore(a, 23) }, true) == null, "one short of full parallel remains queued");
+        CenterPlanner.Session expanded = planner(new ItemStack[] { ore(a, 47) }, true, 0, 2, 0);
+        check(expanded.parallelLimit() == 48 && expanded.batch() == null, "sector expansion raises the queue target");
+        check(
+            planner(new ItemStack[] { ore(a, 48) }, true, 0, 2, 0).batch().roots == 48,
+            "expanded sectors accept their full parallel count");
+        CenterPlanner.Session upgraded = planner(new ItemStack[] { ore(a, 95) }, true, 1, 1, 0);
+        check(upgraded.parallelLimit() == 96 && upgraded.batch() == null, "structure grade raises the queue target");
+        check(
+            planner(new ItemStack[] { ore(a, 96) }, true, 1, 1, 0).batch().roots == 96,
+            "upgraded structure accepts its full parallel count");
+
+        Fluid original = Materials.NitricAcid.mFluid;
+        Fluid acid = new Fluid("gtsr_queue_contract_nitric");
+        FluidRegistry.registerFluid(acid);
+        Materials.NitricAcid.mFluid = acid;
+        try {
+            CenterPlanner.Session unpaid = planner(
+                new ItemStack[] { ore(a, 24) },
+                true,
+                0,
+                1,
+                1,
+                new FluidStack(acid, 3));
+            check(
+                unpaid.parallelLimit() == 24 && unpaid.batch() != null,
+                "a booster without its dose cannot increase the admission target");
+            CenterPlanner.Session boosted = planner(
+                new ItemStack[] { ore(a, 37) },
+                true,
+                0,
+                1,
+                1,
+                new FluidStack(acid, 4));
+            check(
+                boosted.parallelLimit() == 38 && boosted.batch() == null,
+                "the paid parallel boost updates the target before native planning");
+            check(
+                planner(new ItemStack[] { ore(a, 38) }, true, 0, 1, 1, new FluidStack(acid, 4)).batch().roots == 38,
+                "paid parallel boost admits a full batch");
+        } finally {
+            Materials.NitricAcid.mFluid = original;
+        }
     }
 
-    private static CenterPlanner.Batch plan(ItemStack[] input, int minimum) {
+    private static CenterPlanner.Batch plan(ItemStack[] input, boolean queue) {
+        return planner(input, queue, 0, 1, 0).batch();
+    }
+
+    private static CenterPlanner.Session planner(ItemStack[] input, boolean queue, int tier, int sectors,
+        int parallelModules, FluidStack... supply) {
         CenterGraph graph = new CenterGraph(
             1,
             "queue",
@@ -100,27 +150,28 @@ public final class CenterQueueMigrationContracts {
             Collections.singletonList(new CenterGraph.Node(CenterProcess.CRUSHER, new int[] { CenterGraph.BUS })));
         int[][] modules = new int[CenterModule.values().length][3];
         modules[CenterModule.CRUSHER.ordinal()][0] = 1;
+        modules[CenterModule.PARALLEL.ordinal()][0] = parallelModules;
         CenterPlanner.Session session = new CenterPlanner.Session(
             Collections.singletonList(graph),
             input,
-            new FluidStack[0],
+            supply,
             modules,
-            0,
-            1,
+            tier,
+            sectors,
             32,
             0,
             0,
             17,
-            true,
+            false,
             true,
             100000,
             1);
-        session.requireRoots(minimum);
+        session.queueMode(queue);
         int slices = 0;
         while (!session.advance(64, Long.MAX_VALUE)) {
             if (++slices > 100) throw new AssertionError("Queue planning did not finish");
         }
-        return session.batch();
+        return session;
     }
 
     private static void migrationRecipes() throws Exception {
@@ -184,7 +235,6 @@ public final class CenterQueueMigrationContracts {
         center.setBaseMetaTileEntity(new BaseMetaTileEntity());
         NBTTagCompound saved = new NBTTagCompound();
         saved.setBoolean("CenterQueueMode", true);
-        saved.setInteger("CenterQueueMinimum", 6000);
         saved.setInteger("CenterDuration", 100);
         saved.setInteger("CenterElapsed", 37);
         saved.setLong("CenterSteam", 12345);
@@ -192,26 +242,20 @@ public final class CenterQueueMigrationContracts {
         center.loadNBTData(saved);
         NBTTagCompound restored = new NBTTagCompound();
         center.saveNBTData(restored);
-        check(
-            restored.getBoolean("CenterQueueMode") && restored.getInteger("CenterQueueMinimum") == 6000,
-            "queue selection survives the production NBT round trip");
+        check(restored.getBoolean("CenterQueueMode"), "queue selection survives the production NBT round trip");
         check(
             restored.getInteger("CenterDuration") == 100 && restored.getInteger("CenterElapsed") == 37
                 && restored.getLong("CenterSteam") == 12345
                 && restored.getLong("CenterEnergy") == 20000,
             "queue persistence preserves the paid batch progress and bill");
         check(
-            "status.read_only".equals(center.configureQueue(null, false, 1)),
+            "status.read_only".equals(center.configureQueue(null, false)),
             "queue settings require the normal player authority");
         center.loadNBTData(new NBTTagCompound());
         center.saveNBTData(restored);
         check(
-            !restored.getBoolean("CenterQueueMode") && restored.getInteger("CenterQueueMinimum") == 4096,
-            "old saves retain immediate processing and the default optional minimum");
-        saved.setInteger("CenterQueueMinimum", -1);
-        center.loadNBTData(saved);
-        center.saveNBTData(restored);
-        check(restored.getInteger("CenterQueueMinimum") == 1, "invalid saved minima are clamped");
+            !restored.getBoolean("CenterQueueMode"),
+            "old saves retain immediate processing until queue mode is enabled");
     }
 
     private static void check(boolean condition, String description) {

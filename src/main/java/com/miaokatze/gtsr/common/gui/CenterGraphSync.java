@@ -355,8 +355,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                             result = machine.applyModuleEdit(player, a, b >> 2, b & 3);
                         else if (action == Action.RESET_LEDGER && machine.resetTerminalLedger(player))
                             result = "status.saved";
-                        else if (action == Action.QUEUE && text.isEmpty() && (a == 0 || a == 1))
-                            result = machine.configureQueue(player, a == 1, b);
+                        else if (action == Action.QUEUE && text.isEmpty() && (a == 0 || a == 1) && b == 0)
+                            result = machine.configureQueue(player, a == 1);
                     }
                     sendTerminal(false);
                     detectAndSendChanges(false);

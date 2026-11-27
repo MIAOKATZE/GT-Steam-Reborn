@@ -5539,7 +5539,6 @@ gtsr.ore_center.graph.assembly.usage.capacity=Graphs configured: %s / %s
 
 gtsr.ore_center.graph.queue.on=Queue: ON
 gtsr.ore_center.graph.queue.off=Queue: OFF
-gtsr.ore_center.graph.queue.minimum=Minimum ore
-gtsr.ore_center.graph.queue.apply=Save
-gtsr.ore_center.graph.queue.hint=Combine mixed ores before starting; waiting is free
-gtsr.ore_center.graph.queue.invalid=Minimum ore must be an integer between 1 and the current mode batch limit.
+gtsr.ore_center.graph.queue.hint=Wait for mixed ore to fill current parallel; waiting is free
+gtsr.ore_center.graph.queue.parallel=Current parallel: %s items
+gtsr.ore_center.graph.queue.detecting=Waiting to assess parallel

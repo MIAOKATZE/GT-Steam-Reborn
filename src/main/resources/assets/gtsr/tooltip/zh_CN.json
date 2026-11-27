@@ -2308,7 +2308,7 @@
     }},
     {"id":"machine.OreIntegrationCenter","owner":{"machine":"OreIntegrationCenter"},"tiers":{
       "common":[
-        {"type":"line","text":"§7§b队列模式§7 在装配页设置。开启后按混矿合计攒够最低原矿量再开批，等待不扣费。§r"},
+        {"type":"line","text":"§7§b队列模式§7 在装配页设置。开启后按混矿合计攒满当前有效并行量再开批，等待不扣费。§r"},
         {"type":"line","text":"§7§b工艺图谱§7 按矿词分配来料。中心预算整批产物、时间与耗能，再统一加工。§r"},
         {"type":"line","text":"§7[right:右击] 主控打开图谱。每装一座物流设备可配置 §e1 张图谱§7。§r"},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
@@ -2326,7 +2326,7 @@
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
-        {"type":"line","text":"§7§b队列模式§7 在装配页设置。开启后按混矿合计攒够最低原矿量再开批，等待不扣费。§r"},
+        {"type":"line","text":"§7§b队列模式§7 在装配页设置。开启后按混矿合计攒满当前有效并行量再开批，等待不扣费。§r"},
         {"type":"line","text":"§7§b工艺图谱§7 按矿词分配来料。中心预算整批产物、时间与耗能，再统一加工。§r"},
         {"type":"line","text":"§7[right:右击] 主控打开图谱。每装一座物流设备可配置 §e1 张图谱§7。§r"},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},

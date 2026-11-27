@@ -5535,7 +5535,6 @@ gtsr.ore_center.graph.assembly.usage.capacity=已配置图谱 %s / %s
 
 gtsr.ore_center.graph.queue.on=队列模式：开
 gtsr.ore_center.graph.queue.off=队列模式：关
-gtsr.ore_center.graph.queue.minimum=最低原矿量
-gtsr.ore_center.graph.queue.apply=保存
-gtsr.ore_center.graph.queue.hint=混矿合计达标后开批，等待不扣费
-gtsr.ore_center.graph.queue.invalid=最低原矿量需为 1 到当前模式单批上限之间的整数。
+gtsr.ore_center.graph.queue.hint=混矿合计攒满当前并行后开批，等待不扣费
+gtsr.ore_center.graph.queue.parallel=当前并行上限：%s 件
+gtsr.ore_center.graph.queue.detecting=等待检测当前并行
