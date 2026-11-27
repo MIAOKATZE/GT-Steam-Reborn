@@ -45,17 +45,22 @@ public abstract class MTEEnhancedRecoveryMixin {
         if (state != null) state.beginPiece(null, true);
     }
 
-    @Inject(method = "checkPiece", at = @At("RETURN"), cancellable = true)
+    @Inject(
+        method = { "checkPiece(Ljava/lang/String;III)Z", "checkPiece(Ljava/lang/String;IIILjava/util/List;)Z" },
+        at = @At("RETURN"),
+        cancellable = true,
+        require = 2)
     private void gtsr$incompletePiece(CallbackInfoReturnable<Boolean> cir) {
         GtsrStructureRecovery.State state = GtsrStructureRecovery.state((MTEMultiBlockBase) (Object) this);
         if (state != null && state.finishPiece()) cir.setReturnValue(false);
     }
 
     @WrapOperation(
-        method = "checkPiece",
+        method = { "checkPiece(Ljava/lang/String;III)Z", "checkPiece(Ljava/lang/String;IIILjava/util/List;)Z" },
         at = @At(
             value = "INVOKE",
-            target = "Lcom/gtnewhorizon/structurelib/structure/IStructureDefinition;iterate(Ljava/lang/String;Lnet/minecraft/world/World;Lcom/gtnewhorizon/structurelib/alignment/enumerable/ExtendedFacing;IIIIIILcom/gtnewhorizon/structurelib/structure/IStructureWalker;)V"))
+            target = "Lcom/gtnewhorizon/structurelib/structure/IStructureDefinition;iterate(Ljava/lang/String;Lnet/minecraft/world/World;Lcom/gtnewhorizon/structurelib/alignment/enumerable/ExtendedFacing;IIIIIILcom/gtnewhorizon/structurelib/structure/IStructureWalker;)V"),
+        require = 4)
     private void gtsr$loadedStructureOnly(IStructureDefinition definition, String piece, World world,
         ExtendedFacing facing, int x, int y, int z, int a, int b, int c, IStructureWalker walker,
         Operation<Void> original) {

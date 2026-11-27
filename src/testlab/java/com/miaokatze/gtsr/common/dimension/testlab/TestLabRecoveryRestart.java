@@ -222,6 +222,7 @@ public final class TestLabRecoveryRestart implements TestLabTask {
             if (!loadBoundaryOnly) requireDeferredUnloaded();
             controller = tile(pos);
             machine = (MTEMultiBlockBase) controller.getMetaTileEntity();
+            recordEnhancedRuntimeMethods();
             require(controller.getMetaTileID() == pos.getInteger("metaId"), "New world tile has a different MTE id");
             require(
                 controller.isAllowedToWork() == journal.getBoolean("allowed"),
@@ -630,6 +631,25 @@ public final class TestLabRecoveryRestart implements TestLabTask {
         require(
             !world.theChunkProviderServer.chunkExists(deferredChunk.chunkXPos, deferredChunk.chunkZPos),
             "Delayed structure chunk was loaded early by another actor/provider; no frozen-state claim is possible");
+    }
+
+    private void recordEnhancedRuntimeMethods() {
+        for (Class<?> type = machine.getClass(); type != null; type = type.getSuperclass()) {
+            if (!type.getName()
+                .equals("gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase")) continue;
+            try {
+                List<String> names = new ArrayList<>();
+                for (Method method : type.getDeclaredMethods()) if (method.getName()
+                    .contains("gtsr")) names.add(method.getName());
+                names.sort(null);
+                evidence.put("runtimeEnhancedGtsrMethods", names);
+                GTSteamReborn.LOG.info("[GTSR-RECOVERY-ENHANCED-METHODS] case={} methods={}", key, names);
+            } catch (RuntimeException | LinkageError failure) {
+                evidence.put("runtimeEnhancedMethodsUnavailable", failure.toString());
+                GTSteamReborn.LOG.warn("[GTSR-RECOVERY-ENHANCED-METHODS] inspection unavailable", failure);
+            }
+            return;
+        }
     }
 
     /** Read-only one-shot cause tracing for this test's exact withheld chunk; never throws into world loading. */

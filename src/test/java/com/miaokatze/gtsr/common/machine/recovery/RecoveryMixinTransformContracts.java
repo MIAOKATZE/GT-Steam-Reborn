@@ -23,6 +23,7 @@ import net.minecraft.launchwrapper.LaunchClassLoader;
 
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.lib.ClassReader;
+import org.spongepowered.asm.lib.Opcodes;
 import org.spongepowered.asm.lib.tree.ClassNode;
 import org.spongepowered.asm.lib.tree.MethodInsnNode;
 import org.spongepowered.asm.mixin.MixinEnvironment;
@@ -46,7 +47,7 @@ public final class RecoveryMixinTransformContracts {
                     .toURL());
         String config = "{\"required\":true,\"minVersion\":\"0.8.5-GTNH\",\"target\":\"@env(DEFAULT)\",\"compatibilityLevel\":\"JAVA_8\","
             + "\"package\":\"com.miaokatze.gtsr.mixin\",\"refmap\":\"mixins.gtsr.refmap.json\","
-            + "\"mixins\":[\"MTEMultiBlockRedstoneLifecycleMixin\",\"MTEMultiBlockRecoveryMixin\",\"MTEEnhancedRecoveryMixin\",\"MixinGtsrChunkLoadingPolicy\"]}";
+            + "\"mixins\":[\"StructureCheckerMixin\",\"MTEMultiBlockRedstoneLifecycleMixin\",\"MTEMultiBlockRecoveryMixin\",\"MTEEnhancedRecoveryMixin\",\"MixinGtsrChunkLoadingPolicy\"]}";
         Files.write(output.resolve("mixins.gtsr.recovery-contract.json"), config.getBytes(StandardCharsets.UTF_8));
         Launch.classLoader = new LaunchClassLoader(urls.toArray(new URL[0]));
         Launch.blackboard = new HashMap<>();
@@ -96,7 +97,7 @@ public final class RecoveryMixinTransformContracts {
         }
         for (String name : new String[] { "gregtech.api.metatileentity.implementations.MTEMultiBlockBase",
             "gregtech.api.metatileentity.implementations.MTEEnhancedMultiBlockBase",
-            "gregtech.api.objects.GTChunkManager" }) {
+            "gregtech.api.objects.GTChunkManager", "gregtech.api.structure.StructureChecker" }) {
             byte[] original = Launch.classLoader.getClassBytes(name);
             if (original == null) throw new AssertionError("Missing actual target " + name);
             byte[] transformed = transformer.transform(name, name, original);
@@ -107,6 +108,59 @@ public final class RecoveryMixinTransformContracts {
                 .filter(method -> method.name.contains("gtsr$"))
                 .count();
             if (handlers == 0) throw new AssertionError("Missing actual handlers " + name);
+            if (name.endsWith(".MTEEnhancedMultiBlockBase")) {
+                ClassNode before = new ClassNode();
+                new ClassReader(original).accept(before, 0);
+                for (String desc : new String[] { "(Ljava/lang/String;III)Z",
+                    "(Ljava/lang/String;IIILjava/util/List;)Z" }) {
+                    var source = before.methods.stream()
+                        .filter(m -> m.name.equals("checkPiece") && m.desc.equals(desc))
+                        .findFirst()
+                        .orElseThrow(() -> new AssertionError("Missing source overload " + desc));
+                    var actual = node.methods.stream()
+                        .filter(m -> m.name.equals("checkPiece") && m.desc.equals(desc))
+                        .findFirst()
+                        .orElseThrow(() -> new AssertionError("Missing transformed overload " + desc));
+                    long nativeSites = Arrays.stream(source.instructions.toArray())
+                        .filter(i -> i instanceof MethodInsnNode && ((MethodInsnNode) i).name.equals("iterate"))
+                        .count();
+                    long wrappers = Arrays.stream(actual.instructions.toArray())
+                        .filter(
+                            i -> i instanceof MethodInsnNode
+                                && ((MethodInsnNode) i).name.contains("gtsr$loadedStructureOnly"))
+                        .count();
+                    long remaining = Arrays.stream(actual.instructions.toArray())
+                        .filter(i -> i instanceof MethodInsnNode && ((MethodInsnNode) i).name.equals("iterate"))
+                        .count();
+                    long returns = Arrays.stream(source.instructions.toArray())
+                        .filter(i -> i.getOpcode() == Opcodes.IRETURN)
+                        .count();
+                    long hooks = Arrays.stream(actual.instructions.toArray())
+                        .filter(
+                            i -> i instanceof MethodInsnNode
+                                && ((MethodInsnNode) i).name.contains("gtsr$incompletePiece"))
+                        .count();
+                    if (nativeSites != 2 || wrappers != nativeSites || remaining != 0 || hooks < returns)
+                        throw new AssertionError(
+                            "Incomplete overload " + desc
+                                + " native="
+                                + nativeSites
+                                + " wrappers="
+                                + wrappers
+                                + " unguarded="
+                                + remaining
+                                + " returnHooks="
+                                + hooks
+                                + "/"
+                                + returns);
+                    System.out.println(
+                        "PASS actual checkPiece overload " + desc
+                            + " guardedIterates="
+                            + wrappers
+                            + " returnHooks="
+                            + hooks);
+                }
+            }
             if (name.endsWith(".MTEMultiBlockBase")) {
                 if (!node.interfaces.contains("com/miaokatze/gtsr/common/machine/recovery/IGtsrStructureRecovery"))
                     throw new AssertionError("Recovery state interface missing");
@@ -124,6 +178,7 @@ public final class RecoveryMixinTransformContracts {
             Files.write(output.resolve(name.substring(name.lastIndexOf('.') + 1) + ".class"), transformed);
             System.out.println("PASS transformed " + name + " handlers=" + handlers);
         }
-        System.out.println("PASS recovery mixin targets=3; no Minecraft process or world IO");
+        System.out
+            .println("PASS recovery mixin targets=4 with both checkPiece overloads; no Minecraft process or world IO");
     }
 }

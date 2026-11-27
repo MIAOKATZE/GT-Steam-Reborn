@@ -101,6 +101,7 @@ public final class RecoveryMixinRuntimeFixture {
             machine.mProgresstime == 0 && machine.mMaxProgresstime == 0 && machine.mOutputItems == null,
             "Confirmed damage bypassed the real GT stop");
         require(!flags[0], "Confirmed damage bypassed native working-switch shutdown");
+        structureCheckerReloads();
         thermalReloads();
         System.out.println(
             "PASS actual transformed GT unknown/damaged stop and postTick assertions=7; isolated tile, no world IO");
@@ -110,21 +111,142 @@ public final class RecoveryMixinRuntimeFixture {
         if (!value) throw new AssertionError(message);
     }
 
-    private static void thermalReloads() throws Exception {
+    private static ThermalWorld sparseWorld() throws Exception {
         Field allocator = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
         allocator.setAccessible(true);
-        World world = (World) ((sun.misc.Unsafe) allocator.get(null)).allocateInstance(ThermalWorld.class);
+        ThermalWorld world = (ThermalWorld) ((sun.misc.Unsafe) allocator.get(null))
+            .allocateInstance(ThermalWorld.class);
         ((ThermalWorld) world).chunks = (IChunkProvider) Proxy.newProxyInstance(
             RecoveryMixinRuntimeFixture.class.getClassLoader(),
             new Class<?>[] { IChunkProvider.class },
             (proxy, method, values) -> {
                 if (method.getName()
-                    .equals("chunkExists")) return false;
+                    .equals("chunkExists")) return world.loaded;
                 throw new AssertionError("Unexpected thermal chunk IO: " + method.getName());
             });
         Field provider = World.class.getDeclaredField("provider");
         provider.setAccessible(true);
         provider.set(world, new net.minecraft.world.WorldProviderSurface());
+        return world;
+    }
+
+    private static void structureCheckerReloads() throws Exception {
+        ThermalWorld world = sparseWorld();
+        PieceMachine machine = new PieceMachine();
+        IGregTechTileEntity tile = (IGregTechTileEntity) Proxy.newProxyInstance(
+            RecoveryMixinRuntimeFixture.class.getClassLoader(),
+            new Class<?>[] { IGregTechTileEntity.class },
+            (proxy, method, values) -> {
+                if (method.getName()
+                    .equals("getWorld")) return world;
+                if (method.getName()
+                    .equals("getMetaTileEntity")) return machine;
+                if (method.getName()
+                    .equals("getFrontFacing")) return net.minecraftforge.common.util.ForgeDirection.NORTH;
+                Class<?> type = method.getReturnType();
+                if (type == boolean.class) return method.getName()
+                    .equals("isServerSide");
+                if (type == int.class) return 0;
+                if (type == long.class) return 0L;
+                if (type == byte.class) return (byte) 0;
+                if (type == short.class) return (short) 0;
+                return null;
+            });
+        machine.setBaseMetaTileEntity(tile);
+        GtsrStructureRecovery.State state = GtsrStructureRecovery.state(machine);
+        state.active = true;
+        state.phase = GtsrStructureRecovery.State.PENDING;
+        machine.mStartUpCheck = 200;
+        java.util.List<gregtech.api.structure.error.StructureError> formal = new java.util.ArrayList<>();
+        state.beginCheck();
+        state.checkErrors = formal;
+        require(!machine.formal(formal) && state.unknown, "Formal checkPiece did not reject/propagate a missing chunk");
+        require(world.reads == 0 && world.tileReads == 0, "Formal checkPiece forced a missing block/tile read");
+        state.beginCheck();
+        state.checkErrors = formal;
+        require(!machine.legacy() && state.unknown, "Legacy checkPiece lost its loaded-only guard");
+        state.beginCheck();
+        state.checkErrors = formal;
+        require(
+            !machine.formal(new java.util.ArrayList<>()) && !state.unknown,
+            "Auxiliary piece polluted formal recovery or matched missing chunks");
+        state.beginCheck();
+        state.checkErrors = formal;
+        var block = com.gtnewhorizon.structurelib.structure.StructureUtility.<MTEUnitCrusher>ofBlock(Blocks.stone, 0);
+        var checker = new gregtech.api.structure.StructureChecker<MTEUnitCrusher>(machine, true, formal);
+        require(
+            !checker.blockNotLoaded(block, world, 0, 10, 0, 0, 0, 0) && !checker.success,
+            "Forced checker accepted an unavailable GTSR position");
+        require(
+            state.unknown && formal.contains(gregtech.api.structure.error.StructureErrorRegistry.BLOCK_NOT_LOADED),
+            "Direct formal checker lost unknown availability");
+        require(
+            formal.stream()
+                .noneMatch(e -> e instanceof gregtech.api.structure.error.PositionedStructureError),
+            "Unavailable position became physical damage");
+        require(world.reads == 0 && world.tileReads == 0, "Redstone lookup forced unavailable GTSR chunk IO");
+        world.loaded = true;
+        state.beginCheck();
+        formal.clear();
+        state.checkErrors = formal;
+        var loaded = new gregtech.api.structure.StructureChecker<MTEUnitCrusher>(machine, true, formal);
+        require(
+            !loaded.visit(block, world, 0, 10, 0, 0, 0, 0) && !loaded.success,
+            "Loaded mismatch bypassed native validation");
+        require(
+            !state.unknown && formal.stream()
+                .anyMatch(e -> e instanceof gregtech.api.structure.error.PositionedStructureError),
+            "Loaded mismatch did not retain native damage evidence");
+        world.loaded = false;
+        int reads = world.reads, tiles = world.tileReads;
+        var foreign = new gregtech.api.structure.StructureChecker<>(new Object(), true, new java.util.ArrayList<>());
+        require(
+            foreign.blockNotLoaded(
+                com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock(Blocks.air, 0),
+                world,
+                0,
+                10,
+                0,
+                0,
+                0,
+                0),
+            "Non-GTSR native forced checker changed");
+        require(
+            world.reads > reads && world.tileReads > tiles,
+            "Non-GTSR legacy redstone/native lookup was suppressed");
+        System.out.println(
+            "PASS actual two-overload and forced StructureChecker recovery/auxiliary/foreign boundaries; sparse world, no chunk IO");
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public static final class PieceMachine extends MTEUnitCrusher {
+
+        private final com.gtnewhorizon.structurelib.structure.IStructureDefinition<MTEUnitCrusher> definition = com.gtnewhorizon.structurelib.structure.StructureDefinition
+            .<MTEUnitCrusher>builder()
+            .addShape("fixture", new String[][] { { "A" } })
+            .addElement('A', com.gtnewhorizon.structurelib.structure.StructureUtility.ofBlock(Blocks.stone, 0))
+            .build();
+
+        PieceMachine() {
+            super("piece_reload_contract");
+        }
+
+        @Override
+        public com.gtnewhorizon.structurelib.structure.IStructureDefinition getStructureDefinition() {
+            return definition;
+        }
+
+        boolean formal(java.util.List<gregtech.api.structure.error.StructureError> errors) {
+            return checkPiece("fixture", 0, 0, 0, errors);
+        }
+
+        boolean legacy() {
+            return checkPiece("fixture", 0, 0, 0);
+        }
+    }
+
+    private static void thermalReloads() throws Exception {
+        ThermalWorld world = sparseWorld();
         String root = "com.miaokatze.gtsr.common.machine.";
         for (String name : new String[] { root + "MTESteamSingularityEntangler",
             root + "MTECriticalSingularityCompressor", root + "tcds.MTEThermoChemicalDenseSteamGenerator",
@@ -206,7 +328,13 @@ public final class RecoveryMixinRuntimeFixture {
     public static final class ThermalWorld extends World {
 
         IChunkProvider chunks;
-        int reads;
+        int reads, tileReads;
+        boolean loaded;
+
+        @Override
+        public boolean blockExists(int x, int y, int z) {
+            return loaded && y >= 0 && y < 256;
+        }
 
         private ThermalWorld() {
             super(null, "unused", (net.minecraft.world.WorldProvider) null, null, null);
@@ -225,7 +353,13 @@ public final class RecoveryMixinRuntimeFixture {
 
         @Override
         public net.minecraft.tileentity.TileEntity getTileEntity(int x, int y, int z) {
+            tileReads++;
             return null;
+        }
+
+        @Override
+        public int getBlockMetadata(int x, int y, int z) {
+            return 0;
         }
 
         @Override

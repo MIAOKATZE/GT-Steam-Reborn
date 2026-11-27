@@ -25,14 +25,19 @@ import com.gtnewhorizon.structurelib.structure.IStructureElement.BlocksToPlace;
 import com.miaokatze.gtsr.common.api.compat.IGTSRHatchCasingProvider;
 import com.miaokatze.gtsr.common.api.compat.IGTSRRedstoneHatchCheck;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRRedstoneHatch;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchCheck;
 import com.miaokatze.gtsr.common.structure.GTSRRedstoneHatchLimitError;
 
+import appeng.me.helpers.IGridProxyable;
+import gregtech.api.GregTechAPI;
 import gregtech.api.enums.Textures;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
+import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 import gregtech.api.structure.error.PositionedStructureError;
 import gregtech.api.structure.error.StructureError;
+import gregtech.api.structure.error.StructureErrorRegistry;
 import gregtech.api.util.GTUtility;
 
 /**
@@ -68,7 +73,27 @@ public abstract class StructureCheckerMixin {
     @Inject(method = "visit", at = @At("HEAD"), cancellable = true)
     private void gtsr$onVisit(IStructureElement element, World world, int x, int y, int z, int a, int b, int c,
         CallbackInfoReturnable<Boolean> cir) {
+        if (instance instanceof MTEMultiBlockBase machine && GtsrStructureRecovery.applies(machine)
+            && !world.blockExists(x, y, z)) {
+            // GT's forced blockNotLoaded delegates to visit. Never let our redstone lookup load that chunk.
+            // Other mods retain the existing redstone lookup and their native forced-check behavior unchanged.
+            gtsr$unknownStructurePosition(cir);
+            return;
+        }
         TileEntity te = world.getTileEntity(x, y, z);
+        if (instance instanceof MTEMultiBlockBase machine && GtsrStructureRecovery.applies(machine)) {
+            GtsrStructureRecovery.State recovery = GtsrStructureRecovery.state(machine);
+            if (recovery != null && (recovery.active || recovery.phase == GtsrStructureRecovery.State.VERIFIED)
+                && world.getBlock(x, y, z) == GregTechAPI.sBlockMachines) {
+                Object meta = te instanceof IGregTechTileEntity ? ((IGregTechTileEntity) te).getMetaTileEntity() : null;
+                if (meta == null || meta instanceof IGridProxyable
+                    && (((IGridProxyable) meta).getProxy() == null || !((IGridProxyable) meta).getProxy()
+                        .isReady())) {
+                    gtsr$unknownStructurePosition(cir);
+                    return;
+                }
+            }
+        }
         if (te instanceof IGregTechTileEntity) {
             IMetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
             if (mte instanceof MTEGTSRRedstoneHatch) {
@@ -99,6 +124,21 @@ public abstract class StructureCheckerMixin {
                 cir.setReturnValue(true);
             }
         }
+    }
+
+    @Unique
+    private void gtsr$unknownStructurePosition(CallbackInfoReturnable<Boolean> cir) {
+        if (!(instance instanceof MTEMultiBlockBase machine) || !GtsrStructureRecovery.applies(machine)) return;
+        GtsrStructureRecovery.State recovery = GtsrStructureRecovery.state(machine);
+        if (recovery != null) {
+            recovery.unknownPiece(machine);
+            // Direct checkers can be used without Enhanced's per-piece hooks. Only the formal errors own the verdict.
+            if (recovery.checking && recovery.checkErrors == errors) GtsrStructureRecovery.markUnknown(machine);
+        }
+        success = false;
+        if (errors != null && !errors.contains(StructureErrorRegistry.BLOCK_NOT_LOADED))
+            errors.add(StructureErrorRegistry.BLOCK_NOT_LOADED);
+        cir.setReturnValue(false);
     }
 
     /**
