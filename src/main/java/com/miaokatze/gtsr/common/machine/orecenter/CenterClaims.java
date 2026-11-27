@@ -4,6 +4,7 @@
 package com.miaokatze.gtsr.common.machine.orecenter;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -32,6 +33,8 @@ public final class CenterClaims extends WorldSavedData {
     private final Map<Owner, WeakReference<CenterStructure>> centers = new HashMap<>();
     private final java.util.LinkedHashMap<CenterStructure, Long> waitingScans = new java.util.LinkedHashMap<>();
     private long scanTick = Long.MIN_VALUE, scanNanos;
+    private int internalWrites;
+    private final ArrayDeque<int[]> writePositions = new ArrayDeque<>();
 
     public CenterClaims(String name) {
         super(name);
@@ -72,6 +75,27 @@ public final class CenterClaims extends WorldSavedData {
         scanNanos += nanos;
     }
 
+    void beginInternalWrite() {
+        internalWrites++;
+    }
+
+    void endInternalWrite() {
+        internalWrites--;
+    }
+
+    void beginVoxelWrite(int x, int y, int z) {
+        writePositions.push(new int[] { x, y, z });
+    }
+
+    void endVoxelWrite() {
+        writePositions.pop();
+    }
+
+    private boolean isInternalWrite(int x, int y, int z) {
+        int[] at = writePositions.peek();
+        return internalWrites > 0 && at != null && at[0] == x && at[1] == y && at[2] == z;
+    }
+
     public static void load(World world) {
         if (!world.isRemote) get(world);
     }
@@ -88,6 +112,22 @@ public final class CenterClaims extends WorldSavedData {
         Owner owner = owner(frame, slot);
         drop(owner);
         put(new Claim(owner, resource, shape));
+        markDirty();
+    }
+
+    /** A refused rollback must not turn unpaid generated remnants into harvestable materials. */
+    void retainAfterFailedWrite(Frame frame, int slot, String resource, Shape shape) {
+        Claim claim = new Claim(owner(frame, slot), resource, shape);
+        for (int i = 0; i < shape.count(); i++) {
+            int[] at = CenterStructure.SLOTS[slot];
+            int rx = claim.ox + CenterStructure.rotateX(shape.x[i], shape.z[i], at[3]);
+            int rz = claim.oz + CenterStructure.rotateZ(shape.x[i], shape.z[i], at[3]);
+            int x = frame.x(rx, rz), y = frame.y + claim.oy + shape.y[i], z = frame.z(rx, rz);
+            if (!frame.loaded(x, z) || frame.world.getBlock(x, y, z) != shape.block(i)
+                || frame.world.getBlockMetadata(x, y, z) != shape.metadata(i)) claim.removed.set(i);
+        }
+        drop(claim.owner);
+        put(claim);
         markDirty();
     }
 
@@ -114,8 +154,20 @@ public final class CenterClaims extends WorldSavedData {
     }
 
     public static void changed(World world, int x, int y, int z) {
+        if (world == null || world.isRemote) return;
         CenterClaims data = WORLDS.get(world);
-        if (data == null) return;
+        if (data == null || data.isInternalWrite(x, y, z)) return;
+        List<Claim> claims = data.chunks.get(chunk(x >> 4, z >> 4));
+        if (claims != null) for (Claim claim : claims) {
+            int index = claim.index(x, y, z);
+            if (index < 0 || claim.removed.get(index)) continue;
+            if (claim.shape.block(index) == world.getBlock(x, y, z)
+                && claim.shape.metadata(index) == world.getBlockMetadata(x, y, z)) continue;
+            claim.removed.set(index);
+            CenterStructure source = claim.source == null ? null : claim.source.get();
+            if (source != null) source.invalidateModule(claim.owner.slot);
+            data.markDirty();
+        }
         java.util.Iterator<Map.Entry<Owner, WeakReference<CenterStructure>>> iterator = data.centers.entrySet()
             .iterator();
         while (iterator.hasNext()) {
@@ -137,7 +189,12 @@ public final class CenterClaims extends WorldSavedData {
             }
             int localX = (int) CriticalStructureAlignment.unrotateX(dx, dz, at.facing);
             int localZ = (int) CriticalStructureAlignment.unrotateZ(dx, dz, at.facing) - 19;
-            center.changed(localX, dy, localZ);
+            center.changed(
+                new Frame(
+                    (gregtech.api.interfaces.tileentity.IGregTechTileEntity) world.getTileEntity(at.x, at.y, at.z)),
+                localX,
+                dy,
+                localZ);
         }
     }
 
@@ -185,6 +242,8 @@ public final class CenterClaims extends WorldSavedData {
         if (world == null || world.isRemote) return false;
         CenterClaims data = WORLDS.get(world);
         if (data == null) return false;
+        // Generated voxels removed by our transaction never mutate ownership halfway through rollback.
+        if (data.isInternalWrite(x, y, z)) return true;
         Claim claim = data.find(x, y, z, block, meta);
         if (claim == null) return false;
         CenterStructure source = claim.source == null ? null : claim.source.get();

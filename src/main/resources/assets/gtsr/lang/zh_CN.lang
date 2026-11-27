@@ -3991,7 +3991,7 @@ gtsr.critical.v2.dismantle=付费基座和主结构仅可由控制器按钮拆�
 gtsr.critical.v2.legacy=新建四机型统一使用 V2 布局；既有任务保留原布局与账本，其余五机型维护冻结。
 gtsr.critical.v2.loom_controller=本机控制器局部坐标 (56,4,47)，支持北/东/南/西四向放置；结构随正面旋转。
 gtsr.critical.v2.main_controller=临界整机主控局部坐标 (56,4,35)，正面与织机相反，由首次施工自动放置。
-gtsr.critical.v2.region=区域 112×112，高180格；可在任意坐标施工，无需区块对齐，目标区块仍须已加载。
+gtsr.critical.v2.region=区域 112×112，高180格；可在任意坐标施工，无需区块对齐。机器不自带区块加载，施工和运行须保持完整结构已加载。
 gtsr.critical.v2.controllers=织机与后施工主控均为真实 GT 控制器，同高 Y=4、朝向互反，不可替换成仓口。
 gtsr.critical.v2.ports=仅以下声明的施工口与业务口支持标准 GT 仓室。
 gtsr.critical.v2.loom_ports=织机 Y=4 机壳环的仓室全部可选：物品/流体输入输出仓、普通/多A/激光能源仓及动力仓，无需维护仓。物料与EU消耗及主机/织机仓口分区不变；控制器与内部轨道不可替换。
@@ -4968,7 +4968,7 @@ gtsr.critical.ui.repair.validation_pending=等待完整结构通过复核
 gtsr.critical.ui.repair.at_loom_short=到拟态织机修复
 gtsr.critical.ui.repair.at_loom=手持机械终端右击拟态织机，点击底栏“修复结构”；主控缺失也从这里修复。
 gtsr.critical.ui.repair.await_scan=等待缺损扫描完成；遇到阻塞时按上方原因处理，无需重复点击修复。
-gtsr.critical.ui.repair.await_validation=保持结构区块加载，等待完整复核；若显示缺损待修复，再到织机发起修复。
+gtsr.critical.ui.repair.await_validation=保持完整结构区块已加载，等待复核；机器不自带区块加载。若确认缺损，再到织机发起修复。
 gtsr.critical.ui.repair.continue=向织机供应下方缺额与施工电力；依次完成原施工阶段，主控最后安装。
 gtsr.critical.ui.repair.loom_damage=手搭织机或必要仓口缺损，自动修复无法继续。
 gtsr.critical.ui.repair.restore_loom=手动补齐织机和必要仓口，再点“修复结构”重核并继续。

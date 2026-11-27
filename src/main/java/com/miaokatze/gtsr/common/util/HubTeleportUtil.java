@@ -3,18 +3,32 @@
 
 package com.miaokatze.gtsr.common.util;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 
+import gregtech.api.enums.GTValues;
 import gregtech.api.util.GTUtility;
 
 /** Shared world-loading and movement helpers used by hub status teleport actions. */
 public final class HubTeleportUtil {
+
+    private static final Map<World, AutomationLoads> AUTOMATION = new WeakHashMap<>();
+
+    private static final class AutomationLoads {
+
+        long lastRequest = Long.MIN_VALUE;
+        final LinkedHashMap<Long, Long> retryAt = new LinkedHashMap<>();
+    }
 
     private HubTeleportUtil() {}
 
@@ -44,6 +58,31 @@ public final class HubTeleportUtil {
             } catch (Exception ignored) {
                 return false;
             }
+        }
+        return world.blockExists(x, 0, z);
+    }
+
+    /** Automatic hub operations share one request per world tick and never initialize dimensions. */
+    public static boolean ensureAutomationChunkLoaded(World world, int x, int z) {
+        if (world == null || world.isRemote) return false;
+        if (world.blockExists(x, 0, z)) return true;
+        if (!GTValues.enableChunkloaders) return false;
+        long now = world.getTotalWorldTime();
+        long key = ((long) (x >> 4) << 32) | ((z >> 4) & 0xFFFFFFFFL);
+        AutomationLoads requests = AUTOMATION.computeIfAbsent(world, unused -> new AutomationLoads());
+        if (requests.lastRequest == now || now < requests.retryAt.getOrDefault(key, Long.MIN_VALUE)) return false;
+        requests.lastRequest = now;
+        requests.retryAt.put(key, now + 40);
+        while (requests.retryAt.size() > 128) requests.retryAt.remove(
+            requests.retryAt.keySet()
+                .iterator()
+                .next());
+        try {
+            if (world instanceof WorldServer server) server.theChunkProviderServer.loadChunk(x >> 4, z >> 4, () -> {});
+            else world.getChunkProvider()
+                .loadChunk(x >> 4, z >> 4);
+        } catch (Exception ignored) {
+            return false;
         }
         return world.blockExists(x, 0, z);
     }

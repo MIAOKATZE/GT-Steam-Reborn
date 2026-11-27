@@ -20,6 +20,7 @@ import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.api.progress.IGTSRProgressProvider;
 import com.miaokatze.gtsr.common.critical.CriticalEnergyPorts.LongItemSource;
 import com.miaokatze.gtsr.common.machine.hatch.critical.MTEHatchCriticalInputBusME;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 
 import appeng.api.networking.security.IActionHost;
 import appeng.api.networking.security.MachineSource;
@@ -66,7 +67,9 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
 
     /** 是否允许消耗奇点（进入/续杯）；默认仅工作中（允许工作且周期进行中），具体机器可覆写 */
     protected boolean canConsumeSingularity() {
-        return getBaseMetaTileEntity().isAllowedToWork() && mMaxProgresstime > 0;
+        return mMachine && !GtsrStructureRecovery.isUnknownStructurePause(this)
+            && getBaseMetaTileEntity().isAllowedToWork()
+            && mMaxProgresstime > 0;
     }
 
     /** 奇点模式退出回调（默认空；地壳物质聚合器用于时运钳位） */
@@ -120,7 +123,7 @@ public abstract class MTESingularityModeMachineBase<T extends MTESingularityMode
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity.isClientSide()) return;
+        if (aBaseMetaTileEntity.isClientSide() || GtsrStructureRecovery.isRecovering(this)) return;
         // 奇点模式：每 tick 倒计时，每 20 tick 检查进入/无缝续杯。
         // 关机仅计时：倒计时不受开关机门控（canConsumeSingularity 只管消耗），到 0 无法续杯即退出模式
         if (mSingularityModeTicks > 0) mSingularityModeTicks--;

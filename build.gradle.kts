@@ -341,6 +341,11 @@ mapOf(
     "verifySteamFluidDrillCycle" to "com.miaokatze.gtsr.common.machine.SteamFluidDrillCycleContract",
     "verifySingularityIdentityDrop" to "com.miaokatze.gtsr.common.blocks.SingularityIdentityDropContract",
     "verifyCenterQueueMigration" to "com.miaokatze.gtsr.common.machine.orecenter.CenterQueueMigrationContracts",
+    "verifyChunkLoadingPolicy" to "com.miaokatze.gtsr.common.util.ChunkLoadingPolicyContracts",
+    "verifyCenterRecovery" to "com.miaokatze.gtsr.common.machine.orecenter.CenterRecoveryContracts",
+    "verifyRecoveryNativeClock" to "com.miaokatze.gtsr.common.machine.recovery.RecoveryNativeClockContracts",
+    "verifyRecoveryMixins" to "com.miaokatze.gtsr.common.machine.recovery.RecoveryMixinTransformContracts",
+    "verifyRecoveryRuntimeMixins" to "com.miaokatze.gtsr.common.machine.recovery.RecoveryMixinTransformContracts",
 ).forEach { (name, entry) ->
     val contract = tasks.register<JavaExec>(name) {
         group = "verification"
@@ -348,6 +353,7 @@ mapOf(
         classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath +
             sourceSets["main"].compileClasspath + portableRecipeContractRuntime
         mainClass.set(entry)
+        if (name == "verifyRecoveryRuntimeMixins") args("build/recovery-runtime-contract", "runtime")
         maxHeapSize = "256m"
         systemProperty("java.awt.headless", "true")
     }

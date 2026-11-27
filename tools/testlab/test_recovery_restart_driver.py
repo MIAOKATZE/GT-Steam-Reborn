@@ -1,0 +1,97 @@
+"""Offline gates for the two-JVM driver; these never start Minecraft."""
+import gzip
+import hashlib
+import json
+from pathlib import Path
+import struct
+import tempfile
+import unittest
+
+import recovery_restart_driver as driver
+
+
+def nbt_string(value):
+    raw = value.encode('utf-8')
+    return struct.pack('>H', len(raw)) + raw
+
+
+class RestartDriverTests(unittest.TestCase):
+    def test_journal_header_reads_real_nbt_and_skips_nested_paid_payload(self):
+        raw = b'\x0a' + nbt_string('')
+        for name, value in [('case', 'heavy'), ('jvm', 'first-jvm'), ('stage', 'SAVED')]:
+            raw += b'\x08' + nbt_string(name) + nbt_string(value)
+        raw += b'\x0a' + nbt_string('actualSavedTile')
+        raw += b'\x09' + nbt_string('pendingItems') + b'\x0a' + struct.pack('>i', 1)
+        raw += b'\x03' + nbt_string('Count') + struct.pack('>i', 8) + b'\x00\x00\x00'
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'journal.dat'
+            path.write_bytes(gzip.compress(raw))
+            self.assertEqual(driver.journal_header(path), {'case': 'heavy', 'jvm': 'first-jvm', 'stage': 'SAVED'})
+            path.write_bytes(gzip.compress(raw[:-1]))
+            with self.assertRaisesRegex(ValueError, 'Truncated'):
+                driver.journal_header(path)
+
+    def receipt(self, temp, expected='BLOCKED'):
+        case = 'recovery.prepare.heavy' if expected == 'BLOCKED' else 'recovery.resume.heavy'
+        details = {'prepared': True} if expected == 'BLOCKED' else {
+            name: True for name in ('differentJvm', 'newTileReadFromWorld', 'nativeStructureRevalidated',
+                                   'realOutputAfterRecovery', 'actualBrokenWorldBlockRejected', 'ownedFixtureCleanup',
+                                   'externalTicketDidNotPreloadDelayedChunk')}
+        if expected == 'PASS':
+            details['recoveryFrozenTicks'] = 3
+            details['realStructureChunkWithheldTicks'] = 60
+        native = dict(runId='business-run', requestId='host-request', requested=case, plannedTasks=[case],
+                      results=[dict(id=case, status=expected, details=details,
+                                    detail='PREPARED_NOT_PASS: new JVM required' if expected == 'BLOCKED' else 'done')])
+        path = Path(temp) / 'native.json'
+        raw = json.dumps(native).encode()
+        path.write_bytes(raw)
+        receipt = dict(case=case, runId='host-request', status=expected, exitCode=0,
+                       nativeReport=dict(path=str(path), sha256=hashlib.sha256(raw).hexdigest(), runId='business-run', status=expected),
+                       cleanup=dict(processExited=True, jarsRestored=True, configRestored=True, world='PRESERVED', forcedStop=False))
+        return case, receipt
+
+    def test_native_ticket_disk_check_matches_all_owner_coordinates(self):
+        raw = b'\x0a' + nbt_string('') + b'\x09' + nbt_string('Tickets') + b'\x0a' + struct.pack('>i', 1)
+        raw += b'\x08' + nbt_string('OwnerType') + nbt_string('CriticalLoom')
+        for axis, value in zip('XYZ', (120, 65, 80)):
+            raw += b'\x03' + nbt_string('Owner' + axis) + struct.pack('>i', value)
+        raw += b'\x00\x00'
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / 'forcedchunks.dat'
+            path.write_bytes(gzip.compress(raw))
+            header = dict(controllerX=120, controllerY=65, controllerZ=80)
+            self.assertEqual(driver.legacy_tickets(path, header), 1)
+            header['controllerX'] = 121
+            self.assertEqual(driver.legacy_tickets(path, header), 0)
+
+    def test_prepared_is_accepted_only_as_explicit_blocked_checkpoint(self):
+        with tempfile.TemporaryDirectory() as temp:
+            case, receipt = self.receipt(temp)
+            driver.verify_native(receipt, case, 'BLOCKED')
+            receipt['status'] = 'PASS'
+            with self.assertRaisesRegex(ValueError, 'disagreement'):
+                driver.verify_native(receipt, case, 'BLOCKED')
+
+    def test_resume_requires_frozen_ticks_and_normal_full_process_exit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            case, receipt = self.receipt(temp, 'PASS')
+            driver.verify_native(receipt, case, 'PASS')
+            receipt['cleanup']['forcedStop'] = True
+            with self.assertRaisesRegex(ValueError, 'normally'):
+                driver.verify_native(receipt, case, 'PASS')
+
+    def test_native_report_identity_and_bytes_cannot_be_substituted(self):
+        with tempfile.TemporaryDirectory() as temp:
+            case, receipt = self.receipt(temp)
+            receipt['runId'] = 'different-request'
+            with self.assertRaisesRegex(ValueError, 'identity'):
+                driver.verify_native(receipt, case, 'BLOCKED')
+            receipt['runId'] = 'host-request'
+            Path(receipt['nativeReport']['path']).write_text('{}', encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'changed'):
+                driver.verify_native(receipt, case, 'BLOCKED')
+
+
+if __name__ == '__main__':
+    unittest.main()

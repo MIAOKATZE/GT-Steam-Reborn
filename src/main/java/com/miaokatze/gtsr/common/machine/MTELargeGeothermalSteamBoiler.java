@@ -59,6 +59,7 @@ import com.miaokatze.gtsr.common.gui.MTELargeGeothermalSteamBoilerGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
@@ -165,7 +166,6 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
     protected int mCasingCount = 0;
     public double mHeat = 0.0d;
     public int mCurrentSteamOutput = 0;
-    protected int mStructureGraceTicks = 100;
 
     // 升温速率整体 ×2（青铜 0.012%/tick、钢 0.006%/tick）；超压模式下再 ×0.2
     private static final double HEAT_UP_BRONZE = 0.00012d;
@@ -406,7 +406,8 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
         if (heatQuantized < 0) heatQuantized = 0;
         if (heatQuantized > 15) heatQuantized = 15;
         int encodedTier = mSetTier <= 0 ? 0 : mSetTier;
-        boolean running = mMaxProgresstime > 0 || mHeat > 0.01d;
+        boolean running = mMachine && !GtsrStructureRecovery.isUnknownStructurePause(this)
+            && (mMaxProgresstime > 0 || mHeat > 0.01d);
         return (byte) ((heatQuantized << 3) | (encodedTier << 1) | (running ? 0x01 : 0x00));
     }
 
@@ -768,22 +769,16 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
             workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
             return;
         }
-        if (mStartUpCheck > 0) {
+        if (GtsrStructureRecovery.isRecovering(this)) {
             workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
             return;
-        }
-
-        if (mMachine) {
-            mStructureGraceTicks = 100;
-        } else if (mStructureGraceTicks > 0) {
-            mStructureGraceTicks--;
         }
 
         if (mMachine) {
             tickCalcificationWarning();
         }
 
-        if (needsWaterFill && aTick % 20 == 0) {
+        if (mMachine && !GtsrStructureRecovery.isUnknownStructurePause(this) && needsWaterFill && aTick % 20 == 0) {
             // 注水轴序：fillStructureWithWater 假定结构布局为 [深度][层][列]（洗矿机手写布局），
             // 本结构 GTUDK 布局为 [层][行][列]，须传 transpose 后的形状（数组=行/深度、串=层/垂直）。
             if (GTStructureUtility.fillStructureWithWater(
@@ -806,13 +801,13 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
             }
             // 配方完成同 tick 会立即 checkRecipe() 重启新配方，重启 tick 存在 1 tick 的 mProgresstime==0 空窗，
             // 机器实际连续运行，不应视为停机；岩浆耗尽时 mMaxProgresstime=0 仍会正确进入下方冷却分支
-            boolean isRunning = mMaxProgresstime > 0;
+            boolean isRunning = isRunningCycle();
             if (isRunning) {
                 double rate = hasOverheatChip() ? HEAT_UP_CHIP : (mSetTier == 1 ? HEAT_UP_BRONZE : HEAT_UP_STEEL);
                 if (mOverpressure) rate *= 0.2d;
                 // 超压模式下热量上限放开到 2.0（普通模式仍钳 1.0）
                 mHeat = Math.min(mOverpressure ? 2.0d : 1.0d, mHeat + rate);
-            } else if (mMachine || mStructureGraceTicks <= 0) {
+            } else {
                 // Cool down when structure is valid but idle, or after grace period when broken
                 // 超压模式下散热加倍
                 mHeat = Math.max(0.0d, mHeat - (mOverpressure ? HEAT_DOWN * 2.0d : HEAT_DOWN));
@@ -1159,7 +1154,7 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
 
         String statusKey;
         EnumChatFormatting statusColor;
-        if (mMaxProgresstime > 0) {
+        if (isRunningCycle()) {
             statusKey = "gtsr.gui.status.running";
             statusColor = EnumChatFormatting.AQUA;
         } else {
@@ -1186,6 +1181,10 @@ public class MTELargeGeothermalSteamBoiler extends MTEGTSRMultiBlockBase<MTELarg
                 + String.format("%.1f%%", mCalcification * 100.0d));
 
         return info.toArray(new String[0]);
+    }
+
+    private boolean isRunningCycle() {
+        return mMachine && !GtsrStructureRecovery.isUnknownStructurePause(this) && mMaxProgresstime > 0;
     }
 
     @Override

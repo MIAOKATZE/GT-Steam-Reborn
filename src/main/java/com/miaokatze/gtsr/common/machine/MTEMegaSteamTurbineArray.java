@@ -49,11 +49,11 @@ import com.miaokatze.gtsr.common.machine.base.MTEOverpressureTurbineInputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESingularityModeMachineBase;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbinePolicy;
 import com.miaokatze.gtsr.common.machine.turbine.MegaSteamTurbineStructureDef;
 import com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes;
 import com.miaokatze.gtsr.common.machine.turbine.SteamTurbineSteamTypes.SteamType;
-import com.miaokatze.gtsr.common.machine.turbine.TurbineLoadRecovery;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
@@ -128,8 +128,6 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     public int mGearTier = -1;
     public int mFrameTier = -1;
     private int excessWater = 0;
-    /** Loaded rotor heat may wait one native startup interval for its first fresh fuel payment. */
-    private final TurbineLoadRecovery loadRecovery = new TurbineLoadRecovery();
 
     public int mTheoreticalEUt = 0;
     public int mSteamConsumption = 0;
@@ -922,7 +920,6 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
             mEfficiencyIncrease = 0;
         }
 
-        loadRecovery.finish();
         return CheckRecipeResultRegistry.GENERATING;
     }
 
@@ -951,16 +948,14 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
 
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
-        if (aBaseMetaTileEntity.isServerSide()) loadRecovery.beforeTick(aBaseMetaTileEntity, this, aTick);
         int savedEfficiency = mEfficiency;
         long savedBasePower = mFullBaseEUt;
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (aBaseMetaTileEntity.isServerSide() && loadRecovery.waiting()) {
+        if (aBaseMetaTileEntity.isServerSide() && GtsrStructureRecovery.isRecovering(this)) {
             // Keep warm-up and the power ramp while GT waits for a real fuel receipt.
             // A fresh fuel debit or an explicit stop revokes recovery before this restoration.
             mEfficiency = Math.max(mEfficiency, savedEfficiency);
             mFullBaseEUt = Math.max(mFullBaseEUt, savedBasePower);
-            loadRecovery.afterTick(aBaseMetaTileEntity, this);
         }
         machineVisualState.observe(
             this,
@@ -1320,7 +1315,6 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
         mSteamConsumption = aNBT.getInteger("mSteamConsumption");
         mFullBaseEUt = aNBT.getLong("mFullBaseEUt");
         mEfficiency = aNBT.getInteger("mEfficiency");
-        loadRecovery.load(mEfficiency);
         mPowerParameter = aNBT.hasKey("mPowerParameter") ? aNBT.getInteger("mPowerParameter") : 10;
         // 整数键 mSingularityMode（0/1/2）与旧整数键 mSingularityModeLevel（无 mSingularityMode 键时）
         // 由父类 loadNBTData 兼容读取；此处仅迁移 v1.10.39 及以前的 boolean 键 mSingularityMode
@@ -1335,20 +1329,9 @@ public class MTEMegaSteamTurbineArray extends MTESingularityModeMachineBase<MTEM
     }
 
     @Override
-    protected void onStructureCheckFinished(IGregTechTileEntity tile) {
-        super.onStructureCheckFinished(tile);
-        if (loadRecovery.waiting() && mMachine && mStartUpCheck > 0) mStartUpCheck = -1;
-    }
-
-    @Override
     public void stopMachine(@Nonnull ShutDownReason reason) {
-        if (loadRecovery.waiting() && reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE) return;
-        loadRecovery.finish();
-        int savedEfficiency = mEfficiency;
+        if (GtsrStructureRecovery.isRecovering(this) && reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE) return;
         super.stopMachine(reason);
-        if (reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE) {
-            mEfficiency = savedEfficiency;
-        }
     }
 
     @Override

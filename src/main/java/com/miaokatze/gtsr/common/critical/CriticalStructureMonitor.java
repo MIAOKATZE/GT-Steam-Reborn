@@ -26,18 +26,22 @@ public final class CriticalStructureMonitor {
     public static final int MAX_CHECKS_PER_TICK = 128;
     public static final int MAX_INITIAL_CHECKS_PER_TICK = 1024;
     public static final long INITIAL_SCAN_NANOS = 2_000_000L;
-    private int cursor, count, credit, lastChecks;
+    private int cursor, count, lastChecks;
+    private long credit;
     private boolean valid, roundClean = true;
     private boolean knownBroken;
+    private boolean roundUnloaded;
     private boolean initialSweep = true;
     private Status status = Status.PENDING;
     private long completedRounds;
 
     public void reset() {
-        cursor = count = credit = lastChecks = 0;
+        cursor = count = lastChecks = 0;
+        credit = 0;
         valid = false;
         roundClean = true;
         knownBroken = false;
+        roundUnloaded = false;
         initialSweep = true;
         status = Status.PENDING;
     }
@@ -68,8 +72,10 @@ public final class CriticalStructureMonitor {
 
     /** A diagnostic sweep keeps the current verdict until a real mismatch or a complete round replaces it. */
     public void requestFastSweep() {
-        cursor = credit = lastChecks = 0;
+        cursor = lastChecks = 0;
+        credit = 0;
         roundClean = true;
+        roundUnloaded = false;
         initialSweep = true;
     }
 
@@ -80,13 +86,15 @@ public final class CriticalStructureMonitor {
     /** Missing chunks are unknown, never evidence of a missing block. Recheck the full round after IO. */
     public void pauseUnloaded() {
         if (status != Status.UNLOADED) {
-            cursor = credit = 0;
+            cursor = 0;
+            credit = 0;
             roundClean = true;
+            roundUnloaded = false;
         }
         lastChecks = 0;
         valid = false;
         initialSweep = true;
-        status = Status.UNLOADED;
+        status = knownBroken ? Status.BROKEN : Status.UNLOADED;
     }
 
     public boolean tickSamples(int total, IntFunction<Sample> samples) {
@@ -95,6 +103,11 @@ public final class CriticalStructureMonitor {
 
     /** A multiplexing caller reports how often the monitor receives a server-thread slice. */
     public boolean tickSamples(int total, int elapsedTicks, IntFunction<Sample> samples) {
+        return tickSamples(total, elapsedTicks, Integer.MAX_VALUE, samples);
+    }
+
+    /** Multiplexed structures may share one per-tick sampling limit without discarding earned checks. */
+    public boolean tickSamples(int total, int elapsedTicks, int maxChecks, IntFunction<Sample> samples) {
         lastChecks = 0;
         if (total <= 0) {
             reset();
@@ -104,43 +117,54 @@ public final class CriticalStructureMonitor {
             reset();
             count = total;
         }
-        status = knownBroken ? Status.BROKEN : valid ? Status.VALID : Status.PENDING;
+        status = knownBroken ? Status.BROKEN : roundUnloaded ? Status.UNLOADED : valid ? Status.VALID : Status.PENDING;
         // Recovery starts on the first ready tick. Only ongoing background checks use the long cadence.
         int budget;
         long deadline = 0L;
         if (initialSweep) {
-            budget = MAX_INITIAL_CHECKS_PER_TICK;
+            budget = Math.min(MAX_INITIAL_CHECKS_PER_TICK, Math.max(0, maxChecks));
             deadline = System.nanoTime() + INITIAL_SCAN_NANOS;
         } else {
-            credit += count * Math.min(64, Math.max(1, elapsedTicks));
-            budget = Math.min(MAX_CHECKS_PER_TICK, credit / ROUND_TICKS);
-            credit %= ROUND_TICKS;
+            // At most one round of debt survives a delayed caller; arithmetic also supports huge shapes.
+            credit = Math
+                .min((long) count * ROUND_TICKS, credit + (long) count * Math.min(64, Math.max(1, elapsedTicks)));
+            budget = (int) Math.min(Math.min(MAX_CHECKS_PER_TICK, Math.max(0, maxChecks)), credit / ROUND_TICKS);
+            credit -= (long) budget * ROUND_TICKS;
         }
         for (int i = 0; i < budget && cursor < count; i++) {
             Sample sample = samples.apply(cursor);
-            if (sample == Sample.UNLOADED) {
-                pauseUnloaded();
-                return false;
-            }
             cursor++;
-            if (sample == Sample.BROKEN) invalidate();
             lastChecks++;
+            if (sample == Sample.UNLOADED) {
+                // Keep visiting loaded cells: an early unknown chunk must not hide later real damage.
+                roundUnloaded = true;
+                valid = false;
+                initialSweep = true;
+                status = knownBroken ? Status.BROKEN : Status.UNLOADED;
+            }
+            if (sample == Sample.BROKEN) invalidate();
             if (initialSweep && (lastChecks & 31) == 0 && System.nanoTime() >= deadline) break;
         }
         if (cursor == count) {
-            valid = roundClean;
-            knownBroken = !roundClean;
-            status = valid ? Status.VALID : Status.BROKEN;
+            valid = roundClean && !roundUnloaded;
+            knownBroken = !roundClean || roundUnloaded && knownBroken;
+            status = knownBroken ? Status.BROKEN : roundUnloaded ? Status.UNLOADED : Status.VALID;
             roundClean = true;
-            cursor = credit = 0;
+            cursor = 0;
+            credit = 0;
             completedRounds++;
-            initialSweep = false;
+            initialSweep = roundUnloaded;
+            roundUnloaded = false;
         }
         return valid;
     }
 
     public Status getStatus() {
         return status;
+    }
+
+    public boolean isFastSweep() {
+        return initialSweep;
     }
 
     public boolean hasKnownDamage() {

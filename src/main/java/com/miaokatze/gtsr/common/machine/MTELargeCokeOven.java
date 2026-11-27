@@ -43,6 +43,7 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.gui.MTELargeCokeOvenGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
@@ -630,7 +631,7 @@ public class MTELargeCokeOven extends MTEGTSRMultiBlockBase<MTELargeCokeOven>
     }
 
     private void updateHeat(boolean active) {
-        if (!mMachine && mStartUpCheck > 0) return;
+        if (GtsrStructureRecovery.isRecovering(this)) return;
         boolean working = mMachine && (mMaxProgresstime > 0 || active);
         double changePerSecond = working ? HEAT_UP_PER_SECOND : -HEAT_DOWN_PER_SECOND;
         setHeat(getHeat() + changePerSecond / TICKS_PER_SECOND);

@@ -28,6 +28,7 @@ import com.gtnewhorizons.modularui.api.screen.UIBuildContext;
 import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.util.HubBindingUtil;
+import com.miaokatze.gtsr.common.util.HubTeleportUtil;
 
 import cpw.mods.fml.common.network.ByteBufUtils;
 import gregtech.api.GregTechAPI;
@@ -345,10 +346,7 @@ public abstract class MTERemoteWorkerNode extends MetaTileEntity implements IAdd
                 World hubWorld = DimensionManager.getWorld(mHubDim);
                 // Only normal node ticks may reopen the bound controller chunk in an existing
                 // world. Never initialize a dimension from serialized binding or a Forge callback.
-                if (hubWorld != null && !hubWorld.blockExists(mHubX, mHubY, mHubZ)) {
-                    hubWorld.getChunkProvider()
-                        .loadChunk(mHubX >> 4, mHubZ >> 4);
-                }
+                HubTeleportUtil.ensureAutomationChunkLoaded(hubWorld, mHubX, mHubZ);
                 TileEntity hub = hubWorld != null && hubWorld.blockExists(mHubX, mHubY, mHubZ)
                     ? hubWorld.getTileEntity(mHubX, mHubY, mHubZ)
                     : null;

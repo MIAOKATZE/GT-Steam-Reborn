@@ -738,9 +738,8 @@ public final class TestLabCriticalTask implements TestLabTask {
             + state.getJobId()
             + " status="
             + state.getStatus()
-            + " chunkLoading="
-            + state.getChunkLoading()
-                .getStatus()
+            + " structureChunksLoaded="
+            + state.areStructureChunksLoaded()
             + " "
             + (loom == null ? "" : loom.describe())
             + (solarEnvironment.isEmpty() ? "" : "; " + solarEnvironment);
@@ -764,9 +763,6 @@ public final class TestLabCriticalTask implements TestLabTask {
             if (state == null) return;
             if (kind == CriticalMachineKind.SUN) state.shutdownStellar(player);
             state.setEnabled(player, false);
-            state.setChunkLoadingEnabled(false);
-            state.getChunkLoading()
-                .release(state.getHost());
             CriticalWorldData.get(world)
                 .releaseNight(state.getStructureId());
             // Keep the journal/region as inspectable evidence. Explicit fixture regeneration releases it before

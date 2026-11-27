@@ -3,35 +3,43 @@
 
 package com.miaokatze.gtsr.common.critical;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.lang.reflect.Field;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.common.ForgeChunkManager.Ticket;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.event.world.WorldEvent;
 
-import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
+import com.google.common.collect.Multimap;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
-import gregtech.api.enums.GTValues;
-import gregtech.api.metatileentity.BaseMetaTileEntity;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
+import cpw.mods.fml.relauncher.ReflectionHelper;
 
-/** GT-style one-owner tickets, isolated under GTSR's own Forge quota and restart callback. */
+/** Legacy critical-ticket retirement and the shared GTSR remote-worker registration entry point. */
 public final class CriticalChunkTicketManager implements ForgeChunkManager.OrderedLoadingCallback {
 
+    private static final Field NATIVE_TICKETS = nativeTicketsField();
     private static final CriticalChunkTicketManager INSTANCE = new CriticalChunkTicketManager();
-    private static final Map<TileEntity, Ticket> REGISTERED = new HashMap<>();
+    private static final Set<World> UNLOADED = Collections.newSetFromMap(new WeakHashMap<>());
     private static Object mod;
 
     private CriticalChunkTicketManager() {}
 
-    /** Called during mod pre-init; Forge loads these per-mod constraints after pre-init finishes. */
+    /** The remote-worker route and its existing administrator quotas remain authoritative. */
     public static void register() {
         if (mod != null) return;
         mod = Loader.instance()
@@ -40,112 +48,119 @@ public final class CriticalChunkTicketManager implements ForgeChunkManager.Order
             .getMod();
         configureDefaults(ForgeChunkManager.getConfig());
         com.miaokatze.gtsr.common.machine.base.RemoteWorkerChunkTickets.register(mod, INSTANCE);
+        MinecraftForge.EVENT_BUS.register(INSTANCE);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(INSTANCE);
     }
 
     static void configureDefaults(Configuration config) {
-        // Configuration.get preserves an existing administrator value, including values below 64.
+        // Configuration.get preserves existing administrator values, including zero.
         config.get(GTSteamReborn.MODID, "maximumChunksPerTicket", 64);
         config.get(GTSteamReborn.MODID, "maximumTicketCount", 200);
     }
 
-    static boolean requestChunkLoad(TileEntity owner, ChunkCoordIntPair chunk) {
-        Ticket ticket = ensureTicket(owner);
-        if (ticket == null) return false;
-        ForgeChunkManager.forceChunk(ticket, chunk);
-        return ticket.getChunkList()
-            .contains(chunk);
+    static boolean isLegacyCriticalTicket(Ticket ticket) {
+        // Every ticket issued by the removed critical loader wrote this explicit marker.
+        // An arbitrary GTSR ticket with matching XYZ is not sufficient evidence of ownership.
+        return GTSteamReborn.MODID.equals(ticket.getModId()) && !ticket.isPlayerTicket()
+            && "CriticalLoom".equals(
+                ticket.getModData()
+                    .getString("OwnerType"));
     }
 
-    static Ticket getTicket(TileEntity owner) {
-        return REGISTERED.get(owner);
-    }
-
-    static Ticket ensureTicket(TileEntity owner) {
-        if (!GTValues.enableChunkloaders || mod == null) return null;
-        Ticket ticket = REGISTERED.get(owner);
-        if (ticket == null) {
-            ticket = ForgeChunkManager.requestTicket(mod, owner.getWorldObj(), ForgeChunkManager.Type.NORMAL);
-            if (ticket == null) return null;
-            ticket.getModData()
-                .setInteger("OwnerX", owner.xCoord);
-            ticket.getModData()
-                .setInteger("OwnerY", owner.yCoord);
-            ticket.getModData()
-                .setInteger("OwnerZ", owner.zCoord);
-            ticket.getModData()
-                .setString("OwnerType", "CriticalLoom");
-            REGISTERED.put(owner, ticket);
-        }
-        return ticket;
-    }
-
-    static void releaseChunk(TileEntity owner, ChunkCoordIntPair chunk) {
-        Ticket ticket = REGISTERED.get(owner);
-        if (ticket != null) ForgeChunkManager.unforceChunk(ticket, chunk);
-    }
-
-    static void releaseTicket(TileEntity owner) {
-        Ticket ticket = REGISTERED.remove(owner);
-        // Unlike upstream GT's disabled-config early return, cleanup must always run.
-        if (ticket != null) ForgeChunkManager.releaseTicket(ticket);
-    }
-
-    static void releaseWorld(World world, boolean forgeTicketsUnloaded) {
-        for (TileEntity owner : new ArrayList<>(REGISTERED.keySet())) {
-            if (owner.getWorldObj() != world) continue;
-            if (forgeTicketsUnloaded) REGISTERED.remove(owner);
-            else releaseTicket(owner);
+    private static Field nativeTicketsField() {
+        try {
+            // Forge 10.13.4.1614 is already loaded before GTSR's late mixins can run.
+            // Cache its exact field once; a missing field must fail explicitly, never report clean.
+            return ReflectionHelper.findField(ForgeChunkManager.class, "tickets");
+        } catch (RuntimeException failure) {
+            throw new IllegalStateException(
+                "Forge 1614 native ticket registry unavailable; legacy cleanup cannot run",
+                failure);
         }
     }
 
-    @Override
-    public List<Ticket> ticketsLoaded(List<Ticket> tickets, World world, int maxTicketCount) {
-        List<Ticket> kept = new ArrayList<>();
-        if (!GTValues.enableChunkloaders || !GTValues.alwaysReloadChunkloaders) return kept;
-        for (Ticket ticket : tickets) {
-            if (kept.size() >= maxTicketCount) break;
-            if (!ticket.getModData()
+    @SuppressWarnings("unchecked")
+    private static Map<World, Multimap<String, Ticket>> nativeTickets() {
+        try {
+            return (Map<World, Multimap<String, Ticket>>) NATIVE_TICKETS.get(null);
+        } catch (IllegalAccessException | ClassCastException failure) {
+            throw new IllegalStateException(
+                "Cannot read Forge 1614 native ticket registry; legacy cleanup aborted",
+                failure);
+        }
+    }
+
+    /** Copy only GTSR's native entries: empty tickets have no forced-chunk index entry. */
+    private static Set<Ticket> nativeLegacyTickets(World world) {
+        Multimap<String, Ticket> tickets = nativeTickets().get(world);
+        if (tickets == null) return Collections.emptySet();
+        Set<Ticket> legacy = new LinkedHashSet<>();
+        for (Ticket ticket : tickets.get(GTSteamReborn.MODID)) if (isLegacyCriticalTicket(ticket)) legacy.add(ticket);
+        return legacy;
+    }
+
+    /** Only this loaded owner's legacy critical ticket may be released; never a remote-worker ticket. */
+    public static void releaseLegacyTickets(TileEntity owner) {
+        if (owner == null || !live(owner.getWorldObj())) return;
+        for (Ticket ticket : nativeLegacyTickets(owner.getWorldObj())) {
+            if (!isLegacyCriticalTicket(ticket) || !ticket.getModData()
                 .hasKey("OwnerX")
                 || !ticket.getModData()
                     .hasKey("OwnerY")
                 || !ticket.getModData()
                     .hasKey("OwnerZ"))
                 continue;
-            int x = ticket.getModData()
-                .getInteger("OwnerX");
-            int y = ticket.getModData()
-                .getInteger("OwnerY");
-            int z = ticket.getModData()
-                .getInteger("OwnerZ");
-            // Match GT's bounded controller restore. Full footprint comes from the current canonical
-            // State, never an unvalidated serialized list of arbitrary force-loaded coordinates.
-            TileEntity tile = world.getTileEntity(x, y, z);
-            if (!(tile instanceof BaseMetaTileEntity base)
-                || !(base.getMetaTileEntity() instanceof MTECriticalMachine machine)) continue;
-            CriticalMachineState state = machine.getLocalCriticalState();
-            if (!state.isLoomJournalOwner() || !state.isChunkLoadingEnabled() || REGISTERED.containsKey(tile)) continue;
-            REGISTERED.put(tile, ticket);
-            ForgeChunkManager.forceChunk(ticket, new ChunkCoordIntPair(x >> 4, z >> 4));
-            kept.add(ticket);
+            if (ticket.getModData()
+                .getInteger("OwnerX") == owner.xCoord
+                && ticket.getModData()
+                    .getInteger("OwnerY") == owner.yCoord
+                && ticket.getModData()
+                    .getInteger("OwnerZ") == owner.zCoord)
+                ForgeChunkManager.releaseTicket(ticket);
         }
-        return kept;
+    }
+
+    private static boolean live(World world) {
+        MinecraftServer server = MinecraftServer.getServer();
+        return world != null && !world.isRemote
+            && !UNLOADED.contains(world)
+            && (server == null || server.isServerRunning());
+    }
+
+    /** Retire orphaned legacy tickets too, without looking up or loading their owner chunks. */
+    @SubscribeEvent
+    public void tick(TickEvent.WorldTickEvent event) {
+        if (event.phase != TickEvent.Phase.START || !live(event.world) || event.world.getTotalWorldTime() % 20 != 0)
+            return;
+        for (Ticket ticket : nativeLegacyTickets(event.world))
+            if (isLegacyCriticalTicket(ticket)) ForgeChunkManager.releaseTicket(ticket);
+    }
+
+    @SubscribeEvent
+    public void unload(WorldEvent.Unload event) {
+        if (!event.world.isRemote) UNLOADED.add(event.world);
+        // Forge's HIGHEST handler has already removed its native world ticket map.
+        // Do not release/unforce any native ticket from this NORMAL-priority callback.
+    }
+
+    @SubscribeEvent
+    public void load(WorldEvent.Load event) {
+        if (!event.world.isRemote) UNLOADED.remove(event.world);
+    }
+
+    @Override
+    public List<Ticket> ticketsLoaded(List<Ticket> tickets, World world, int maxTicketCount) {
+        // Forge discards every omitted ticket itself. Never inspect a tile or force an owner chunk.
+        // RemoteWorkerChunkTickets filters its own ticket types before invoking this fallback.
+        return Collections.emptyList();
     }
 
     @Override
     public void ticketsLoaded(List<Ticket> tickets, World world) {
-        for (Ticket ticket : tickets) {
-            int x = ticket.getModData()
-                .getInteger("OwnerX"),
-                y = ticket.getModData()
-                    .getInteger("OwnerY"),
-                z = ticket.getModData()
-                    .getInteger("OwnerZ");
-            TileEntity tile = world.getTileEntity(x, y, z);
-            if (REGISTERED.get(tile) != ticket || !(tile instanceof BaseMetaTileEntity base)
-                || !(base.getMetaTileEntity() instanceof MTECriticalMachine machine)) continue;
-            CriticalMachineState state = machine.getLocalCriticalState();
-            state.getChunkLoading()
-                .ensureAllStructureChunks(world, tile, state.getChunkLoadingFootprint());
-        }
+        if (!live(world)) return;
+        // Defensive retirement if invoked directly with already registered legacy tickets.
+        for (Ticket ticket : tickets) if (isLegacyCriticalTicket(ticket)) ForgeChunkManager.releaseTicket(ticket);
     }
 }

@@ -40,6 +40,7 @@ import com.miaokatze.gtsr.api.recipe.GTSRRecipeMaps;
 import com.miaokatze.gtsr.common.gui.MTESiemensMartinFurnaceGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
@@ -139,14 +140,6 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
 
     public double mFurnaceTemperature = 0.0d;
     private final List<MTEHatchPressureSteamInput> mPressureSteamInputs = new ArrayList<>();
-    // v1.7.28 修复：恢复字段遮蔽（v1.7.27 误删）。
-    // 子类 onPostTick 中 `if (mMachine) mStartUpCheck = 100;` 必须操作子类自己的字段，
-    // 否则会重置父类 MTEMultiBlockBase.mStartUpCheck，导致父类的 --mStartUpCheck 永远停在 99，
-    // checkStructure 永远不再被触发，runMachine 不被调用，配方无法启动；
-    // 且 mPressureSteamInputs 不被重新填充，consumeSuperheatedSteam 永远返回 false，炉温反向下降。
-    // 与 MTEAmmoniaPlant line 95、MTELargeGeothermalSteamBoiler line 96 保持一致。
-    private int mStartUpCheck = 100;
-    // 空气供应状态（用于GUI提示）：true=正常，false=不足
     public boolean mAirSupplyOK = true;
 
     void addPressureSteamInput(MTEHatchPressureSteamInput hatch) {
@@ -515,13 +508,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
             return;
         }
 
-        if (mMachine) {
-            mStartUpCheck = 100;
-        } else if (mStartUpCheck > 0) {
-            mStartUpCheck--;
-        }
-
-        boolean inGracePeriod = mStartUpCheck > 0;
+        if (GtsrStructureRecovery.isRecovering(this)) return;
 
         if (mMachine && aBaseMetaTileEntity.isAllowedToWork()) {
             if (mFurnaceTemperature < 1.0d && mMaxProgresstime > 0) {
@@ -575,7 +562,7 @@ public class MTESiemensMartinFurnace extends MTEGTSRMultiBlockBase<MTESiemensMar
             if (mFurnaceTemperature > 1.0d && aTick % 20 == 0) {
                 mFurnaceTemperature = Math.max(1.0d, mFurnaceTemperature - OVERHEAT_DECREMENT);
             }
-        } else if (!mMachine && !inGracePeriod) {
+        } else if (!mMachine) {
             mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
         }
         workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);

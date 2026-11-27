@@ -3995,7 +3995,7 @@ gtsr.critical.v2.dismantle=Paid bases and main structures can only be dismantled
 gtsr.critical.v2.legacy=New builds of all four released kinds use V2. Existing jobs retain their layout and journal; the other five kinds are frozen for maintenance.
 gtsr.critical.v2.loom_controller=Loom controller at local (56,4,47), with north/east/south/west placement; the structure rotates with its front.
 gtsr.critical.v2.main_controller=Critical main controller at local (56,4,35), facing opposite the loom; placed during first construction.
-gtsr.critical.v2.region=The 112 by 112, 180-high region can start at any coordinates without chunk alignment; target chunks must still be loaded.
+gtsr.critical.v2.region=The 112 by 112, 180-high region needs no chunk alignment. This machine does not load chunks; keep the full structure loaded for construction and operation.
 gtsr.critical.v2.controllers=The loom and commissioned main are real GT controllers at Y=4 with opposite fronts; hatches cannot replace them.
 gtsr.critical.v2.ports=Standard GT hatches fit only the declared construction and operating ports below.
 gtsr.critical.v2.loom_ports=Loom casing ring at Y=4 accepts optional item/fluid I/O, normal/multi-amp/laser energy inputs and dynamos; no maintenance hatch. Costs and main/loom port partitions are unchanged; controllers and rails cannot be replaced.
@@ -4972,7 +4972,7 @@ gtsr.critical.ui.repair.validation_pending=Awaiting complete structure validatio
 gtsr.critical.ui.repair.at_loom_short=Repair at the Mimetic Loom
 gtsr.critical.ui.repair.at_loom=Use the Mechanical Terminal on the Mimetic Loom and click Repair structure in the bottom bar. A missing main controller is repaired here too.
 gtsr.critical.ui.repair.await_scan=Wait for the damage scan. Resolve any blocker shown above; there is no need to click Repair again.
-gtsr.critical.ui.repair.await_validation=Keep the structure chunks loaded and wait for the complete check. If damage is confirmed, start repair at the loom.
+gtsr.critical.ui.repair.await_validation=Keep the full structure loaded while checks finish; this machine does not load chunks. If damage is confirmed, start repair at the loom.
 gtsr.critical.ui.repair.continue=Supply the listed deficits and construction power to the loom. Repair follows the original construction stages, with the main controller installed last.
 gtsr.critical.ui.repair.loom_damage=A hand-built loom part or required hatch is missing; automatic repair cannot continue.
 gtsr.critical.ui.repair.restore_loom=Restore the loom and required hatches manually, then click Repair structure to recheck and resume.

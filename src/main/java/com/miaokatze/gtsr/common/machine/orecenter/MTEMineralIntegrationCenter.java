@@ -41,6 +41,7 @@ import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.ClusterTier;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.SteamGrade;
 import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
@@ -231,6 +232,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     public void checkMachine(IGregTechTileEntity te, ItemStack stack, List<StructureError> errors) {
         bindHatches(te);
         if (structure.sectorMask(te) == 0) {
+            if (structure.isCheckingFormation(te)) GtsrStructureRecovery.markUnknown(this);
+            else GtsrStructureRecovery.confirmedDamage(this);
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
             return;
         }
@@ -238,12 +241,13 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         checkHasOutputBus(errors);
         checkHasInputHatch(errors);
         checkHasOutputHatch(errors);
+        if (!structure.isExecutionReady(te)) GtsrStructureRecovery.markUnknown(this);
+        if (!errors.isEmpty() && GtsrStructureRecovery.isRecovering(this)) GtsrStructureRecovery.markUnknown(this);
     }
 
     @Override
     protected void onStructureCheckFinished(IGregTechTileEntity te) {
         super.onStructureCheckFinished(te);
-        if (mMachine && mStartUpCheck > 0) mStartUpCheck = -1;
         if (mMachine && ShutDownReasonRegistry.STRUCTURE_INCOMPLETE.getKey()
             .equals(
                 te.getLastShutDownReason()
@@ -256,14 +260,17 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     @Override
     protected boolean hasStructureErrors() {
         IGregTechTileEntity te = getBaseMetaTileEntity();
-        return super.hasStructureErrors() && (te == null || !te.isServerSide() || !structure.isCheckingFormation(te));
+        return super.hasStructureErrors() && (te == null || !te.isServerSide()
+            || !GtsrStructureRecovery.isRecovering(this)
+            || !structure.isCheckingFormation(te));
     }
 
     @Override
     public void stopMachine(ShutDownReason reason) {
         IGregTechTileEntity te = getBaseMetaTileEntity();
         if (reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE && te != null
-            && (debugBuild != null || structure.isCheckingFormation(te))) return;
+            && (debugBuild != null || GtsrStructureRecovery.isRecovering(this) && structure.isCheckingFormation(te)))
+            return;
         super.stopMachine(reason);
     }
 
@@ -301,9 +308,14 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     private boolean hasRequiredPorts() {
-        return !mInputBusses.isEmpty() && !mOutputBusses.isEmpty()
-            && !mInputHatches.isEmpty()
-            && !mOutputHatches.isEmpty();
+        return hasValidPort(mInputBusses) && hasValidPort(mOutputBusses)
+            && hasValidPort(mInputHatches)
+            && hasValidPort(mOutputHatches);
+    }
+
+    private static boolean hasValidPort(List<? extends MTEHatch> ports) {
+        for (MTEHatch port : ports) if (port.isValid()) return true;
+        return false;
     }
 
     @Override
@@ -698,7 +710,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             return;
         }
         if ((tick % 20) == 0 && plannedMask != 0) drainCooling(te);
-        if (!mMachine) {
+        if (!mMachine || !structure.isExecutionReady(te) || !hasRequiredPorts()) {
             planning = null;
             te.setActive(false);
             return;

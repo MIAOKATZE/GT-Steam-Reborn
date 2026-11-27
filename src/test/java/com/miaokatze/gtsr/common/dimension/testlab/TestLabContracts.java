@@ -208,7 +208,21 @@ public final class TestLabContracts {
     private static void catalogSelection() {
         boolean centerEnabled = MTEMineralIntegrationCenter.REGISTRATION_ENABLED;
         List<TestLabTask> tasks = TestLabCatalog.tasks();
-        require(tasks.size() == (centerEnabled ? 115 : 109), "machine catalog coverage changed: " + tasks.size());
+        long recoveryCases = tasks.stream()
+            .filter(
+                task -> task.id()
+                    .startsWith("recovery."))
+            .count();
+        require(recoveryCases == 12, "four restart representatives require prepare/resume/cleanup cases");
+        require(
+            tasks.size() - recoveryCases == (centerEnabled ? 115 : 109),
+            "existing machine catalog coverage changed: " + tasks.size());
+        for (TestLabTask task : tasks) if (task.id()
+            .startsWith("recovery.")) {
+                require(TestLabCatalog.isExplicitRegression(task.id()), "restart cases require explicit selection");
+                require(!TestLabMetadata.defaultIncluded(task), "restart must not enter the default suite");
+                require(!task.requiresFixtureChunks(), "restart owns its exact persistent fixture footprint");
+            }
         TestLabTask recipeAudit = tasks.stream()
             .filter(
                 task -> task.id()

@@ -96,6 +96,7 @@ public final class TestLabCatalog {
         }
         tasks.add(TestLabMachineTask.turbineReload(MetaTileEntityID.HEAVY_STEAM_TURBINE));
         tasks.add(TestLabMachineTask.turbineReload(MetaTileEntityID.MEGA_STEAM_TURBINE_ARRAY));
+        tasks.addAll(TestLabRecoveryRestart.cases());
         return Collections.unmodifiableList(tasks);
     }
 

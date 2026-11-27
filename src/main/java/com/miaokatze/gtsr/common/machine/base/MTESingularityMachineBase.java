@@ -35,6 +35,7 @@ import com.miaokatze.gtsr.common.blocks.TileRunawaySingularity;
 import com.miaokatze.gtsr.common.event.GTSRMachineEvent;
 import com.miaokatze.gtsr.common.event.GTSRSingularityStructChillEvent;
 import com.miaokatze.gtsr.common.gui.MTESingularityMachineGui;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.terminal.entanglement.EntanglementInputs;
 import com.miaokatze.gtsr.common.terminal.entanglement.EntanglementMath;
 import com.miaokatze.gtsr.common.terminal.entanglement.EntanglementSnapshot;
@@ -504,7 +505,8 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
     @Override
     public void onPostTick(IGregTechTileEntity aBaseMetaTileEntity, long aTick) {
         super.onPostTick(aBaseMetaTileEntity, aTick);
-        if (!aBaseMetaTileEntity.isServerSide() || aTick % CYCLE_LENGTH != 0L) return;
+        if (!aBaseMetaTileEntity.isServerSide() || GtsrStructureRecovery.isRecovering(this)
+            || aTick % CYCLE_LENGTH != 0L) return;
         updateEntanglementSingularity(aBaseMetaTileEntity);
         // T4 超限模式秒级结算管线（默认未实装机 hasOverlimitMechanics()=false 零开销直通）；
         // 返回 true = 爆炸链已触发：首个触发即执行并终止本 tick 后续处理
@@ -797,8 +799,8 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
     private void updateEntanglementSingularity(IGregTechTileEntity aBaseMetaTileEntity) {
         List<EntanglementSpec> specs = getEntanglementSpecs();
         if (specs.isEmpty()) return;
-        // 启动豁免：控制器重载后结构判定延迟期间（GT mStartUpCheck≈5 秒），奇点判定同步豁免
-        if (getmStartUpCheck() >= 0) return;
+        // 托管奇点遵守统一恢复保护；视觉维护不主动加载结构区块。
+        if (GtsrStructureRecovery.isRecovering(this)) return;
         // working：奇点渲染条件（默认结构有效+允许工作+周期进行中或蒸汽尚存，平滑周期间隙避免闪烁；
         // 各机器覆写条件见 shouldRenderEntanglementSingularity）
         boolean working = shouldRenderEntanglementSingularity(aBaseMetaTileEntity);
@@ -807,6 +809,8 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
             int x = aBaseMetaTileEntity.getXCoord() + spec.dx;
             int y = aBaseMetaTileEntity.getYCoord() + spec.dy;
             int z = aBaseMetaTileEntity.getZCoord() + spec.dz;
+            if (!world.getChunkProvider()
+                .chunkExists(x >> 4, z >> 4)) continue;
             if (working) {
                 Block block = world.getBlock(x, y, z);
                 // 惰性生成：仅当定位点为空气才放置（不覆盖已有奇点 NBT，无比持久化）
@@ -862,6 +866,9 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
         super.onRemoval();
         IGregTechTileEntity base = getBaseMetaTileEntity();
         if (base == null || !base.isServerSide()) return;
+        if (!base.getWorld()
+            .getChunkProvider()
+            .chunkExists(base.getXCoord() >> 4, base.getZCoord() >> 4)) return;
         // 仅当控制器方块已被移除（被拆）才清理奇点；区块卸载时方块仍在，保持奇点持久化
         if (!base.getWorld()
             .getBlock(base.getXCoord(), base.getYCoord(), base.getZCoord())
@@ -872,6 +879,9 @@ public abstract class MTESingularityMachineBase extends MTESingularityModeMachin
             int x = base.getXCoord() + spec.dx;
             int y = base.getYCoord() + spec.dy;
             int z = base.getZCoord() + spec.dz;
+            if (!base.getWorld()
+                .getChunkProvider()
+                .chunkExists(x >> 4, z >> 4)) continue;
             if (base.getWorld()
                 .getBlock(x, y, z) == BlocksGTSR.runawaySingularity
                 && base.getWorld()

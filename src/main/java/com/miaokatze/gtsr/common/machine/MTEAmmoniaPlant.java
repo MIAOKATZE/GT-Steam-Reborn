@@ -42,6 +42,7 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.gui.MTEAmmoniaPlantGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 import com.miaokatze.gtsr.compat.gtnl.IndependentAmmoniaInputElement;
 import com.miaokatze.gtsr.compat.gtnl.IndependentSteamSupport;
@@ -116,7 +117,6 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
     private boolean thermalOutputUncertain;
 
     private int mCasingCount = 0;
-    private int mStartUpCheck = 100;
 
     private static final int CASING_TEXTURE_ID = GTUtility.getCasingTextureIndex(GregTechAPI.sBlockCasings2, 0);
 
@@ -479,13 +479,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
         if (!aBaseMetaTileEntity.isServerSide()) return;
         if (aTick % 20 == 0) pushSuperheatedSteam(0);
 
-        if (mMachine) {
-            mStartUpCheck = 100;
-        } else if (mStartUpCheck > 0) {
-            mStartUpCheck--;
-        }
-
-        boolean inGracePeriod = mStartUpCheck > 0;
+        if (GtsrStructureRecovery.isRecovering(this)) return;
 
         if (mMachine && aBaseMetaTileEntity.isAllowedToWork()) {
             if (mMaxProgresstime <= 0 && !runningAtTickStart) {
@@ -519,7 +513,7 @@ public class MTEAmmoniaPlant extends MTEGTSRMultiBlockBase<MTEAmmoniaPlant> impl
             adjustHeat(-HEAT_DECREASE_PER_SEC);
             mRealtimeSteamCost = 0;
             mRealtimeSteamOutput = 0;
-        } else if (!mMachine && !inGracePeriod) {
+        } else if (!mMachine) {
             adjustHeat(-HEAT_DECREASE_PER_SEC);
             mRealtimeSteamCost = 0;
             mRealtimeSteamOutput = 0;
