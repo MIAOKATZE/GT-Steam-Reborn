@@ -45,11 +45,13 @@ public final class ChunkLoadingPolicyContracts {
         allocator.setAccessible(true);
         unsafe = (sun.misc.Unsafe) allocator.get(null);
         boolean previous = GTValues.enableChunkloaders;
+        boolean previousReload = GTValues.alwaysReloadChunkloaders;
         try {
             automation();
             owners();
         } finally {
             GTValues.enableChunkloaders = previous;
+            GTValues.alwaysReloadChunkloaders = previousReload;
         }
         System.out.println("PASS chunk loading policy checks=" + checks + "; sparse IO only; no Minecraft process");
     }
@@ -124,6 +126,7 @@ public final class ChunkLoadingPolicyContracts {
 
     private static void owners() throws Exception {
         GTValues.enableChunkloaders = true;
+        GTValues.alwaysReloadChunkloaders = true;
         SparseWorld world = world();
         BaseMetaTileEntity critical = owner(world, MTECriticalMachine.class, 0);
         BaseMetaTileEntity turbine = owner(world, MTEHeavySteamTurbine.class, 16);
@@ -159,6 +162,12 @@ public final class ChunkLoadingPolicyContracts {
         check(
             kept.size() == 1 && kept.get(0) == tickets.get(4),
             "global disable rejects all restored GTSR owners only");
+        GTValues.alwaysReloadChunkloaders = false;
+        int reads = world.tileReads;
+        check(
+            GtsrChunkLoadingPolicy.filterLegacyGtTickets(tickets, world) == tickets,
+            "passive reload leaves native rejection intact");
+        check(world.tileReads == reads, "passive reload performs no owner lookup or implicit chunk load");
     }
 
     private static long key(int x, int z) {
@@ -172,6 +181,7 @@ public final class ChunkLoadingPolicyContracts {
         IChunkProvider providerStub;
         long time;
         int loads;
+        int tileReads;
         boolean failLoad;
 
         private SparseWorld() {
@@ -185,6 +195,7 @@ public final class ChunkLoadingPolicyContracts {
 
         @Override
         public TileEntity getTileEntity(int x, int y, int z) {
+            tileReads++;
             return tiles.get(x);
         }
 

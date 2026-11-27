@@ -39,6 +39,8 @@ public final class GtsrChunkLoadingPolicy {
 
     /** GT already resolves saved owner coordinates during restart. Reject obsolete GTSR owners there. */
     public static List<Ticket> filterLegacyGtTickets(List<Ticket> tickets, World world) {
+        // Passive reload returns no tickets in GT itself. Do not resolve owners earlier than GT would.
+        if (!GTValues.alwaysReloadChunkloaders) return tickets;
         List<Ticket> kept = new ArrayList<>(tickets.size());
         for (Ticket ticket : tickets) {
             NBTTagCompound tag = ticket.getModData();
