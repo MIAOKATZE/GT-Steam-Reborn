@@ -232,6 +232,8 @@ def verify_native(receipt, case, expected):
             if checks.get('realStructureChunkWithheldTicks', 0) < 60:
                 raise ValueError('No real required structure chunk was withheld for 60 natural ticks')
         if case == 'recovery.resume.critical_turbine':
+            if checks.get('criticalDamageVoxelFromNativeLoom') is not True or not checks.get('actualBrokenWorldBlock'):
+                raise ValueError('Critical damage test did not use a required native loom body voxel')
             if min(checks.get('criticalPaidJournalExactFrozenTicks', 0),
                    checks.get('criticalPortStocksExactFrozenTicks', 0)) < 60:
                 raise ValueError('Critical authority and both port stocks were not frozen for 60 ticks')

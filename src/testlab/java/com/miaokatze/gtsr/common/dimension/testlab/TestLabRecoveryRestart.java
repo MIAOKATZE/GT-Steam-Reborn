@@ -34,6 +34,8 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
+import com.miaokatze.gtsr.common.critical.CriticalLoomStructure;
+import com.miaokatze.gtsr.common.critical.CriticalStructures;
 import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
@@ -408,10 +410,12 @@ public final class TestLabRecoveryRestart implements TestLabTask {
             }
             evidence.put("realOutputAfterRecovery", true);
             // Break an actual required world block only after the intact recovery has delivered.
-            NBTTagCompound broken = journal.getCompoundTag("output");
+            NBTTagCompound broken = machine instanceof MTECriticalMachine ? requiredLoomDamageBlock()
+                : journal.getCompoundTag("output");
+            evidence.put("actualBrokenWorldBlock", broken.toString());
             require(
                 world.setBlockToAir(broken.getInteger("x"), broken.getInteger("y"), broken.getInteger("z")),
-                "Required hatch removal failed");
+                "Required world block removal failed");
             phase = 2;
             since = tick;
             return null;
@@ -419,7 +423,7 @@ public final class TestLabRecoveryRestart implements TestLabTask {
         if (phase == 2) {
             // Wait for GT's natural native structure lifecycle, never invoke checkStructure/updateEntity here.
             if (machine.mMachine || GtsrStructureRecovery.isRecovering(machine)) {
-                require(tick - since < 4000, "Real missing required hatch was never rejected");
+                require(tick - since < 4000, "Real missing required world block was never rejected");
                 return null;
             }
             evidence.put("actualBrokenWorldBlockRejected", true);
@@ -684,6 +688,35 @@ public final class TestLabRecoveryRestart implements TestLabTask {
         for (String key : Arrays.asList("mProgresstime", "mMaxProgresstime", "mEfficiency"))
             mirror.setInteger(key, state.getInteger(key));
         return mirror;
+    }
+
+    private NBTTagCompound requiredLoomDamageBlock() {
+        var state = ((MTECriticalMachine) machine).getCriticalState();
+        for (CriticalGeometry.Voxel voxel : CriticalLoomStructure.voxels(state)) {
+            if (CriticalStructures.isHatchPosition(voxel)) continue;
+            int x = state.blockWorldX(voxel), y = state.blockWorldY(voxel.y), z = state.blockWorldZ(voxel);
+            if (!world.theChunkProviderServer.chunkExists(x >> 4, z >> 4) || world.isAirBlock(x, y, z)) continue;
+            if (world.getBlock(x, y, z) == gregtech.api.GregTechAPI.sBlockMachines) continue;
+            require(CriticalLoomStructure.matchesVoxel(state, voxel), "Required loom damage candidate was not intact");
+            NBTTagCompound position = new NBTTagCompound();
+            position.setInteger("x", x);
+            position.setInteger("y", y);
+            position.setInteger("z", z);
+            position.setString(
+                "block",
+                String.valueOf(net.minecraft.block.Block.blockRegistry.getNameForObject(world.getBlock(x, y, z))));
+            position.setInteger("metadata", world.getBlockMetadata(x, y, z));
+            position.setString("source", "CriticalLoomStructure.voxels; excludes controllers and hatch positions");
+            position.setInteger("voxelX", voxel.x);
+            position.setInteger("voxelY", voxel.y);
+            position.setInteger("voxelZ", voxel.z);
+            position.setString("material", voxel.material);
+            position.setString("group", voxel.group);
+            position.setString("model", voxel.model);
+            evidence.put("criticalDamageVoxelFromNativeLoom", true);
+            return position;
+        }
+        throw new IllegalStateException("No loaded required non-hatch loom body voxel can be damaged");
     }
 
     private void requireDeferredUnloaded() {

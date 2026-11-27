@@ -199,6 +199,7 @@ class RestartDriverTests(unittest.TestCase):
                           criticalNativeMirrorBoundary='SAVED_EQUALS_NEW_TILE; NATURAL_TICK_PAUSES_DISPLAY_ONLY',
                           criticalLoadedNativeMirror='20/400/10000', criticalPausedNativeMirror='0/0/0',
                           criticalPausedActive=False, criticalLoadedNativeTimer=0, criticalPausedNativeTimer=80)
+            checks.update(criticalDamageVoxelFromNativeLoom=True, actualBrokenWorldBlock='required casing')
             receipt['case'] = case
 
             def verify():
