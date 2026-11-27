@@ -340,6 +340,7 @@ mapOf(
     "verifyReviewedTooltipCatalog" to "com.miaokatze.gtsr.client.tooltip.ReviewedTooltipCatalogContract",
     "verifySteamFluidDrillCycle" to "com.miaokatze.gtsr.common.machine.SteamFluidDrillCycleContract",
     "verifySingularityIdentityDrop" to "com.miaokatze.gtsr.common.blocks.SingularityIdentityDropContract",
+    "verifyCenterQueueMigration" to "com.miaokatze.gtsr.common.machine.orecenter.CenterQueueMigrationContracts",
 ).forEach { (name, entry) ->
     val contract = tasks.register<JavaExec>(name) {
         group = "verification"

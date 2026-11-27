@@ -455,72 +455,72 @@ public class MachineLoader {
             new MTESteamMineralLogisticsCluster(
                 MetaTileEntityID.CLUSTER_CONTROLLER.ID,
                 "gtsr.cluster.controller",
-                "Steam Mineral Logistics Cluster"));
+                "[OLD] Steam Mineral Logistics Cluster"));
         GTSRItemList.ClusterUnitCrusher.set(
             new MTEUnitCrusher(
                 MetaTileEntityID.CLUSTER_UNIT_CRUSHER.ID,
                 "gtsr.cluster.unit.crusher",
-                "Cluster Crushing Unit"));
+                "[OLD] Cluster Crushing Unit"));
         GTSRItemList.ClusterUnitOreWasher.set(
             new MTEUnitOreWasher(
                 MetaTileEntityID.CLUSTER_UNIT_ORE_WASHER.ID,
                 "gtsr.cluster.unit.ore_washer",
-                "Cluster Ore Washing Unit"));
+                "[OLD] Cluster Ore Washing Unit"));
         GTSRItemList.ClusterUnitCentrifuge.set(
             new MTEUnitCentrifuge(
                 MetaTileEntityID.CLUSTER_UNIT_CENTRIFUGE.ID,
                 "gtsr.cluster.unit.centrifuge",
-                "Cluster Centrifuge Unit"));
+                "[OLD] Cluster Centrifuge Unit"));
         GTSRItemList.ClusterUnitThermalCentrifuge.set(
             new MTEUnitThermalCentrifuge(
                 MetaTileEntityID.CLUSTER_UNIT_THERMOCENTRIFUGE.ID,
                 "gtsr.cluster.unit.thermal_centrifuge",
-                "Cluster Thermal Centrifuge Unit"));
+                "[OLD] Cluster Thermal Centrifuge Unit"));
         GTSRItemList.ClusterUnitSifter.set(
             new MTEUnitSifter(
                 MetaTileEntityID.CLUSTER_UNIT_SIFTER.ID,
                 "gtsr.cluster.unit.sifter",
-                "Cluster Sifting Unit"));
+                "[OLD] Cluster Sifting Unit"));
         GTSRItemList.ClusterUnitMagneticSeparator.set(
             new MTEUnitMagneticSeparator(
                 MetaTileEntityID.CLUSTER_UNIT_MAGNETIC_SEPARATOR.ID,
                 "gtsr.cluster.unit.magnetic_separator",
-                "Cluster Magnetic Separation Unit"));
+                "[OLD] Cluster Magnetic Separation Unit"));
         GTSRItemList.ClusterUnitFurnace.set(
             new MTEUnitFurnace(
                 MetaTileEntityID.CLUSTER_UNIT_FURNACE.ID,
                 "gtsr.cluster.unit.furnace",
-                "Cluster Furnace Unit"));
+                "[OLD] Cluster Furnace Unit"));
         GTSRItemList.ClusterBoosterParallel.set(
             new MTEUnitParallelBooster(
                 MetaTileEntityID.CLUSTER_BOOSTER_PARALLEL.ID,
                 "gtsr.cluster.booster.parallel",
-                "Cluster Parallel Amplifier"));
+                "[OLD] Cluster Parallel Amplifier"));
         GTSRItemList.ClusterBoosterSpeed.set(
             new MTEUnitSpeedBooster(
                 MetaTileEntityID.CLUSTER_BOOSTER_SPEED.ID,
                 "gtsr.cluster.booster.speed",
-                "Cluster Speed Amplifier"));
+                "[OLD] Cluster Speed Amplifier"));
         GTSRItemList.ClusterBoosterPrimary.set(
             new MTEUnitPrimaryBooster(
                 MetaTileEntityID.CLUSTER_BOOSTER_PRIMARY.ID,
                 "gtsr.cluster.booster.primary",
-                "Cluster Primary Output Amplifier"));
+                "[OLD] Cluster Primary Output Amplifier"));
         GTSRItemList.ClusterBoosterSecondary.set(
             new MTEUnitSecondaryBooster(
                 MetaTileEntityID.CLUSTER_BOOSTER_SECONDARY.ID,
                 "gtsr.cluster.booster.secondary",
-                "Cluster Secondary Output Amplifier"));
+                "[OLD] Cluster Secondary Output Amplifier"));
         GTSRItemList.ClusterBoosterSteamSaver.set(
             new MTEUnitSteamSaverBooster(
                 MetaTileEntityID.CLUSTER_BOOSTER_STEAM_SAVER.ID,
                 "gtsr.cluster.booster.steam_saver",
-                "Cluster Steam Saver Amplifier"));
+                "[OLD] Cluster Steam Saver Amplifier"));
         GTSRItemList.ClusterUnitLogistics.set(
             new MTEBasicLogisticsUnit(
                 MetaTileEntityID.CLUSTER_UNIT_LOGISTICS.ID,
                 "gtsr.cluster.unit.logistics",
-                "Cluster Logistics Unit"));
+                "[OLD] Cluster Logistics Unit"));
 
         // --- 多方块机器: 热化学致密蒸汽发生系统（全新 ID 109，无旧存档机器）---
         GTSRItemList.TcdsController.set(

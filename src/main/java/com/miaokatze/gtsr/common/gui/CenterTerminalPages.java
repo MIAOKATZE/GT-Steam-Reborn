@@ -152,7 +152,19 @@ final class CenterTerminalPages {
         }
         page.child(resources);
 
-        ParentWidget<?> directory = card("center_assembly_directory").left(0).top(51).bottom(0).width(113)
+        ParentWidget<?> queue = card("center_queue_controls").left(0).right(0).top(51).height(17);
+        queue.child(button("queue_toggle", () -> tr(state().getBoolean("QueueMode") ? "queue.on" : "queue.off"),
+            () -> sync.edit(CenterGraphSync.Action.QUEUE, sync.snapshot(), -1,
+                state().getBoolean("QueueMode") ? 0 : 1, 0, ""))
+            .pos(3, 2).size(66, 13));
+        queue.child(CriticalGuiStyle.fitted(() -> state().getInteger("QueueParallel") > 0
+            ? tr("queue.parallel", state().getInteger("QueueParallel")) : tr("queue.detecting"),
+            () -> 0xFFE3B87B, Alignment.CenterLeft).asWidget().left(73).top(2).size(109, 13));
+        queue.child(CriticalGuiStyle.fitted(() -> tr("queue.hint"),
+            () -> 0xFFC0C9C8, Alignment.CenterLeft).asWidget().left(187).right(3).top(2).height(13));
+        page.child(queue);
+
+        ParentWidget<?> directory = card("center_assembly_directory").left(0).top(70).bottom(0).width(113)
             .setEnabledIf(w -> showDirectory);
         directory.child(label(() -> tr("assembly.pads")).pos(4, 3).size(103, 13));
         for (int filter = -1; filter < 2; filter++) {
@@ -166,7 +178,7 @@ final class CenterTerminalPages {
         ParentWidget<?> center = card("center_assembly_map").left(() -> showDirectory ? 115 : 0,
             com.cleanroommc.modularui.widget.sizer.Unit.Measure.PIXEL)
             .right(() -> showDetails ? 182 : 0, com.cleanroommc.modularui.widget.sizer.Unit.Measure.PIXEL)
-            .top(51).bottom(0);
+            .top(70).bottom(0);
         ParentWidget<?> mapHead = new ParentWidget<>().background((IDrawable)
             (ctx, x, y, width, height, theme) -> GuiDraw.drawRect(x, y, width, height, 0xFF27373C))
             .left(0).right(0).top(1).height(14);
@@ -190,7 +202,7 @@ final class CenterTerminalPages {
         center.child(mapFoot);
         page.child(center);
 
-        ParentWidget<?> detail = card("center_assembly_inspector").right(0).top(51).bottom(0).width(180)
+        ParentWidget<?> detail = card("center_assembly_inspector").right(0).top(70).bottom(0).width(180)
             .setEnabledIf(w -> showDetails);
         detail.child(label(() -> tr("assembly.pad")).pos(4, 3).size(96, 13));
         detail.child(CriticalGuiStyle.label(() -> "S0" + (slot / 6 + 1) + " / " + SLOT_CODES[slot % 6],

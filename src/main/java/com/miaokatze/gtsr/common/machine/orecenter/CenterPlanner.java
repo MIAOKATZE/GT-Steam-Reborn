@@ -219,6 +219,7 @@ public final class CenterPlanner {
         private final boolean ignoreFluids, ignoreEnergy;
         private final Random random;
         private int graphIndex, nodeIndex, lotIndex, inputIndex, workLimit, workPerRound, peakGrade = 1;
+        private boolean queueMode;
         private int executions, rootPaid, proposedRoots;
         private double workTicks, critical, workSteam, recipeEU, steamMultiplier = 1, euMultiplier = 1;
         private boolean finished, failed, workLimitReached, boostConfigured;
@@ -352,6 +353,14 @@ public final class CenterPlanner {
             return result;
         }
 
+        void queueMode(boolean enabled) {
+            queueMode = enabled;
+        }
+
+        int parallelLimit() {
+            return boostConfigured ? (int) Math.ceil(processingWidth()) : 0;
+        }
+
         int smallerRootLimit() {
             return workLimitReached && proposedRoots > 1 ? proposedRoots / 2 : 0;
         }
@@ -385,6 +394,10 @@ public final class CenterPlanner {
                 workLimit = (int) Math.min(MAX_BATCH_WORK, (long) workPerRound * affordableRounds);
                 boostConfigured = true;
             }
+            if (queueMode && proposedRoots < parallelLimit()) {
+                finished = true;
+                return true;
+            }
             while (graphIndex < graphs.size() && !failed) {
                 if (used >= queryBudget || used > 0 && System.nanoTime() - start >= timeBudgetNanos) return false;
                 WorkGraph work = graphs.get(graphIndex);
@@ -410,7 +423,7 @@ public final class CenterPlanner {
                 }
             }
             finished = true;
-            if (!failed && rootPaid > 0) result = conclude();
+            if (!failed && rootPaid >= (queueMode ? parallelLimit() : 1)) result = conclude();
             return true;
         }
 

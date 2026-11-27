@@ -1110,6 +1110,7 @@
     {"id":"machine.ClusterController","owner":{"machine":"ClusterController"},"tiers":{
       "common":[
         {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]总控：集群管理"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换矿物加工集成中心控制器。§r"},
         {"type":"line","text":"§b把独立模块连成多条自动矿物加工链。"},
         {"type":"table","columns":["选择模块","决定加工能力"],"rows":[["§7加工","§7提供粉碎、洗矿等工序；同类§6N台§r§7使该工序用时§6÷N§r§7、耗汽§6×N§r§7"],["§7物流","§7在终端编排加工顺序；每台独立进出料并执行一条链"],["§7增幅","§7消耗专用流体，换取并行、速度、产物或节汽"]]},
         {"type":"line","text":"§7各模块须与主控§e同档§r§7；持续供汽与§b [fluid:lubricant|润滑油] §r§7预热§630§r§7秒，§e满温后§r§7加工。"},
@@ -1139,6 +1140,7 @@
       ],
       "quick":[
         {"type":"line","text":" [item:gtsr:HubTerminal@0|机器终端] [right:右击]总控：集群管理"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换矿物加工集成中心控制器。§r"},
         {"type":"line","text":"将同档加工、物流和增幅模块连成加工链；每台 [item:gregtech:gt.blockmachines@15064|物流模块] 独立执行一条链。"},
         {"type":"line","text":"供汽和 [fluid:lubricant|润滑油] 预热 30 秒。延伸段增加挂点，也增加固定耗汽与润滑；加工链另耗蒸汽。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
@@ -1147,6 +1149,7 @@
     {"id":"machine.ClusterUnitCrusher","owner":{"machine":"ClusterUnitCrusher"},"tiers":{
       "common":[
         {"type":"line","text":"§b为同档集群提供粉碎与锤击工序。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7粉碎保留的§b副产物§r§7比例随集群升级：青铜§610%§r§7，钢§650%§r§7，钛及以上§6100%§r§7；重视§b副产物§r§7时优先升级。"},
         {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["粉碎","6","2,000"],["锤击","0.2","8,000"]]},
@@ -1156,6 +1159,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b为同档集群提供粉碎与锤击工序。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"集群升级可提高粉碎副产物保留率。"},
         {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
@@ -1164,6 +1168,7 @@
     {"id":"machine.ClusterUnitOreWasher","owner":{"machine":"ClusterUnitOreWasher"},"tiers":{
       "common":[
         {"type":"line","text":"§b为同档集群提供洗矿、化学浸浴与简易清洗。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7清洗液接§b [item:gregtech:gt.blockmachines@15064|物流模块] §r§7的流体输入仓，按实际配方消耗；没有额外固定用水。"},
         {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["洗矿","8","200"],["化学浸浴","12","1,000"],["简易清洗","0.2","200"]]},
@@ -1173,6 +1178,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b为同档集群提供洗矿、化学浸浴与简易清洗。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"清洗液从 [item:gregtech:gt.blockmachines@15064|物流模块] 输入，按配方消耗。"},
         {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
@@ -1181,6 +1187,7 @@
     {"id":"machine.ClusterUnitCentrifuge","owner":{"machine":"ClusterUnitCentrifuge"},"tiers":{
       "common":[
         {"type":"line","text":"§b为同档集群提供离心分离工序。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["离心分离","8","3,000"]]},
         {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率"],"rows":[["青铜","1","×1"],["钢","8","×16"],["钛","32","×128"],["钨钢","64","×512"]]},
@@ -1189,6 +1196,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b为同档集群提供离心分离工序。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ]
@@ -1196,6 +1204,7 @@
     {"id":"machine.ClusterUnitThermalCentrifuge","owner":{"machine":"ClusterUnitThermalCentrifuge"},"tiers":{
       "common":[
         {"type":"line","text":"§b为同档集群提供热力离心工序，另需持续供电。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["热力离心","6","1,000"]]},
         {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率","持续供电（EU/t）"],"rows":[["青铜","1","×1","96"],["钢","8","×16","192"],["钛","32","×128","768"],["钨钢","64","×512","1,536"]]},
@@ -1204,6 +1213,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b为同档集群提供热力离心工序，另需持续供电。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ]
@@ -1211,6 +1221,7 @@
     {"id":"machine.ClusterUnitSifter","owner":{"machine":"ClusterUnitSifter"},"tiers":{
       "common":[
         {"type":"line","text":"§b为同档集群提供筛分，获得适用矿物的晶体与副产物。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["筛分","32","1,000"]]},
         {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率"],"rows":[["青铜","1","×1"],["钢","8","×16"],["钛","32","×128"],["钨钢","64","×512"]]},
@@ -1219,6 +1230,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b为同档集群提供筛分，获得适用矿物的晶体与副产物。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ]
@@ -1226,6 +1238,7 @@
     {"id":"machine.ClusterUnitMagneticSeparator","owner":{"machine":"ClusterUnitMagneticSeparator"},"tiers":{
       "common":[
         {"type":"line","text":"§b为同档集群提供磁选工序，另需持续供电。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["磁选","2","100"]]},
         {"type":"table","columns":["模块材质","耗时除数","工序耗汽倍率","持续供电（EU/t）"],"rows":[["青铜","1","×1","32"],["钢","8","×16","64"],["钛","32","×128","256"],["钨钢","64","×512","512"]]},
@@ -1234,6 +1247,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b为同档集群提供磁选工序，另需持续供电。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
       ]
@@ -1241,6 +1255,7 @@
     {"id":"machine.ClusterUnitFurnace","owner":{"machine":"ClusterUnitFurnace"},"tiers":{
       "common":[
         {"type":"line","text":"§b为同档集群提供全部熔炼或仅主产物熔炼。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7选择仅§b主产物§r§7时，前序配方的第§61§r§7项产物继续熔炼，§b副产物§r§7保持原形排出；熔炼不享受主／§b副产物§r§7增幅。"},
         {"type":"line","text":"§7同类启用§6N台§r§7：对应工序用时§6÷N§r§7、耗汽§6×N§r§7；原料与产物统一接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"table","columns":["工序","基准用时（秒）"," [fluid:steam|蒸汽] 当量（L/s）"],"rows":[["全部／仅主产物熔炼","2","2,000"]]},
@@ -1250,6 +1265,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b为同档集群提供全部熔炼或仅主产物熔炼。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"仅主产物模式下副产物原样排出；熔炼不享受主、副产增幅。"},
         {"type":"line","text":"同类模块共同分担工序，用时缩短、耗汽提高；原料与产物接 [item:gregtech:gt.blockmachines@15064|物流模块]。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
@@ -1258,6 +1274,7 @@
     {"id":"machine.ClusterBoosterParallel","owner":{"machine":"ClusterBoosterParallel"},"tiers":{
       "common":[
         {"type":"line","text":"§b为每个 [item:gregtech:gt.blockmachines@15064|物流模块] 增加并行上限，多台相加。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7各台并行增益相加；队列模式等待增幅后的并行上限。"},
         {"type":"table","columns":["模块结构","并行增益"," [fluid:nitricacid|硝酸] 基础用量（L/轮）","链耗汽倍率","其他模块耗液加成"],"rows":[["§7青铜","§7+§68§r§7","§7§65§r§7","×1.2","5%"],["§7钢","§7+§616§r§7","§7§620§r§7","×1.4","10%"],["§7钛","§7+§648§r§7","§7§6100§r§7","×1.8","30%"],["§7钨钢","§7+§696§r§7","§7§6200§r§7","×2","40%"]]},
         {"type":"line","text":"§7需接入§e同档§r§7集群，并把 [fluid:nitricacid|硝酸] 接入本模块输入仓；开始加工时一次扣除所需流体，§e供应不足§r§7则本模块无增益、也不增加耗汽。"},
@@ -1268,6 +1285,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b为每个 [item:gregtech:gt.blockmachines@15064|物流模块] 增加并行上限，多台相加。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"多台并行相加；队列模式需攒满增幅后的并行。"},
         {"type":"line","text":"接入同档集群，向本模块供应§b [fluid:nitricacid|硝酸]§r。生效时整链耗汽提高，缺液则无增益。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
@@ -1276,6 +1294,7 @@
     {"id":"machine.ClusterBoosterSpeed","owner":{"machine":"ClusterBoosterSpeed"},"tiers":{
       "common":[
         {"type":"line","text":"§b加快集群加工，物流等待时间不变。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7多台速度增益相加，加工用时÷(§61§r§7+总速度增益)；物流时间较长时，继续加速的收益会变小。"},
         {"type":"table","columns":["模块结构","速度增益"," [fluid:hydrochloricacid_gt5u|氢氯酸] 基础用量（L/轮）","链耗汽倍率","其他模块耗液加成"],"rows":[["§7青铜","§7+§65%§r§7","§7§66§r§7","×1.2","5%"],["§7钢","§7+§610%§r§7","§7§630§r§7","×1.4","10%"],["§7钛","§7+§630%§r§7","§7§6150§r§7","×1.8","30%"],["§7钨钢","§7+§640%§r§7","§7§6300§r§7","×2","40%"]]},
         {"type":"line","text":"§7需接入§e同档§r§7集群，并把 [fluid:hydrochloricacid_gt5u|氢氯酸] 接入本模块输入仓；开始加工时一次扣除所需流体，§e供应不足§r§7则本模块无增益、也不增加耗汽。"},
@@ -1286,6 +1305,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b加快集群加工，物流等待时间不变。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"多台加速相加，物流等待时间不变。"},
         {"type":"line","text":"接入同档集群，向本模块供应§b [fluid:hydrochloricacid_gt5u|氢氯酸]§r。生效时整链耗汽提高，缺液则无增益。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
@@ -1294,6 +1314,7 @@
     {"id":"machine.ClusterBoosterPrimary","owner":{"machine":"ClusterBoosterPrimary"},"tiers":{
       "common":[
         {"type":"line","text":"§b集中在选定工序增加主产物产量。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7增益在有效峰值工序全额生效，其余加工工序只取§610%§r§7；熔炼不生效。"},
         {"type":"table","columns":["模块结构","主产物增益"," [fluid:sulfuricacid|硫酸] 基础用量（L/轮）","链耗汽倍率"],"rows":[["§7青铜","§7+§65%§r§7","§7§68§r§7","×1.2"],["§7钢","§7+§610%§r§7","§7§640§r§7","×1.4"],["§7钛","§7+§615%§r§7","§7§6200§r§7","×1.8"],["§7钨钢","§7+§620%§r§7","§7§6400§r§7","×2"]]},
         {"type":"line","text":"§7需接入§e同档§r§7集群，并把 [fluid:sulfuricacid|硫酸] 接入本模块输入仓；开始加工时一次扣除所需流体，§e供应不足§r§7则本模块无增益、也不增加耗汽。"},
@@ -1307,6 +1328,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b集中在选定工序增加主产物产量。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"峰值工序全额生效，其余只取 10%；熔炼无效。"},
         {"type":"line","text":"接入同档集群，向本模块供应§b [fluid:sulfuricacid|硫酸]§r。生效时整链耗汽提高，缺液则无增益。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
@@ -1315,6 +1337,7 @@
     {"id":"machine.ClusterBoosterSecondary","owner":{"machine":"ClusterBoosterSecondary"},"tiers":{
       "common":[
         {"type":"line","text":"§b提高配方各项副产物的额外产出概率。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7多台增益直接相加，作用于各个§b副产物§r§7位置；熔炼不生效。"},
         {"type":"table","columns":["模块结构","副产物增益"," [fluid:ammonium chloride|氯化铵] 基础用量（L/轮）","链耗汽倍率"],"rows":[["§7青铜","§7+§61%§r§7","§7§62§r§7","×1.2"],["§7钢","§7+§62%§r§7","§7§68§r§7","×1.4"],["§7钛","§7+§64%§r§7","§7§630§r§7","×1.8"],["§7钨钢","§7+§65%§r§7","§7§650§r§7","×2"]]},
         {"type":"line","text":"§7需接入§e同档§r§7集群，并把 [fluid:ammonium chloride|氯化铵] 接入本模块输入仓；开始加工时一次扣除所需流体，§e供应不足§r§7则本模块无增益、也不增加耗汽。"},
@@ -1327,6 +1350,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b提高配方各项副产物的额外产出概率。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"各项副产物分别叠加概率，超过 100% 可额外产出整份；熔炼无效。"},
         {"type":"line","text":"接入同档集群，向本模块供应§b [fluid:ammonium chloride|氯化铵]§r。生效时整链耗汽提高，缺液则无增益。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
@@ -1335,6 +1359,7 @@
     {"id":"machine.ClusterBoosterSteamSaver","owner":{"machine":"ClusterBoosterSteamSaver"},"tiers":{
       "common":[
         {"type":"line","text":"§b降低加工链耗汽，固定保温蒸汽不变。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换I 级速度模块包。§r"},
         {"type":"line","text":"§7多台节省比例相加，最多§648%§r§7；§64§r§7台钨钢模块已达上限，继续加装只会增加冷却液需求。"},
         {"type":"table","columns":["模块结构","节汽增益","冷却液基础用量（L/轮）"],"rows":[["§7青铜","§7§62%§r§7","§7§61§r§7"],["§7钢","§7§64%§r§7","§7§65§r§7"],["§7钛","§7§68%§r§7","§7§620§r§7"],["§7钨钢","§7§612%§r§7","§7§640§r§7"]]},
         {"type":"line","text":"§7需接入§e同档§r§7集群，并把冷却液接入本模块输入仓；开始加工时一次扣除所需流体，§e供应不足§r§7则本模块无增益、也不增加耗汽。"},
@@ -1346,6 +1371,7 @@
       ],
       "quick":[
         {"type":"line","text":"§b降低加工链耗汽，固定保温蒸汽不变。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换I 级速度模块包。§r"},
         {"type":"line","text":"多台合计最多节汽 48%，保温耗汽不变。"},
         {"type":"line","text":"接入同档集群，向本模块供应§b冷却液§r。供液不足则无增益。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
@@ -1354,6 +1380,7 @@
     {"id":"machine.ClusterUnitLogistics","owner":{"machine":"ClusterUnitLogistics"},"tiers":{
       "common":[
         {"type":"line","text":"§b集群的进出料与执行端；每台独立运行一条加工链。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"§7在终端设置本模块的加工链，再接好原料和产物管线。"},
         {"type":"line","text":"§7须与主控§e同档§r§7，并备齐物品输入／输出总线、流体输入／输出仓；普通与ME仓室均可。"},
         {"type":"table","columns":["结构","基础并行","物流时间（秒）","工作 [fluid:lubricant|润滑油]（L/s）"],"rows":[["§7青铜","§7§624§r§7","§7§65§r§7","§7§620§r§7"],["§7钢","§7§648§r§7","§7§62§r§7","§7§660§r§7"],["§7钛","§7§664§r§7","§7§61§r§7","§7§6300§r§7"],["§7钨钢","§7§6128§r§7","§7§60§r§7","§7§6500§r§7"]]},
@@ -1364,6 +1391,7 @@
       ],
       "quick":[
         {"type":"line","text":"每台独立执行一条加工链。终端编排工序，物品与流体均从本模块进出，工作时消耗 [fluid:lubricant|润滑油]。"},
+        {"type":"warning","text":"§e[OLD] 工作台无序合成可兑换对应的 I 级模块包。§r"},
         {"type":"line","text":"一条链最多 16 步、一个终态产物。产物未排空时等待；物流时间不受加工加速影响。"},
         {"type":"line","text":"软锤 [right:右击] 启停；螺丝刀 [right:右击] 切换队列，攒满同种输入再加工。"},
         {"type":"line","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r","role":"credit"}
@@ -2280,6 +2308,7 @@
     }},
     {"id":"machine.OreIntegrationCenter","owner":{"machine":"OreIntegrationCenter"},"tiers":{
       "common":[
+        {"type":"line","text":"§7§b队列模式§7 在装配页设置。开启后按混矿合计攒满当前有效并行量再开批，等待不扣费。§r"},
         {"type":"line","text":"§7§b工艺图谱§7 按矿词分配来料。中心预算整批产物、时间与耗能，再统一加工。§r"},
         {"type":"line","text":"§7[right:右击] 主控打开图谱。每装一座物流设备可配置 §e1 张图谱§7。§r"},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
@@ -2297,6 +2326,7 @@
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
+        {"type":"line","text":"§7§b队列模式§7 在装配页设置。开启后按混矿合计攒满当前有效并行量再开批，等待不扣费。§r"},
         {"type":"line","text":"§7§b工艺图谱§7 按矿词分配来料。中心预算整批产物、时间与耗能，再统一加工。§r"},
         {"type":"line","text":"§7[right:右击] 主控打开图谱。每装一座物流设备可配置 §e1 张图谱§7。§r"},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},

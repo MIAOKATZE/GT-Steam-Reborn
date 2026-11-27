@@ -1379,20 +1379,20 @@ gtsr.tooltip.redstone_hatch.output=Outputs a redstone signal based on the select
 gtsr.tooltip.redstone_hatch.gui=Right-click to open the GUI and change settings
 gt.blockmachines.gtsr.redstone_hatch.name=Redstone Hatch
 
-gt.blockmachines.gtsr.cluster.controller.name=Steam-Powered Mineral Processing Logistics Engineering Cluster
-gt.blockmachines.gtsr.cluster.unit.crusher.name=Processing Cluster Crusher Module
-gt.blockmachines.gtsr.cluster.unit.ore_washer.name=Processing Cluster Ore Washing Module
-gt.blockmachines.gtsr.cluster.unit.centrifuge.name=Processing Cluster Centrifuge Module
-gt.blockmachines.gtsr.cluster.unit.thermal_centrifuge.name=Processing Cluster Thermal Centrifuge Module
-gt.blockmachines.gtsr.cluster.unit.sifter.name=Processing Cluster Sifting Module
-gt.blockmachines.gtsr.cluster.unit.magnetic_separator.name=Processing Cluster Magnetic Separation Module
-gt.blockmachines.gtsr.cluster.unit.furnace.name=Processing Cluster Smelting Module
-gt.blockmachines.gtsr.cluster.booster.parallel.name=Processing Cluster Parallel Booster Module
-gt.blockmachines.gtsr.cluster.booster.speed.name=Processing Cluster Speed Booster Module
-gt.blockmachines.gtsr.cluster.booster.primary.name=Processing Cluster Primary Output Booster Module
-gt.blockmachines.gtsr.cluster.booster.secondary.name=Processing Cluster Secondary Output Booster Module
-gt.blockmachines.gtsr.cluster.booster.steam_saver.name=Processing Cluster Efficiency Booster Module
-gt.blockmachines.gtsr.cluster.unit.logistics.name=Processing Cluster Logistics Module
+gt.blockmachines.gtsr.cluster.controller.name=[OLD] Steam-Powered Mineral Processing Logistics Engineering Cluster
+gt.blockmachines.gtsr.cluster.unit.crusher.name=[OLD] Processing Cluster Crusher Module
+gt.blockmachines.gtsr.cluster.unit.ore_washer.name=[OLD] Processing Cluster Ore Washing Module
+gt.blockmachines.gtsr.cluster.unit.centrifuge.name=[OLD] Processing Cluster Centrifuge Module
+gt.blockmachines.gtsr.cluster.unit.thermal_centrifuge.name=[OLD] Processing Cluster Thermal Centrifuge Module
+gt.blockmachines.gtsr.cluster.unit.sifter.name=[OLD] Processing Cluster Sifting Module
+gt.blockmachines.gtsr.cluster.unit.magnetic_separator.name=[OLD] Processing Cluster Magnetic Separation Module
+gt.blockmachines.gtsr.cluster.unit.furnace.name=[OLD] Processing Cluster Smelting Module
+gt.blockmachines.gtsr.cluster.booster.parallel.name=[OLD] Processing Cluster Parallel Booster Module
+gt.blockmachines.gtsr.cluster.booster.speed.name=[OLD] Processing Cluster Speed Booster Module
+gt.blockmachines.gtsr.cluster.booster.primary.name=[OLD] Processing Cluster Primary Output Booster Module
+gt.blockmachines.gtsr.cluster.booster.secondary.name=[OLD] Processing Cluster Secondary Output Booster Module
+gt.blockmachines.gtsr.cluster.booster.steam_saver.name=[OLD] Processing Cluster Efficiency Booster Module
+gt.blockmachines.gtsr.cluster.unit.logistics.name=[OLD] Processing Cluster Logistics Module
 
 # Cluster structure validation (referenced by batch 1)
 gtsr.gui.cluster.structure.extension_break=Extension segment broken: segment %s
@@ -5536,3 +5536,9 @@ gtsr.ore_center.graph.assembly.usage.in_batch=Type used in the current batch
 gtsr.ore_center.graph.assembly.usage.boost_idle=This boost is inactive this batch
 gtsr.ore_center.graph.assembly.usage.references=Graph references: %s enabled / %s total
 gtsr.ore_center.graph.assembly.usage.capacity=Graphs configured: %s / %s
+
+gtsr.ore_center.graph.queue.on=Queue: ON
+gtsr.ore_center.graph.queue.off=Queue: OFF
+gtsr.ore_center.graph.queue.hint=Wait for mixed ore to fill current parallel; waiting is free
+gtsr.ore_center.graph.queue.parallel=Current parallel: %s items
+gtsr.ore_center.graph.queue.detecting=Waiting to assess parallel
