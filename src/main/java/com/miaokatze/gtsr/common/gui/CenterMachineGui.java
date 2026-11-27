@@ -12,12 +12,9 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.GenericSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
-import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 
-import gregtech.api.modularui2.GTGuiTextures;
 import gregtech.common.gui.modularui.multiblock.base.MTEMultiBlockBaseGui;
 
 public final class CenterMachineGui extends MTEMultiBlockBaseGui<MTEMineralIntegrationCenter> {
@@ -52,16 +49,7 @@ public final class CenterMachineGui extends MTEMultiBlockBaseGui<MTEMineralInteg
             var line = IKey.dynamic(() -> CenterOperationText.nativeLine(status.getValue(), row)).asWidget()
                 .name("center_gt_operation_" + row);
             if (i == 0) line.tooltipBuilder(t -> t.add(StatCollector.translateToLocal("gtsr.ore_center.tooltip.terminal")));
-            if (i == 1) {
-                var bar = new ProgressWidget().texture(GTGuiTextures.PROGRESSBAR_ARROW_STANDARD, 20)
-                    .progress(() -> {
-                        NBTTagCompound data = status.getValue();
-                        int duration = data.getInteger("Duration");
-                        return duration > 0 ? (double) data.getInteger("Elapsed") / duration : 0;
-                    }).name("center_gt_batch_progress").right(2).top(0).size(20, 11);
-                list.child(new ParentWidget<>().fullWidth().height(12).marginBottom(1)
-                    .child(line.left(0).right(24).top(0).height(11)).child(bar));
-            } else list.child(line.marginBottom(2).fullWidth());
+            list.child(line.marginBottom(2).fullWidth());
         }
         return list;
     }

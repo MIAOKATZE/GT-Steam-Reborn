@@ -41,8 +41,8 @@ final class CenterOperationText {
             case 0 -> nativeGui ? yellow + local("native.structure", structureState(state, sectors),
                 EnumChatFormatting.GOLD + tierName, white + sectors)
                 : local("overview", tierName, sectors, state.getInteger("Installed"), state.getInteger("Graphs"));
-            case 1 -> nativeGui ? yellow + local("native.progress", white + state.getInteger("Elapsed"), duration,
-                state.getInteger("Installed"), state.getInteger("Graphs"))
+            case 1 -> nativeGui ? yellow + local("native.modules", white + state.getInteger("Installed"),
+                state.getInteger("Graphs"))
                 : local("progress", state.getInteger("Elapsed"), duration, format(state.getLong("Power")));
             case 2 -> yellow + local("steam", white + rate(steamUnits, duration), format(steamUnits),
                 (nativeGui ? EnumChatFormatting.AQUA.toString() : "") + fluidName(state.getString("SteamFluid")));

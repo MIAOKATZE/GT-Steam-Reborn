@@ -214,7 +214,9 @@ public final class MachineDebugRegistry {
         }
 
         public Option[] options(IMetaTileEntity machine) {
-            return new Option[] { toggle("items", "no_items"), toggle("fluids", "no_fluids"),
+            Option items = machine instanceof MTEMineralIntegrationCenter
+                ? new Option("items", new String[] { "gtsr.wand.debug.normal" }) : toggle("items", "no_items");
+            return new Option[] { items, toggle("fluids", "no_fluids"),
                 toggle("energy", "ignore_energy"), toggle("quick_build", "quick_build_ready") };
         }
 
@@ -224,7 +226,7 @@ public final class MachineDebugRegistry {
             boolean energy = !reverse && values[2] == 1;
             boolean quick = !reverse && values[3] == 1;
             if (machine instanceof MTEMineralIntegrationCenter center) {
-                String result = center.applyWandDebug(player, items, fluids, energy, quick);
+                String result = center.applyWandDebug(player, fluids, energy, quick);
                 feedback(player, reverse && "gtsr.wand.debug.applied".equals(result) ? "gtsr.wand.debug.reset" : result);
                 return;
             }

@@ -187,6 +187,10 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             require(preview.products(0).stream().anyMatch(p -> p.port == 0 && p.canEnter(CenterProcess.WASHER)),
                 "The live washer map did not accept the crusher's principal copper product");
             verifyPresetTrace();
+            NBTTagCompound legacy = new NBTTagCompound();
+            center.saveNBTData(legacy);
+            legacy.setBoolean("CenterDebugItems", true);
+            center.loadNBTData(legacy);
             for (int i = 0; i < output.getSizeInventory(); i++) output.setInventorySlotContents(i, new ItemStack(Blocks.cobblestone, 64));
             input.setInventorySlotContents(0, ore.copy());
             initialSequence = center.batchSequence();
@@ -197,6 +201,14 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             require(quantity(output, product) == 0, "Outputs appeared before recipe completion");
             checkpoint = new NBTTagCompound();
             center.saveNBTData(checkpoint);
+            require(center.getProgresstime() == center.batchProgress()
+                && center.maxProgresstime() == checkpoint.getInteger("CenterDuration")
+                && center.mOutputItems != null
+                && Arrays.stream(center.mOutputItems).filter(product::isItemEqual).mapToInt(s -> s.stackSize)
+                    .sum() == expected,
+                "GT's recipe panel did not receive the paid batch progress and rolled item quantity");
+            require(!checkpoint.hasKey("mOutputItemsLength") && !checkpoint.hasKey("mMaxProgresstime"),
+                "GT UI mirrors became a second saved batch");
             FluidStack water = cooling.getFluid();
             coolingAtCheckpoint = water == null ? null : water.copy();
             require(checkpoint.getInteger("CenterSteamKind") == SteamGrade.DENSE_STEAM.ordinal(),
@@ -219,8 +231,12 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             require(center.batchSequence() == initialSequence + 1, "NBT restore changed batch identity");
             require(center.batchProgress() == checkpoint.getInteger("CenterElapsed"), "NBT restore lost saved progress");
             steam.setFillableStack(withheld);
+            pauseAt = elapsedTicks;
             phase = 5;
-        } else if (phase == 5 && center.batchProgress() >= checkpoint.getInteger("CenterDuration")) {
+        } else if (phase == 5) {
+            if (elapsedTicks >= pauseAt + 5) require(center.operationStatus().getInteger("Sectors") == 1,
+                "Saved formation did not resume promptly with its footprint loaded");
+            if (center.batchProgress() < checkpoint.getInteger("CenterDuration")) return null;
             require(quantity(output, product) == 0, "Full output bus accepted more products");
             NBTTagCompound after = new NBTTagCompound();
             center.saveNBTData(after);
@@ -229,10 +245,20 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
             int density = SteamGrade.DENSE_STEAM.getDivisor();
             require(paid == (checkpoint.getLong("CenterSteam") + density - 1) / density, "Steam paid is not the frozen batch total");
             expectedWater = paid * density / 160;
+            ItemStack nearlyFull = product.copy();
+            nearlyFull.stackSize = nearlyFull.getMaxStackSize() - expected + 1;
+            output.setInventorySlotContents(0, nearlyFull);
+            pauseAt = elapsedTicks;
+            phase = 14;
+        } else if (phase == 14 && elapsedTicks >= pauseAt + 12) {
+            require(quantity(output, product) == product.getMaxStackSize() - expected + 1,
+                "Output transaction ejected a partial batch into the available space");
+            require(center.batchSequence() == initialSequence + 1, "An unpaid or undelivered batch started again");
             for (int i = 0; i < output.getSizeInventory(); i++) output.setInventorySlotContents(i, null);
             phase = 6;
         } else if (phase == 6) {
             outputCount = quantity(output, product);
+            require(outputCount == 0 || outputCount == expected, "The output bus received part of a batch");
             FluidStack water = cooling.getFluid();
             int waterAmount = water == null ? 0 : water.amount;
             require(waterAmount <= expectedWater, "Condensate was duplicated: " + waterAmount + "/" + expectedWater);
@@ -250,6 +276,10 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                 report.put("ore", ORE_COUNT);
                 report.put("nativeOutput", expected);
                 report.put("actualOutput", outputCount);
+                report.put("legacyItemWaiverIgnored", true);
+                report.put("atomicOutputAfterPartialSpace", true);
+                report.put("savedFormationResumed", true);
+                report.put("nativeGtBatchDisplay", true);
                 report.put("steamAtCheckpoint", steamAtPause);
                 report.put("condensedDistilledWater", waterAmount);
                 report.put("footprintSamples", positions.size());
