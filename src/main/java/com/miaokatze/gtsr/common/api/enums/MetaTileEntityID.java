@@ -52,6 +52,7 @@ public enum MetaTileEntityID {
     GEAR_STEAM_COMPRESSOR(155),
     REINFORCED_BRICK_BLAST_FURNACE(156),
     HEAVY_STEAM_TURBINE(157),
+    ORE_INTEGRATION_CENTER(158),
 
     // --- 多方块机器: 临界段 (相对 200-249) ---
     CRITICAL_SINGULARITY_COMPRESSOR(200),
@@ -95,7 +96,6 @@ public enum MetaTileEntityID {
     CRITICAL_INPUT_BUS_ME(269),
     CRITICAL_OUTPUT_HATCH_ME(270),
     CRITICAL_OUTPUT_BUS_ME(271),
-    ORE_INTEGRATION_CENTER(272),
 
     // --- 集群段 (相对 351-364；蒸汽动力矿物处理物流工程集群：总控1+工作7+增幅5+物流1) ---
     // 全新 ID 段，无旧存档机器。
