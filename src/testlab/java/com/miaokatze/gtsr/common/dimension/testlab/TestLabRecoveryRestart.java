@@ -28,6 +28,7 @@ import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.ForgeDirection;
+import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -77,6 +78,7 @@ public final class TestLabRecoveryRestart implements TestLabTask {
     private static final int DEFERRED_TICKS = 60;
     private boolean deferredReleased;
     private boolean loadBoundaryOnly;
+    private boolean resumeProbeRegistered, unexpectedLoadLogged;
     private File file;
     private int originX, originZ, loadCursor, phase, since, frozenTicks;
     private boolean previousRecovering, prepared, cleaning;
@@ -211,6 +213,10 @@ public final class TestLabRecoveryRestart implements TestLabTask {
                     "Delayed structure chunk is already held by an external ticket; do not disturb its owner");
                 requireDeferredUnloaded();
                 evidence.put("recoveryProofMode", "DEFERRED_NATIVE_CHUNK");
+                // Register before acquiring even the controller chunk: a provider or another native
+                // tile may load our still-withheld body chunk during that first acquisition/tick.
+                MinecraftForge.EVENT_BUS.register(this);
+                resumeProbeRegistered = true;
             }
             retain(pos.getInteger("x") >> 4, pos.getInteger("z") >> 4);
             if (!loadBoundaryOnly) requireDeferredUnloaded();
@@ -295,6 +301,7 @@ public final class TestLabRecoveryRestart implements TestLabTask {
                 return null;
             }
             // Bring back actual saved blocks through the native provider. This does not write a production field.
+            deferredReleased = true;
             retain(deferredChunk.chunkXPos, deferredChunk.chunkZPos);
             readSavedPorts(true);
             NBTTagCompound witness = journal.getCompoundTag("deferredBlock");
@@ -307,7 +314,6 @@ public final class TestLabRecoveryRestart implements TestLabTask {
             evidence.put("realStructureChunkWithheldTicks", DEFERRED_TICKS);
             evidence.put("delayedStructureBlock", witness.toString());
             evidence.put("externalTicketDidNotPreloadDelayedChunk", true);
-            deferredReleased = true;
         }
         if (loadCursor < 169) {
             for (int n = 0; n < 8 && loadCursor < 169; n++, loadCursor++)
@@ -626,6 +632,36 @@ public final class TestLabRecoveryRestart implements TestLabTask {
             "Delayed structure chunk was loaded early by another actor/provider; no frozen-state claim is possible");
     }
 
+    /** Read-only one-shot cause tracing for this test's exact withheld chunk; never throws into world loading. */
+    @SubscribeEvent
+    public void deferredChunkLoaded(ChunkEvent.Load event) {
+        if (!resume || loadBoundaryOnly
+            || deferredReleased
+            || unexpectedLoadLogged
+            || deferredChunk == null
+            || event.world != world
+            || event.getChunk().xPosition != deferredChunk.chunkXPos
+            || event.getChunk().zPosition != deferredChunk.chunkZPos) return;
+        unexpectedLoadLogged = true;
+        StringBuilder trace = new StringBuilder("[GTSR-RECOVERY-CHUNK-LOAD] case=").append(key)
+            .append(" target=")
+            .append(deferredChunk.chunkXPos)
+            .append(',')
+            .append(deferredChunk.chunkZPos)
+            .append(" phase=")
+            .append(phase)
+            .append(" gridLoaded=")
+            .append(loadCursor)
+            .append(" nativeStartup=")
+            .append(machine == null ? "not-bound" : machine.getmStartUpCheck());
+        StackTraceElement[] stack = Thread.currentThread()
+            .getStackTrace();
+        for (int i = 0; i < Math.min(60, stack.length); i++) trace.append('\n')
+            .append("  at ")
+            .append(stack[i]);
+        GTSteamReborn.LOG.warn(trace.toString());
+    }
+
     private void readSavedPorts(boolean includeDeferred) {
         NBTTagList savedPorts = journal.getTagList("ports", 10);
         for (int i = 0; i < savedPorts.tagCount(); i++) {
@@ -894,6 +930,10 @@ public final class TestLabRecoveryRestart implements TestLabTask {
         // Keep the prepared live tiles pinned through the final save. Forge discards these explicitly
         // transient external fixture tickets at JVM shutdown/load; the driver requires complete process exit.
         if (prepared) return;
+        if (resumeProbeRegistered) {
+            MinecraftForge.EVENT_BUS.unregister(this);
+            resumeProbeRegistered = false;
+        }
         if (fixture != null) fixture.stop(world);
         for (ForgeChunkManager.Ticket ticket : tickets) TestLabRuntime.releaseOwnedTicket(ticket);
         tickets.clear();
