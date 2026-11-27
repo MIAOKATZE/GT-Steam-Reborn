@@ -68,9 +68,10 @@ class RestartDriverTests(unittest.TestCase):
             self.assertEqual(driver.legacy_tickets(path, header), 0)
 
     def test_center_paid_save_gate_rejects_already_delivered_batch(self):
-        journal = dict(stage='SAVED', case='center', allowed=1, expected=16, sequence=7,
+        journal = dict(stage='SAVED', case='center', allowed=1, expected=16, sequence=7, product=dict(id=44, Damage=2),
                        state=dict(CenterDuration=256, CenterElapsed=40, CenterSequence=7,
-                                  CenterItemOutputs=[dict(CenterQuantity=16)]))
+                                  CenterItemOutputs=[dict(id=44, Damage=2, CenterQuantity=16),
+                                                     dict(id=44, Damage=3, CenterQuantity=3)]))
         with patch.object(driver, 'journal_header', return_value=journal):
             self.assertTrue(driver.verify_saved_checkpoint('unused', 'center')['paidCheckpoint'])
             journal['state']['CenterItemOutputs'] = []

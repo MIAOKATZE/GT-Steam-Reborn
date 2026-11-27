@@ -130,12 +130,17 @@ def verify_saved_checkpoint(path, case):
         duration, elapsed = state.get('CenterDuration', 0), state.get('CenterElapsed', 0)
         pending = state.get('CenterItemOutputs', [])
         expected = journal.get('expected', 0)
-        quantity = sum(item.get('CenterQuantity', item.get('Count', 0)) for item in pending)
+        product = journal.get('product', {})
+        if product.get('id') is None:
+            raise ValueError('Saved center checkpoint has no principal product identity')
+        quantity = sum(item.get('CenterQuantity', item.get('Count', 0)) for item in pending
+                       if item.get('id') == product['id'] and item.get('Damage', 0) == product.get('Damage', 0))
         if duration <= 0 or not 0 < elapsed <= duration or expected <= 0 or quantity != expected:
             raise ValueError('Final center save has no exact outstanding paid batch; completed/delivered state cannot PASS')
         if state.get('CenterSequence') != journal.get('sequence'):
             raise ValueError('Final center save selected a different paid sequence')
         proof.update(paidCheckpoint=True, progress=elapsed, duration=duration, outstandingPaidItems=quantity,
+                     principalProduct=product, rolledPendingItemKinds=len(pending),
                      paidStage='AWAITING_DELIVERY' if elapsed == duration else 'PROCESSING')
     elif case == 'critical_turbine':
         paid = state.get('criticalPaidJournal', {}).get('criticalEnergyRuntime', {})
