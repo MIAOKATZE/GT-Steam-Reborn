@@ -1374,20 +1374,20 @@ gtsr.tooltip.redstone_hatch.output=按所选词条值输出红石信号
 gtsr.tooltip.redstone_hatch.gui=右键打开 GUI 设置阈值与更新频率
 gt.blockmachines.gtsr.redstone_hatch.name=红石仓
 
-gt.blockmachines.gtsr.cluster.controller.name=蒸汽动力矿物处理物流工程集群
-gt.blockmachines.gtsr.cluster.unit.crusher.name=处理集群粉碎加工模块
-gt.blockmachines.gtsr.cluster.unit.ore_washer.name=处理集群洗矿加工模块
-gt.blockmachines.gtsr.cluster.unit.centrifuge.name=处理集群离心加工模块
-gt.blockmachines.gtsr.cluster.unit.thermal_centrifuge.name=处理集群热力离心加工模块
-gt.blockmachines.gtsr.cluster.unit.sifter.name=处理集群筛选加工模块
-gt.blockmachines.gtsr.cluster.unit.magnetic_separator.name=处理集群磁选加工模块
-gt.blockmachines.gtsr.cluster.unit.furnace.name=处理集群熔炼加工模块
-gt.blockmachines.gtsr.cluster.booster.parallel.name=处理集群并行增幅模块
-gt.blockmachines.gtsr.cluster.booster.speed.name=处理集群速度增幅模块
-gt.blockmachines.gtsr.cluster.booster.primary.name=处理集群主产物增幅模块
-gt.blockmachines.gtsr.cluster.booster.secondary.name=处理集群副产物增幅模块
-gt.blockmachines.gtsr.cluster.booster.steam_saver.name=处理集群效率增幅模块
-gt.blockmachines.gtsr.cluster.unit.logistics.name=处理集群物流模块
+gt.blockmachines.gtsr.cluster.controller.name=[OLD] 蒸汽动力矿物处理物流工程集群
+gt.blockmachines.gtsr.cluster.unit.crusher.name=[OLD] 处理集群粉碎加工模块
+gt.blockmachines.gtsr.cluster.unit.ore_washer.name=[OLD] 处理集群洗矿加工模块
+gt.blockmachines.gtsr.cluster.unit.centrifuge.name=[OLD] 处理集群离心加工模块
+gt.blockmachines.gtsr.cluster.unit.thermal_centrifuge.name=[OLD] 处理集群热力离心加工模块
+gt.blockmachines.gtsr.cluster.unit.sifter.name=[OLD] 处理集群筛选加工模块
+gt.blockmachines.gtsr.cluster.unit.magnetic_separator.name=[OLD] 处理集群磁选加工模块
+gt.blockmachines.gtsr.cluster.unit.furnace.name=[OLD] 处理集群熔炼加工模块
+gt.blockmachines.gtsr.cluster.booster.parallel.name=[OLD] 处理集群并行增幅模块
+gt.blockmachines.gtsr.cluster.booster.speed.name=[OLD] 处理集群速度增幅模块
+gt.blockmachines.gtsr.cluster.booster.primary.name=[OLD] 处理集群主产物增幅模块
+gt.blockmachines.gtsr.cluster.booster.secondary.name=[OLD] 处理集群副产物增幅模块
+gt.blockmachines.gtsr.cluster.booster.steam_saver.name=[OLD] 处理集群效率增幅模块
+gt.blockmachines.gtsr.cluster.unit.logistics.name=[OLD] 处理集群物流模块
 
 # 集群结构校验（批次1 引用）
 gtsr.gui.cluster.structure.extension_break=延伸段断裂：第 %s 段
@@ -5532,3 +5532,10 @@ gtsr.ore_center.graph.assembly.usage.in_batch=此类型已纳入当前批次
 gtsr.ore_center.graph.assembly.usage.boost_idle=当前批次未启用此增幅
 gtsr.ore_center.graph.assembly.usage.references=引用图谱 %s 启用 / %s 配置
 gtsr.ore_center.graph.assembly.usage.capacity=已配置图谱 %s / %s
+
+gtsr.ore_center.graph.queue.on=队列模式：开
+gtsr.ore_center.graph.queue.off=队列模式：关
+gtsr.ore_center.graph.queue.minimum=最低原矿量
+gtsr.ore_center.graph.queue.apply=保存
+gtsr.ore_center.graph.queue.hint=混矿合计达标后开批，等待不扣费
+gtsr.ore_center.graph.queue.invalid=最低原矿量需为 1 到当前模式单批上限之间的整数。

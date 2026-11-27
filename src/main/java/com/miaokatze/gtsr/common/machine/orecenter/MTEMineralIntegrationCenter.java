@@ -134,6 +134,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private CenterPlanner.Session planning;
     private int planningRootLimit = CenterPlanner.MAX_ROOTS;
     private boolean plannedBatchMode;
+    private boolean queueMode;
+    private int queueMinimum = 4096;
     private CenterStructure.DebugBuild debugBuild;
     private boolean debugIgnoreFluids, debugIgnoreEnergy;
     private int selectedSlot, totalTicks, elapsed, steamKind, plannedTier = -1, plannedMask;
@@ -318,12 +320,25 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     public void setBatchMode(boolean enabled) {
         if (enabled == isBatchModeEnabled()) return;
         super.setBatchMode(enabled);
+        queueMinimum = Math.min(queueMinimum, maxPlanningRoots());
         IGregTechTileEntity te = getBaseMetaTileEntity();
         if (te != null) te.markDirty();
     }
 
     private int maxPlanningRoots() {
         return isBatchModeEnabled() ? CenterPlanner.MAX_BATCH_ROOTS : CenterPlanner.MAX_ROOTS;
+    }
+
+    public String configureQueue(EntityPlayer player, boolean enabled, int minimum) {
+        if (!canEditGraphs(player)) return "status.read_only";
+        if (minimum < 1 || minimum > maxPlanningRoots()) return "queue.invalid";
+        queueMode = enabled;
+        queueMinimum = minimum;
+        planning = null;
+        planningRootLimit = maxPlanningRoots();
+        nextProbe = 0;
+        getBaseMetaTileEntity().markDirty();
+        return "status.saved";
     }
 
     @Override
@@ -468,6 +483,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     public NBTTagCompound operationStatus() {
         IGregTechTileEntity te = getBaseMetaTileEntity();
         NBTTagCompound tag = new NBTTagCompound();
+        tag.setBoolean("QueueMode", queueMode);
+        tag.setInteger("QueueMinimum", queueMinimum);
         int sectors = structure.sectorMask(te);
         tag.setInteger("Tier", structure.tier(te));
         tag.setInteger("Sectors", sectors);
@@ -828,6 +845,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
                 debugIgnoreEnergy,
                 planningRootLimit,
                 plannedBatchMode ? getMaxBatchSize() : 1);
+            planning.requireRoots(queueMode ? queueMinimum : 1);
         }
         long slice = 350_000;
         if (allowCommit) slice = 450_000;
@@ -839,9 +857,19 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         int retryLimit = planning.smallerRootLimit();
         planning = null;
         if (retryLimit > 0) {
+            if (queueMode && retryLimit < queueMinimum) {
+                if (planningRootLimit > queueMinimum) {
+                    planningRootLimit = queueMinimum;
+                    return;
+                }
+                planningRootLimit = maxPlanningRoots();
+                nextProbe = tick + 20;
+                return;
+            }
             planningRootLimit = retryLimit;
             return;
         }
+        if (queueMode && batch == null) planningRootLimit = maxPlanningRoots();
         nextProbe = tick + 20;
         if (batch != null && commit(te, batch, tier)) nextProbe = tick + 1;
     }
@@ -1252,6 +1280,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setLong("CenterGraphRevision", graphRevision);
         tag.setLong("CenterNextGraphId", nextGraphId);
         tag.setBoolean("CenterGraphConfigured", configuredGraphs);
+        tag.setBoolean("CenterQueueMode", queueMode);
+        tag.setInteger("CenterQueueMinimum", queueMinimum);
         tag.setTag("CenterLedger", ledger.save());
         NBTTagList configs = new NBTTagList(), items = new NBTTagList(), fluids = new NBTTagList();
         for (CenterGraph graph : graphs) configs.appendTag(graph.save());
@@ -1272,6 +1302,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         super.loadNBTData(tag);
         debugIgnoreFluids = tag.getBoolean("CenterDebugFluids");
         debugIgnoreEnergy = tag.getBoolean("CenterDebugEnergy");
+        queueMode = tag.getBoolean("CenterQueueMode");
+        queueMinimum = tag.hasKey("CenterQueueMinimum")
+            ? Math.max(1, Math.min(maxPlanningRoots(), tag.getInteger("CenterQueueMinimum")))
+            : 4096;
         int[] types = tag.getIntArray("CenterModules"), levels = tag.getIntArray("CenterGrades");
         for (int i = 0; i < types.length && i < levels.length && i < grades.length; i++) {
             if (types[i] >= 0 && types[i] < MODULES.length && levels[i] > 0 && levels[i] <= 3) {

@@ -67,7 +67,8 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
         ARRANGE,
         UNDO,
         REDO,
-        MOVE_BUS
+        MOVE_BUS,
+        QUEUE
     }
 
     private static final Action[] ACTIONS = Action.values();
@@ -347,13 +348,15 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
                     || player.openContainer != container
                     || !container.canInteractWith(player)) return;
                 Action action = ACTIONS[opcode];
-                if (action == Action.ASSEMBLY || action == Action.RESET_LEDGER) {
+                if (action == Action.ASSEMBLY || action == Action.RESET_LEDGER || action == Action.QUEUE) {
                     String result = "status.read_only";
                     if (machine.canEditGraphs(player)) {
                         if (action == Action.ASSEMBLY && text.isEmpty())
                             result = machine.applyModuleEdit(player, a, b >> 2, b & 3);
                         else if (action == Action.RESET_LEDGER && machine.resetTerminalLedger(player))
                             result = "status.saved";
+                        else if (action == Action.QUEUE && text.isEmpty() && (a == 0 || a == 1))
+                            result = machine.configureQueue(player, a == 1, b);
                     }
                     sendTerminal(false);
                     detectAndSendChanges(false);

@@ -219,6 +219,7 @@ public final class CenterPlanner {
         private final boolean ignoreFluids, ignoreEnergy;
         private final Random random;
         private int graphIndex, nodeIndex, lotIndex, inputIndex, workLimit, workPerRound, peakGrade = 1;
+        private int minimumRoots = 1;
         private int executions, rootPaid, proposedRoots;
         private double workTicks, critical, workSteam, recipeEU, steamMultiplier = 1, euMultiplier = 1;
         private boolean finished, failed, workLimitReached, boostConfigured;
@@ -352,6 +353,10 @@ public final class CenterPlanner {
             return result;
         }
 
+        void requireRoots(int minimum) {
+            minimumRoots = Math.max(1, minimum);
+        }
+
         int smallerRootLimit() {
             return workLimitReached && proposedRoots > 1 ? proposedRoots / 2 : 0;
         }
@@ -374,7 +379,7 @@ public final class CenterPlanner {
                 used++;
             }
             if (!boostConfigured) {
-                if (proposedRoots == 0) {
+                if (proposedRoots < minimumRoots) {
                     finished = true;
                     return true;
                 }
@@ -410,7 +415,7 @@ public final class CenterPlanner {
                 }
             }
             finished = true;
-            if (!failed && rootPaid > 0) result = conclude();
+            if (!failed && rootPaid >= minimumRoots) result = conclude();
             return true;
         }
 
