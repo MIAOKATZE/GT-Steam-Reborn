@@ -364,7 +364,7 @@ public final class OreIntegrationCenterRecipes {
             3,
             7680,
             2000,
-            item(GregtechItemList.Industrial_Electromagnetic_Separator, 2),
+            item(ItemList.Machine_Multi_IndustrialElectromagneticSeparator, 2),
             item(ItemList.Casing_RobustTungstenSteel, 32),
             ore(stick, NeodymiumMagnetic, 16),
             item(ItemList.Sensor_IV, 16),

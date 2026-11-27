@@ -133,6 +133,13 @@ val compileWeaponModels = tasks.register<JavaExec>("compileWeaponModels") {
     args(file("src/main/resources").absolutePath, compiledWeaponModels.get().asFile.absolutePath)
 }
 
+// The live construction diagram draws its sectors and pads directly; retired baked maps stay out
+// of every archive, including stale ProcessResources output from an incremental build.
+val retiredCenterPreviewResources = "assets/gtsr/textures/gui/orecenter/map/**"
+tasks.withType<Jar>().configureEach {
+    exclude(retiredCenterPreviewResources)
+}
+
 tasks.named<ProcessResources>("processResources") {
     dependsOn(compileRigMeshes, compileCriticalModels, compileRemasterJson, compileWeaponModels)
     exclude("assets/gtsr/liminal/*/models/*.obj")
@@ -142,6 +149,7 @@ tasks.named<ProcessResources>("processResources") {
     exclude(retiredModelPaths)
     exclude(inactiveSoundPaths)
     exclude("assets/gtsr/sounds/inactive-sounds.txt")
+    exclude(retiredCenterPreviewResources)
     from(compiledRigMeshes)
     from(compiledCriticalModels)
     from(compiledRemasterJson)
