@@ -83,6 +83,7 @@ public final class TestLabRecoveryRestart implements TestLabTask {
     private int originX, originZ, loadCursor, phase, since, frozenTicks;
     private boolean previousRecovering, prepared, cleaning;
     private long resumedEnergy;
+    private long loadedNativeTimer;
     private long preparedSinkFluid, preparedSinkEu;
 
     private TestLabRecoveryRestart(String key, boolean resume) {
@@ -240,8 +241,14 @@ public final class TestLabRecoveryRestart implements TestLabTask {
                 journal.getCompoundTag("state")
                     .toString());
             previous = selectedState(machine);
+            loadedNativeTimer = controller.getTimer();
             previousRecovering = GtsrStructureRecovery.isRecovering(machine);
             require(previousRecovering, "No native structure recovery on newly read controller");
+            if (key.startsWith("critical")) {
+                evidence.put("criticalLoadedNativeMirror", nativeMirror(previous).toString());
+                evidence.put("criticalLoadedActive", controller.isActive());
+                evidence.put("criticalLoadedNativeTimer", loadedNativeTimer);
+            }
             if (loadBoundaryOnly) {
                 evidence.put("nativeLoadBoundaryVerified", true);
                 evidence.put(
@@ -615,7 +622,8 @@ public final class TestLabRecoveryRestart implements TestLabTask {
         boolean recovering = GtsrStructureRecovery.isRecovering(machine);
         NBTTagCompound current = selectedState(machine);
         if (recovering && previousRecovering) {
-            require(
+            if (key.startsWith("critical")) observeCriticalFreeze(current);
+            else require(
                 previous.equals(current),
                 "Progress/heat/efficiency/paid outputs changed inside native recovery window");
             require(
@@ -625,6 +633,57 @@ public final class TestLabRecoveryRestart implements TestLabTask {
         }
         previous = current;
         previousRecovering = recovering;
+    }
+
+    /** Critical paid state is authoritative; paused GT progress fields are deliberately inactive display mirrors. */
+    private void observeCriticalFreeze(NBTTagCompound current) {
+        NBTTagCompound saved = journal.getCompoundTag("state");
+        NBTTagCompound savedPaid = (NBTTagCompound) saved.copy(), currentPaid = (NBTTagCompound) current.copy();
+        for (String key : Arrays.asList("mProgresstime", "mMaxProgresstime", "mEfficiency")) {
+            savedPaid.removeTag(key);
+            currentPaid.removeTag(key);
+        }
+        require(savedPaid.equals(currentPaid), "Critical authoritative paid journal changed during native recovery");
+        if (controller.getTimer() == loadedNativeTimer) {
+            // Task start and its first observation can share ServerTick.END before any native MTE tick.
+            require(saved.equals(current), "Critical display changed before its first natural native tick");
+            require(
+                controller.isActive() == journal.getCompoundTag("actualSavedTile")
+                    .getBoolean("mActive"),
+                "Critical active display changed before its first natural native tick");
+        } else {
+            require(
+                current.getInteger("mProgresstime") == 0 && current.getInteger("mMaxProgresstime") == 0
+                    && current.getInteger("mEfficiency") == 0
+                    && !controller.isActive(),
+                "Critical paused native display must be inactive with zero progress/duration/efficiency mirrors");
+            evidence.put("criticalPausedNativeMirror", nativeMirror(current).toString());
+            evidence.put("criticalPausedActive", false);
+            evidence.put("criticalPausedNativeTimer", controller.getTimer());
+        }
+        NBTTagList savedPorts = journal.getTagList("ports", 10);
+        require(savedPorts.tagCount() == 2 && ports.size() == 2, "Critical two saved ports are not both loaded");
+        for (int i = 0; i < savedPorts.tagCount(); i++) {
+            NBTTagCompound pos = savedPorts.getCompoundTagAt(i);
+            require(
+                world.theChunkProviderServer.chunkExists(pos.getInteger("x") >> 4, pos.getInteger("z") >> 4),
+                "Critical saved port chunk disappeared during freeze");
+            IGregTechTileEntity port = tile(pos);
+            require(port.getMetaTileID() == pos.getInteger("metaId"), "Critical frozen port identity changed");
+            require(
+                stock(port).equals(pos.getCompoundTag("stock")),
+                "Critical frozen port inventory/fluid changed before native structure recovery");
+        }
+        evidence.put("criticalPaidJournalExactFrozenTicks", frozenTicks + 1);
+        evidence.put("criticalPortStocksExactFrozenTicks", frozenTicks + 1);
+        evidence.put("criticalNativeMirrorBoundary", "SAVED_EQUALS_NEW_TILE; NATURAL_TICK_PAUSES_DISPLAY_ONLY");
+    }
+
+    private static NBTTagCompound nativeMirror(NBTTagCompound state) {
+        NBTTagCompound mirror = new NBTTagCompound();
+        for (String key : Arrays.asList("mProgresstime", "mMaxProgresstime", "mEfficiency"))
+            mirror.setInteger(key, state.getInteger(key));
+        return mirror;
     }
 
     private void requireDeferredUnloaded() {
@@ -802,6 +861,7 @@ public final class TestLabRecoveryRestart implements TestLabTask {
                 "cycleDuration",
                 "criticalEnergyRuntime",
                 "criticalBatchRecipe",
+                "energy",
                 "batchEu",
                 "batchGenerated",
                 "pendingGenerated",

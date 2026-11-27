@@ -20,6 +20,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
 KEYS = ('center', 'heavy', 'mega', 'critical_turbine')
+MAX_JOURNAL_BYTES = 64 * 1024 * 1024
 
 
 def read(path):
@@ -33,16 +34,21 @@ def save(path, value):
     temp.replace(path)
 
 
-def journal_header(path, full=False):
-    """Read only top-level scalars from bounded real compressed NBT, skipping the paid payload.
+def journal_header(path, full=False, projected=False):
+    """Read bounded real raw/gzip NBT, projecting top-level scalars unless full is requested.
 
     The implementation deliberately needs no Minecraft/NBT package on the host. It rejects
     unknown tags, negative lengths, excessive nesting and truncated/corrupt journals.
     """
-    with gzip.open(path, 'rb') as stream:
-        raw = stream.read(16 * 1024 * 1024 + 1)
-    if len(raw) > 16 * 1024 * 1024:
-        raise ValueError('Recovery journal exceeds 16 MiB')
+    with Path(path).open('rb') as source:
+        magic = source.read(2)
+    opener = gzip.open if magic == b'\x1f\x8b' else open if magic[:1] == b'\x0a' else None
+    if opener is None:
+        raise ValueError('Expected native raw or gzip NBT framing')
+    with opener(path, 'rb') as stream:
+        raw = stream.read(MAX_JOURNAL_BYTES + 1)
+    if len(raw) > MAX_JOURNAL_BYTES:
+        raise ValueError('Recovery journal exceeds 64 MiB')
     stream = io.BytesIO(raw)
 
     def take(length):
@@ -59,7 +65,7 @@ def journal_header(path, full=False):
     def string():
         return take(number('H')).decode('utf-8', errors='strict')
 
-    def payload(tag, depth=0):
+    def payload(tag, depth=0, keep=True, path=''):
         if depth > 64:
             raise ValueError('NBT nesting exceeds bound')
         if tag in (1, 2, 3, 4, 5, 6):
@@ -70,7 +76,10 @@ def journal_header(path, full=False):
             length = number('i')
             if length < 0:
                 raise ValueError('Negative NBT array length')
-            take(length * {7: 1, 11: 4, 12: 8}[tag])
+            size = length * {7: 1, 11: 4, 12: 8}[tag]
+            if stream.tell() + size > len(raw):
+                raise ValueError('Truncated recovery NBT array')
+            stream.seek(size, 1)
             return None
         if tag == 9:
             child, length = number('B'), number('i')
@@ -78,19 +87,21 @@ def journal_header(path, full=False):
                 raise ValueError('Invalid NBT list')
             children = []
             for _ in range(length):
-                value = payload(child, depth + 1)
-                if full:
+                value = payload(child, depth + 1, keep, path)
+                if full and keep:
                     children.append(value)
-            return children if full else None
+            return children if full and keep else None
         if tag == 10:
             scalars = {}
             while True:
                 child = number('B')
                 if child == 0:
-                    return scalars if depth == 0 or full else None
+                    return scalars if depth == 0 or full and keep else None
                 name = string()
-                value = payload(child, depth + 1)
-                if full or depth == 0 and child in (1, 2, 3, 4, 5, 6, 8):
+                child_keep = keep and (not projected or path != 'actualSavedTile' or name == 'mActive')
+                child_path = (path + '.' + name if path else name) if child_keep else ''
+                value = payload(child, depth + 1, child_keep, child_path)
+                if full and keep and child_keep or depth == 0 and child in (1, 2, 3, 4, 5, 6, 8):
                     scalars[name] = value
         raise ValueError('Unknown NBT tag')
 
@@ -119,7 +130,9 @@ def legacy_tickets(path, header):
 
 
 def verify_saved_checkpoint(path, case):
-    journal = journal_header(path, full=True)
+    # The real construction schedule remains in the immutable raw journal/native world.
+    # Admission needs the complete paid state, saved port stocks and actual native active flag only.
+    journal = journal_header(path, full=True, projected=True)
     if journal.get('stage') != 'SAVED' or journal.get('case') != case or journal.get('allowed') != 1:
         raise ValueError('Final native save did not retain this enabled prepared machine')
     state = journal.get('state', {})
@@ -146,6 +159,9 @@ def verify_saved_checkpoint(path, case):
         paid = state.get('criticalPaidJournal', {}).get('criticalEnergyRuntime', {})
         if paid.get('funded') != 1 or not 0 < paid.get('progress', 0) <= 400:
             raise ValueError('Final critical save has no outstanding funded batch; completed state cannot PASS')
+        if (journal.get('actualSavedTile', {}).get('mActive') != 1 or state.get('mMaxProgresstime') != 400
+                or state.get('mProgresstime') != paid['progress']):
+            raise ValueError('Final critical save did not retain the actual active paid-cycle mirror')
         proof.update(paidCheckpoint=True, progress=paid['progress'], duration=400)
     else:
         efficiency = state.get('turbineEfficiency' if case == 'heavy' else 'mEfficiency', 0)
@@ -215,6 +231,15 @@ def verify_native(receipt, case, expected):
                 raise ValueError('No 60 naturally observed recovery ticks')
             if checks.get('realStructureChunkWithheldTicks', 0) < 60:
                 raise ValueError('No real required structure chunk was withheld for 60 natural ticks')
+        if case == 'recovery.resume.critical_turbine':
+            if min(checks.get('criticalPaidJournalExactFrozenTicks', 0),
+                   checks.get('criticalPortStocksExactFrozenTicks', 0)) < 60:
+                raise ValueError('Critical authority and both port stocks were not frozen for 60 ticks')
+            if (checks.get('criticalNativeMirrorBoundary') != 'SAVED_EQUALS_NEW_TILE; NATURAL_TICK_PAUSES_DISPLAY_ONLY'
+                    or checks.get('criticalPausedActive') is not False
+                    or not checks.get('criticalLoadedNativeMirror') or not checks.get('criticalPausedNativeMirror')
+                    or checks.get('criticalPausedNativeTimer', -1) <= checks.get('criticalLoadedNativeTimer', 0)):
+                raise ValueError('Critical natural paused-display boundary proof missing')
     verify_host_cleanup(receipt)
     return native, entry
 
