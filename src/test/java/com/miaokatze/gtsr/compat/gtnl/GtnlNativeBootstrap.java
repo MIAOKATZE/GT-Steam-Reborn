@@ -29,6 +29,9 @@ final class GtnlNativeBootstrap {
                         .toURL());
             }
             Launch.classLoader = new LaunchClassLoader(urls.toArray(new URL[0]));
+            String earlyTransformer = System.getProperty("gtsr.contract.earlyTransformer");
+            if (earlyTransformer != null && !earlyTransformer.trim()
+                .isEmpty()) Launch.classLoader.registerTransformer(earlyTransformer);
             Launch.blackboard = new HashMap<>();
             Launch.blackboard.put("fml.deobfuscatedEnvironment", true);
             Launch.minecraftHome = new File(".");

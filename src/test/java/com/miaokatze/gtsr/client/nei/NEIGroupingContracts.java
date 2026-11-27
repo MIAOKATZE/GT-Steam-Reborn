@@ -8,6 +8,7 @@ import static com.miaokatze.gtsr.common.api.enums.GTSRItemList.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,7 +21,19 @@ import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraft.launchwrapper.Launch;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.StatCollector;
+import net.minecraftforge.common.MinecraftForge;
+
+import org.apache.logging.log4j.LogManager;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 import com.miaokatze.gtsr.client.nei.GTSRNEIGroups.Group;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
@@ -36,21 +49,32 @@ import com.miaokatze.gtsr.register.CreativeTabManager;
 import com.miaokatze.gtsr.register.GTSRItemOrderCatalog;
 import com.miaokatze.miaokatzecore.api.items.ItemOrderCatalog;
 
+import codechicken.lib.config.ConfigTagParent;
 import codechicken.nei.CollapsibleItems;
+import codechicken.nei.NEIClientConfig;
+import codechicken.nei.api.API;
 import codechicken.nei.api.IConfigureNEI;
 import codechicken.nei.api.ItemFilter;
 import codechicken.nei.api.ItemInfo;
+import codechicken.nei.config.ConfigSet;
 import cpw.mods.fml.common.DummyModContainer;
 import cpw.mods.fml.common.LoadController;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.ModMetadata;
+import cpw.mods.fml.common.asm.transformers.EventSubscriptionTransformer;
+import cpw.mods.fml.common.eventhandler.Event;
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 
 /**
  * Native NEI API registration/filter contracts in an isolated JVM. Registries and item identities are fixtures;
  * production cataloguing/grouping and NEI's iterable group/filter implementation run unchanged. No client,
- * world, GUI, configuration loading or full mod lifecycle is started.
+ * world, GUI, configuration loading or full mod lifecycle is started. The legacy fixture suppresses
+ * NEIClientConfig's initializer (which opens client.cfg and starts update/GUI setup), then supplies in-memory
+ * config/NBT holders, and skips PresetsList's two GUI filter registrations during initialization. The native
+ * presets list starts empty; preexisting-group preservation uses a native-parser-created prefix. The enable flag,
+ * parser, native clear/load, event callback and state restoration stay native. The early legacy transformer
+ * reproduces NEI's own nei_at.cfg access rule for NBTTagCompound.tagMap, absent from the isolated bootstrap.
  */
 public final class NEIGroupingContracts {
 
@@ -70,6 +94,33 @@ public final class NEIGroupingContracts {
         Method enter = bootstrap.getDeclaredMethod("enter", String.class, String[].class);
         enter.setAccessible(true);
         if (!(Boolean) enter.invoke(null, NEIGroupingContracts.class.getName(), args)) return;
+        boolean legacy = Arrays.asList(args)
+            .contains("legacy");
+        check(
+            NEICollapsibleCompat.usesNativeApi() != legacy,
+            "task selects the intended NEI generation; legacy=" + legacy);
+        System.out.println(
+            "SOURCE NEI API " + API.class.getProtectionDomain()
+                .getCodeSource()
+                .getLocation());
+        System.out.println(
+            "SOURCE NEI groups " + CollapsibleItems.class.getProtectionDomain()
+                .getCodeSource()
+                .getLocation());
+        if (legacy) {
+            check(NbtAccessTransformer.transformed, "early bootstrap applied NEI's native NBT access rule");
+            Field tagMap;
+            try {
+                tagMap = NBTTagCompound.class.getDeclaredField("tagMap");
+            } catch (NoSuchFieldException srgName) {
+                tagMap = NBTTagCompound.class.getDeclaredField("field_74784_a");
+            }
+            check(Modifier.isPublic(tagMap.getModifiers()), "native NBT map field is public as required by NEI AT");
+            // Forge normally installs this before event classes load. The isolated Launch bootstrap does not.
+            Launch.classLoader.registerTransformer(NeiEventSubscriptionTransformer.class.getName());
+            Launch.classLoader.registerTransformer(ConfigIsolationTransformer.class.getName());
+            Launch.classLoader.registerTransformer(PresetStartupIsolationTransformer.class.getName());
+        }
         Method setup = PortableWeaponRecipeContracts.class.getDeclaredMethod("bootstrapGt");
         setup.setAccessible(true);
         setup.invoke(null);
@@ -79,11 +130,15 @@ public final class NEIGroupingContracts {
         List<ItemStack> catalog = GTSRItemOrderCatalog.rawItems();
         catalogContracts(catalog);
         collectionContracts(catalog);
-        nativeApiContracts(catalog);
+        if (NEICollapsibleCompat.usesNativeApi()) nativeApiContracts(catalog);
+        else legacyContracts(catalog);
         System.out.println(
             "PASS NEI grouping: checks=" + checks
-                + " groups=13 module_packs=51 shells=3 native_api=true game_started=false"
-                + " gui=false config_load=false persisted_expansion=false");
+                + " groups=13 module_packs=51 shells=3 native_api="
+                + NEICollapsibleCompat.usesNativeApi()
+                + " game_started=false gui=false full_nei_init=false user_config_io=false"
+                + " in_memory_state_restore="
+                + !NEICollapsibleCompat.usesNativeApi());
     }
 
     private static void fixtures() throws Exception {
@@ -371,7 +426,7 @@ public final class NEIGroupingContracts {
         int before = apiGroups.size();
         List<ItemStack> hiddenBefore = new ArrayList<>(ItemInfo.hiddenItems.keys());
         int overridesBefore = ItemInfo.itemOverrides.size();
-        IConfigureNEI plugin = new NEIGTSRConfig();
+        IConfigureNEI plugin = configPlugin();
         check(
             plugin.getName()
                 .equals("GTSR Item Groups"),
@@ -409,6 +464,291 @@ public final class NEIGroupingContracts {
 
     private static Item item(String key) throws Exception {
         return (Item) fixtureItem.invoke(null, "gtsr_nei_contract:" + key);
+    }
+
+    private static void legacyContracts(List<ItemStack> catalog) throws Exception {
+        isolatedNeiConfig();
+        check(ConfigIsolationTransformer.transformed, "legacy config initializer was isolated before first use");
+        Event initialEvent = configsLoadedEvent();
+        check(NeiEventSubscriptionTransformer.transformed, "official transformer processed NEI event before use");
+        check(
+            initialEvent.getListenerList() != new Event().getListenerList(),
+            "NEI configuration event has its native dedicated listener list");
+        NEIClientConfig.getSetting("inventory.collapsibleItems.enabled")
+            .setBooleanValue(false);
+        ItemOrderCatalog.register("gtsr", GTSRItemOrderCatalog::rawItems);
+        Field groupsField = CollapsibleItems.class.getDeclaredField("groups");
+        groupsField.setAccessible(true);
+        List<?> groups = (List<?>) groupsField.get(null);
+        Method parse = CollapsibleItems.class.getDeclaredMethod("parseFile", List.class);
+        parse.setAccessible(true);
+        List<String> presetRule = Arrays.asList(
+            "; {\"displayName\":\"Unrelated native preset\",\"expanded\":true}",
+            "<gtsr_nei_contract:foreign_absent:0>");
+        parse.invoke(null, presetRule);
+        check(groups.size() == 1, "native parser establishes an unrelated group prefix as the preset surrogate");
+        Object preset = groups.get(0);
+        List<ItemStack> hiddenBefore = new ArrayList<>(ItemInfo.hiddenItems.keys());
+        int overridesBefore = ItemInfo.itemOverrides.size();
+
+        IConfigureNEI plugin = configPlugin();
+        plugin.loadConfig();
+        plugin.loadConfig();
+        check(groups.size() == 1, "legacy registration waits until native configuration has loaded");
+        MinecraftForge.EVENT_BUS.post(configsLoadedEvent());
+        check(groups.size() == 1 && groups.get(0) == preset, "disabled legacy grouping preserves native presets");
+        NEIClientConfig.getSetting("inventory.collapsibleItems.enabled")
+            .setBooleanValue(true);
+        MinecraftForge.EVENT_BUS.post(configsLoadedEvent());
+        check(groups.size() == 14 && groups.get(0) == preset, "event appends thirteen groups after native presets");
+        check(CollapsibleItems.isExpanded(0), "unrelated preset expansion remains unchanged");
+        List<String> guids = new ArrayList<>();
+        int index = 1;
+        for (Group expected : Group.values()) {
+            Object group = groups.get(index);
+            check(!CollapsibleItems.isExpanded(index++), "legacy default is collapsed " + expected);
+            check(
+                StatCollector.translateToLocal("gtsr.nei.group." + expected.id)
+                    .equals(
+                        group.getClass()
+                            .getField("displayName")
+                            .get(group)),
+                "legacy localized name " + expected);
+            String guid = (String) group.getClass()
+                .getField("guid")
+                .get(group);
+            check(guid != null && !guid.isEmpty() && !guids.contains(guid), "native distinct GUID " + expected);
+            guids.add(guid);
+            ItemFilter filter = (ItemFilter) group.getClass()
+                .getField("filter")
+                .get(group);
+            for (ItemStack stack : catalog) check(
+                filter.matches(stack) == (indexOf(EXPECTED.get(expected), stack) >= 0),
+                "legacy native exact item/meta filter " + expected);
+            for (ItemStack absent : ABSENT) check(!filter.matches(absent), "legacy excludes omitted/foreign variants");
+        }
+        CollapsibleItems.setExpanded(1, true);
+        MinecraftForge.EVENT_BUS.post(configsLoadedEvent());
+        check(
+            groups.size() == 14 && CollapsibleItems.isExpanded(1),
+            "duplicate event preserves user changes and does not append duplicates");
+
+        NBTTagCompound saved = new NBTTagCompound();
+        saved.setBoolean(guids.get(0), true);
+        NEIClientConfig.world.nbt.setTag("collapsibleitems", saved);
+        NEIClientConfig.getSetting("inventory.collapsibleItems.enabled")
+            .setBooleanValue(false);
+        // With the flag disabled native load() clears groups/cache and restores NBT without opening cfg files.
+        CollapsibleItems.load();
+        check(
+            PresetStartupIsolationTransformer.skippedRegistrations == 2,
+            "only the two native preset GUI filter registrations were isolated");
+        check(
+            ((List<?>) Class.forName("codechicken.nei.PresetsList")
+                .getField("presets")
+                .get(null)).isEmpty(),
+            "native preset collection is genuinely initialized and empty in this isolated fixture");
+        check(groups.isEmpty(), "actual native load clears the existing groups in place");
+        parse.invoke(null, presetRule);
+        preset = groups.get(0);
+        NEIClientConfig.getSetting("inventory.collapsibleItems.enabled")
+            .setBooleanValue(true);
+        MinecraftForge.EVENT_BUS.post(configsLoadedEvent());
+        check(groups.size() == 14 && groups.get(0) == preset, "legacy groups rebuild after native load clears them");
+        for (int i = 0; i < guids.size(); i++) {
+            Object group = groups.get(i + 1);
+            check(
+                guids.get(i)
+                    .equals(
+                        group.getClass()
+                            .getField("guid")
+                            .get(group)),
+                "sorted exact selectors retain native GUID across reload " + i);
+            check(CollapsibleItems.isExpanded(i + 1) == (i == 0), "native NBT state restoration " + i);
+        }
+        ItemStack cachedWeapon = PortableLM12.get(1);
+        CollapsibleItems.putItem(cachedWeapon);
+        check(CollapsibleItems.getGroupIndex(cachedWeapon) == 1, "native item cache recognizes appended group");
+        NEIClientConfig.getSetting("inventory.collapsibleItems.enabled")
+            .setBooleanValue(false);
+        MinecraftForge.EVENT_BUS.post(configsLoadedEvent());
+        check(
+            groups.size() == 1 && groups.get(0) == preset && CollapsibleItems.isExpanded(0),
+            "disabling removes only owned groups and retains native preset state");
+        check(CollapsibleItems.getGroupIndex(cachedWeapon) == -1, "owned group removal clears stale native indices");
+
+        // Fault injection at the adapter boundary exercises rollback after native parsing appended a prefix.
+        Field rulesField = NEICollapsibleCompat.class.getDeclaredField("legacyRules");
+        rulesField.setAccessible(true);
+        Object validRules = rulesField.get(null);
+        rulesField.set(null, Arrays.asList(presetRule.get(0), presetRule.get(1), presetRule.get(0), ""));
+        NEIClientConfig.getSetting("inventory.collapsibleItems.enabled")
+            .setBooleanValue(true);
+        boolean rejected = false;
+        try {
+            NEICollapsibleCompat.onConfigsLoaded();
+        } catch (IllegalStateException expected) {
+            rejected = true;
+        } finally {
+            rulesField.set(null, validRules);
+        }
+        check(
+            rejected && groups.size() == 1 && groups.get(0) == preset,
+            "incomplete native parse fails clearly and rolls back only this adapter's append");
+        MinecraftForge.EVENT_BUS.post(configsLoadedEvent());
+        check(groups.size() == 14 && CollapsibleItems.isExpanded(1), "adapter can retry a failed append");
+        check(
+            ItemInfo.hiddenItems.keys()
+                .equals(hiddenBefore),
+            "legacy registration does not hide items");
+        check(ItemInfo.itemOverrides.size() == overridesBefore, "legacy registration adds no item-list entries");
+    }
+
+    private static void isolatedNeiConfig() throws Exception {
+        Class<?> unsafeType = Class.forName("sun.misc.Unsafe");
+        Field singleton = unsafeType.getDeclaredField("theUnsafe");
+        singleton.setAccessible(true);
+        Object unsafe = singleton.get(null);
+        Method allocate = unsafeType.getMethod("allocateInstance", Class.class);
+        ConfigSet memory = (ConfigSet) allocate.invoke(unsafe, ConfigSet.class);
+        memory.nbt = new NBTTagCompound();
+        ConfigTagParent settings = new ConfigTagParent() {
+
+            @Override
+            public void saveConfig() {}
+
+            @Override
+            public String getNameQualifier() {
+                return "";
+            }
+        };
+        Field config = ConfigSet.class.getDeclaredField("config");
+        config.setAccessible(true);
+        config.set(memory, settings);
+        NEIClientConfig.logger = LogManager.getLogger("NEI isolated grouping contract");
+        NEIClientConfig.global = memory;
+        NEIClientConfig.world = memory;
+    }
+
+    private static IConfigureNEI configPlugin() throws Exception {
+        return (IConfigureNEI) Class
+            .forName("com.miaokatze.gtsr.client.nei.NEIGTSRConfig", true, NEIGroupingContracts.class.getClassLoader())
+            .getDeclaredConstructor()
+            .newInstance();
+    }
+
+    private static Event configsLoadedEvent() throws Exception {
+        // Keep this type out of the test class's descriptors so verification cannot resolve it before injection.
+        return (Event) Class
+            .forName("codechicken.nei.event.NEIConfigsLoadedEvent", true, NEIGroupingContracts.class.getClassLoader())
+            .getDeclaredConstructor()
+            .newInstance();
+    }
+
+    /**
+     * Installed by the bootstrap before Minecraft classes load. Reproduces only NEI's native rule:
+     * public net.minecraft.nbt.NBTTagCompound field_74784_a #tagMap
+     */
+    public static final class NbtAccessTransformer implements IClassTransformer {
+
+        static boolean transformed;
+
+        @Override
+        public byte[] transform(String name, String transformedName, byte[] bytes) {
+            if (!"net.minecraft.nbt.NBTTagCompound".equals(transformedName)) return bytes;
+            ClassWriter writer = new ClassWriter(0);
+            new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM5, writer) {
+
+                @Override
+                public FieldVisitor visitField(int access, String fieldName, String descriptor, String signature,
+                    Object value) {
+                    if ("tagMap".equals(fieldName) || "field_74784_a".equals(fieldName)) {
+                        access = (access & ~(Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED)) | Opcodes.ACC_PUBLIC;
+                        transformed = true;
+                    }
+                    return super.visitField(access, fieldName, descriptor, signature, value);
+                }
+            }, 0);
+            return writer.toByteArray();
+        }
+    }
+
+    /** Only isolates file/network/GUI setup; no production grouping, parser, filtering or state method changes. */
+    public static final class ConfigIsolationTransformer implements IClassTransformer {
+
+        static boolean transformed;
+
+        @Override
+        public byte[] transform(String name, String transformedName, byte[] bytes) {
+            if (!"codechicken.nei.NEIClientConfig".equals(transformedName)) return bytes;
+            ClassWriter writer = new ClassWriter(0);
+            new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM5, writer) {
+
+                @Override
+                public MethodVisitor visitMethod(int access, String methodName, String descriptor, String signature,
+                    String[] exceptions) {
+                    if ("<clinit>".equals(methodName)) return null;
+                    return super.visitMethod(access, methodName, descriptor, signature, exceptions);
+                }
+            }, 0);
+            transformed = true;
+            return writer.toByteArray();
+        }
+    }
+
+    /** Restore Forge's native listener-list injection only for the one event used by this offline fixture. */
+    public static final class NeiEventSubscriptionTransformer implements IClassTransformer {
+
+        static boolean transformed;
+
+        @Override
+        public byte[] transform(String name, String transformedName, byte[] bytes) {
+            if (!"codechicken.nei.event.NEIConfigsLoadedEvent".equals(transformedName)) return bytes;
+            byte[] result = new EventSubscriptionTransformer().transform(name, transformedName, bytes);
+            transformed = true;
+            return result;
+        }
+    }
+
+    /** Retain native preset storage/construction while preventing its two filter APIs from initializing GUI. */
+    public static final class PresetStartupIsolationTransformer implements IClassTransformer {
+
+        static int skippedRegistrations;
+
+        @Override
+        public byte[] transform(String name, String transformedName, byte[] bytes) {
+            if (!"codechicken.nei.PresetsList".equals(transformedName)) return bytes;
+            ClassWriter writer = new ClassWriter(0);
+            new ClassReader(bytes).accept(new ClassVisitor(Opcodes.ASM5, writer) {
+
+                @Override
+                public MethodVisitor visitMethod(int access, String methodName, String descriptor, String signature,
+                    String[] exceptions) {
+                    MethodVisitor method = super.visitMethod(access, methodName, descriptor, signature, exceptions);
+                    if (!"<clinit>".equals(methodName)) return method;
+                    return new MethodVisitor(Opcodes.ASM5, method) {
+
+                        @Override
+                        public void visitMethodInsn(int opcode, String owner, String calledName,
+                            String calledDescriptor, boolean isInterface) {
+                            if (opcode == Opcodes.INVOKESTATIC && "codechicken/nei/api/API".equals(owner)
+                                && (("addItemFilter".equals(calledName)
+                                    && "(Lcodechicken/nei/api/ItemFilter$ItemFilterProvider;)V"
+                                        .equals(calledDescriptor))
+                                    || ("addRecipeFilter".equals(calledName)
+                                        && "(Lcodechicken/nei/api/IRecipeFilter$IRecipeFilterProvider;)V"
+                                            .equals(calledDescriptor)))) {
+                                super.visitInsn(Opcodes.POP);
+                                skippedRegistrations++;
+                                return;
+                            }
+                            super.visitMethodInsn(opcode, owner, calledName, calledDescriptor, isInterface);
+                        }
+                    };
+                }
+            }, 0);
+            return writer.toByteArray();
+        }
     }
 
     private static ItemStack foreignProsperityBlock() throws Exception {

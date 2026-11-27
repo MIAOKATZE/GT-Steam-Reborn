@@ -233,7 +233,11 @@ val portableRecipeContractRuntime = configurations.create("portableRecipeContrac
 val neiGroupingContractRuntime = configurations.create("neiGroupingContractRuntime") {
     isTransitive = false
 }
+val neiLegacyGroupingContractRuntime = configurations.create("neiLegacyGroupingContractRuntime") {
+    isTransitive = false
+}
 dependencies {
+    add(neiLegacyGroupingContractRuntime.name, "com.github.GTNewHorizons:NotEnoughItems:2.8.171-GTNH:dev")
     add(neiGroupingContractRuntime.name, "com.github.GTNewHorizons:AppleCore:3.3.13:dev")
     add(neiGroupingContractRuntime.name, "com.github.GTNewHorizons:CodeChickenCore:1.4.24:dev")
     add(portableRecipeContractRuntime.name, "com.falsepattern:chunkapi-mc1.7.10:0.8.3:dev")
@@ -242,6 +246,7 @@ dependencies {
     // Same Java-17 multi-release shim used by tools/tests/turbine_restart/run.py.
     add(portableRecipeContractRuntime.name, "xyz.wagyourtail.jvmdowngrader:jvmdowngrader-java-api:1.3.5:downgraded-8")
 }
+sourceSets["test"].compileClasspath += neiGroupingContractRuntime
 val verifyPortableWeaponRecipeContracts = tasks.register<JavaExec>("verifyPortableWeaponRecipeContracts") {
     group = "verification"
     description = "Verify portable recipes and schematic/cache isolation with the native GT .265 backend."
@@ -345,6 +350,7 @@ mapOf(
     "verifyMegaTurbineTooltip" to "com.miaokatze.gtsr.client.tooltip.MegaTurbineTooltipContract",
     "verifyReviewedTooltipCatalog" to "com.miaokatze.gtsr.client.tooltip.ReviewedTooltipCatalogContract",
     "verifyNEIGrouping" to "com.miaokatze.gtsr.client.nei.NEIGroupingContracts",
+    "verifyNEILegacyGrouping" to "com.miaokatze.gtsr.client.nei.NEIGroupingContracts",
     "verifySteamFluidDrillCycle" to "com.miaokatze.gtsr.common.machine.SteamFluidDrillCycleContract",
     "verifySingularityIdentityDrop" to "com.miaokatze.gtsr.common.blocks.SingularityIdentityDropContract",
     "verifyCenterQueueMigration" to "com.miaokatze.gtsr.common.machine.orecenter.CenterQueueMigrationContracts",
@@ -361,6 +367,13 @@ mapOf(
             sourceSets["main"].compileClasspath + portableRecipeContractRuntime
         mainClass.set(entry)
         if (name == "verifyNEIGrouping") classpath += neiGroupingContractRuntime
+        if (name == "verifyNEILegacyGrouping") {
+            classpath = classpath.filter { !it.name.startsWith("NotEnoughItems-") } +
+                neiGroupingContractRuntime + neiLegacyGroupingContractRuntime
+            args("legacy")
+            systemProperty("gtsr.contract.earlyTransformer",
+                "com.miaokatze.gtsr.client.nei.NEIGroupingContracts\$NbtAccessTransformer")
+        }
         if (name == "verifyRecoveryRuntimeMixins") args("build/recovery-runtime-contract", "runtime")
         maxHeapSize = "256m"
         systemProperty("java.awt.headless", "true")
