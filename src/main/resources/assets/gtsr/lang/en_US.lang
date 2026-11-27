@@ -5593,3 +5593,8 @@ gtsr.ore_center.graph.terminal.trial_retry_failed=Trial could not finish; retry 
 gtsr.ore_center.status.batch_window=Fixed batch %s t / load up to %s
 gtsr.ore_center.status.ordinary_window=Ordinary %s t / load up to %s
 gtsr.ore_center.status.batch_doses=Actual ores %s / charged batches %s
+
+gtsr.center.pack.recipe_time=Native recipe duration reduced by %s%%
+gtsr.center.pack.recipe_energy=Native total processing energy reduced by %s%% (processing steam / EU)
+gtsr.center.pack.grade_speed=Additional processing speed at this grade: x%s
+gtsr.center.pack.recipe_cost_scope=Applies to recipe processing; upkeep and recipe materials are charged separately.

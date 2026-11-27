@@ -5589,3 +5589,8 @@ gtsr.ore_center.graph.terminal.trial_retry_failed=试算未完成，请减少原
 gtsr.ore_center.status.batch_window=固定合批 %s t · 可装 %s 件
 gtsr.ore_center.status.ordinary_window=普通周期 %s t · 可装 %s 件
 gtsr.ore_center.status.batch_doses=实际原矿 %s 件 · %s 批剂
+
+gtsr.center.pack.recipe_time=原配方耗时减少 %s%%
+gtsr.center.pack.recipe_energy=原配方加工总能耗减少 %s%%（加工蒸汽 / EU）
+gtsr.center.pack.grade_speed=当前等级额外加工速度：×%s
+gtsr.center.pack.recipe_cost_scope=仅影响配方加工；维持费与配方耗材另计。

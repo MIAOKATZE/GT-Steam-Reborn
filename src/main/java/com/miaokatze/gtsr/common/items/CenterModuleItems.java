@@ -9,9 +9,11 @@ import java.util.Map;
 
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.IIcon;
+import net.minecraft.util.StatCollector;
 
 import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
 import com.miaokatze.gtsr.register.CreativeTabManager;
@@ -98,6 +100,22 @@ public final class CenterModuleItems extends Item {
     @Override
     public String getUnlocalizedName(ItemStack stack) {
         return getUnlocalizedName() + "." + variant(stack.getItemDamage());
+    }
+
+    @Override
+    @SideOnly(Side.CLIENT)
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public void addInformation(ItemStack stack, EntityPlayer player, List lines, boolean advanced) {
+        CenterModule module = moduleOf(stack);
+        if (module == null || module.kind != 1) return;
+        lines.add(
+            StatCollector.translateToLocalFormatted("gtsr.center.pack.recipe_time", 100 - module.recipeTimePercent));
+        lines.add(
+            StatCollector
+                .translateToLocalFormatted("gtsr.center.pack.recipe_energy", 100 - module.recipeEnergyPercent));
+        lines.add(
+            StatCollector.translateToLocalFormatted("gtsr.center.pack.grade_speed", module.gradeSpeed(gradeOf(stack))));
+        lines.add(StatCollector.translateToLocal("gtsr.center.pack.recipe_cost_scope"));
     }
 
     @Override

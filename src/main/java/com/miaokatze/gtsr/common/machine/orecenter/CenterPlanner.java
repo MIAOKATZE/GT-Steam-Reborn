@@ -31,8 +31,7 @@ public final class CenterPlanner {
     private static final int[] STEAM = { 4000, 24000, 112000, 384000 }, WIDTH = { 24, 48, 64, 128 },
         VOLTAGE = { 32, 128, 512, 2048 }, CONTROL_EU = { 0, 32, 128, 512 };
     static final int[] HEAT = { 0, 0, 2700, 4500 };
-    private static final double[] MACHINE_SPEED = { 1, 2.5, 5, 10 }, GRADE_TIME = { 1, 6, 48 },
-        GRADE_STEAM = { 1, 1.45, 2.1 };
+    private static final double[] MACHINE_SPEED = { 1, 2.5, 5, 10 }, GRADE_STEAM = { 1, 1.45, 2.1 };
     private static final int[] LOGISTICS_PARALLEL = { 240, 1440, 11520 };
     private static final CenterModule[] MODULES = CenterModule.values();
     private static final Pattern RAW = Pattern.compile("(?:ore|rawOre|variantOre)[A-Z0-9].*");
@@ -627,12 +626,14 @@ public final class CenterPlanner {
             executions += times;
             weight[index] = 1;
             int grade = best[index] - 1;
-            double processingTicks = recipe.mDuration * .5 / GRADE_TIME[grade];
-            workSteam += (double) recipe.mDuration * times * node.process.module.steamRate;
+            CenterModule module = node.process.module;
+            double processingTicks = recipe.mDuration * module.timeMultiplier(grade + 1);
+            workSteam += (double) recipe.mDuration * times * module.steamRate * module.energyMultiplier();
             double path = lot.path + processingTicks;
             recordPath(lot.origin, path);
-            if (node.process.module.standbyEU > 0)
-                recipeEU += (double) times * recipe.mDuration * Math.abs((long) recipe.mEUt);
+            if (node.process.module.standbyEU > 0) recipeEU += (double) times * recipe.mDuration
+                * Math.abs((long) recipe.mEUt)
+                * module.energyMultiplier();
             for (int slot = 0; slot < recipe.mOutputs.length; slot++) {
                 ItemStack original = recipe.mOutputs[slot];
                 if (original == null || original.stackSize <= 0) continue;
@@ -768,7 +769,7 @@ public final class CenterPlanner {
                 }
             }
             if (idleEU > 0) idleEU += CONTROL_EU[tier];
-            long processingEnergy = ignoreEnergy ? 0 : bill(recipeEU * .1);
+            long processingEnergy = ignoreEnergy ? 0 : bill(recipeEU);
             long maintenanceEnergy = ignoreEnergy ? 0 : bill(idleEU * ticks * scale * euMultiplier);
             long energy = Math.addExact(processingEnergy, maintenanceEnergy);
             // Do not stretch a recipe's fixed time to hide insufficient supply.
@@ -777,7 +778,7 @@ public final class CenterPlanner {
                 workLimitReached = true;
                 return null;
             }
-            long processingSteam = ignoreFluids ? 0 : bill(workSteam * .1 / (20 * WIDTH[tier]));
+            long processingSteam = ignoreFluids ? 0 : bill(workSteam / (20 * WIDTH[tier]));
             long maintenanceSteam = ignoreFluids ? 0
                 : bill(scale * (STEAM[tier] * (1 + .1 * (sectors - 1)) + steamMultiplier * hold) * ticks / 20);
             return new Batch(this, ticks, processingSteam, maintenanceSteam, processingEnergy, maintenanceEnergy);
