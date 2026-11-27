@@ -38,6 +38,7 @@ import com.miaokatze.gtsr.common.blocks.TileSpacetimeSingularity;
 import com.miaokatze.gtsr.common.dimension.prosperity.portal.SpacetimeGeometry;
 import com.miaokatze.gtsr.common.dimension.prosperity.travel.SpacetimeEffects;
 import com.miaokatze.gtsr.common.gui.MTESpacetimeCalibrationGui;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
 
 import bartworks.system.material.WerkstoffLoader;
@@ -64,6 +65,7 @@ import gregtech.api.util.ExoticEnergyInputHelper;
 import gregtech.api.util.IGTHatchAdder;
 import gregtech.api.util.MultiblockTooltipBuilder;
 import gregtech.api.util.shutdown.ShutDownReason;
+import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 import gregtech.common.tileentities.machines.IDualInputHatch;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusInput;
 import gtPlusPlus.xmod.gregtech.api.metatileentity.implementations.MTEHatchSteamBusOutput;
@@ -161,6 +163,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
     @Override
     public void checkMachine(IGregTechTileEntity tile, ItemStack stack, List<StructureError> errors) {
         mCasingCount = 0;
+        if (!chunksLoaded()) GtsrStructureRecovery.markUnknown(this);
         if (!legalFacing() || !chunksLoaded()
             || !checkPiece("main", OFFSET_X, OFFSET_Y, OFFSET_Z, errors)
             || mCasingCount < MIN_CASINGS
@@ -197,7 +200,11 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
     public void onPostTick(IGregTechTileEntity tile, long tick) {
         super.onPostTick(tile, tick);
         if (!tile.isServerSide()) return;
-        checkStructure(tick % 20 == 0, tile);
+        if (GtsrStructureRecovery.isRecovering(this)) {
+            tile.setActive(false);
+            portalActive = false;
+            return;
+        }
         checkMaintenance();
         if (!chunksLoaded() || !legalFacing() || !mMachine) {
             stopWithState(3);
@@ -244,6 +251,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
         IGregTechTileEntity tile = getBaseMetaTileEntity();
         if (tile == null || !tile.isServerSide()) return false;
         checkStructure(true, tile);
+        if (GtsrStructureRecovery.isRecovering(this)) return false;
         checkMaintenance();
         if (!portalActive || preheatTicks < 600
             || !mMachine
@@ -285,6 +293,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
 
     @Override
     public void stopMachine(ShutDownReason reason) {
+        if (GtsrStructureRecovery.isRecovering(this) && reason == ShutDownReasonRegistry.STRUCTURE_INCOMPLETE) return;
         deactivate();
         super.stopMachine(reason);
     }
@@ -490,6 +499,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
     @Override
     public void saveNBTData(NBTTagCompound nbt) {
         super.saveNBTData(nbt);
+        nbt.setInteger("SpacetimePreheatTicks", preheatTicks);
         nbt.setBoolean("SpacetimeCoreKnown", corePositionKnown);
         nbt.setInteger("SpacetimeCoreX", coreX);
         nbt.setInteger("SpacetimeCoreY", coreY);
@@ -503,7 +513,7 @@ public class MTESpacetimeCalibration extends MTEEnhancedMultiBlockBase<MTESpacet
         coreX = nbt.getInteger("SpacetimeCoreX");
         coreY = nbt.getInteger("SpacetimeCoreY");
         coreZ = nbt.getInteger("SpacetimeCoreZ");
-        preheatTicks = 0;
+        preheatTicks = Math.max(0, Math.min(600, nbt.getInteger("SpacetimePreheatTicks")));
         portalActive = false;
     }
 

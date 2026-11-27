@@ -10,6 +10,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -37,12 +39,14 @@ import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor;
 import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor.Sample;
 import com.miaokatze.gtsr.common.critical.CriticalStructureMonitor.Status;
 import com.miaokatze.gtsr.common.machine.cluster.MTEClusterUnitBase;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.GregTechAPI;
 import gregtech.api.enums.ItemList;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatch;
+import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
 
 /** Sparse, controller-relative block lists exported by tools/ore-center/compile.cjs. */
 public final class CenterStructure {
@@ -58,8 +62,18 @@ public final class CenterStructure {
     private static final int[] HATCH_X = { -5, -3, -1, 1, 3, 5 };
     private static final int[] SERVICE_PORT_X = { 3, -3, 5, -5, 7, -7, -6 };
     private static final String SERVICE_TOWER = "tower-service-";
-    private static final int PORT_RESTORE_GRACE_TICKS = 600;
     private static final Map<String, Shape> SHAPES = new HashMap<>();
+    private static final int MAX_FOOTPRINT_CACHE = 128;
+    private final Map<FootprintKey, long[]> footprints = new LinkedHashMap<>(MAX_FOOTPRINT_CACHE, 0.75F, true) {
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<FootprintKey, long[]> eldest) {
+            return size() > MAX_FOOTPRINT_CACHE;
+        }
+    };
+    private World footprintWorld;
+    private int footprintX, footprintY, footprintZ;
+    private ForgeDirection footprintFacing = ForgeDirection.UNKNOWN;
     private static final String[][][] MODULE_KEYS = moduleKeys();
     private final CriticalStructureMonitor tower = new CriticalStructureMonitor();
     private final CriticalStructureMonitor[] sectors = new CriticalStructureMonitor[6];
@@ -72,8 +86,12 @@ public final class CenterStructure {
     private boolean attachClaims = true;
     private int survivalCursor, survivalTier = -1, survivalMask;
     private boolean serviceFront;
-    private SavedFormation savedFormation;
-    private long nextRestoreCheck, portRestoreUntil;
+    private SavedFormation savedFormation, lastFormation, portIdentity;
+    private final java.util.Set<Integer> knownPorts = new HashSet<>();
+    private boolean portIndexReady, portIndexUnknown;
+    private int portIndexCursor;
+    private boolean restoredTower;
+    private long nextRestoreCheck;
     private static int[] legacyPlinthPorts, servicePlinthPorts;
 
     private static final class SavedFormation {
@@ -120,8 +138,7 @@ public final class CenterStructure {
     boolean isCheckingFormation(IGregTechTileEntity te) {
         if (facing != te.getFrontFacing()) return true;
         if (tower.hasKnownDamage()) return false;
-        if (savedFormation != null && formedSectors == 0 || te.getWorld()
-            .getTotalWorldTime() < portRestoreUntil) return true;
+        if (savedFormation != null && formedSectors == 0 || recovering(te)) return true;
         if (towerTier < 0) return false;
         Status status = tower.getStatus();
         if (status == Status.PENDING || status == Status.UNLOADED) return true;
@@ -132,13 +149,41 @@ public final class CenterStructure {
         return false;
     }
 
+    private static boolean recovering(IGregTechTileEntity te) {
+        return te.getMetaTileEntity() instanceof MTEMultiBlockBase machine
+            && GtsrStructureRecovery.isRecovering(machine);
+    }
+
+    /** Chunk IO cannot advance a paid batch, even while its last verified shape remains cached. */
+    boolean isExecutionReady(IGregTechTileEntity te) {
+        if (tier(te) < 0 || formedSectors == 0) return false;
+        Frame frame = new Frame(te);
+        if (!portIndexReady || !knownPortsReady(frame)) return false;
+        if (!footprintLoaded(towerShape(towerTier, serviceFront), frame, 0, 0, 0)) return false;
+        int expectedSectors = formedSectors | (lastFormation == null ? 0 : lastFormation.sectors);
+        for (int i = 0; i < sectors.length; i++) if ((expectedSectors & 1 << i) != 0) {
+            if (sectors[i].getStatus() == Status.PENDING || sectors[i].getStatus() == Status.UNLOADED
+                || !footprintLoaded(shape("sector-" + i), frame, 0, 0, 0)) return false;
+        }
+        for (int i = 0; i < modules.length; i++) if (modules[i] != null && !modules[i].damaged) {
+            int[] at = SLOTS[i];
+            if (modules[i].monitor.getStatus() != Status.VALID
+                || !footprintLoaded(shape(modules[i].resource), frame, at[0], at[2], at[3])) return false;
+        }
+        return true;
+    }
+
     void collectHatches(IGregTechTileEntity te, ObjIntConsumer<IGregTechTileEntity> accept) {
         if (towerTier < 0 || facing != te.getFrontFacing()) return;
         int casingTexture = MTEClusterUnitBase.tierCasingTextureId(towerTier);
-        collectHatches(
-            new Frame(te),
-            towerShape(towerTier, serviceFront),
-            hatch -> accept.accept(hatch, casingTexture));
+        Frame frame = new Frame(te);
+        collectHatches(frame, towerShape(towerTier, serviceFront), hatch -> {
+            int dx = hatch.getXCoord() - frame.x, dz = hatch.getZCoord() - frame.z;
+            int x = (int) CriticalStructureAlignment.unrotateX(dx, dz, frame.facing);
+            int z = (int) CriticalStructureAlignment.unrotateZ(dx, dz, frame.facing) - 19;
+            knownPorts.add(Shape.cell(x, hatch.getYCoord() - frame.y + 2, z));
+            accept.accept(hatch, casingTexture);
+        });
     }
 
     private static void collectHatches(Frame frame, Shape tower, Consumer<IGregTechTileEntity> accept) {
@@ -262,6 +307,8 @@ public final class CenterStructure {
         long started = System.nanoTime();
         try {
             scanStructure(te, new Frame(te), claims);
+            if (tower.hasKnownDamage() && te.getMetaTileEntity() instanceof MTEMultiBlockBase machine)
+                GtsrStructureRecovery.confirmedDamage(machine);
         } finally {
             claims.countScan(System.nanoTime() - started);
         }
@@ -290,43 +337,86 @@ public final class CenterStructure {
             serviceFront = service;
             tower.reset();
         }
-        restoreFormation(frame, found, service);
-        if (towerTier < 0) return;
-        frame.awaitingPorts = frame.world.getTotalWorldTime() < portRestoreUntil;
-
-        // A single monitor gets a slice per tick. Missing wings and unused pads don't consume a slice.
-        if (tower.getStatus() == Status.PENDING) {
-            scan(tower, towerShape(towerTier, serviceFront), frame, 0, 0, 0, 0, false, elapsed(frame, 0));
+        if (found < 0 && !TierAnchor.INSTANCE.unloaded(frame)) {
+            tower.invalidate();
+            savedFormation = lastFormation = null;
             return;
         }
-        for (int attempts = 0; attempts < lastScan.length; attempts++) {
+        restoreFormation(frame, found, service);
+        if (towerTier < 0) return;
+        frame.awaitingPorts = recovering(te);
+        bindPortIdentity(frame);
+        if (!portIndexReady) {
+            indexPorts(frame);
+            return;
+        }
+
+        // Fast recovery owns one bounded slice; stable monitors share a fair 128-sample tick budget.
+        if (tower.getStatus() == Status.PENDING) {
+            scan(tower, towerShape(towerTier, serviceFront), frame, 0, 0, 0, 0, false, elapsed(frame, 0));
+            if (tower.hasKnownDamage()) savedFormation = lastFormation = null;
+            return;
+        }
+        int remaining = CriticalStructureMonitor.MAX_CHECKS_PER_TICK;
+        for (int attempts = 0; attempts < lastScan.length && remaining > 0; attempts++) {
             int monitor = scanCursor;
             scanCursor = (scanCursor + 1) % lastScan.length;
             if (monitor == 0) {
-                scan(tower, towerShape(towerTier, serviceFront), frame, 0, 0, 0, 0, false, elapsed(frame, 0));
-                return;
+                boolean fast = tower.isFastSweep();
+                scan(
+                    tower,
+                    towerShape(towerTier, serviceFront),
+                    frame,
+                    0,
+                    0,
+                    0,
+                    0,
+                    false,
+                    elapsed(frame, 0),
+                    fast ? CriticalStructureMonitor.MAX_INITIAL_CHECKS_PER_TICK
+                        - (CriticalStructureMonitor.MAX_CHECKS_PER_TICK - remaining) : remaining);
+                if (tower.hasKnownDamage()) savedFormation = lastFormation = null;
+                if (fast) return;
+                remaining -= tower.getLastChecks();
+                continue;
             }
             int i = monitor - 1;
             if (i < sectors.length) {
-                if (savedFormation != null && (savedFormation.sectors & 1 << i) != 0) continue;
                 Shape piece = shape("sector-" + i);
                 Sample marker = sample(piece, 0, frame, 0, 0, 0, 0, false);
-                if (marker != Sample.MATCH) {
-                    sectors[i].reset();
-                    if (marker == Sample.BROKEN) sectors[i].invalidate();
-                    else sectors[i].pauseUnloaded();
-                    formedSectors &= ~(1 << i);
-                    continue;
+                remaining--;
+                if (marker == Sample.BROKEN) {
+                    sectors[i].invalidate();
+                    revokeSector(i);
+                    // An absent, never-formed optional wing needs no ongoing full sweep.
+                    if (lastFormation == null || (lastFormation.sectors & 1 << i) == 0) continue;
                 }
-                if (scan(sectors[i], piece, frame, 0, 0, 0, 0, false, elapsed(frame, monitor))) formedSectors |= 1 << i;
+                boolean fast = sectors[i].isFastSweep();
+                if (scan(
+                    sectors[i],
+                    piece,
+                    frame,
+                    0,
+                    0,
+                    0,
+                    0,
+                    false,
+                    elapsed(frame, monitor),
+                    fast ? CriticalStructureMonitor.MAX_INITIAL_CHECKS_PER_TICK
+                        - (CriticalStructureMonitor.MAX_CHECKS_PER_TICK - remaining) : remaining))
+                    formedSectors |= 1 << i;
                 else formedSectors &= ~(1 << i);
-                return;
+                if (sectors[i].hasKnownDamage()) revokeSector(i);
+                if (fast) return;
+                remaining -= sectors[i].getLastChecks();
+                continue;
             }
             int slot = i - sectors.length;
             ModuleCheck module = modules[slot];
-            if (module == null || savedFormation != null && (savedFormation.modules & 1L << slot) != 0) continue;
+            if (module == null) continue;
             int[] at = SLOTS[slot];
             claims.attach(frame, slot, this);
+            boolean fast = module.monitor.isFastSweep();
             scan(
                 module.monitor,
                 shape(module.resource),
@@ -336,24 +426,29 @@ public final class CenterStructure {
                 at[2],
                 at[3],
                 true,
-                elapsed(frame, monitor));
-            if (module.monitor.hasKnownDamage()) module.damaged = true;
-            return;
+                elapsed(frame, monitor),
+                fast ? CriticalStructureMonitor.MAX_INITIAL_CHECKS_PER_TICK
+                    - (CriticalStructureMonitor.MAX_CHECKS_PER_TICK - remaining) : remaining);
+            if (module.monitor.hasKnownDamage()) invalidateModule(slot);
+            if (fast) return;
+            remaining -= module.monitor.getLastChecks();
         }
     }
 
     private void restoreFormation(Frame frame, int found, boolean service) {
         SavedFormation saved = savedFormation;
         if (saved == null) return;
+        if (tower.hasKnownDamage()) {
+            savedFormation = lastFormation = null;
+            return;
+        }
         if (!saved.matches(frame) || found >= 0 && saved.tier != found) {
-            savedFormation = null;
-            portRestoreUntil = 0;
+            savedFormation = lastFormation = null;
             return;
         }
         if (found < 0) {
             if (!TierAnchor.INSTANCE.unloaded(frame)) {
-                savedFormation = null;
-                portRestoreUntil = 0;
+                savedFormation = lastFormation = null;
             }
             return;
         }
@@ -361,22 +456,28 @@ public final class CenterStructure {
         if (now < nextRestoreCheck) return;
         nextRestoreCheck = now + 20;
         Shape body = towerShape(found, saved.service);
-        if (portRestoreUntil == 0) {
+        if (!restoredTower) {
             if (!footprintLoaded(body, frame, 0, 0, 0)) return;
             if (saved.service != service) {
-                savedFormation = null;
+                savedFormation = lastFormation = null;
                 return;
             }
             tower.restoreValidation(body.count());
-            portRestoreUntil = now + PORT_RESTORE_GRACE_TICKS;
+            restoredTower = true;
         }
         int waitingSectors = 0;
         long waitingModules = 0;
         for (int i = 0; i < sectors.length; i++) if ((saved.sectors & 1 << i) != 0) {
+            if (sectors[i].hasKnownDamage()) {
+                revokeSector(i);
+                continue;
+            }
             Shape wing = shape("sector-" + i);
             Sample marker = sample(wing, 0, frame, 0, 0, 0, 0, false);
-            if (marker == Sample.BROKEN) sectors[i].invalidate();
-            else if (marker == Sample.UNLOADED || !footprintLoaded(wing, frame, 0, 0, 0)) waitingSectors |= 1 << i;
+            if (marker == Sample.BROKEN) {
+                sectors[i].invalidate();
+                revokeSector(i);
+            } else if (marker == Sample.UNLOADED || !footprintLoaded(wing, frame, 0, 0, 0)) waitingSectors |= 1 << i;
             else {
                 sectors[i].restoreValidation(wing.count());
                 formedSectors |= 1 << i;
@@ -394,7 +495,7 @@ public final class CenterStructure {
             Shape piece = shape(module.resource);
             int[] at = SLOTS[slot];
             Sample marker = sample(piece, 0, frame, at[0], at[1], at[2], at[3], true);
-            if (marker == Sample.BROKEN) module.monitor.invalidate();
+            if (marker == Sample.BROKEN) invalidateModule(slot);
             else if (marker == Sample.UNLOADED || !footprintLoaded(piece, frame, at[0], at[2], at[3]))
                 waitingModules |= 1L << slot;
             else module.monitor.restoreValidation(piece.count());
@@ -412,36 +513,173 @@ public final class CenterStructure {
                 waitingModules);
     }
 
-    private static boolean footprintLoaded(Shape shape, Frame frame, int x, int z, int rotation) {
-        int minX = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
-        for (int corner = 0; corner < 4; corner++) {
-            int sx = (corner & 1) == 0 ? shape.minX : shape.maxX;
-            int sz = (corner & 2) == 0 ? shape.minZ : shape.maxZ;
-            int localX = x + rotateX(sx, sz, rotation);
-            int localZ = z + rotateZ(sx, sz, rotation) + 19;
-            int cx = frame.x(localX, localZ) >> 4, cz = frame.z(localX, localZ) >> 4;
-            minX = Math.min(minX, cx);
-            maxX = Math.max(maxX, cx);
-            minZ = Math.min(minZ, cz);
-            maxZ = Math.max(maxZ, cz);
+    private void bindPortIdentity(Frame frame) {
+        if (portIdentity != null && portIdentity.matches(frame)
+            && portIdentity.tier == towerTier
+            && portIdentity.service == serviceFront) return;
+        knownPorts.clear();
+        portIndexReady = portIndexUnknown = false;
+        portIndexCursor = 0;
+        portIdentity = new SavedFormation(
+            frame.facing,
+            frame.world.provider.dimensionId,
+            frame.x,
+            frame.y,
+            frame.z,
+            towerTier,
+            serviceFront,
+            0,
+            0);
+    }
+
+    /** Old saves discover port blocks once, in bounded slices, without adding another monitor slice to that tick. */
+    private void indexPorts(Frame frame) {
+        Shape body = towerShape(towerTier, serviceFront);
+        long deadline = System.nanoTime() + CriticalStructureMonitor.INITIAL_SCAN_NANOS;
+        int checks = 0;
+        int total = body.count() + (body.service ? 0 : HATCH_X.length);
+        while (portIndexCursor < total && checks < CriticalStructureMonitor.MAX_INITIAL_CHECKS_PER_TICK) {
+            int i = portIndexCursor++;
+            if (i >= body.count()) indexPort(frame, HATCH_X[i - body.count()], 2, -18);
+            else {
+                if (portCasing(body, i)) indexPort(frame, body.x[i], body.y[i], body.z[i]);
+                if (sample(body, i, frame, 0, 0, 0, 0, false) == Sample.BROKEN) {
+                    tower.invalidate();
+                    savedFormation = lastFormation = null;
+                    confirmDamage(frame);
+                }
+            }
+            checks++;
+            if ((checks & 31) == 0 && System.nanoTime() >= deadline) return;
         }
-        BitSet unloaded = null;
-        int depth = maxZ - minZ + 1;
-        for (int cx = minX; cx <= maxX; cx++) for (int cz = minZ; cz <= maxZ; cz++) {
-            if (frame.world.getChunkProvider()
-                .chunkExists(cx, cz)) continue;
-            if (unloaded == null) unloaded = new BitSet();
-            unloaded.set((cx - minX) * depth + cz - minZ);
+        if (portIndexCursor < total) return;
+        portIndexReady = !portIndexUnknown;
+        if (portIndexUnknown) {
+            portIndexCursor = 0;
+            portIndexUnknown = false;
         }
-        if (unloaded == null) return true;
-        // Sparse wings need only the chunks containing real blocks, not every corner of their bounds.
-        for (int column : shape.columns()) {
-            int sx = (short) (column >> 16), sz = (short) column;
-            int localX = x + rotateX(sx, sz, rotation), localZ = z + rotateZ(sx, sz, rotation) + 19;
-            int cx = frame.x(localX, localZ) >> 4, cz = frame.z(localX, localZ) >> 4;
-            if (unloaded.get((cx - minX) * depth + cz - minZ)) return false;
+    }
+
+    private void indexPort(Frame frame, int x, int y, int z) {
+        int wx = frame.x(x, z + 19), wz = frame.z(x, z + 19);
+        if (!frame.loaded(wx, wz)) {
+            portIndexUnknown = true;
+            return;
+        }
+        if (frame.world.getBlock(wx, frame.y + y - 2, wz) == GregTechAPI.sBlockMachines)
+            knownPorts.add(Shape.cell(x, y, z));
+    }
+
+    /** Cached formation may run a background sweep, but every remembered native port must already exist. */
+    private boolean knownPortsReady(Frame frame) {
+        Shape body = towerShape(towerTier, serviceFront);
+        body.prepareLookup();
+        java.util.Iterator<Integer> ports = knownPorts.iterator();
+        while (ports.hasNext()) {
+            int cell = ports.next();
+            int x = ((cell >>> 17) & 511) - 128, y = cell & 255, z = ((cell >>> 8) & 511) - 128;
+            int index = body.lookup(x, y, z);
+            boolean extra = !body.service && y == 2 && z == -18 && java.util.Arrays.binarySearch(HATCH_X, x) >= 0;
+            if (!extra && (index < 0 || !portCasing(body, index))) {
+                ports.remove();
+                portIndexReady = false;
+                portIndexCursor = 0;
+                return false;
+            }
+            int wx = frame.x(x, z + 19), wy = frame.y + y - 2, wz = frame.z(x, z + 19);
+            if (!frame.loaded(wx, wz)) return false;
+            Block actual = frame.world.getBlock(wx, wy, wz);
+            if (actual != GregTechAPI.sBlockMachines) {
+                if (extra || actual == body.block(index)
+                    && frame.world.getBlockMetadata(wx, wy, wz) == body.metadata(index)) {
+                    ports.remove();
+                    continue;
+                }
+                tower.invalidate();
+                confirmDamage(frame);
+                return false;
+            }
+            TileEntity tile = frame.world.getTileEntity(wx, wy, wz);
+            var meta = tile instanceof IGregTechTileEntity gt ? gt.getMetaTileEntity() : null;
+            if (meta != null && !MTEMineralIntegrationCenter.acceptsPort(meta)) {
+                tower.invalidate();
+                confirmDamage(frame);
+                return false;
+            }
+            if (tile == null || tile.isInvalid() || meta == null) {
+                if (!frame.awaitingPorts) {
+                    tower.invalidate();
+                    confirmDamage(frame);
+                }
+                return false;
+            }
         }
         return true;
+    }
+
+    private boolean footprintLoaded(Shape shape, Frame frame, int x, int z, int rotation) {
+        // Bind offsets to one controller frame. Absolute positions never become persistent cache keys.
+        if (footprintWorld != frame.world || footprintX != frame.x
+            || footprintY != frame.y
+            || footprintZ != frame.z
+            || footprintFacing != frame.facing) {
+            footprints.clear();
+            footprintWorld = frame.world;
+            footprintX = frame.x;
+            footprintY = frame.y;
+            footprintZ = frame.z;
+            footprintFacing = frame.facing;
+        }
+        FootprintKey key = new FootprintKey(shape, x, z, rotation);
+        long[] offsets = footprints.get(key);
+        if (offsets == null) {
+            java.util.Set<Long> chunks = new HashSet<>();
+            for (int column : shape.columns()) {
+                int sx = (short) (column >> 16), sz = (short) column;
+                int localX = x + rotateX(sx, sz, rotation), localZ = z + rotateZ(sx, sz, rotation) + 19;
+                int cx = (frame.x(localX, localZ) >> 4) - (frame.x >> 4);
+                int cz = (frame.z(localX, localZ) >> 4) - (frame.z >> 4);
+                chunks.add(((long) cx << 32) | (cz & 0xFFFFFFFFL));
+            }
+            offsets = chunks.stream()
+                .mapToLong(Long::longValue)
+                .sorted()
+                .toArray();
+            footprints.put(key, offsets);
+        }
+        // Read readiness every time: unloading a previously ready chunk must pause the very next batch tick.
+        for (long offset : offsets) {
+            int cx = (frame.x >> 4) + (int) (offset >> 32), cz = (frame.z >> 4) + (int) offset;
+            if (!frame.world.getChunkProvider()
+                .chunkExists(cx, cz)) return false;
+        }
+        return true;
+    }
+
+    private static final class FootprintKey {
+
+        final Shape shape;
+        final int x, z, rotation;
+
+        FootprintKey(Shape shape, int x, int z, int rotation) {
+            this.shape = shape;
+            this.x = x;
+            this.z = z;
+            this.rotation = rotation;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof FootprintKey key && shape == key.shape
+                && x == key.x
+                && z == key.z
+                && rotation == key.rotation;
+        }
+
+        @Override
+        public int hashCode() {
+            return ((System.identityHashCode(shape) * 31 + x) * 31 + z) * 31 + rotation;
+        }
     }
 
     private int elapsed(Frame frame, int monitor) {
@@ -513,6 +751,12 @@ public final class CenterStructure {
     private static boolean scan(CriticalStructureMonitor monitor, Shape shape, Frame frame, int x, int y, int z,
         int rotation, boolean module, int elapsed) {
         return monitor.tickSamples(shape.count(), elapsed, i -> sample(shape, i, frame, x, y, z, rotation, module));
+    }
+
+    private static boolean scan(CriticalStructureMonitor monitor, Shape shape, Frame frame, int x, int y, int z,
+        int rotation, boolean module, int elapsed, int maxChecks) {
+        return monitor
+            .tickSamples(shape.count(), elapsed, maxChecks, i -> sample(shape, i, frame, x, y, z, rotation, module));
     }
 
     static int rotateX(int x, int z, int dir) {
@@ -596,7 +840,8 @@ public final class CenterStructure {
         if (frame.world.isRemote) return false;
         CenterClaims claims = CenterClaims.get(frame.world);
         // A different package may not release the old package's surviving, free decorative blocks.
-        if (claims.hasRemainingDifferent(frame, slot, key) || !writeModule(frame, slot, piece, false)) return false;
+        if (claims.hasRemainingDifferent(frame, slot, key) || !writeModule(frame, slot, key, piece, false))
+            return false;
         modules[slot] = new ModuleCheck(key);
         claims.claim(frame, slot, key, piece);
         claims.attach(frame, slot, this);
@@ -607,14 +852,14 @@ public final class CenterStructure {
         ModuleCheck check = checkModule(slot, module, grade);
         if (check == null || te.getWorld().isRemote || !moduleIntact(te, slot, module, grade)) return false;
         Frame frame = new Frame(te);
-        if (!writeModule(frame, slot, shape(check.resource), true)) return false;
+        if (!writeModule(frame, slot, check.resource, shape(check.resource), true)) return false;
         CenterClaims.get(frame.world)
             .release(frame, slot);
         modules[slot] = null;
         return true;
     }
 
-    private static boolean writeModule(Frame frame, int slot, Shape shape, boolean remove) {
+    private boolean writeModule(Frame frame, int slot, String resource, Shape shape, boolean remove) {
         int[] at = SLOTS[slot];
         int n = shape.count();
         int[] xs = new int[n], ys = new int[n], zs = new int[n];
@@ -635,20 +880,63 @@ public final class CenterStructure {
             previous[i] = frame.world.getBlock(x, y, z);
             metadata[i] = (byte) frame.world.getBlockMetadata(x, y, z);
             boolean expected = previous[i] == shape.block(i) && metadata[i] == shape.metadata(i);
+            // A matching player-built voxel is still their material, never a free package refund.
+            if (!remove && !claims.owns(frame, slot, x, y, z)
+                && !previous[i].isAir(frame.world, x, y, z)
+                && !previous[i].isReplaceable(frame.world, x, y, z)) return false;
             // Voluntary dismantling only refunds a whole intact module.
-            if (remove && !expected) return false;
+            if (remove && (!expected || !claims.owns(frame, slot, x, y, z))) return false;
             change[i] = remove || !expected;
         }
-        for (int i = 0; i < n; i++) if (change[i]) {
-            Block block = remove ? net.minecraft.init.Blocks.air : shape.block(i);
-            int meta = remove ? 0 : shape.metadata(i);
-            if (!frame.world.setBlock(xs[i], ys[i], zs[i], block, meta, 2)) {
-                for (int j = i - 1; j >= 0; j--)
-                    if (change[j]) frame.world.setBlock(xs[j], ys[j], zs[j], previous[j], metadata[j], 2);
-                return false;
+        int attempted = -1;
+        boolean success = false;
+        claims.beginInternalWrite();
+        try {
+            for (int i = 0; i < n; i++) if (change[i]) {
+                attempted = i;
+                Block block = remove ? Blocks.air : shape.block(i);
+                int meta = remove ? 0 : shape.metadata(i);
+                if (!setModuleVoxel(frame, claims, xs[i], ys[i], zs[i], block, meta)
+                    || frame.world.getBlock(xs[i], ys[i], zs[i]) != block
+                    || frame.world.getBlockMetadata(xs[i], ys[i], zs[i]) != meta) return false;
+            }
+            success = true;
+            return true;
+        } catch (RuntimeException failedWrite) {
+            return false;
+        } finally {
+            boolean rollbackComplete = true;
+            try {
+                if (!success) for (int i = attempted; i >= 0; i--) if (change[i]) {
+                    try {
+                        setModuleVoxel(frame, claims, xs[i], ys[i], zs[i], previous[i], metadata[i]);
+                        if (frame.world.getBlock(xs[i], ys[i], zs[i]) != previous[i]
+                            || frame.world.getBlockMetadata(xs[i], ys[i], zs[i]) != metadata[i])
+                            rollbackComplete = false;
+                    } catch (RuntimeException failedRollback) {
+                        rollbackComplete = false;
+                    }
+                }
+            } finally {
+                claims.endInternalWrite();
+            }
+            if (!rollbackComplete) {
+                claims.retainAfterFailedWrite(frame, slot, resource, shape);
+                modules[slot] = new ModuleCheck(resource);
+                claims.attach(frame, slot, this);
+                invalidateModule(slot);
             }
         }
-        return true;
+    }
+
+    private static boolean setModuleVoxel(Frame frame, CenterClaims claims, int x, int y, int z, Block block,
+        int meta) {
+        claims.beginVoxelWrite(x, y, z);
+        try {
+            return frame.world.setBlock(x, y, z, block, meta, 2);
+        } finally {
+            claims.endVoxelWrite();
+        }
     }
 
     boolean permitsExternalRemoval(int slot) {
@@ -660,27 +948,79 @@ public final class CenterStructure {
         if (modules[slot] == null) return;
         modules[slot].monitor.invalidate();
         modules[slot].damaged = true;
+        lastFormation = without(lastFormation, 0, 1L << slot);
+        savedFormation = without(savedFormation, 0, 1L << slot);
     }
 
     void changed(int x, int y, int z) {
+        changed(null, x, y, z);
+    }
+
+    void changed(Frame frame, int x, int y, int z) {
+        if (frame != null && towerTier >= 0) {
+            Shape body = towerShape(towerTier, serviceFront);
+            body.prepareLookup();
+            int index = body.lookup(x, y, z);
+            if (index >= 0 && portCasing(body, index)
+                || !body.service && y == 2 && z == -18 && java.util.Arrays.binarySearch(HATCH_X, x) >= 0) {
+                int cell = Shape.cell(x, y, z);
+                if (frame.world.getBlock(frame.x(x, z + 19), frame.y + y - 2, frame.z(x, z + 19))
+                    == GregTechAPI.sBlockMachines) knownPorts.add(cell);
+                else knownPorts.remove(cell);
+            }
+        }
         if (towerTier >= 0 && y >= 0 && y <= 64 && x >= -22 && x <= 22 && z >= -22 && z <= 22) {
             Shape body = towerShape(towerTier, serviceFront);
             body.prepareLookup();
-            if (body.lookup(x, y, z) >= 0) {
+            int index = body.lookup(x, y, z);
+            if (index >= 0 && (frame == null || sample(body, index, frame, 0, 0, 0, 0, false) == Sample.BROKEN)) {
+                confirmDamage(frame);
                 tower.invalidate();
                 tower.requestFastSweep();
+                savedFormation = lastFormation = null;
                 return;
             }
         }
-        for (int i = 0; i < sectors.length; i++) if ((formedSectors & 1 << i) != 0) {
+        int authorized = formedSectors | (lastFormation == null ? 0 : lastFormation.sectors);
+        for (int i = 0; i < sectors.length; i++) if ((authorized & 1 << i) != 0) {
             Shape wing = shape("sector-" + i);
             wing.prepareLookup();
-            if (wing.lookup(x, y, z) < 0) continue;
+            int index = wing.lookup(x, y, z);
+            if (index < 0 || frame != null && sample(wing, index, frame, 0, 0, 0, 0, false) != Sample.BROKEN) continue;
             sectors[i].invalidate();
             sectors[i].requestFastSweep();
-            formedSectors &= ~(1 << i);
+            confirmDamage(frame);
+            revokeSector(i);
             return;
         }
+    }
+
+    private static void confirmDamage(Frame frame) {
+        if (frame == null || !frame.loaded(frame.x, frame.z)) return;
+        if (frame.world.getTileEntity(frame.x, frame.y, frame.z) instanceof IGregTechTileEntity te
+            && te.getMetaTileEntity() instanceof MTEMultiBlockBase machine)
+            GtsrStructureRecovery.confirmedDamage(machine);
+    }
+
+    private void revokeSector(int sector) {
+        formedSectors &= ~(1 << sector);
+        long moduleMask = 63L << (sector * 6);
+        lastFormation = without(lastFormation, 1 << sector, moduleMask);
+        savedFormation = without(savedFormation, 1 << sector, moduleMask);
+    }
+
+    private static SavedFormation without(SavedFormation saved, int sectors, long modules) {
+        if (saved == null) return null;
+        return new SavedFormation(
+            saved.facing,
+            saved.dimension,
+            saved.x,
+            saved.y,
+            saved.z,
+            saved.tier,
+            saved.service,
+            saved.sectors & ~sectors,
+            saved.modules & ~modules);
     }
 
     public void save(NBTTagCompound tag, IGregTechTileEntity te) {
@@ -689,7 +1029,15 @@ public final class CenterStructure {
             app.setString(Integer.toString(i), modules[i].resource);
             if (modules[i].damaged) app.setBoolean("d" + i, true);
         }
-        SavedFormation saved = savedFormation;
+        SavedFormation saved = lastFormation;
+        if (saved != null && (te == null || !saved.matches(new Frame(te))
+            || tower.hasKnownDamage()
+            || towerTier >= 0 && towerTier != saved.tier)) saved = null;
+        for (int i = 0; i < sectors.length; i++)
+            if (sectors[i].hasKnownDamage()) saved = without(saved, 1 << i, 63L << (i * 6));
+        for (int i = 0; i < modules.length; i++)
+            if (modules[i] == null || modules[i].damaged || modules[i].monitor.hasKnownDamage())
+                saved = without(saved, 0, 1L << i);
         if (te != null && facing == te.getFrontFacing() && tower.getStatus() == Status.VALID && formedSectors != 0) {
             long verifiedModules = 0;
             for (int i = 0; i < modules.length; i++)
@@ -706,7 +1054,20 @@ public final class CenterStructure {
                 formedSectors | (saved == null ? 0 : saved.sectors),
                 verifiedModules | (saved == null ? 0 : saved.modules));
         }
+        lastFormation = saved;
         if (saved != null) {
+            if (portIndexReady && portIdentity != null
+                && portIdentity.facing == saved.facing
+                && portIdentity.tier == saved.tier
+                && portIdentity.service == saved.service) {
+                app.setInteger("PortIndexVersion", 1);
+                app.setIntArray(
+                    "Ports",
+                    knownPorts.stream()
+                        .mapToInt(Integer::intValue)
+                        .sorted()
+                        .toArray());
+            }
             app.setInteger("FormationVersion", 1);
             app.setInteger("Facing", saved.facing.ordinal());
             app.setInteger("Dimension", saved.dimension);
@@ -744,7 +1105,16 @@ public final class CenterStructure {
                 : null;
         facing = ForgeDirection.UNKNOWN;
         towerTier = -1;
-        nextRestoreCheck = portRestoreUntil = 0;
+        lastFormation = savedFormation;
+        portIdentity = savedFormation;
+        knownPorts.clear();
+        int[] ports = app.getIntArray("Ports");
+        portIndexReady = savedFormation != null && app.getInteger("PortIndexVersion") == 1 && ports.length <= 200006;
+        if (portIndexReady) for (int port : ports) knownPorts.add(port);
+        portIndexCursor = 0;
+        portIndexUnknown = false;
+        restoredTower = false;
+        nextRestoreCheck = 0;
         formedSectors = scanCursor = 0;
         tower.reset();
         for (CriticalStructureMonitor sector : sectors) sector.reset();
@@ -1099,11 +1469,16 @@ public final class CenterStructure {
         boolean awaitingPorts;
 
         Frame(IGregTechTileEntity te) {
-            world = te.getWorld();
-            x = te.getXCoord();
-            y = te.getYCoord();
-            z = te.getZCoord();
-            facing = CriticalStructureAlignment.horizontal(te.getFrontFacing());
+            this(te.getWorld(), te.getXCoord(), te.getYCoord(), te.getZCoord(), te.getFrontFacing());
+            awaitingPorts = recovering(te);
+        }
+
+        Frame(World world, int x, int y, int z, ForgeDirection facing) {
+            this.world = world;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.facing = CriticalStructureAlignment.horizontal(facing);
         }
 
         int x(int x, int z) {

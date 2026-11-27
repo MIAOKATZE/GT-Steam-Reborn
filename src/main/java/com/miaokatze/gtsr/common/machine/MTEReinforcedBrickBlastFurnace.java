@@ -36,6 +36,7 @@ import com.gtnewhorizons.modularui.common.widget.SlotWidget;
 import com.gtnewhorizons.modularui.common.widget.TextWidget;
 import com.miaokatze.gtsr.common.gui.MTEReinforcedBrickBlastFurnaceGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
@@ -354,6 +355,7 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
             return;
         }
 
+        if (GtsrStructureRecovery.isRecovering(this)) return;
         if (mMachine) {
             boolean working = mMaxProgresstime > 0 || aBaseMetaTileEntity.isActive();
             if (working) {
@@ -361,9 +363,8 @@ public class MTEReinforcedBrickBlastFurnace extends MTEGTSRMultiBlockBase<MTERei
             } else {
                 mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
             }
-        } else if (mStartUpCheck <= 0) {
-            // 加载豁免期（GT5U mStartUpCheck 100 tick 内未检结构，"启动中....."阶段）冻结炉温，
-            // 避免退出重进后结构检测延迟期间异常降温
+        } else {
+            // 已知结构失效或原生恢复窗口结束后正常散热。
             mFurnaceTemperature = Math.max(0.0d, mFurnaceTemperature - TEMPERATURE_DECREMENT);
         }
         workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);

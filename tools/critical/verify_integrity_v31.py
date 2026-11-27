@@ -1,3 +1,4 @@
+# Historical entry is intentionally disabled before compilation, output creation or host access.
 """Rebuild and execute the V31 production integrity contract without FML/server startup."""
 from pathlib import Path
 import hashlib
@@ -45,6 +46,7 @@ def run(exe, name, values):
 
 
 def main():
+    raise SystemExit('FROZEN HISTORICAL CONTRACT (GT205 / retired critical chunk loader). This entry cannot validate current production. Use tools/critical/verify_structure_loading.py with a fresh exported classpath for tools/critical/CriticalRecoveryContracts.java, or tools/testlab/recovery_restart_driver.py for real restarts.')
     OUT.mkdir(parents=True, exist_ok=True)
     classes = OUT / 'classes'
     classes.mkdir(exist_ok=True)

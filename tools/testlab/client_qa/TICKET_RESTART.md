@@ -1,4 +1,6 @@
-# 原生区块票据同存档重开回归
+# 历史归档：GT205 / v12138 原生票据同存档重开
+
+> 此页及下列命令仅记录冻结历史结果。当前 `run.py --mode ticket-restart` 与 Java helper 已在任何实例操作前明确拒绝运行。临界机器现已移除自带加载和旧 loader API；本页不能作为当前版本的验收入口。当前离线边界使用 [CriticalRecoveryContracts.java](../../critical/CriticalRecoveryContracts.java)／[verify_structure_loading.py](../../critical/verify_structure_loading.py)，真实重启使用 [recovery_restart_driver.py](../recovery_restart_driver.py)。离线新合同不覆盖历史完整 ConstructionOwnership 套件，也不代表真实重启通过。
 
 这是独立的开发测试模式，不执行 UI 套件，也不进入交付 jar。沿用 owned 离线客户端、显式 JVM 属性与测试维度配置双重门禁、全局 lease、内存预检。原实例、账户、世界与 EULA 均不修改。
 

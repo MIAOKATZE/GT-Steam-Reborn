@@ -1,3 +1,4 @@
+# Historical entry is intentionally disabled before compilation, output creation or host access.
 """Isolated v31 production-class/Pbuffer probe. Never starts Minecraft, FML or a server."""
 from pathlib import Path
 import argparse, hashlib, json, subprocess, zipfile
@@ -8,6 +9,7 @@ JAVA = Path.home()/'.gradle/jdks/azul_systems__inc_-17-amd64-windows.2/bin'
 
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 def main():
+    raise SystemExit('FROZEN HISTORICAL CONTRACT (GT205 / retired critical chunk loader). This entry cannot validate current production. Use tools/critical/verify_structure_loading.py with a fresh exported classpath for tools/critical/CriticalRecoveryContracts.java, or tools/testlab/recovery_restart_driver.py for real restarts.')
     parser=argparse.ArgumentParser(); parser.add_argument('--jar',type=Path); parser.add_argument('--phase',default='exploratory');parser.add_argument('--section',choices=['all','chunks'],default='all')
     args=parser.parse_args(); out=OUT/args.phase; out.mkdir(parents=True,exist_ok=True)
     classes=out/'classes'; classes.mkdir(exist_ok=True); natives=out/'natives'; natives.mkdir(exist_ok=True)

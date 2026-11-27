@@ -1,3 +1,5 @@
+// FROZEN HISTORICAL GT205/V31 SOURCE: not a current production contract.
+// Its Python entry is disabled; use CriticalRecoveryContracts.java and recovery_restart_driver.py.
 package com.miaokatze.gtsr.common.critical;
 
 import java.lang.reflect.*;
@@ -15,10 +17,15 @@ import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
 /** Extends the real Forge force/release probe with actual production restore callbacks and supervisor. */
 public final class CriticalV31ChunkCallbacks {
+    private static void rejectHistoricalEntry() {
+        throw new IllegalStateException("Frozen historical critical loading contract; use tools/critical/CriticalRecoveryContracts.java and tools/testlab/recovery_restart_driver.py");
+    }
+
     static final JsonArray rows=new JsonArray();
     static void check(boolean pass,String name){JsonObject row=new JsonObject();row.addProperty("name",name);row.addProperty("pass",pass);rows.add(row);if(!pass)throw new AssertionError(name);}
     static Field field(Class<?> type,String name)throws Exception{Field f=type.getDeclaredField(name);f.setAccessible(true);return f;}
     @SuppressWarnings("unchecked")public static void main(String[] args)throws Exception {
+        rejectHistoricalEntry();
         JsonObject report=new JsonObject();
         try {
             var unsafe=(sun.misc.Unsafe)field(sun.misc.Unsafe.class,"theUnsafe").get(null);CriticalChunkLoadingV31Probe.unsafe=unsafe;CriticalIntegrityContract.unsafe=unsafe;CriticalIntegrityContract.materials();

@@ -36,6 +36,7 @@ import com.miaokatze.gtsr.common.gui.cluster.MTESteamMineralLogisticsClusterNati
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEHatchPressureSteamInput;
 import com.miaokatze.gtsr.common.machine.base.MTESteamInputHatchGeneric;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.structure.GTSRStructureUtility;
 import com.miaokatze.gtsr.common.terminal.ClusterTerminalData;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;
@@ -729,7 +730,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
      * 单元被移除通知（单元侧破坏/失联时调用）：拓扑移除 + 断开连接 + 触发近期结构重检。
      *
      * <p>
-     * mStartUpCheck=100 为 GT5U「一次性事件型重检」惯例（100 tick 后由父类 --mStartUpCheck==0
+     * mUpdate=100 为 GT5U「一次性事件型重检」惯例（100 tick 后由父类 --mUpdate==0
      * 触发一次 checkStructure，随后继续自减入负值不再触发）。事件式单次赋值，不得放进每 tick
      * 路径反复置位（结构重检保持事件式，禁止周期全量 checkMachine）。
      */
@@ -739,7 +740,7 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         topology.removeUnit(unit);
         forgetSlotsOf(unit);
         unit.disconnect();
-        mStartUpCheck = 100;
+        mUpdate = 100;
     }
 
     /** @return 总控多方块结构当前是否成型（模块侧定点反解验证用，MTEClusterUnitBase 成型边沿调用）。 */
@@ -750,12 +751,12 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
     /**
      * 事件式重检请求（终验反馈缺陷1根因B）：模块自身成型成功但尚未接入集群时，由
      * {@code MTEClusterUnitBase.checkMachine} 成功边沿经定点反解（80 格内找到本总控且已成型）
-     * 调用。与 {@link #onUnitRemoved} 同口径——单次置 mStartUpCheck=100，100 tick 后父类触发一次
+     * 调用。与 {@link #onUnitRemoved} 同口径——单次置 mUpdate=100，100 tick 后父类触发一次
      * checkStructure 扫描挂点接入该模块；事件式单次赋值，不得放进每 tick 路径反复置位
      * （红线：禁止周期全量 checkMachine）。
      */
     public void requestStructureRecheck() {
-        mStartUpCheck = 100;
+        mUpdate = 100;
     }
 
     /**
@@ -793,10 +794,15 @@ public class MTESteamMineralLogisticsCluster extends MTEGTSRMultiBlockBase<MTESt
         // 恒 false，正面贴图恒停机；改为显式覆写（isClusterWorkingForDisplay：成型+供给锁存+
         // [开机且允许工作 || 有在飞物流配方]），满热+供汽自然保持，关电/断供只挡下一批、
         // 在飞收尾期间动画照常；未成型时亦为 false（覆盖下方早退分支的工作态清位）
+        if (GtsrStructureRecovery.isRecovering(this)) {
+            aBaseMetaTileEntity.setActive(false);
+            return;
+        }
+
         aBaseMetaTileEntity.setActive(isClusterWorkingForDisplay());
 
         // 结构未成型：停机衰减（-5/tick）、经济红标清位、吞吐清 0；满热丢失边沿日志。
-        // 懒加载守卫（SR-Cluster-r5 决策 13）：GT5U 重载后 mStartUpCheck=100 首检窗口内 mMachine
+        // 懒加载守卫（SR-Cluster-r5 决策 13）：GT5U 重载后 mUpdate=100 首检窗口内 mMachine
         // 尚未由 checkStructure 判定——此时不得衰减热量/清经济红标/写边沿日志/结算（NBT 热量跨
         // 重载冻结保持）；窗口过后结构真坏则照常衰减。（旧"仅关粒子窗"守卫已随静态窗口 API 删除——
         // 粒子门控唯一权威是字节同步 mWorkingForFX，客户端实例的挂点候选由 tier 归 -1 配对清理）

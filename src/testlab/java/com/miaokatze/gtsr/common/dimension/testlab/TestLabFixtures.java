@@ -463,7 +463,6 @@ public final class TestLabFixtures {
             player.setPosition(state.xCoord + 0.5, state.yCoord, state.zCoord + 0.5);
             if (!state.setEnabled(player, false))
                 throw new IllegalStateException("Cannot stop lab construction journal before reset: " + id);
-            state.setChunkLoadingEnabled(false);
             state.invalidate();
             if (!id.isEmpty()) CriticalWorldData.get(world)
                 .release(id);

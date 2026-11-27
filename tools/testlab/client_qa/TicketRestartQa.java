@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 
-/** Owned, double-gated native ticket lifecycle test. No fake worlds or seeded ticket objects. */
+/** Frozen GT205/v12138 ticket fixture. Constructor rejects this retired loader scenario. */
 public final class TicketRestartQa {
     static final String LOADER="com.miaokatze.gtsr.common.critical.CriticalChunkLoading";
     static final String MANAGER="com.miaokatze.gtsr.common.critical.CriticalChunkTicketManager";
@@ -32,7 +32,10 @@ public final class TicketRestartQa {
         String savePath;final List<Fixture> fixtures=new ArrayList<Fixture>();
         final List<Object> orphanHosts=new ArrayList<Object>();final Set<Integer> high=new HashSet<Integer>(),low=new HashSet<Integer>();
     }
-    TicketRestartQa(Mui2ClientQa owner){q=owner;q.receipt.addProperty("mode","ticket-restart");q.receipt.addProperty("jvmIdentity",jvm);q.receipt.add("ticketEvents",events);q.receipt.addProperty("fixtureScope","Real registered GT BaseMetaTileEntity and native GTSR/Forge ticket APIs; no formed 4480-block loom or journal-owner restoration claim");q.receipt.addProperty("inputType","Synthetic in-process world launch/unload and production ticket API; no UI suite, physical input, fake world, Unsafe or manual unload event");}
+    private static void rejectRetiredContract() {
+        throw new IllegalStateException("Historical ticket-restart mode retired; use tools/testlab/recovery_restart_driver.py and CriticalRecoveryContracts.java");
+    }
+    TicketRestartQa(Mui2ClientQa owner){rejectRetiredContract();q=owner;q.receipt.addProperty("mode","ticket-restart");q.receipt.addProperty("jvmIdentity",jvm);q.receipt.add("ticketEvents",events);q.receipt.addProperty("fixtureScope","Real registered GT BaseMetaTileEntity and native GTSR/Forge ticket APIs; no formed 4480-block loom or journal-owner restoration claim");q.receipt.addProperty("inputType","Synthetic in-process world launch/unload and production ticket API; no UI suite, physical input, fake world, Unsafe or manual unload event");}
     static Object call(Object target,String name,Object...args)throws Exception{return Mui2ClientQa.call(target,name,args);}
     static Object field(Object target,String name)throws Exception{return Mui2ClientQa.field(target,name);}
     static Class<?> type(String name)throws Exception{return Mui2ClientQa.type(name);}

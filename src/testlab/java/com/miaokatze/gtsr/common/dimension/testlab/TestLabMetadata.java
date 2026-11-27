@@ -52,6 +52,7 @@ final class TestLabMetadata {
         boolean client = task.id()
             .startsWith("ui.client.");
         boolean followup = task instanceof TestLabFollowupTask || task instanceof TestLabAmmoniaNaturalTask
+            || task instanceof TestLabRecoveryRestart
             || REGRESSIONS.contains(task.id());
         String group = task instanceof TestLabIntegrationCenter || task instanceof TestLabIntegrationCenterMachine
             || task instanceof TestLabIntegrationCenterEntityPressure

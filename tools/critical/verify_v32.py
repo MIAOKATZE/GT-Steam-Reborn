@@ -1,3 +1,4 @@
+# Historical entry is intentionally disabled before compilation, output creation or host access.
 """Execute the V32 production completion and hatch contract without FML/server startup."""
 from pathlib import Path
 import hashlib
@@ -15,7 +16,7 @@ OWNED = [ROOT / 'src/main/java/com/miaokatze/gtsr' / name for name in (
     'common/critical/CriticalStructures.java', 'common/critical/CriticalTooltips.java')]
 OWNED += [ROOT / 'src/main/resources/assets/gtsr/lang' / name for name in ('zh_CN.lang', 'en_US.lang')]
 PRODUCTION = [ROOT / 'src/main/java/com/miaokatze/gtsr/common/critical' / name for name in (
-    'CriticalStructureMonitor.java', 'CriticalMachineState.java', 'CriticalChunkLoading.java',
+    'CriticalStructureMonitor.java', 'CriticalMachineState.java',
     'CriticalChunkTicketManager.java', 'CriticalBlockProtection.java', 'CriticalWorldData.java',
     'CriticalRuntime.java', 'CriticalGeometry.java', 'CriticalStructures.java', 'CriticalLoomStructure.java',
     'CriticalConfiguration.java', 'CriticalMachineKind.java', 'CriticalMaterials.java',
@@ -49,6 +50,7 @@ def run(exe, name, values):
 
 
 def main():
+    raise SystemExit('FROZEN HISTORICAL CONTRACT (GT205 / retired critical chunk loader). This entry cannot validate current production. Use tools/critical/verify_structure_loading.py with a fresh exported classpath for tools/critical/CriticalRecoveryContracts.java, or tools/testlab/recovery_restart_driver.py for real restarts.')
     parser = argparse.ArgumentParser()
     parser.add_argument('--jar', type=Path)
     options = parser.parse_args()

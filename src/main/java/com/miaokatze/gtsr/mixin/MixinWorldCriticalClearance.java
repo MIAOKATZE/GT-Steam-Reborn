@@ -16,6 +16,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.miaokatze.gtsr.common.critical.CriticalBlockProtection;
 import com.miaokatze.gtsr.common.critical.CriticalRuntime;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterClaims;
 
 /** Tracks natural and player block changes only while a sparse first-start scan is pending. */
 @Mixin(World.class)
@@ -44,11 +45,17 @@ public abstract class MixinWorldCriticalClearance {
     @Inject(method = "setBlock(IIILnet/minecraft/block/Block;II)Z", at = @At("RETURN"), require = 1)
     private void gtsr$placed(int x, int y, int z, Block block, int metadata, int flags,
         CallbackInfoReturnable<Boolean> cir) {
-        if (cir.getReturnValue()) CriticalRuntime.changedDuringClearance((World) (Object) this, x, y, z);
+        if (cir.getReturnValue()) {
+            CriticalRuntime.changedDuringClearance((World) (Object) this, x, y, z);
+            CenterClaims.changed((World) (Object) this, x, y, z);
+        }
     }
 
     @Inject(method = "setBlockMetadataWithNotify", at = @At("RETURN"), require = 1)
     private void gtsr$metadata(int x, int y, int z, int metadata, int flags, CallbackInfoReturnable<Boolean> cir) {
-        if (cir.getReturnValue()) CriticalRuntime.changedDuringClearance((World) (Object) this, x, y, z);
+        if (cir.getReturnValue()) {
+            CriticalRuntime.changedDuringClearance((World) (Object) this, x, y, z);
+            CenterClaims.changed((World) (Object) this, x, y, z);
+        }
     }
 }

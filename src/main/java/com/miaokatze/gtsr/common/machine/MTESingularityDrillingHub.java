@@ -730,7 +730,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
     private String resolveNodeTypeAt(int x, int y, int z, int dim) {
         World world = DimensionManager.getWorld(dim);
         if (world == null) return "miner";
-        ensureChunkLoaded(world, x, z);
+        if (!HubTeleportUtil.ensureAutomationChunkLoaded(world, x, z)) return "miner";
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof IGregTechTileEntity gte) {
             if (gte.getMetaTileEntity() instanceof MTERemoteWorkerNode node) {
@@ -928,7 +928,7 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
             return null;
         }
         if (!world.blockExists(bound.x, 0, bound.z)) {
-            if (!loadChunk || !HubTeleportUtil.ensureChunkLoaded(world, bound.x, bound.z)) {
+            if (!loadChunk || !HubTeleportUtil.ensureAutomationChunkLoaded(world, bound.x, bound.z)) {
                 bound.cachedWorker = null;
                 bound.nextLookupTick = now + 20;
                 return null;
@@ -973,20 +973,6 @@ public class MTESingularityDrillingHub extends MTESteamMultiBlockBase<MTESingula
                 base.getYCoord(),
                 base.getZCoord(),
                 base.getWorld().provider.dimensionId);
-    }
-
-    /**
-     * 在访问跨维度节点前，确保其所在 chunk 已加载到内存。
-     * 仅作为节点自身 chunk ticket 的后备；成功加载后节点的 onPostTick 会自行维护 ticket。
-     */
-    private static void ensureChunkLoaded(World world, int x, int z) {
-        if (world.blockExists(x, 0, z)) return;
-        try {
-            world.getChunkProvider()
-                .loadChunk(x >> 4, z >> 4);
-        } catch (Exception e) {
-            // 加载失败（如世界生成器异常）时保持原行为：后续 blockExists 会返回 false
-        }
     }
 
     /**

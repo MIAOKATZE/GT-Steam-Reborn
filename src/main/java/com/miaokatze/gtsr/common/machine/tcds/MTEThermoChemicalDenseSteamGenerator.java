@@ -51,6 +51,7 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.api.progress.GTSRProgressEntry;
 import com.miaokatze.gtsr.common.gui.MTEThermoChemicalDenseSteamGeneratorGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.terminal.TerminalNet;
 import com.miaokatze.gtsr.common.terminal.TerminalUiType;
 import com.miaokatze.gtsr.common.util.GTSRUtils;
@@ -810,11 +811,16 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
         }
 
         // 每 tick 分摊输出（缓冲 → 输出仓）
+        if (GtsrStructureRecovery.isRecovering(this)) {
+            aBaseMetaTileEntity.setActive(false);
+            return;
+        }
+
         distributeBufferToOutputHatches();
 
         // 每 20 tick 热量结算（heat 为 %，NBT 持久化）
         if (aTick % 20 == 0) {
-            boolean running = mMaxProgresstime > 0; // 最近一次 checkProcessing 成功产出
+            boolean running = isRunningCycle();
             if (running) {
                 if (mHeat < 100.0d) {
                     mHeat = Math.min(100.0d, mHeat + 0.5d);
@@ -826,6 +832,10 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
                 mHeat = Math.max(0.0d, mHeat - 1.0d);
             }
         }
+    }
+
+    private boolean isRunningCycle() {
+        return mMachine && !GtsrStructureRecovery.isUnknownStructurePause(this) && mMaxProgresstime > 0;
     }
 
     // ===== 螺丝刀输出档位（范式 MTEDenseStateManipulator.onScrewdriverRightClick）=====
@@ -930,8 +940,8 @@ public class MTEThermoChemicalDenseSteamGenerator extends MTEGTSRMultiBlockBase<
 
     @Override
     public byte getUpdateData() {
-        // bit0 = 工作态（最近一次 checkProcessing 成功产出 = mMaxProgresstime > 0），驱动客户端粒子
-        return (byte) (mMaxProgresstime > 0 ? 0x01 : 0x00);
+        // Retained paid progress during a structure pause does not authorize operating particles.
+        return (byte) (isRunningCycle() ? 0x01 : 0x00);
     }
 
     @Override

@@ -64,6 +64,7 @@ import com.miaokatze.gtsr.common.gui.MTELargeSolarOverpressureArrayGui;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRMultiBlockBase;
 import com.miaokatze.gtsr.common.machine.base.MTEPressureSteamOutputHatch;
 import com.miaokatze.gtsr.common.machine.base.MTESteamOutputHatch;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualDefinition;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualHost;
 import com.miaokatze.gtsr.common.machinevisual.MachineVisualState;
@@ -630,7 +631,7 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
             return;
         }
         // 加载保护必须在结构早退之前；不改变正常拆壳后的散热。
-        if (mStartUpCheck > 0) {
+        if (GtsrStructureRecovery.isRecovering(this)) {
             workVisualState.observe(this, aTick, mMachine, mProgresstime, mMaxProgresstime, true);
             return;
         }
@@ -684,9 +685,8 @@ public class MTELargeSolarOverpressureArray extends MTEGTSRMultiBlockBase<MTELar
             boolean canHeat = isClearWeather && isDay && mSunRatio > 0;
             boolean wasHeating = mIsHeating;
 
-            // 加载豁免期（GT5U mStartUpCheck 100 tick 内未检结构，"启动中....."阶段）：冻结热量，
-            // 避免退出重进后结构检测延迟期间异常降温（与地热 mStructureGraceTicks/焦炉 mMachine 门控同语义）
-            if (mStartUpCheck > 0) {
+            // 统一原生恢复窗口内冻结热量；窗口结束后按实际运行状态结算。
+            if (GtsrStructureRecovery.isRecovering(this)) {
                 mIsHeating = false;
             } else if (canHeat && aBaseMetaTileEntity.isAllowedToWork()) {
                 // 超压模式升温速率 ×0.2

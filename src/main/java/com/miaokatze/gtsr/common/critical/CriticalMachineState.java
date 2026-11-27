@@ -307,9 +307,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private final Map<List<CriticalGeometry.Voxel>, List<CriticalGeometry.Voxel>> paidStageCache = new IdentityHashMap<>();
     private int scanCursor; // Dismantling/removal audit cursor; independent of the continuous monitor.
     private final CriticalStructureMonitor structureMonitor = new CriticalStructureMonitor();
-    public static final int STRUCTURE_LOAD_GRACE_TICKS = 2400;
-    private int structureLoadTicks;
-    private long lastStructureLoadingTick = Long.MIN_VALUE;
     private List<CriticalGeometry.Voxel> integrityOptionalPorts;
     private final BitSet placed = new BitSet();
     private final Map<CriticalGeometry.Voxel, Integer> voxelIndices = new IdentityHashMap<>();
@@ -323,7 +320,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     private int clientJobTotal, clientReason;
     private boolean clientWorking;
     private long clientCycleAnchor;
-    private final CriticalChunkLoading chunkLoading = new CriticalChunkLoading();
     private List<net.minecraft.world.ChunkCoordIntPair> loomChunksCache;
     private List<net.minecraft.world.ChunkCoordIntPair> loomValidationChunksCache;
     private String pendingConstructionPlayer = "";
@@ -964,13 +960,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     /** Server-thread only. This method never requests a chunk or reads an unloaded position. */
     void tickStructureMonitor() {
         if (worldObj == null || worldObj.isRemote || state != 2 && !(state == 4 && damageHighlightScanPending)) return;
-        if (!areStructureChunksLoaded()) {
-            boolean before = structureValid;
-            structureMonitor.pauseUnloaded();
-            structureValid = false;
-            if (before) changed();
-            return;
-        }
+        boolean footprintLoaded = areStructureChunksLoaded();
+        if (!footprintLoaded && structureValid) structureMonitor.pauseUnloaded();
         List<CriticalGeometry.Voxel> geometry = allVoxels();
         if (integrityOptionalPorts == null) integrityOptionalPorts = CriticalGeometry.optionalWorkPorts(this);
         boolean before = structureValid;
@@ -982,17 +973,37 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             int x = wx(voxel), y = wy(voxel), z = wz(voxel);
             if (!worldObj.getChunkProvider()
                 .chunkExists(x >> 4, z >> 4)) return CriticalStructureMonitor.Sample.UNLOADED;
+            if (isNativeTilePending(voxel)) return CriticalStructureMonitor.Sample.UNLOADED;
             boolean matches = optional ? worldObj.isAirBlock(x, y, z) || isStandardHatch(voxel) : matches(voxel);
             if (!optional && !matches) observeDamagedPlacement(voxel);
             rememberDamage(voxel, !matches);
             return matches ? CriticalStructureMonitor.Sample.MATCH : CriticalStructureMonitor.Sample.BROKEN;
         });
         if (state == 2) {
-            structureValid = valid;
+            structureValid = valid && footprintLoaded;
             if (structureValid) completionValidationPending = false;
         }
         if (rounds != structureMonitor.getCompletedRounds()) damageHighlightScanPending = false;
         if (before != structureValid) changed();
+    }
+
+    /** A native machine block can arrive before its GT tile/meta during chunk restoration. */
+    private boolean isNativeTilePending(CriticalGeometry.Voxel voxel) {
+        int x = wx(voxel), y = wy(voxel), z = wz(voxel);
+        if (!worldObj.getChunkProvider()
+            .chunkExists(x >> 4, z >> 4)) return true;
+        if (!com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery.isRecovering(gtMachine())) return false;
+        if (worldObj.getBlock(x, y, z) != gregtech.api.GregTechAPI.sBlockMachines) return false;
+        TileEntity tile = worldObj.getTileEntity(x, y, z);
+        return tile == null || tile instanceof gregtech.api.interfaces.tileentity.IGregTechTileEntity gt
+            && gt.getMetaTileEntity() == null;
+    }
+
+    public boolean areLoomNativeTilesPending() {
+        if (worldObj == null) return true;
+        for (CriticalGeometry.Voxel voxel : CriticalLoomStructure.voxels(this))
+            if (isNativeTilePending(voxel)) return true;
+        return false;
     }
 
     private void revokeGeometryValidation() {
@@ -1367,7 +1378,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         pendingConstructionPlayer = "";
         if (!(clearanceTargets == null ? forceLoomStructureCheck() : isLoomStructureValid())) {
-            chunkLoading.release(host);
+            CriticalChunkTicketManager.releaseLegacyTickets(host);
             return fail("必要织机结构缺损，请先手搭完整织机及仓口");
         }
         if (getOriginY() < 0 || getOriginY() + getRegionHeight() > worldObj.getHeight()) return fail("施工高度超出世界");
@@ -1550,7 +1561,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         clearanceRechecks.clear();
         clearanceTargetPositions.clear();
         CriticalRuntime.unregisterClearance(this);
-        chunkLoading.release(host);
+        CriticalChunkTicketManager.releaseLegacyTickets(host);
         return fail(reason);
     }
 
@@ -1829,8 +1840,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
 
     public void onChunkUnload() {
         invalidateStructure();
-        structureLoadTicks = 0;
-        lastStructureLoadingTick = Long.MIN_VALUE;
         // Follow GT drillers: Forge persists/unloads tickets, then GT clears owners on server stop.
         // Releasing here runs after Forge's HIGHEST world-unload handler has removed its ticket map.
         if (worldObj != null && !worldObj.isRemote) {
@@ -1844,7 +1853,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         invalidateStructure();
         clearPendingClearance();
         CriticalRenderAnchors.remove(this);
-        chunkLoading.release(host);
+        CriticalChunkTicketManager.releaseLegacyTickets(host);
         if (worldObj != null && !worldObj.isRemote) data().releaseNight(structureId);
 
     }
@@ -2281,7 +2290,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
     }
 
     private boolean ensureConstructionWindow(List<CriticalGeometry.Voxel> voxels, int start, int end) {
-        return chunkLoading.ensureAllStructureChunks(worldObj, host, loomChunks());
+        return worldObj != null && !worldObj.isRemote
+            && host != null
+            && !host.isInvalid()
+            && host.getWorldObj() == worldObj
+            && areStructureChunksLoaded();
     }
 
     private int loadedWindowEnd(List<CriticalGeometry.Voxel> voxels, int start, int end) {
@@ -2289,8 +2302,8 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
             : start == end ? end : -1;
     }
 
-    /** Canonical coordinates for the native restart callback; never trust a saved arbitrary chunk list. */
-    public List<net.minecraft.world.ChunkCoordIntPair> getChunkLoadingFootprint() {
+    /** Canonical physical coverage, without requesting or retaining chunk tickets. */
+    public List<net.minecraft.world.ChunkCoordIntPair> getStructureFootprint() {
         return loomChunks();
     }
 
@@ -2309,34 +2322,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         return true;
     }
 
-    private boolean areStructureChunksLoaded() {
+    public boolean areStructureChunksLoaded() {
+        if (worldObj == null) return false;
         for (net.minecraft.world.ChunkCoordIntPair chunk : loomChunks()) if (!worldObj.getChunkProvider()
             .chunkExists(chunk.chunkXPos, chunk.chunkZPos)) return false;
         return true;
-    }
-
-    private boolean canRecoverLoomLoading() {
-        if (structureLoadTicks >= STRUCTURE_LOAD_GRACE_TICKS || state == 0) return false;
-        allVoxels();
-        return ownsTask() && jobFingerprint == modelFingerprint;
-    }
-
-    public CriticalChunkLoading getChunkLoading() {
-        return chunkLoading;
-    }
-
-    public boolean isChunkLoadingEnabled() {
-        return chunkLoading.isEnabled();
-    }
-
-    public void setChunkLoadingEnabled(boolean value) {
-        chunkLoading.setEnabled(value);
-        markDirty();
-    }
-
-    public net.minecraft.world.ChunkCoordIntPair getActiveConstructionChunk() {
-        net.minecraft.world.ChunkCoordIntPair chunk = chunkLoading.getActiveChunk();
-        return chunk != null ? chunk : new net.minecraft.world.ChunkCoordIntPair(xCoord >> 4, zCoord >> 4);
     }
 
     private boolean areaLoaded() {
@@ -2434,7 +2424,19 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (worldObj == null || worldObj.isRemote) return;
         if (!placementInvalidationsReconciled) reconcilePlacementInvalidations();
         updateSolarPowerDemand();
-        CriticalEnergyRuntime.idleTick(this);
+        boolean loomLoaded = areLoomChunksLoaded();
+        boolean loomNativePending = loomLoaded && areLoomNativeTilesPending();
+        boolean loomGeometry = loomLoaded && isLoomGeometryValid();
+        // Positive loom damage revokes protection before this tick can preserve any heat.
+        if (loomLoaded && !loomGeometry && !loomNativePending) revokeGeometryValidation();
+        boolean loomPending = !loomLoaded || loomNativePending
+            || gtMachine() != null && gtMachine().isLoomValidationPending();
+        // The shared native startup budget protects retained heat while the physical verdict is unknown.
+        // Real damage is still sampled below and cannot authorize production during recovery.
+        if (!(state == 2 && (loomPending || !areStructureChunksLoaded() || !structureValid)
+            && !structureMonitor.hasKnownDamage()
+            && com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery.isRecovering(gtMachine())))
+            CriticalEnergyRuntime.idleTick(this);
         // v2.0.5 could finish teardown with generated EU still in the legacy output journal.
         // Moving already-generated EU into the real GT buffer is safe even with power disabled.
         if (state == 0 && pendingGenerated > 0) {
@@ -2443,22 +2445,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
                 changed();
             }
         }
-        boolean loomLoaded = areLoomChunksLoaded();
-        boolean loomGeometry = loomLoaded && isLoomGeometryValid();
-        // A saved, identity-checked journal may restore its footprint while its loom chunks arrive.
-        // Spend one cumulative budget per load session, only on actual unready world ticks. A ready
-        // interval neither consumes nor renews it, and repeated same-tick calls cannot spend it twice.
-        long loadingTick = worldObj.getTotalWorldTime();
-        if (!areStructureChunksLoaded() && loadingTick != lastStructureLoadingTick) {
-            lastStructureLoadingTick = loadingTick;
-            if (structureLoadTicks < STRUCTURE_LOAD_GRACE_TICKS) structureLoadTicks++;
-        }
-        if (loomGeometry || !loomLoaded && canRecoverLoomLoading())
-            chunkLoading.ensureAllStructureChunks(worldObj, host, loomChunks());
-        else {
-            chunkLoading.release(host);
-            if (loomLoaded) revokeGeometryValidation();
-        }
+        CriticalChunkTicketManager.releaseLegacyTickets(host);
         tickStructureMonitor();
         tickStellarSession();
         supplementSupplyTerrace();
@@ -2495,11 +2482,11 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         }
         if (!loomLoaded) {
             if (config.kind != CriticalMachineKind.SOLAR) data().releaseNight(structureId);
-            fail(structureLoadTicks >= STRUCTURE_LOAD_GRACE_TICKS ? "结构加载等待超时，保留工单等待区块恢复" : "结构加载等待，保留工单");
+            fail("结构加载等待，保留工单");
             return;
         }
         if (!isLoomStructureValid()) {
-            if (!isLoomGeometryValid()) revokeGeometryValidation();
+            if (!isLoomGeometryValid() && !areLoomNativeTilesPending()) revokeGeometryValidation();
             if (config.kind != CriticalMachineKind.SOLAR) data().releaseNight(structureId);
             fail("必要织机结构缺损，请手动修复织机");
             return;
@@ -3686,7 +3673,7 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         if (!supplyTerracePlaced.isEmpty() && !removeSupplyTerrace()) return;
         if (!supplyHullPlaced.isEmpty() && !removeSupplyHull()) return;
         CriticalRenderAnchors.remove(this);
-        chunkLoading.release(host);
+        CriticalChunkTicketManager.releaseLegacyTickets(host);
         if (foundationRequired) data().discardIncompleteFoundations(structureId, loomChunks());
         data().release(structureId);
         state = 0;
@@ -4341,7 +4328,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         n.setBoolean("foundationModern", foundationModern);
         n.setInteger("foundationScheduleVersion", foundationScheduleVersion);
         n.setInteger("foundationCuringCheckTicks", foundationCuringCheckTicks);
-        n.setBoolean("chunkLoadingEnabled", isChunkLoadingEnabled());
         n.setInteger("geometryVersion", getGeometryVersion());
         n.setInteger("v2LayoutRevision", v2LayoutRevision);
         n.setInteger("structureFacing", getStructureFacing().ordinal());
@@ -4417,7 +4403,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         foundationModern = n.getBoolean("foundationModern");
         foundationScheduleVersion = foundationModern ? CriticalFoundationChunk.VERSION : 0;
         foundationCuringCheckTicks = Math.max(0, Math.min(399, n.getInteger("foundationCuringCheckTicks")));
-        chunkLoading.setEnabled(!n.hasKey("chunkLoadingEnabled") || n.getBoolean("chunkLoadingEnabled"));
         protectionDirty = true;
         geometryVersion = n.hasKey("geometryVersion") ? n.getInteger("geometryVersion") : 1;
         v2LayoutRevision = readV2LayoutRevision(n);
@@ -4501,8 +4486,6 @@ public class CriticalMachineState implements ISidedInventory, IFluidHandler, IEn
         structureMonitor.reset();
         integrityOptionalPorts = null;
         structureValid = false;
-        structureLoadTicks = 0;
-        lastStructureLoadingTick = Long.MIN_VALUE;
         resourceNbtQuarantine = n.hasKey("resourceNbtQuarantine", 10)
             ? (NBTTagCompound) n.getCompoundTag("resourceNbtQuarantine")
                 .copy()

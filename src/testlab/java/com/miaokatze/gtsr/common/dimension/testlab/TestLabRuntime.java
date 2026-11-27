@@ -169,6 +169,14 @@ public final class TestLabRuntime {
     public void run(String requested, ICommandSender sender) {
         initialize();
         if (busy()) throw new IllegalStateException("已有任务/重生成在运行；使用 status 或 stop");
+        if (requested.startsWith(TestLabRecoveryRestart.PREFIX)) {
+            begin(
+                java.util.Collections.singletonList(TestLabRecoveryRestart.select(requested)),
+                requested,
+                "RECOVERY_RESTART",
+                sender);
+            return;
+        }
         // Physical scenarios are repeatable only after their persisted hosts/regions and blocks are retired.
         reset(requested, sender);
     }

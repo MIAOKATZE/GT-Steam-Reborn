@@ -255,7 +255,7 @@ public abstract class MTEHubArrayBase<T extends MTEHubArrayBase<T>> extends MTEG
             return null;
         }
         if (!world.blockExists(bound.x, 0, bound.z)) {
-            if (!loadChunk || !HubTeleportUtil.ensureChunkLoaded(world, bound.x, bound.z)) {
+            if (!loadChunk || !HubTeleportUtil.ensureAutomationChunkLoaded(world, bound.x, bound.z)) {
                 bound.cachedTile = null;
                 bound.nextLookupTick = now + BOUND_NODE_RETRY_INTERVAL;
                 return null;

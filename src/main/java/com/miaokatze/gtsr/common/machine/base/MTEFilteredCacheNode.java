@@ -875,7 +875,7 @@ public abstract class MTEFilteredCacheNode extends MTEDigitalTankBase implements
     private boolean registerWithHub(IGregTechTileEntity aBaseMetaTileEntity) {
         World world = DimensionManager.getWorld(mHubDim);
         if (world == null) return false;
-        if (!HubTeleportUtil.ensureChunkLoaded(world, mHubX, mHubZ)) return false;
+        if (!HubTeleportUtil.ensureAutomationChunkLoaded(world, mHubX, mHubZ)) return false;
         if (!world.blockExists(mHubX, mHubY, mHubZ)) return false;
 
         TileEntity te = world.getTileEntity(mHubX, mHubY, mHubZ);

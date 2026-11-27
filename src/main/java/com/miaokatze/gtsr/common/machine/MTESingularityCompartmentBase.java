@@ -517,7 +517,7 @@ public interface MTESingularityCompartmentBase extends IHubCacheNode {
         HubCompartmentState s = getHubState();
         World world = DimensionManager.getWorld(s.hubDim);
         if (world == null) return false;
-        if (!HubTeleportUtil.ensureChunkLoaded(world, s.hubX, s.hubZ)) return false;
+        if (!HubTeleportUtil.ensureAutomationChunkLoaded(world, s.hubX, s.hubZ)) return false;
         if (!world.blockExists(s.hubX, s.hubY, s.hubZ)) return false;
 
         TileEntity te = world.getTileEntity(s.hubX, s.hubY, s.hubZ);

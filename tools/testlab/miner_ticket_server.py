@@ -1,9 +1,11 @@
+# Historical entry is intentionally disabled before compilation, output creation or host access.
 """Owned GT205 dedicated-server miner ticket check; no user instance or other process touched."""
 from pathlib import Path
 import argparse, os, json, subprocess, zipfile, re, hashlib, shutil
 ROOT=Path(__file__).resolve().parents[2]
 JAVA=Path.home()/'.gradle/jdks/azul_systems__inc_-17-amd64-windows.2/bin'
 def main():
+    raise SystemExit('FROZEN HISTORICAL CONTRACT (GT205 / retired critical chunk loader). This entry cannot validate current production. Use tools/critical/verify_structure_loading.py with a fresh exported classpath for tools/critical/CriticalRecoveryContracts.java, or tools/testlab/recovery_restart_driver.py for real restarts.')
     p=argparse.ArgumentParser();p.add_argument('--jar',type=Path,required=True);p.add_argument('--label',required=True);p.add_argument('--helper',type=Path);p.add_argument('--mode',choices=['core','mixed-stable'],default='core');a=p.parse_args()
     if not re.fullmatch(r'[a-zA-Z0-9_-]+',a.label):raise ValueError('Unsafe evidence label')
     run=ROOT/'build/ui-miner-v12141'/a.label;run.mkdir(exist_ok=False);classes=run/'classes';classes.mkdir()

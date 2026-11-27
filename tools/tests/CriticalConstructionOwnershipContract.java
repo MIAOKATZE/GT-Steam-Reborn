@@ -11,11 +11,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.*;
-import net.minecraftforge.common.ForgeChunkManager;
-import net.minecraftforge.common.ForgeChunkManager.Ticket;
 import net.minecraftforge.common.util.ForgeDirection;
 
-import com.google.common.collect.*;
 
 import gregtech.api.metatileentity.BaseMetaTileEntity;
 
@@ -32,29 +29,13 @@ public final class CriticalConstructionOwnershipContract {
         set(state, "blocksChangedThisTick", 0); set(state, "lightsChangedThisTick", 0); set(state, "blockBudgetStarted", 0L);
         invoke(state, "dismantle", new Class<?>[0]);
     }
-    @SuppressWarnings("unchecked")
     static void coverage(SparseWorld world, CriticalMachineState state) throws Exception {
         member(World.class, "provider").set(world, unsafe.allocateInstance(WorldProviderSurface.class));
         member(WorldProvider.class, "worldObj").set(world.provider, world);
         BaseMetaTileEntity host = state.getHost() instanceof BaseMetaTileEntity existing ? existing : (Host) unsafe.allocateInstance(Host.class);
         host.setWorldObj(world); host.xCoord = state.xCoord; host.yCoord = state.yCoord; host.zCoord = state.zCoord;
         world.tiles.put(key(host.xCoord, host.yCoord, host.zCoord), host); state.bindHost(host);
-        gregtech.api.enums.GTValues.enableChunkloaders = true;
-        member(CriticalChunkLoading.class, "registered").setBoolean(null, true);
-        member(CriticalChunkTicketManager.class, "mod").set(null, new Object());
-        member(ForgeChunkManager.class, "overridesEnabled").setBoolean(null, false);
-        member(ForgeChunkManager.class, "defaultMaxChunks").setInt(null, 128);
-        Map<World, Multimap<String, Ticket>> tickets = (Map<World, Multimap<String, Ticket>>) member(ForgeChunkManager.class, "tickets").get(null);
-        tickets.put(world, ArrayListMultimap.create());
-        Map<World, ImmutableSetMultimap<ChunkCoordIntPair, Ticket>> forced = (Map<World, ImmutableSetMultimap<ChunkCoordIntPair, Ticket>>) member(ForgeChunkManager.class, "forcedChunks").get(null);
-        forced.put(world, ImmutableSetMultimap.of());
-        Constructor<Ticket> constructor = Ticket.class.getDeclaredConstructor(String.class, ForgeChunkManager.Type.class, World.class);
-        constructor.setAccessible(true); Ticket ticket = constructor.newInstance("gtsr", ForgeChunkManager.Type.NORMAL, world);
-        ticket.getModData().setInteger("OwnerX", host.xCoord); ticket.getModData().setInteger("OwnerY", host.yCoord); ticket.getModData().setInteger("OwnerZ", host.zCoord);
-        tickets.get(world).put("gtsr", ticket);
-        ((Map<net.minecraft.tileentity.TileEntity, Ticket>) member(CriticalChunkTicketManager.class, "REGISTERED").get(null)).put(host, ticket);
-        for (ChunkCoordIntPair chunk : state.getFoundationChunks()) ForgeChunkManager.forceChunk(ticket, chunk);
-        check(state.getChunkLoading().ensureAllStructureChunks(world, host, state.getFoundationChunks()), "Real Forge ticket covers the bounded fixture");
+        check(state.areStructureChunksLoaded(), "Bounded fixture uses already loaded physical chunks, without an owner ticket");
     }
     private static CriticalFoundationChunk foundation(CriticalWorldData data, int x, int remaining) {
         CriticalFoundationChunk chunk = data.foundation(x, 7);
@@ -117,7 +98,7 @@ public final class CriticalConstructionOwnershipContract {
         set(state, "refundPrepared", true); set(state, "pendingItems", new ItemStack[] { new ItemStack(blockedOutput) });
         long cost = state.getTier().constructionVoltage(); set(state, "energy", cost);
         dismantle(state);
-        check(state.getCursor() > 0 && state.getEnergy() == 0, "Ordinary dismantling keeps its original per-tick construction-voltage debit: cursor=" + state.getCursor() + " EU=" + state.getEnergy() + " status=" + state.getStatus() + " loading=" + state.getChunkLoading().getStatus());
+        check(state.getCursor() > 0 && state.getEnergy() == 0, "Ordinary dismantling keeps its original per-tick construction-voltage debit: cursor=" + state.getCursor() + " EU=" + state.getEnergy() + " status=" + state.getStatus() + " physicalChunksLoaded=" + state.areStructureChunksLoaded());
         set(state, "cursor", 0);
         put(state, automatic, automatic.block);
         check(state.applyConstructionDebug(player, 0, 3, true), "Owner can enable existing energy exemption during dismantling");

@@ -25,6 +25,7 @@ import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalStructures;
 import com.miaokatze.gtsr.common.critical.CriticalTooltips;
 import com.miaokatze.gtsr.common.machine.base.MTEGTSRExtendedPowerMultiBlockBase;
+import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 
 import gregtech.api.interfaces.ITexture;
 import gregtech.api.interfaces.metatileentity.IMetaTileEntity;
@@ -38,8 +39,8 @@ import gregtech.api.util.MultiblockTooltipBuilder;
 
 /** One GT host owns the construction journal and runs the critical engine. */
 @IMetaTileEntity.SkipGenerateDescription
-public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase<MTECriticalMachine> implements
-    gregtech.api.interfaces.IChunkLoader, com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable {
+public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase<MTECriticalMachine>
+    implements com.gtnewhorizon.structurelib.alignment.constructable.ISurvivalConstructable {
 
     private final CriticalMachineKind presetKind;
     private final CriticalMachineState state = new CriticalMachineState();
@@ -135,7 +136,6 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         presetKind = kind;
         state.setLoomController(kind == null);
         state.presetKind(kind == null ? CriticalMachineKind.SUN : kind);
-        mStartUpCheck = 200;
         registerCriticalProgress();
     }
 
@@ -144,7 +144,6 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         presetKind = kind;
         state.setLoomController(kind == null);
         state.presetKind(kind == null ? CriticalMachineKind.SUN : kind);
-        mStartUpCheck = 200;
         registerCriticalProgress();
     }
 
@@ -396,9 +395,17 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public void checkMachine(IGregTechTileEntity tile, ItemStack stack, List<StructureError> errors) {
-        isLoomStructureValid();
         CriticalMachineState current = getCriticalState();
-        if (!current.isFabricationHostValid() || current.getState() == 2 && !current.isStructureValidated())
+        boolean loomLoaded = current.areLoomChunksLoaded();
+        boolean loomValid = isLoomStructureValid();
+        boolean physicalPending = current.getState() != 0 && !current.areStructureChunksLoaded();
+        boolean targetPending = current.getState() == 2 && !current.isStructureValidated();
+        boolean nativePending = current.areLoomNativeTilesPending();
+        if (current.hasKnownStructureDamage() || loomLoaded && !nativePending && !isLoomGeometryValid())
+            GtsrStructureRecovery.confirmedDamage(this);
+        else if (!loomLoaded || nativePending || physicalPending || targetPending)
+            GtsrStructureRecovery.markUnknown(this);
+        if (!loomValid || !current.isFabricationHostValid() || physicalPending || targetPending)
             errors.add(StructureErrorRegistry.UNKNOWN_STRUCTURE_ERROR);
     }
 
@@ -465,12 +472,6 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
 
     @Override
     public void onPostTick(IGregTechTileEntity tile, long tick) {
-        // GT205 schedules structure updates after 50 ticks and starts after 100, rather than polling
-        // on a fixed recipe interval. Double those structure delays for the fabrication loom.
-        if (tile.isServerSide() && mUpdated) {
-            if (mUpdate <= 0) mUpdate = 100;
-            mUpdated = false;
-        }
         super.onPostTick(tile, tick);
         if (!tile.isServerSide()) return;
         CriticalMachineState current = getCriticalState();
@@ -571,6 +572,11 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             getCriticalState().updateSolarPowerDemand();
     }
 
+    public boolean isLoomValidationPending() {
+        MTECriticalMachine owner = loomValidationOwner();
+        return owner != this ? owner.isLoomValidationPending() : loomValidationPending;
+    }
+
     public boolean isLoomStructureValid() {
         MTECriticalMachine owner = loomValidationOwner();
         if (owner != this) return owner.isLoomStructureValid();
@@ -589,6 +595,7 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
         IGregTechTileEntity tile = getBaseMetaTileEntity();
         if (tile == null) return false;
         if (!getCriticalState().areLoomChunksLoaded()) {
+            GtsrStructureRecovery.markUnknown(this);
             loomValidationPending = true;
             loomGeometryValid = loomStructureValid = false;
             return false;
@@ -598,6 +605,8 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
             .getTotalWorldTime();
         clearHatches();
         loomGeometryValid = com.miaokatze.gtsr.common.critical.CriticalLoomStructure.validateGeometry(this);
+        loomValidationPending = !loomGeometryValid && getCriticalState().areLoomNativeTilesPending();
+        if (loomValidationPending) GtsrStructureRecovery.markUnknown(this);
         loomStructureValid = loomGeometryValid
             && com.miaokatze.gtsr.common.critical.CriticalLoomStructure.validateInterfaces(this);
         discoverHatches(true);
@@ -1124,11 +1133,6 @@ public final class MTECriticalMachine extends MTEGTSRExtendedPowerMultiBlockBase
                 }
             }
         }
-    }
-
-    @Override
-    public net.minecraft.world.ChunkCoordIntPair getActiveChunk() {
-        return state.getActiveConstructionChunk();
     }
 
     @Override
