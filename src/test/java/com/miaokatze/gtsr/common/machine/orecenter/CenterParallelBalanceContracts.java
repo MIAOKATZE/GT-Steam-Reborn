@@ -19,6 +19,7 @@ import net.minecraftforge.oredict.OreDictionary;
 
 import com.miaokatze.gtsr.loader.recipes.PortableWeaponRecipeContracts;
 
+import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.GTValues;
 import gregtech.api.enums.Materials;
 import gregtech.api.recipe.RecipeMaps;
@@ -27,6 +28,7 @@ import gregtech.api.recipe.RecipeMaps;
 public final class CenterParallelBalanceContracts {
 
     private static Method fixtureItem;
+    private static Fluid fixtureWashFluid;
     private static int checks, identity;
 
     private CenterParallelBalanceContracts() {}
@@ -43,7 +45,12 @@ public final class CenterParallelBalanceContracts {
         check(RecipeMaps.maceratorRecipes != null, "native GT recipe maps are initialized");
         fixtureItem = PortableWeaponRecipeContracts.class.getDeclaredMethod("item", String.class);
         fixtureItem.setAccessible(true);
+        fixtureWashFluid = new Fluid("gtsr_parallel_contract_wash");
+        check(FluidRegistry.registerFluid(fixtureWashFluid), "native wash fixture fluid registration");
         parallelAndHostGrades();
+        packageGradesAndPeakThroughput();
+        processAliases();
+        mixedCategoryBills();
         constantRoundTime();
         fairAdmission();
         weightedOrigins();
@@ -73,20 +80,27 @@ public final class CenterParallelBalanceContracts {
     }
 
     private static void recipe(CenterProcess process, Item input, int duration, int eut, ItemStack... outputs) {
+        FluidStack[] fluids = recipeFluids(process, 1);
         check(
             !GTValues.RA.stdBuilder()
                 .itemInputs(stack(input, 1))
                 .itemOutputs(outputs)
+                .fluidInputs(fluids)
                 .duration(duration)
                 .eut(eut)
                 .addTo(process.recipes())
                 .isEmpty(),
             "native recipe registration: " + process);
         check(
-            CenterPlanner
-                .findRecipe(process.recipes(), new ItemStack[] { stack(input, 1) }, new FluidStack[0], 8192, 4500)
+            CenterPlanner.findRecipe(process.recipes(), new ItemStack[] { stack(input, 1) }, fluids, 8192, 4500)
                 != null,
             "native recipe lookup: " + process);
+    }
+
+    private static FluidStack[] recipeFluids(CenterProcess process, int amount) {
+        return process == CenterProcess.WASHER || process == CenterProcess.SIMPLE_WASHER
+            || process == CenterProcess.CHEMICAL_BATH ? new FluidStack[] { new FluidStack(fixtureWashFluid, amount) }
+                : new FluidStack[0];
     }
 
     private static CenterGraph graph(CenterGraph.Node... nodes) {
@@ -175,7 +189,7 @@ public final class CenterParallelBalanceContracts {
         Item raw = item("host", true), output = item("host_product", false);
         recipe(CenterProcess.CRUSHER, raw, 9600, 2, stack(output, 1));
         CenterGraph graph = graph(node(CenterProcess.CRUSHER, CenterGraph.BUS));
-        int[] parallel = { 240, 960, 1920, 5120 }, ticks = { 4800, 1920, 960, 480 };
+        int[] parallel = { 240, 960, 1920, 5120 }, ticks = { 960, 384, 192, 96 };
         for (int tier = 0; tier < 4; tier++) {
             CenterPlanner.Batch single = batch(graph, new ItemStack[] { stack(raw, 1) }, 1, tier);
             check(
@@ -197,8 +211,8 @@ public final class CenterParallelBalanceContracts {
         for (int grade = 1; grade <= 3; grade++) {
             CenterPlanner.Batch upgraded = batch(graph, new ItemStack[] { stack(raw, 1) }, grade, 3);
             check(
-                upgraded.ticks == new int[] { 480, 80, 10 }[grade - 1],
-                "processing package grade uses time divisor 1/6/48: " + grade);
+                upgraded.ticks == new int[] { 96, 32, 10 }[grade - 1],
+                "crusher package grade uses ten-percent time and divisor 1/3/10: " + grade);
         }
         int[][] logistics = modules(graph, 1);
         logistics[CenterModule.LOGISTICS.ordinal()] = new int[] { 2, 3, 4 };
@@ -220,6 +234,129 @@ public final class CenterParallelBalanceContracts {
         check(expanded.ticks == base.ticks, "logistics and extra empty lanes cannot change one-chain time");
     }
 
+    private static void packageGradesAndPeakThroughput() throws Exception {
+        // Independent balance table: do not derive expected values from CenterModule's new accessors.
+        CenterProcess[] processes = { CenterProcess.CRUSHER, CenterProcess.WASHER, CenterProcess.SIFTER,
+            CenterProcess.CENTRIFUGE, CenterProcess.SMELTING, CenterProcess.THERMAL_CENTRIFUGE, CenterProcess.SEPARATOR,
+            CenterProcess.ELECTROLYZER, CenterProcess.EXTRACTOR, CenterProcess.REACTOR, CenterProcess.FURNACE,
+            CenterProcess.DRYER };
+        int[] timePercent = { 10, 10, 10, 50, 50, 50, 50, 50, 50, 75, 75, 50 };
+        int[] energyPercent = { 50, 50, 50, 10, 10, 10, 10, 10, 10, 75, 75, 10 };
+        int[] steamRate = { 2000, 500, 1000, 3000, 2000, 1000, 300, 1000, 600, 2400, 4000, 4000 };
+        int[][] gradeSpeed = { { 1, 3, 10 }, { 1, 3, 10 }, { 1, 3, 10 }, { 1, 6, 48 }, { 1, 6, 48 }, { 1, 6, 48 },
+            { 1, 6, 48 }, { 1, 6, 48 }, { 1, 6, 48 }, { 1, 9, 72 }, { 1, 9, 72 }, { 1, 6, 48 } };
+        check(
+            Arrays.stream(CenterModule.values())
+                .filter(m -> m.kind == 1)
+                .count() == processes.length,
+            "peak comparison covers every processing package");
+        for (int p = 0; p < processes.length; p++) {
+            CenterProcess process = processes[p];
+            Item raw = item("package_" + process, true), output = item("package_product_" + process, false);
+            // The native furnace backend derives its own 128t/4EU recipe from Minecraft's furnace registry.
+            int duration = process == CenterProcess.SMELTING ? 128 : 9600;
+            int eut = process == CenterProcess.SMELTING ? 4 : 8;
+            if (process == CenterProcess.SMELTING) GameRegistry.addSmelting(stack(raw, 1), stack(output, 1), 0);
+            else recipe(process, raw, duration, eut, stack(output, 1));
+            CenterGraph graph = graph(node(process, CenterGraph.BUS));
+            for (int grade = 1; grade <= 3; grade++) {
+                double expectedTime = duration * (double) timePercent[p] / (100 * gradeSpeed[p][grade - 1]) / 10;
+                int expectedCapacity = expectedTime < 128 ? (int) Math.floor(5120 * 128 / expectedTime) : 5120;
+                int expectedTicks = (int) Math.ceil(Math.max(128, expectedTime));
+                CenterPlanner.Batch result = require(
+                    session(
+                        Collections.singletonList(graph),
+                        new ItemStack[] { stack(raw, 10000000) },
+                        modules(graph, grade),
+                        3,
+                        1,
+                        128,
+                        false,
+                        Long.MAX_VALUE,
+                        recipeFluids(process, 10000000)).batch(),
+                    "native package peak " + process + " grade " + grade);
+                check(
+                    result.parallel == 5120 && result.roots == expectedCapacity
+                        && result.capacity == expectedCapacity
+                        && result.ticks == expectedTicks
+                        && Math.abs(result.weightedTicks - expectedTime) < 1e-10,
+                    "independent time, grade speed and fixed-target peak: " + process + " grade " + grade);
+                long nativeSteam = (long) duration * expectedCapacity * steamRate[p] * energyPercent[p];
+                long expectedSteam = (nativeSteam + 100 * 20 * 128 - 1) / (100 * 20 * 128);
+                long expectedEnergy = p >= 5 ? (long) duration * eut * expectedCapacity * energyPercent[p] / 100 : 0;
+                check(
+                    result.processingSteam == expectedSteam && result.processingEnergy == expectedEnergy,
+                    "native bills use the category coefficient once, independently of grade: " + process
+                        + " grade "
+                        + grade);
+                if (grade == 3) {
+                    double oldTime = duration * .5 / 48 / 10;
+                    int oldCapacity = (int) Math.floor(5120 * 128 / oldTime);
+                    double peakRatio = (double) result.roots / oldCapacity;
+                    check(
+                        peakRatio >= .95 && peakRatio <= 1.05,
+                        "grade III actual 128t full-load throughput stays within five percent of old 0.5/48: "
+                            + process);
+                }
+            }
+        }
+    }
+
+    private static void processAliases() throws Exception {
+        CenterProcess[] aliases = { CenterProcess.HAMMER, CenterProcess.SIMPLE_WASHER, CenterProcess.CHEMICAL_BATH,
+            CenterProcess.SEPARATION, CenterProcess.FLUID_EXTRACTOR };
+        int[] expectedTime = { 12, 12, 12, 60, 60 }, energyPercent = { 50, 50, 50, 10, 10 };
+        int[] steamRate = { 2000, 500, 500, 3000, 600 };
+        for (int p = 0; p < aliases.length; p++) {
+            CenterProcess process = aliases[p];
+            Item raw = item("alias_" + process, true), output = item("alias_product_" + process, false);
+            recipe(process, raw, 1200, 8, stack(output, 1));
+            CenterGraph graph = graph(node(process, CenterGraph.BUS));
+            CenterPlanner.Batch result = require(
+                session(
+                    Collections.singletonList(graph),
+                    new ItemStack[] { stack(raw, 10) },
+                    modules(graph, 1),
+                    3,
+                    1,
+                    1,
+                    false,
+                    Long.MAX_VALUE,
+                    recipeFluids(process, 10)).batch(),
+                "native process alias " + process);
+            long nativeSteam = 1200L * 10 * steamRate[p] * energyPercent[p];
+            check(
+                result.ticks == expectedTime[p] && result.processingSteam == (nativeSteam + 256000 - 1) / 256000
+                    && result.processingEnergy == (process == CenterProcess.FLUID_EXTRACTOR ? 9600 : 0),
+                "process alias retains its package time and energy class: " + process);
+        }
+        check(CenterProcess.RECYCLER.module == CenterModule.FURNACE, "recycler keeps the furnace package class");
+    }
+
+    private static void mixedCategoryBills() throws Exception {
+        Item raw = item("category_mix", true), crushed = item("category_mix_crushed", false);
+        Item extracted = item("category_mix_extracted", false), output = item("category_mix_product", false);
+        recipe(CenterProcess.CRUSHER, raw, 400, 2, stack(crushed, 2));
+        recipe(CenterProcess.EXTRACTOR, crushed, 600, 8, stack(extracted, 1));
+        recipe(CenterProcess.REACTOR, extracted, 800, 16, stack(output, 1));
+        CenterGraph graph = graph(
+            node(CenterProcess.CRUSHER, 1),
+            node(CenterProcess.EXTRACTOR, 2),
+            node(CenterProcess.REACTOR, CenterGraph.BUS));
+        for (int grade = 1; grade <= 3; grade++) {
+            CenterPlanner.Batch result = batch(graph, new ItemStack[] { stack(raw, 10) }, grade, 3);
+            double expectedTime = new double[] { 94, 13, 1.8583333333333334 }[grade - 1];
+            check(
+                Math.abs(result.weightedTicks - expectedTime) < 1e-12 && result.ticks == (int) Math.ceil(expectedTime)
+                    && result.outputs.size() == 1
+                    && result.outputs.get(0).stackSize == 20,
+                "mixed chain retains original roots and sums each category's own grade time: " + grade);
+            check(
+                result.processingEnergy == 201600 && result.processingSteam == 13094,
+                "mixed-category bill sums 10 mechanical, 20 ordinary and 20 reactor executions once: " + grade);
+        }
+    }
+
     private static void constantRoundTime() throws Exception {
         Item raw = item("constant", true), output = item("constant_product", false);
         recipe(CenterProcess.CRUSHER, raw, 401, 2, stack(output, 1));
@@ -227,7 +364,7 @@ public final class CenterParallelBalanceContracts {
         for (int count : new int[] { 1, 120, 240 }) {
             CenterPlanner.Batch result = batch(graph, new ItemStack[] { stack(raw, count) }, 1, 0);
             check(
-                result.ticks == 201 && result.roots == count && result.chargedRounds == 1,
+                result.ticks == 41 && result.roots == count && result.chargedRounds == 1,
                 "one/half/full round has constant chain time: " + count);
         }
         ItemStack original = stack(raw, 241);
@@ -317,7 +454,7 @@ public final class CenterParallelBalanceContracts {
                         .batch(),
                     "native rejection releases provisional raw seats");
                 check(
-                    refilled.roots == 240 && refilled.ticks == 200
+                    refilled.roots == 240 && refilled.ticks == 40
                         && refilled.consumed.size() == 1
                         && refilled.consumed.get(0)
                             .getItem() == a,
@@ -355,7 +492,7 @@ public final class CenterParallelBalanceContracts {
             node(CenterProcess.SIFTER, CenterGraph.BUS));
         CenterPlanner.Batch result = batch(graph, new ItemStack[] { stack(ore, 10) }, 1, 0);
         check(
-            result.roots == 10 && result.ticks == 1200,
+            result.roots == 10 && result.ticks == 240,
             "product multiplication and parallel branches retain original root weight and longest path");
         check(
             result.outputs.stream()
@@ -363,8 +500,8 @@ public final class CenterParallelBalanceContracts {
                 .sum() == 50,
             "both multiplied output branches still execute all native recipe inputs");
         check(
-            result.processingSteam == 22500,
-            "steam bill counts 10 crusher, 20 hammer and 30 sifter executions at native durations");
+            result.processingSteam == 112500,
+            "steam bill counts all crusher, hammer and sifter executions at fifty-percent native energy");
     }
 
     private static void fixedTargetBatching() throws Exception {
@@ -372,7 +509,7 @@ public final class CenterParallelBalanceContracts {
         CenterGraph graph = graph(node(CenterProcess.CRUSHER, CenterGraph.BUS));
         for (int time : new int[] { 10, 100, 128, 200 }) {
             Item ore = item("batch_time_" + time, true);
-            recipe(CenterProcess.CRUSHER, ore, time * 2, 2, stack(output, 1));
+            recipe(CenterProcess.CRUSHER, ore, time * 10, 2, stack(output, 1));
             int capacity = time < 128 ? 240 * 128 / time : 240;
             long maintenance = -1;
             for (int count : new int[] { 1, capacity / 2, capacity, capacity + 1 }) {
@@ -440,12 +577,12 @@ public final class CenterParallelBalanceContracts {
                 "global weighted mixed batch");
             check(
                 mixed.roots == 800 && mixed.parallel == 240
-                    && mixed.capacity == 1616
+                    && mixed.capacity == 8084
                     && mixed.ticks == 128
-                    && mixed.weightedTicks == 19
+                    && Math.abs(mixed.weightedTicks - 3.8) < 1e-12
                     && mixed.chargedRounds == 4,
                 "90/10 global raw weighting defines one target without ordered per-round duration");
-            check(mixed.processingSteam == 12667, "all mixed native recipe work is billed at ten percent once");
+            check(mixed.processingSteam == 63334, "all mixed crusher work is billed at fifty percent once");
             if (first != null) check(
                 mixed.energy == first.energy && mixed.steam == first.steam,
                 "mixed batch final bills are independent of input visitation order");
@@ -457,7 +594,7 @@ public final class CenterParallelBalanceContracts {
         Item ore = item("batch_subtick", true), output = item("batch_subtick_product", false);
         recipe(CenterProcess.CRUSHER, ore, 15, 2, stack(output, 1));
         CenterGraph graph = graph(node(CenterProcess.CRUSHER, CenterGraph.BUS));
-        int capacity = 512 * 1920;
+        int capacity = 1280 * 1920;
         for (int count : new int[] { 1, capacity / 2, capacity, capacity + 1 }) {
             CenterPlanner.Batch result = require(
                 session(
@@ -471,12 +608,12 @@ public final class CenterParallelBalanceContracts {
                     Long.MAX_VALUE).batch(),
                 "subtick fixed target batch");
             check(
-                result.weightedTicks == .25 && result.parallel == 1920
+                result.weightedTicks == .1 && result.parallel == 1920
                     && result.capacity == capacity
                     && result.roots == Math.min(count, capacity)
                     && result.ticks == 128
                     && result.batched,
-                "unrounded quarter-tick work retains 512P capacity and a 128 tick target");
+                "unrounded tenth-tick work retains 1280P capacity and a 128 tick target");
         }
         CenterPlanner.Batch full = require(
             session(
@@ -490,16 +627,16 @@ public final class CenterParallelBalanceContracts {
                 Long.MAX_VALUE).batch(),
             "full subtick batch");
         check(
-            full.chargedRounds == 512 && full.processingSteam == 2304000,
-            "subtick batch charges 512 actual native batches rather than enlarging P");
+            full.chargedRounds == 1280 && full.processingSteam == 28800000,
+            "subtick batch charges 1280 actual native batches rather than enlarging P");
         CenterPlanner.Batch ordinary = batch(graph, new ItemStack[] { stack(ore, capacity) }, 2, 2);
         check(
-            ordinary.ticks == 1 && ordinary.weightedTicks == .25 && ordinary.roots == 1920 && !ordinary.batched,
+            ordinary.ticks == 1 && ordinary.weightedTicks == .1 && ordinary.roots == 1920 && !ordinary.batched,
             "ordinary subtick execution rounds only duration and admits physical P");
         CenterPlanner.Batch smallModifier = require(
             session(
                 Collections.singletonList(graph),
-                new ItemStack[] { stack(ore, 20000) },
+                new ItemStack[] { stack(ore, 40000) },
                 modules(graph, 2),
                 2,
                 1,
@@ -508,11 +645,11 @@ public final class CenterParallelBalanceContracts {
                 Long.MAX_VALUE).batch(),
             "subtick modifier two target");
         check(
-            smallModifier.ticks == 2 && smallModifier.capacity == 15360
-                && smallModifier.roots == 15360
+            smallModifier.ticks == 2 && smallModifier.capacity == 38400
+                && smallModifier.roots == 38400
                 && smallModifier.parallel == 1920
-                && smallModifier.chargedRounds == 8,
-            "subtick modifier two expands capacity using t=.25 while its target remains two ticks");
+                && smallModifier.chargedRounds == 20,
+            "subtick modifier two expands capacity using t=.1 while its target remains two ticks");
     }
 
     private static void processingBillsAndPowerGate() throws Exception {
@@ -678,26 +815,26 @@ public final class CenterParallelBalanceContracts {
                 "paid boosted full and partial round");
             check(
                 two.chargedRounds == 2 && two.boostFluids[1] == 8
-                    && two.ticks == 20
+                    && two.ticks == 4
                     && two.capacity == 760
                     && two.batched,
                 "modifier two uses the fixed target and charges both actual recipe batches");
             check(
-                two.processingSteam == 3175 && paid.processingSteam == 3167 && tail.processingSteam == 9,
+                two.processingSteam == 15875 && paid.processingSteam == 15834 && tail.processingSteam == 42,
                 "boosted batch sums unrounded native work and rounds only its final ledger");
             check(
                 two.maintenanceSteam == paid.maintenanceSteam + tail.maintenanceSteam,
-                "modifier two maintenance covers its twenty-tick fixed target");
-            Item quarterTick = item("paid_subtick", true);
-            recipe(CenterProcess.CRUSHER, quarterTick, 15, 2, stack(output, 1));
+                "modifier two maintenance covers its four-tick fixed target");
+            Item tenthTick = item("paid_subtick", true);
+            recipe(CenterProcess.CRUSHER, tenthTick, 15, 2, stack(output, 1));
             int[][] subtickModules = modules(graph, 2);
             subtickModules[CenterModule.PARALLEL.ordinal()][0] = 1;
-            int physicalP = 2763, targetCapacity = physicalP * 512;
-            for (int doses : new int[] { 1, 2, 3, 512 }) {
+            int physicalP = 2763, targetCapacity = physicalP * 1280;
+            for (int doses : new int[] { 1, 2, 3, 1280 }) {
                 CenterPlanner.Batch affordable = require(
                     session(
                         Collections.singletonList(graph),
-                        new ItemStack[] { stack(quarterTick, targetCapacity + 1) },
+                        new ItemStack[] { stack(tenthTick, targetCapacity + 1) },
                         subtickModules,
                         2,
                         1,
