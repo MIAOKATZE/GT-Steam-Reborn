@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -50,7 +51,7 @@ import gregtech.api.metatileentity.implementations.MTEMultiBlockBase;
  * The journal is an observation of WorldEvent.Save, never an alternative machine persistence backend.
  * All reloads below come from the same real world; no loadNBTData, manual tile ticks or forced formation.
  */
-final class TestLabRecoveryRestart implements TestLabTask {
+public final class TestLabRecoveryRestart implements TestLabTask {
 
     static final String PREFIX = "recovery.";
     private static final String JVM = UUID.randomUUID()
@@ -487,6 +488,13 @@ final class TestLabRecoveryRestart implements TestLabTask {
                 ForgeChunkManager.forceChunk(
                     legacy,
                     new ChunkCoordIntPair(controller.getXCoord() >> 4, controller.getZCoord() >> 4));
+                // ForgeInternalHandler is also HIGHEST and registered before this test. Its first save
+                // has already run. Invoke the same Forge 1614 serializer after adding the test ticket;
+                // no file is patched and the driver independently reads actual forcedchunks.dat.
+                Method saveTickets = ForgeChunkManager.class
+                    .getDeclaredMethod("saveWorld", net.minecraft.world.World.class);
+                saveTickets.setAccessible(true);
+                saveTickets.invoke(null, world);
                 journal.setBoolean("legacyTicketInjected", true);
             }
             journal.setTag("state", selectedState(machine));

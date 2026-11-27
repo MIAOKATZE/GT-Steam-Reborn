@@ -6,6 +6,7 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import recovery_restart_driver as driver
 
@@ -64,6 +65,30 @@ class RestartDriverTests(unittest.TestCase):
             self.assertEqual(driver.legacy_tickets(path, header), 1)
             header['controllerX'] = 121
             self.assertEqual(driver.legacy_tickets(path, header), 0)
+
+    def test_center_paid_save_gate_rejects_already_delivered_batch(self):
+        journal = dict(stage='SAVED', case='center', allowed=1, expected=16, sequence=7,
+                       state=dict(CenterDuration=256, CenterElapsed=40, CenterSequence=7,
+                                  CenterItemOutputs=[dict(CenterQuantity=16)]))
+        with patch.object(driver, 'journal_header', return_value=journal):
+            self.assertTrue(driver.verify_saved_checkpoint('unused', 'center')['paidCheckpoint'])
+            journal['state']['CenterItemOutputs'] = []
+            with self.assertRaisesRegex(ValueError, 'outstanding paid batch'):
+                driver.verify_saved_checkpoint('unused', 'center')
+
+    def test_critical_and_turbine_final_save_require_funded_or_real_active_state(self):
+        journal = dict(stage='SAVED', case='critical_turbine', allowed=1,
+                       state=dict(criticalPaidJournal=dict(criticalEnergyRuntime=dict(funded=1, progress=30))))
+        with patch.object(driver, 'journal_header', return_value=journal):
+            self.assertTrue(driver.verify_saved_checkpoint('unused', 'critical_turbine')['paidCheckpoint'])
+            journal['state']['criticalPaidJournal']['criticalEnergyRuntime']['funded'] = 0
+            with self.assertRaisesRegex(ValueError, 'funded batch'):
+                driver.verify_saved_checkpoint('unused', 'critical_turbine')
+            journal.update(case='heavy', state=dict(turbineEfficiency=10), actualSavedTile=dict(mActive=1))
+            self.assertTrue(driver.verify_saved_checkpoint('unused', 'heavy')['workingWarmCheckpoint'])
+            journal['actualSavedTile']['mActive'] = 0
+            with self.assertRaisesRegex(ValueError, 'working warm'):
+                driver.verify_saved_checkpoint('unused', 'heavy')
 
     def test_prepared_is_accepted_only_as_explicit_blocked_checkpoint(self):
         with tempfile.TemporaryDirectory() as temp:

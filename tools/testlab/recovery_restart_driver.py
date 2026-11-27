@@ -118,6 +118,36 @@ def legacy_tickets(path, header):
     return count(root)
 
 
+def verify_saved_checkpoint(path, case):
+    journal = journal_header(path, full=True)
+    if journal.get('stage') != 'SAVED' or journal.get('case') != case or journal.get('allowed') != 1:
+        raise ValueError('Final native save did not retain this enabled prepared machine')
+    state = journal.get('state', {})
+    proof = dict(case=case, savedWorldTick=journal.get('savedWorldTick'), savedState=state)
+    if case == 'center':
+        duration, elapsed = state.get('CenterDuration', 0), state.get('CenterElapsed', 0)
+        pending = state.get('CenterItemOutputs', [])
+        expected = journal.get('expected', 0)
+        quantity = sum(item.get('CenterQuantity', item.get('Count', 0)) for item in pending)
+        if duration <= 0 or not 0 < elapsed <= duration or expected <= 0 or quantity != expected:
+            raise ValueError('Final center save has no exact outstanding paid batch; completed/delivered state cannot PASS')
+        if state.get('CenterSequence') != journal.get('sequence'):
+            raise ValueError('Final center save selected a different paid sequence')
+        proof.update(paidCheckpoint=True, progress=elapsed, duration=duration, outstandingPaidItems=quantity,
+                     paidStage='AWAITING_DELIVERY' if elapsed == duration else 'PROCESSING')
+    elif case == 'critical_turbine':
+        paid = state.get('criticalPaidJournal', {}).get('criticalEnergyRuntime', {})
+        if paid.get('funded') != 1 or not 0 < paid.get('progress', 0) <= 400:
+            raise ValueError('Final critical save has no outstanding funded batch; completed state cannot PASS')
+        proof.update(paidCheckpoint=True, progress=paid['progress'], duration=400)
+    else:
+        efficiency = state.get('turbineEfficiency' if case == 'heavy' else 'mEfficiency', 0)
+        if efficiency <= 0 or journal.get('actualSavedTile', {}).get('mActive') != 1:
+            raise ValueError('Final turbine save was not a genuinely working warm machine')
+        proof.update(workingWarmCheckpoint=True, efficiency=efficiency)
+    return proof
+
+
 def verify_host_cleanup(receipt):
     cleanup = receipt.get('cleanup', {})
     if receipt.get('exitCode') != 0 or cleanup.get('forcedStop'):
@@ -144,7 +174,8 @@ def verify_native(receipt, case, expected):
         raise ValueError('Native report selected a different case')
     entries = native.get('results', [])
     if len(entries) != 1 or entries[0].get('id') != case or entries[0].get('status') != expected:
-        raise ValueError('Native case did not complete with expected status')
+        detail = '; '.join(str(item.get('id')) + '=' + str(item.get('status')) + ': ' + item.get('detail', '') for item in entries)
+        raise ValueError('Native case did not complete with expected status: ' + detail[:4000])
     if receipt.get('status') != expected or report.get('status') != expected:
         raise ValueError('Host/native completion disagreement')
     entry = entries[0]
@@ -235,6 +266,7 @@ def main(argv=None):
                 if header.get('stage') != 'SAVED' or header.get('case') != args.case:
                     raise ValueError('No actual final save observation for this case')
                 save(evidence / 'saved-journal-header.json', header)
+                save(evidence / 'saved-checkpoint-proof.json', verify_saved_checkpoint(journal, args.case))
                 (evidence / 'saved-journal.dat').write_bytes(journal.read_bytes())
                 if args.case == 'critical_turbine':
                     ticket_file = world / ('DIM' + str(header['dimension'])) / 'forcedchunks.dat'
@@ -250,8 +282,19 @@ def main(argv=None):
             if phase == 'prepare':
                 header = journal_header(journal)
                 if header.get('stage') != 'SAVED' or header.get('case') != args.case:
-                    raise ValueError('Normal stop did not save the prepared world/journal')
+                    log = root / 'logs/fml-server-latest.log'
+                    if log.is_file():
+                        lines = log.read_text(encoding='utf-8', errors='replace').splitlines()
+                        save_errors = []
+                        for index, line in enumerate(lines):
+                            if 'Exception caught during firing event net.minecraftforge.event.world.WorldEvent$Save' in line:
+                                save_errors.extend(lines[index:index + 30])
+                        if save_errors:
+                            (evidence / 'native-world-save-error.txt').write_text('\n'.join(save_errors), encoding='utf-8')
+                            raise ValueError('Native WorldEvent.Save failed: ' + (save_errors[1] if len(save_errors) > 1 else save_errors[0]))
+                    raise ValueError('Normal stop left journal stage=' + str(header.get('stage')) + '; final save observation missing')
                 save(evidence / 'prepared-journal-header.json', header)
+                save(evidence / 'prepared-checkpoint-proof.json', verify_saved_checkpoint(journal, args.case))
                 if args.case == 'critical_turbine':
                     ticket_file = world / ('DIM' + str(native['dimension'])) / 'forcedchunks.dat'
                     if legacy_tickets(ticket_file, header) != 1:
