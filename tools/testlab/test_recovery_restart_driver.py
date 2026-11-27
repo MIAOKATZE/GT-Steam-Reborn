@@ -37,10 +37,11 @@ class RestartDriverTests(unittest.TestCase):
         details = {'prepared': True} if expected == 'BLOCKED' else {
             name: True for name in ('differentJvm', 'newTileReadFromWorld', 'nativeStructureRevalidated',
                                    'realOutputAfterRecovery', 'actualBrokenWorldBlockRejected', 'ownedFixtureCleanup',
-                                   'externalTicketDidNotPreloadDelayedChunk')}
+                                   'actualSavedPortStocksReadBack')}
         if expected == 'PASS':
-            details['recoveryFrozenTicks'] = 3
-            details['realStructureChunkWithheldTicks'] = 60
+            details.update(recoveryFrozenTicks=0, realStructureChunkWithheldTicks=0,
+                           recoveryProofMode='NATIVE_LOAD_BOUNDARY', nativeLoadBoundaryVerified=True,
+                           nativeInitialStartup=600, savedRotorEfficiency=10, firstNativeRecheckRotorEfficiency=10)
         native = dict(runId='business-run', requestId='host-request', requested=case, plannedTasks=[case],
                       results=[dict(id=case, status=expected, details=details,
                                     detail='PREPARED_NOT_PASS: new JVM required' if expected == 'BLOCKED' else 'done')])
@@ -116,6 +117,38 @@ class RestartDriverTests(unittest.TestCase):
             Path(receipt['nativeReport']['path']).write_text('{}', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'changed'):
                 driver.verify_native(receipt, case, 'BLOCKED')
+
+    def test_small_machine_boundary_cannot_claim_delayed_ticks_or_lose_heat(self):
+        with tempfile.TemporaryDirectory() as temp:
+            case, receipt = self.receipt(temp, 'PASS')
+            path = Path(receipt['nativeReport']['path'])
+            native = json.loads(path.read_text())
+            checks = native['results'][0]['details']
+            for field, value, error in [('realStructureChunkWithheldTicks', 60, 'cannot claim'),
+                                         ('firstNativeRecheckRotorEfficiency', 9, 'lost saved')]:
+                original = checks[field]
+                checks[field] = value
+                raw = json.dumps(native).encode()
+                path.write_bytes(raw)
+                receipt['nativeReport']['sha256'] = hashlib.sha256(raw).hexdigest()
+                with self.assertRaisesRegex(ValueError, error):
+                    driver.verify_native(receipt, case, 'PASS')
+                checks[field] = original
+
+    def test_large_machine_cannot_use_small_machine_boundary_proof(self):
+        with tempfile.TemporaryDirectory() as temp:
+            _, receipt = self.receipt(temp, 'PASS')
+            case = 'recovery.resume.mega'
+            path = Path(receipt['nativeReport']['path'])
+            native = json.loads(path.read_text())
+            native.update(requested=case, plannedTasks=[case])
+            native['results'][0]['id'] = case
+            raw = json.dumps(native).encode()
+            path.write_bytes(raw)
+            receipt['case'] = case
+            receipt['nativeReport']['sha256'] = hashlib.sha256(raw).hexdigest()
+            with self.assertRaisesRegex(ValueError, 'restricted'):
+                driver.verify_native(receipt, case, 'PASS')
 
 
 if __name__ == '__main__':

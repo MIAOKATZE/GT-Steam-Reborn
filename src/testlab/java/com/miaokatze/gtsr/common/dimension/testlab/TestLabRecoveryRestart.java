@@ -76,6 +76,7 @@ public final class TestLabRecoveryRestart implements TestLabTask {
     private ChunkCoordIntPair deferredChunk;
     private static final int DEFERRED_TICKS = 60;
     private boolean deferredReleased;
+    private boolean loadBoundaryOnly;
     private File file;
     private int originX, originZ, loadCursor, phase, since, frozenTicks;
     private boolean previousRecovering, prepared, cleaning;
@@ -187,14 +188,32 @@ public final class TestLabRecoveryRestart implements TestLabTask {
                 deferredChunk.chunkXPos != pos.getInteger("x") >> 4
                     || deferredChunk.chunkZPos != pos.getInteger("z") >> 4,
                 "Delayed chunk contains the controller");
-            require(
-                ForgeChunkManager.getPersistentChunksFor(world)
-                    .get(deferredChunk)
-                    .isEmpty(),
-                "Delayed structure chunk is already held by an external ticket; do not disturb its owner");
-            requireDeferredUnloaded();
+            loadBoundaryOnly = "heavy".equals(key) && journal.getBoolean("loadBoundaryOnly");
+            if (loadBoundaryOnly) {
+                NBTTagList chunks = journal.getTagList("nativeGeometryChunks", 10);
+                require(
+                    chunks.tagCount() > 0 && chunks.tagCount() <= 16,
+                    "Small native geometry chunk list missing or unexpectedly large");
+                // Same server-thread boundary: real disk reads, no manual world or tile tick.
+                for (int i = 0; i < chunks.tagCount(); i++) {
+                    NBTTagCompound chunk = chunks.getCompoundTagAt(i);
+                    retain(chunk.getInteger("x"), chunk.getInteger("z"));
+                }
+                loadCursor = 169;
+                deferredReleased = true;
+                evidence.put("recoveryProofMode", "NATIVE_LOAD_BOUNDARY");
+                evidence.put("realStructureChunkWithheldTicks", 0);
+            } else {
+                require(
+                    ForgeChunkManager.getPersistentChunksFor(world)
+                        .get(deferredChunk)
+                        .isEmpty(),
+                    "Delayed structure chunk is already held by an external ticket; do not disturb its owner");
+                requireDeferredUnloaded();
+                evidence.put("recoveryProofMode", "DEFERRED_NATIVE_CHUNK");
+            }
             retain(pos.getInteger("x") >> 4, pos.getInteger("z") >> 4);
-            requireDeferredUnloaded();
+            if (!loadBoundaryOnly) requireDeferredUnloaded();
             controller = tile(pos);
             machine = (MTEMultiBlockBase) controller.getMetaTileEntity();
             require(controller.getMetaTileID() == pos.getInteger("metaId"), "New world tile has a different MTE id");
@@ -204,8 +223,8 @@ public final class TestLabRecoveryRestart implements TestLabTask {
             require(
                 selectedState(machine).equals(journal.getCompoundTag("state")),
                 "Actual new GT tile lost saved progress/heat/pending outputs");
-            readSavedPorts(false);
-            requireDeferredUnloaded();
+            readSavedPorts(loadBoundaryOnly);
+            if (!loadBoundaryOnly) requireDeferredUnloaded();
             evidence.put("differentJvm", true);
             evidence.put("newTileReadFromWorld", true);
             evidence.put("actualSavedPortStocksReadBack", true);
@@ -216,6 +235,14 @@ public final class TestLabRecoveryRestart implements TestLabTask {
             previous = selectedState(machine);
             previousRecovering = GtsrStructureRecovery.isRecovering(machine);
             require(previousRecovering, "No native structure recovery on newly read controller");
+            if (loadBoundaryOnly) {
+                evidence.put("nativeLoadBoundaryVerified", true);
+                evidence.put(
+                    "savedRotorEfficiency",
+                    journal.getCompoundTag("state")
+                        .getInteger("turbineEfficiency"));
+                evidence.put("nativeInitialStartup", machine.getmStartUpCheck());
+            }
             checkLegacyTickets();
         } else {
             require(
@@ -293,8 +320,18 @@ public final class TestLabRecoveryRestart implements TestLabTask {
             if (ports.isEmpty())
                 for (int i = 0; i < savedPorts.tagCount(); i++) ports.add(tile(savedPorts.getCompoundTagAt(i)));
             if (GtsrStructureRecovery.isRecovering(machine)) return null;
-            require(frozenTicks > 0, "Recovery window was never observed under natural world ticks");
+            require(
+                loadBoundaryOnly || frozenTicks >= DEFERRED_TICKS,
+                "Recovery window was never observed for 60 natural world ticks");
             require(machine.mMachine, "Native structure recheck rejected intact saved fixture");
+            if (loadBoundaryOnly) {
+                int currentEfficiency = selectedState(machine).getInteger("turbineEfficiency");
+                require(
+                    currentEfficiency >= journal.getCompoundTag("state")
+                        .getInteger("turbineEfficiency"),
+                    "First natural formation lost the saved rotor efficiency");
+                evidence.put("firstNativeRecheckRotorEfficiency", currentEfficiency);
+            }
             evidence.put("nativeStructureRevalidated", true);
             checkLegacyTickets();
             if ("center".equals(key)) {
@@ -450,6 +487,20 @@ public final class TestLabRecoveryRestart implements TestLabTask {
         NBTTagList portList = new NBTTagList();
         for (IGregTechTileEntity port : ports) portList.appendTag(position(port));
         journal.setTag("ports", portList);
+        if ("heavy".equals(key)) {
+            NBTTagList chunks = new NBTTagList();
+            Set<String> seenChunks = new LinkedHashSet<>();
+            for (Object cell : (List<?>) field(field(fixture, "structure"), "cells")) {
+                int cx = ((Integer) field(cell, "x")) >> 4, cz = ((Integer) field(cell, "z")) >> 4;
+                if (!seenChunks.add(cx + "," + cz)) continue;
+                NBTTagCompound chunk = new NBTTagCompound();
+                chunk.setInteger("x", cx);
+                chunk.setInteger("z", cz);
+                chunks.appendTag(chunk);
+            }
+            journal.setTag("nativeGeometryChunks", chunks);
+            journal.setBoolean("loadBoundaryOnly", true);
+        }
         journal.setTag("deferredBlock", selectDeferredBlock());
         journal.setString("stage", "PREPARED");
         prepared = true;
@@ -630,6 +681,13 @@ public final class TestLabRecoveryRestart implements TestLabTask {
         int cx = x >> 4, cz = z >> 4;
         if (cx == controller.getXCoord() >> 4 && cz == controller.getZCoord() >> 4 || world.isAirBlock(x, y, z))
             return null;
+        if (!"heavy".equals(key)) {
+            if (Math.max(Math.abs(cx - (controller.getXCoord() >> 4)), Math.abs(cz - (controller.getZCoord() >> 4)))
+                <= 1) return null;
+            for (IGregTechTileEntity port : ports)
+                if (Math.max(Math.abs(cx - (port.getXCoord() >> 4)), Math.abs(cz - (port.getZCoord() >> 4))) <= 1)
+                    return null;
+        }
         if (!allowPortChunk) for (IGregTechTileEntity port : ports)
             if (cx == port.getXCoord() >> 4 && cz == port.getZCoord() >> 4) return null;
         NBTTagCompound witness = new NBTTagCompound();

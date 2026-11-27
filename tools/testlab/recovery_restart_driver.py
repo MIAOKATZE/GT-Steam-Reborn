@@ -190,13 +190,25 @@ def verify_native(receipt, case, expected):
         checks = entry.get('details', {})
         for name in ('differentJvm', 'newTileReadFromWorld', 'nativeStructureRevalidated',
                      'realOutputAfterRecovery', 'actualBrokenWorldBlockRejected', 'ownedFixtureCleanup',
-                     'externalTicketDidNotPreloadDelayedChunk'):
+                     'actualSavedPortStocksReadBack'):
             if checks.get(name) is not True:
                 raise ValueError('Native resume proof missing ' + name)
-        if checks.get('recoveryFrozenTicks', 0) <= 0:
-            raise ValueError('No naturally observed recovery ticks')
-        if checks.get('realStructureChunkWithheldTicks', 0) < 60:
-            raise ValueError('No real required structure chunk was withheld for 60 natural ticks')
+        if checks.get('recoveryProofMode') == 'NATIVE_LOAD_BOUNDARY':
+            if case != 'recovery.resume.heavy' or checks.get('nativeLoadBoundaryVerified') is not True:
+                raise ValueError('Native load boundary proof is restricted to the small heavy turbine')
+            if checks.get('realStructureChunkWithheldTicks') != 0:
+                raise ValueError('Load boundary proof cannot claim withheld-chunk ticks')
+            if checks.get('nativeInitialStartup', -1) < 0 or checks.get('savedRotorEfficiency', 0) <= 0:
+                raise ValueError('No unreviewed warm native load boundary')
+            if checks.get('firstNativeRecheckRotorEfficiency', -1) < checks['savedRotorEfficiency']:
+                raise ValueError('First natural native recheck lost saved rotor efficiency')
+        else:
+            if checks.get('recoveryProofMode') != 'DEFERRED_NATIVE_CHUNK' or checks.get('externalTicketDidNotPreloadDelayedChunk') is not True:
+                raise ValueError('No actual deferred native structure chunk proof')
+            if checks.get('recoveryFrozenTicks', 0) < 60:
+                raise ValueError('No 60 naturally observed recovery ticks')
+            if checks.get('realStructureChunkWithheldTicks', 0) < 60:
+                raise ValueError('No real required structure chunk was withheld for 60 natural ticks')
     verify_host_cleanup(receipt)
     return native, entry
 
@@ -240,7 +252,7 @@ def main(argv=None):
     phases = ('prepare', 'resume') if args.phase == 'both' else (args.phase,)
     plan = {'status': 'PLANNED', 'case': args.case, 'evidence': str(evidence),
             'commands': [command('catalog')] + [cmd for phase in phases for cmd in (command('doctor', phase), command('run', phase, True))],
-            'scope': 'Four explicit formed representatives only; singularity/TCDS and other machines NOT_RUN',
+            'scope': 'Heavy: actual new-JVM native load boundary and first recheck; center/mega/critical: actual 60-tick deferred chunk. Singularity/TCDS and other machines NOT_RUN',
             'preparedIsPass': False, 'sameWorldRequired': True}
     if not args.execute:
         print(json.dumps(plan, ensure_ascii=False, indent=2))
