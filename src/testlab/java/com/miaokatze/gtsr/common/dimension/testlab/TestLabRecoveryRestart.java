@@ -27,6 +27,7 @@ import net.minecraft.world.ChunkCoordIntPair;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.ForgeChunkManager;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.util.ForgeDirection;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fluids.FluidStack;
 
@@ -37,9 +38,11 @@ import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.common.machine.recovery.GtsrStructureRecovery;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.TickEvent;
 import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.metatileentity.implementations.MTEHatchDynamo;
 import gregtech.api.metatileentity.implementations.MTEHatchInput;
@@ -77,6 +80,7 @@ public final class TestLabRecoveryRestart implements TestLabTask {
     private int originX, originZ, loadCursor, phase, since, frozenTicks;
     private boolean previousRecovering, prepared, cleaning;
     private long resumedEnergy;
+    private long preparedSinkFluid, preparedSinkEu;
 
     private TestLabRecoveryRestart(String key, boolean resume) {
         this(key, resume, false);
@@ -143,6 +147,9 @@ public final class TestLabRecoveryRestart implements TestLabTask {
                 "Cleanup station identity changed");
             for (TestLabRecoveryRestart observer : new ArrayList<>(SAVE_OBSERVERS)) if (observer.file.equals(file)) {
                 MinecraftForge.EVENT_BUS.unregister(observer);
+                FMLCommonHandler.instance()
+                    .bus()
+                    .unregister(observer);
                 observer.prepared = false;
                 for (ForgeChunkManager.Ticket ticket : observer.tickets) TestLabRuntime.releaseOwnedTicket(ticket);
                 observer.tickets.clear();
@@ -305,7 +312,7 @@ public final class TestLabRecoveryRestart implements TestLabTask {
                 }
             }
             for (IGregTechTileEntity port : ports) if (port.getMetaTileEntity() instanceof MTEHatchDynamo)
-                ((gregtech.api.metatileentity.BaseMetaTileEntity) port).setStoredEU(0);
+                if (port.getStoredEU() > 0) port.decreaseStoredEnergyUnits(port.getStoredEU(), false);
             resumedEnergy = dynamoEnergy();
             phase = 1;
             since = tick;
@@ -447,6 +454,9 @@ public final class TestLabRecoveryRestart implements TestLabTask {
         journal.setString("stage", "PREPARED");
         prepared = true;
         MinecraftForge.EVENT_BUS.register(this);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(this);
         SAVE_OBSERVERS.add(this);
         writeJournal();
         evidence.put("prepared", true);
@@ -457,6 +467,24 @@ public final class TestLabRecoveryRestart implements TestLabTask {
             TestLabReport.Status.BLOCKED,
             "PREPARED_NOT_PASS: stop this JVM normally, then run the resume case on the same fixed world",
             evidence);
+    }
+
+    /** A real external sink on owned test hatches keeps warm turbines running until the host's normal stop. */
+    @SubscribeEvent
+    public void preparedTick(TickEvent.ServerTickEvent event) {
+        if (!prepared || event.phase != TickEvent.Phase.END || !("heavy".equals(key) || "mega".equals(key))) return;
+        for (IGregTechTileEntity port : ports) {
+            if (port.getMetaTileEntity() instanceof MTEHatchOutput) {
+                FluidStack drained = ((MTEHatchOutput) port.getMetaTileEntity())
+                    .drain(ForgeDirection.UNKNOWN, Integer.MAX_VALUE, true);
+                if (drained != null) preparedSinkFluid += drained.amount;
+            }
+            if (port.getMetaTileEntity() instanceof MTEHatchDynamo) {
+                long before = port.getStoredEU();
+                if (before > 0) port.decreaseStoredEnergyUnits(before, false);
+                preparedSinkEu += Math.max(0, before - port.getStoredEU());
+            }
+        }
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -499,6 +527,8 @@ public final class TestLabRecoveryRestart implements TestLabTask {
             }
             journal.setTag("state", selectedState(machine));
             journal.setBoolean("allowed", controller.isAllowedToWork());
+            journal.setLong("preparedSinkFluid", preparedSinkFluid);
+            journal.setLong("preparedSinkEu", preparedSinkEu);
             NBTTagList savedPorts = new NBTTagList();
             for (IGregTechTileEntity port : ports) {
                 NBTTagCompound pos = position(port);
@@ -767,6 +797,7 @@ public final class TestLabRecoveryRestart implements TestLabTask {
 
     private static NBTTagCompound stock(IGregTechTileEntity tile) {
         NBTTagCompound result = new NBTTagCompound();
+        if (tile.getMetaTileEntity() instanceof MTEHatchDynamo) result.setLong("storedEu", tile.getStoredEU());
         NBTTagList items = new NBTTagList();
         for (int slot = 0; slot < tile.getSizeInventory(); slot++) {
             net.minecraft.item.ItemStack stack = tile.getStackInSlot(slot);

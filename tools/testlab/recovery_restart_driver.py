@@ -123,7 +123,9 @@ def verify_saved_checkpoint(path, case):
     if journal.get('stage') != 'SAVED' or journal.get('case') != case or journal.get('allowed') != 1:
         raise ValueError('Final native save did not retain this enabled prepared machine')
     state = journal.get('state', {})
-    proof = dict(case=case, savedWorldTick=journal.get('savedWorldTick'), savedState=state)
+    proof = dict(case=case, savedWorldTick=journal.get('savedWorldTick'), savedState=state,
+                 savedPortStocks=journal.get('ports', []),
+                 preparedExternalSink=dict(fluid=journal.get('preparedSinkFluid', 0), eu=journal.get('preparedSinkEu', 0)))
     if case == 'center':
         duration, elapsed = state.get('CenterDuration', 0), state.get('CenterElapsed', 0)
         pending = state.get('CenterItemOutputs', [])
