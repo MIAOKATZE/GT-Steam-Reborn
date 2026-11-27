@@ -27,6 +27,7 @@ public final class CenterPlanner {
     private static final int BASE_WORK = 4096, MAX_LOTS = 4096, MAX_CANDIDATES = 32;
     static final int MAX_OUTPUTS = 2048, MAX_ROOTS = 4_000_000, MAX_BATCH_ROOTS = 64_000_000;
     private static final int MAX_BATCH_WORK = Integer.MAX_VALUE - 1;
+    private static final double BATCH_TICKS = 128;
     private static final int[] STEAM = { 4000, 24000, 112000, 384000 }, WIDTH = { 24, 48, 64, 128 },
         VOLTAGE = { 32, 128, 512, 2048 }, CONTROL_EU = { 0, 32, 128, 512 };
     static final int[] HEAT = { 0, 0, 2700, 4500 };
@@ -43,7 +44,8 @@ public final class CenterPlanner {
         public final List<ItemStack> consumed, outputs;
         public final List<ItemStack> bonuses;
         public final List<FluidStack> consumedFluids, outputFluids;
-        public final int ticks, parallel, roots, chargedRounds;
+        public final int ticks, parallel, capacity, roots, chargedRounds, batchModifier;
+        public final boolean batched;
         public final double weightedTicks;
         public final List<ChainTime> chains;
         final int[] boostFluids;
@@ -57,8 +59,8 @@ public final class CenterPlanner {
             this.bonuses = new ArrayList<>(plan.bonuses.values());
             this.boostFluids = new int[BOOSTS.length];
             this.chargedRounds = plan.chargedRounds();
-            if (!plan.ignoreFluids)
-                for (int i = 0; i < boostFluids.length; i++) boostFluids[i] = chargedRounds * plan.boostPrice[i];
+            if (!plan.ignoreFluids) for (int i = 0; i < boostFluids.length; i++)
+                boostFluids[i] = Math.multiplyExact(chargedRounds, plan.boostPrice[i]);
             int used = 0;
             for (CenterModule module : MODULES)
                 if (module.kind == 1 && plan.weight[module.ordinal()] == 1) used |= 1 << module.ordinal();
@@ -70,6 +72,9 @@ public final class CenterPlanner {
             this.ticks = ticks;
             this.roots = plan.rootPaid;
             this.parallel = plan.parallelLimit();
+            this.capacity = plan.capacity;
+            this.batched = plan.batched;
+            this.batchModifier = plan.batchRounds;
             this.weightedTicks = plan.weightedTicks / plan.rootPaid / plan.machineSpeed();
             this.chains = new ArrayList<>();
             for (Origin origin : plan.origins.values())
@@ -103,15 +108,13 @@ public final class CenterPlanner {
 
         final long graphId;
         final String name;
-        final int[] rounds;
         int roots;
         double path;
         boolean rejected;
 
-        Origin(long graphId, ItemStack sample, int rounds) {
+        Origin(long graphId, ItemStack sample) {
             this.graphId = graphId;
             this.name = sample.getDisplayName();
-            this.rounds = new int[rounds];
         }
     }
 
@@ -299,8 +302,8 @@ public final class CenterPlanner {
         private final boolean ignoreFluids, ignoreEnergy;
         private final Random random;
         private int graphIndex, nodeIndex, inputIndex, deferredIndex, workLimit, admissionLimit, parallel;
-        private final int[] roundRoots;
-        private final double[] roundTicks;
+        private int capacity, capacityRetry;
+        private boolean batched;
         private boolean queueMode;
         private int executions, rootPaid, proposedRoots;
         private double weightedTicks, workSteam, recipeEU, steamMultiplier = 1, euMultiplier = 1;
@@ -344,8 +347,6 @@ public final class CenterPlanner {
             this.heat = heat;
             this.rootLimit = Math.max(1, Math.min(MAX_BATCH_ROOTS, rootLimit));
             this.batchRounds = Math.max(1, Math.min(128, batchRounds));
-            this.roundRoots = new int[this.batchRounds];
-            this.roundTicks = new double[this.batchRounds];
             this.ignoreFluids = ignoreFluids;
             this.ignoreEnergy = ignoreEnergy;
             this.random = new Random(seed);
@@ -389,8 +390,7 @@ public final class CenterPlanner {
                     }
                 }
                 stack.stackSize = quantity;
-                Origin origin = origins
-                    .computeIfAbsent(itemKey(stack), key -> new Origin(route.graphId, stack, batchRounds));
+                Origin origin = origins.computeIfAbsent(itemKey(stack), key -> new Origin(route.graphId, stack));
                 queue.add(stack, true, route.raw, route.intermediate, origin, 0);
                 if (queue.lots.size() > MAX_LOTS) failed = workLimitReached = true;
                 proposedRoots += quantity;
@@ -421,7 +421,9 @@ public final class CenterPlanner {
         }
 
         private int configureBoosts() {
-            int affordableRounds = batchRounds;
+            // The native batch modifier bounds the time window, not the number of sub-tick recipe groups.
+            // Dose affordability still limits every actual P-sized group admitted to this transaction.
+            int affordableRounds = batchRounds > 1 ? rootLimit : 1;
             for (int i = 0; i < BOOSTS.length; i++) {
                 Boost b = BOOSTS[i];
                 int module = CenterModule.SPEED.ordinal() + i;
@@ -465,6 +467,7 @@ public final class CenterPlanner {
         }
 
         int smallerRootLimit() {
+            if (capacityRetry > 0) return capacityRetry;
             return workLimitReached && proposedRoots > 1 ? proposedRoots / 2 : 0;
         }
 
@@ -713,25 +716,15 @@ public final class CenterPlanner {
         }
 
         private void payRoots(Origin origin, int amount) {
-            int left = amount;
-            while (left > 0) {
-                int round = rootPaid / parallelLimit();
-                int used = Math.min(left, parallelLimit() - roundRoots[round]);
-                origin.rounds[round] += used;
-                roundRoots[round] += used;
-                roundTicks[round] += origin.path * used;
-                rootPaid += used;
-                origin.roots += used;
-                weightedTicks += origin.path * used;
-                left -= used;
-            }
+            rootPaid += amount;
+            origin.roots += amount;
+            weightedTicks += origin.path * amount;
         }
 
         private void recordPath(Origin origin, double path) {
             if (path <= origin.path) return;
             double extra = path - origin.path;
             weightedTicks += extra * origin.roots;
-            for (int round = 0; round < chargedRounds(); round++) roundTicks[round] += extra * origin.rounds[round];
             origin.path = path;
         }
 
@@ -742,7 +735,7 @@ public final class CenterPlanner {
             int additionalRounds = chargedRounds() - 1;
             if (additionalRounds == 0) return true;
             for (int i = 0; i < BOOSTS.length; i++) {
-                int cost = additionalRounds * boostPrice[i];
+                int cost = Math.multiplyExact(additionalRounds, boostPrice[i]);
                 if (cost == 0) continue;
                 FluidStack fluid = new FluidStack(boostFluid(i), cost);
                 if (!useFluid(available, fluid, cost)) return false;
@@ -753,13 +746,19 @@ public final class CenterPlanner {
 
         private Batch conclude() {
             double scale = 1 + .06 * (sectors - 1);
-            int ticks = 0;
-            for (int round = 0; round < chargedRounds(); round++) {
-                double time = roundTicks[round] / roundRoots[round] / machineSpeed();
-                if (!Double.isFinite(time) || time > 24000) return null;
-                ticks = Math.addExact(ticks, Math.max(1, (int) Math.ceil(time)));
+            double time = weightedTicks / rootPaid / machineSpeed();
+            if (!Double.isFinite(time) || time <= 0 || time > 24000) return null;
+            batched = batchRounds > 1 && time < BATCH_TICKS;
+            // Preserve fractional recipe time. Batch capacity is serial work over a fixed window;
+            // the machine's actual parallelLimit never changes when batch mode is switched on.
+            double window = batched ? Math.min(BATCH_TICKS, batchRounds * Math.max(1, time)) : time;
+            capacity = batched ? (int) Math.min(MAX_BATCH_ROOTS, Math.floor(parallelLimit() * (window / time)))
+                : parallelLimit();
+            if (rootPaid > capacity) {
+                capacityRetry = capacity;
+                return null;
             }
-            if (ticks > 24000) return null;
+            int ticks = Math.max(1, (int) Math.ceil(window));
             double idleEU = 0, hold = 0;
             for (CenterModule module : MODULES) {
                 int i = module.ordinal();
