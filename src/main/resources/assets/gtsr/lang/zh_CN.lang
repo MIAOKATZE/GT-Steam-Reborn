@@ -1228,6 +1228,7 @@ gtsr.tooltip.hub_terminal.desc.5=实时检查目标、绑定和权限；仅记�
 gtsr.tooltip.hub_terminal.desc.6=支持：拟态织机、临界机器、蒸汽/通用流体/奇点钻采枢纽。
 gtsr.tooltip.added_by=添加模组：
 
+
 # NEI 伪合成表（展示用）：奇点装置类别标题 + 描述行
 gtsr.recipe.steam_singularity_entangler=蒸汽奇点纠缠装置
 gtsr.recipe.critical_singularity_compressor=临界纠缠奇点稳定装置
@@ -5538,3 +5539,18 @@ gtsr.ore_center.graph.queue.off=队列模式：关
 gtsr.ore_center.graph.queue.hint=混矿合计攒满当前并行后开批，等待不扣费
 gtsr.ore_center.graph.queue.parallel=当前并行上限：%s 件
 gtsr.ore_center.graph.queue.detecting=等待检测当前并行
+
+# NEI 同类折叠
+gtsr.nei.group.weapons=GTSR 枪械武器
+gtsr.nei.group.magazines=GTSR 弹夹
+gtsr.nei.group.chips=GTSR 芯片
+gtsr.nei.group.catalysts=GTSR 催化剂
+gtsr.nei.group.module_packs=GTSR 矿物加工模块包
+gtsr.nei.group.module_shells=GTSR 矿物加工模块箱壳
+gtsr.nei.group.critical_casings=GTSR 临界机器外壳
+gtsr.nei.group.machines=GTSR 普通机器
+gtsr.nei.group.critical_machines=GTSR 临界机器
+gtsr.nei.group.hatches=GTSR 仓室
+gtsr.nei.group.hubs_and_nodes=GTSR 枢纽与节点
+gtsr.nei.group.prosperity_relics=GTSR 繁荣信物
+gtsr.nei.group.prosperity_blocks=GTSR 繁荣方块

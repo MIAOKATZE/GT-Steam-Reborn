@@ -1232,6 +1232,7 @@ gtsr.tooltip.hub_terminal.desc.5=Target, binding and permissions are checked liv
 gtsr.tooltip.hub_terminal.desc.6=Supports: Mimetic Loom, critical machines, steam/fluid/drilling hubs.
 gtsr.tooltip.added_by=Added by:
 
+
 # NEI pseudo-recipes (display only): singularity device category titles + description lines
 gtsr.recipe.steam_singularity_entangler=Steam Singularity Entangler
 gtsr.recipe.critical_singularity_compressor=Critical Singularity Stabilizer
@@ -5542,3 +5543,18 @@ gtsr.ore_center.graph.queue.off=Queue: OFF
 gtsr.ore_center.graph.queue.hint=Wait for mixed ore to fill current parallel; waiting is free
 gtsr.ore_center.graph.queue.parallel=Current parallel: %s items
 gtsr.ore_center.graph.queue.detecting=Waiting to assess parallel
+
+# NEI collapsible item groups
+gtsr.nei.group.weapons=GTSR Weapons
+gtsr.nei.group.magazines=GTSR Magazines
+gtsr.nei.group.chips=GTSR Chips
+gtsr.nei.group.catalysts=GTSR Catalysts
+gtsr.nei.group.module_packs=GTSR Mineral Processing Module Packs
+gtsr.nei.group.module_shells=GTSR Mineral Processing Module Casings
+gtsr.nei.group.critical_casings=GTSR Critical Machine Casings
+gtsr.nei.group.machines=GTSR Machines
+gtsr.nei.group.critical_machines=GTSR Critical Machines
+gtsr.nei.group.hatches=GTSR Hatches and Compartments
+gtsr.nei.group.hubs_and_nodes=GTSR Hubs and Nodes
+gtsr.nei.group.prosperity_relics=GTSR Prosperity Relics
+gtsr.nei.group.prosperity_blocks=GTSR Prosperity Blocks

@@ -74,6 +74,12 @@ public final class CenterModuleItems extends Item {
         return moduleOf(stack) == null ? 0 : stack.getItemDamage() % GRADES + 1;
     }
 
+    public static boolean isShell(ItemStack stack) {
+        return stack != null && stack.getItem() == instance
+            && stack.getItemDamage() >= SHELL_START
+            && stack.getItemDamage() < SHELL_START + GRADES;
+    }
+
     private static int gradeOffset(int grade) {
         if (grade < 1 || grade > GRADES) throw new IllegalArgumentException("Invalid center module grade: " + grade);
         return grade - 1;
