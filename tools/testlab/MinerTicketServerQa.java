@@ -12,7 +12,7 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import net.minecraftforge.event.world.WorldEvent;
 
-/** Owned dedicated-server companion. Reflection accepts the runtime MCP/SRG names. */
+/** Frozen GT205/v12141 companion; the old loader scenario is intentionally retired. */
 @Mod(modid="gtsrminerticketqa",name="GTSR owned miner ticket QA",version="1",dependencies="required-after:gtsr;after:gregtech")
 public final class MinerTicketServerQa {
     static Class<?> type(String n)throws Exception{return Class.forName(n);}
@@ -30,7 +30,11 @@ public final class MinerTicketServerQa {
     int ticks,phase,tier,nodeX;Object world,host,node,hub,qaTicket,mixedCritical,mixedWorker,mixedLoader;boolean finished,mixed;String mode="core";
     Object mixedCriticalTicket,mixedWorkerTicket;boolean mixedCriticalStable=true,mixedWorkerStable=true,mixedWorldStable=true;
     final JsonArray rows=new JsonArray();final JsonObject report=new JsonObject();
+    private static void rejectRetiredContract() {
+        throw new IllegalStateException("Historical GT205 miner/critical ticket fixture retired; use tools/testlab/recovery_restart_driver.py and CriticalRecoveryContracts.java");
+    }
     @Mod.EventHandler public void init(FMLInitializationEvent e)throws Exception {
+        rejectRetiredContract();
         Class<?> callback=type("net.minecraftforge.common.ForgeChunkManager$LoadingCallback");
         Object handler=Proxy.newProxyInstance(callback.getClassLoader(),new Class<?>[]{callback},(p,m,a)->null);
         call(type("net.minecraftforge.common.ForgeChunkManager"),"setForcedChunkLoadingCallback",this,handler);

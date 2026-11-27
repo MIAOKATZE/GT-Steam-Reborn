@@ -1,3 +1,5 @@
+// FROZEN HISTORICAL GT205/V31 SOURCE: not a current production contract.
+// Its Python entry is disabled; use CriticalRecoveryContracts.java and recovery_restart_driver.py.
 package com.miaokatze.gtsr.common.critical;
 
 import java.lang.reflect.Field;
@@ -25,6 +27,10 @@ import gregtech.api.metatileentity.BaseMetaTileEntity;
 
 /** Real Forge issuance via minimal real FML container maps; no full lifecycle or WorldServer IO. */
 public final class CriticalV31FreshTickets {
+    private static void rejectHistoricalEntry() {
+        throw new IllegalStateException("Frozen historical critical loading contract; use tools/critical/CriticalRecoveryContracts.java and tools/testlab/recovery_restart_driver.py");
+    }
+
 
     static final JsonArray checks = new JsonArray();
 
@@ -96,6 +102,7 @@ public final class CriticalV31FreshTickets {
     }
 
     public static void main(String[] args) throws Exception {
+        rejectHistoricalEntry();
         JsonObject report = new JsonObject();
         try {
             field(cpw.mods.fml.relauncher.FMLRelaunchLog.class, "side")

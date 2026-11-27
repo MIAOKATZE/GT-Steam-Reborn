@@ -1,3 +1,5 @@
+// FROZEN HISTORICAL v2.0.17 / GT205 SOURCE; independent structureLoadTicks semantics were retired.
+// verify_structure_loading.py now runs CriticalRecoveryContracts only; this old suite is not claimed passing.
 package com.miaokatze.gtsr.common.critical;
 
 import static com.miaokatze.gtsr.common.critical.CriticalV32Fixture.*;
@@ -17,6 +19,10 @@ import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 
 /** Uses preexisting APIs so the same regression can run against the released v2.0.17 jar. */
 public final class CriticalStructureLoadingContract {
+    private static void rejectHistoricalEntry() {
+        throw new IllegalStateException("Frozen historical critical loading contract; use tools/critical/CriticalRecoveryContracts.java and tools/testlab/recovery_restart_driver.py");
+    }
+
     private static void ticks(CriticalMachineState state, int ticks) throws Exception {
         for (int tick = 0; tick < ticks; tick++) {
             state.tickStructureMonitor();
@@ -66,6 +72,7 @@ public final class CriticalStructureLoadingContract {
     }
 
     public static void main(String[] args) throws Exception {
+        rejectHistoricalEntry();
         for (Class<?> type : new Class<?>[] { CriticalMachineState.class, CriticalStructureMonitor.class,
             MTECriticalMachine.class, CriticalStellarRuntime.class }) CriticalFoundationContract.source(type, args);
         Field unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");

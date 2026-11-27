@@ -32,6 +32,7 @@ def process_memory(proc):
 def main():
     global OUT, FIXTURE
     p=argparse.ArgumentParser();p.add_argument('--workspace',type=Path,default=OUT);p.add_argument('--client-sandbox',type=Path);p.add_argument('--owner-host-run');p.add_argument('--plan',type=Path);p.add_argument('--mode',choices=['ui','gallery','gallery-batch','ticket-restart'],default='ui');p.add_argument('--keep-open',action='store_true');p.add_argument('--jar',type=Path,required=True);p.add_argument('--run',required=True);p.add_argument('--language',default='en_US');p.add_argument('--width',type=int,default=1280);p.add_argument('--height',type=int,default=720);p.add_argument('--scale',type=int,default=2);p.add_argument('--heap-gib',type=int,default=4);p.add_argument('--reserve-gib',type=float,default=4);p.add_argument('--render-distance',type=int,default=3);p.add_argument('--deadline',type=int,default=900);p.add_argument('--hidden-desktop',action='store_true',default=True,help='Required private Windows desktop; no foreground fallback');p.add_argument('--allow-low-memory',action='store_true',help='Use only after the user explicitly requests launch below the advisory memory reserve; heap limit still applies');a=p.parse_args()
+    if a.mode=='ticket-restart':p.error('Historical GT205/v12138 ticket-restart mode is retired; use tools/testlab/recovery_restart_driver.py and tools/critical/CriticalRecoveryContracts.java. No client or host operation was started.')
     native_tooltip=False
     if a.plan:
         declared=read_json(a.plan)
@@ -64,7 +65,6 @@ def main():
     fd=os.open(LEASE,os.O_CREAT|os.O_EXCL|os.O_WRONLY);lease_token=dict(pid=os.getpid(),fixture=str(FIXTURE),run=a.run,created=time.time());os.write(fd,json.dumps(lease_token).encode('utf-8'));os.close(fd)
     owned_world=None;installed_helper=FIXTURE/'mods/gtsr-mui2-qa-owned-only.jar';helper_owned=False
     proc=None;desktop=None;payload=None;options=FIXTURE/'options.txt';original_options=options.read_bytes() if options.exists() else None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
-    if a.mode=='ticket-restart':receipt['inputType']='Synthetic same-JVM Minecraft launchIntegratedServer/loadWorld(null) and production CriticalChunkLoading ensure/release; UI suite and physical input NOT_RUN'
     scoped_backups={}
     companion_installed=[]
     scoped_empty_directories=[]

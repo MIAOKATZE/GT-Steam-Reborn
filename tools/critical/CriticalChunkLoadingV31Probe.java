@@ -1,3 +1,5 @@
+// FROZEN HISTORICAL GT205/V31 SOURCE: not a current production contract.
+// Its Python entry is disabled; use CriticalRecoveryContracts.java and recovery_restart_driver.py.
 package com.miaokatze.gtsr.common.critical;
 
 import java.lang.reflect.*;
@@ -23,6 +25,10 @@ import gregtech.api.metatileentity.BaseMetaTileEntity;
 
 /** Real GTSR manager and Forge ticket operations; sparse loaded World, no server bootstrap or IO. */
 public final class CriticalChunkLoadingV31Probe {
+    private static void rejectHistoricalEntry() {
+        throw new IllegalStateException("Frozen historical critical loading contract; use tools/critical/CriticalRecoveryContracts.java and tools/testlab/recovery_restart_driver.py");
+    }
+
     static sun.misc.Unsafe unsafe;
     static final JsonArray checks = new JsonArray();
 
@@ -145,6 +151,7 @@ public final class CriticalChunkLoadingV31Probe {
         check("dimension unload releases only this loom ticket",nativeTicket.getChunkList().isEmpty()&&!loader.ready());
     }
     public static void main(String[] args) throws Exception {
+        rejectHistoricalEntry();
         JsonObject report=new JsonObject();
         try {
             unsafe=(sun.misc.Unsafe)field(sun.misc.Unsafe.class,"theUnsafe").get(null);

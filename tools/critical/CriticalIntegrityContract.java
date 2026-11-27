@@ -1,3 +1,5 @@
+// FROZEN HISTORICAL GT205/V31 SOURCE: not a current production contract.
+// Its Python entry is disabled; use CriticalRecoveryContracts.java and recovery_restart_driver.py.
 package com.miaokatze.gtsr.common.critical;
 import java.lang.reflect.*;
 import java.nio.file.*;
@@ -16,6 +18,10 @@ import com.miaokatze.gtsr.common.machine.MTECriticalMachine;
 import gregtech.api.metatileentity.BaseMetaTileEntity;
 /** Native geometry/matching/state methods with a sparse World; no FML bootstrap or full server. */
 public final class CriticalIntegrityContract {
+    private static void rejectHistoricalEntry() {
+        throw new IllegalStateException("Frozen historical critical loading contract; use tools/critical/CriticalRecoveryContracts.java and tools/testlab/recovery_restart_driver.py");
+    }
+
     static sun.misc.Unsafe unsafe;
     static int checks;
     static final Block AIR=new Block(Material.air) {};
@@ -162,6 +168,7 @@ public final class CriticalIntegrityContract {
         }
     }
     public static void main(String[] args)throws Exception{
+        rejectHistoricalEntry();
         Field f=sun.misc.Unsafe.class.getDeclaredField("theUnsafe");f.setAccessible(true);unsafe=(sun.misc.Unsafe)f.get(null);
         run();JsonObject n=new JsonObject();n.addProperty("status","PASS");n.addProperty("checks",checks);
         n.addProperty("coverage","Production State tickStructureMonitor/matches/NBT/visual + 4 directions + real GT controller types; SparseWorld storage only");
