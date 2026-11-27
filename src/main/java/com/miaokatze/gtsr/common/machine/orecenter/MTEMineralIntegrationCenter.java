@@ -144,6 +144,11 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private long steamTotal, energyTotal, sequence, nextProbe, coolingSteam;
     private final int[] boostFluids = new int[4];
     private int batchModules, batchRounds;
+    private int batchParallel, batchRoots;
+    private double weightedTicks;
+    private long processingEnergy, maintenanceEnergy, processingSteam, maintenanceSteam;
+    private boolean billBreakdownKnown;
+    private NBTTagList chainTimes = new NBTTagList();
 
     public MTEMineralIntegrationCenter(int id, String name, String regionalName) {
         super(id, name, regionalName);
@@ -512,6 +517,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setInteger("BatchModules", batchModules);
         tag.setInteger("BatchRounds", batchRounds);
         tag.setLong("Steam", steamTotal);
+        writeBillDetails(tag, "");
         SteamGrade steam = STEAMS[steamKind];
         tag.setInteger("SteamDensity", steam.getDivisor());
         Fluid steamFluid = steam.resolveFluid();
@@ -528,6 +534,22 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         }
         tag.setTag("BoostCosts", boosts);
         return tag;
+    }
+
+    private void writeBillDetails(NBTTagCompound tag, String prefix) {
+        int parallel = totalTicks > elapsed ? batchParallel : Math.max(queueParallel, batchParallel);
+        int used = Math.min(batchRoots, parallel);
+        tag.setInteger(prefix + "TotalParallel", parallel);
+        tag.setInteger(prefix + "UsedParallel", used);
+        tag.setInteger(prefix + "IdleParallel", Math.max(0, parallel - used));
+        tag.setInteger(prefix + "BatchRoots", batchRoots);
+        tag.setBoolean(prefix + "BillBreakdownKnown", billBreakdownKnown);
+        tag.setLong(prefix + "ProcessingEnergy", processingEnergy);
+        tag.setLong(prefix + "MaintenanceEnergy", maintenanceEnergy);
+        tag.setLong(prefix + "ProcessingSteam", processingSteam);
+        tag.setLong(prefix + "MaintenanceSteam", maintenanceSteam);
+        tag.setDouble(prefix + "WeightedTicks", weightedTicks);
+        tag.setTag(prefix + "ChainTimes", chainTimes.copy());
     }
 
     public NBTTagCompound terminalState() {
@@ -619,7 +641,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         int count = 0;
         for (int i = 0; i < grades.length; i++) if ((mask & 1 << (i / 6)) != 0 && grades[i] > 0
             && MODULES[modules[i]] == CenterModule.LOGISTICS
-            && structure.moduleIntact(te, i, CenterModule.LOGISTICS, grades[i])) count++;
+            && structure.moduleIntact(te, i, CenterModule.LOGISTICS, grades[i])) count += grades[i];
         return count;
     }
 
@@ -816,7 +838,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
                     continue;
                 best[module.ordinal()] = Math.max(best[module.ordinal()], grades[i]);
                 counts[module.ordinal()][grades[i] - 1]++;
-                if (module == CenterModule.LOGISTICS) logistics++;
+                if (module == CenterModule.LOGISTICS) logistics += grades[i];
             }
             if (logistics == 0) {
                 nextProbe = tick + 20;
@@ -954,7 +976,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             if (accepted < 0) accepted = chooseSteam(batch, tier, supply, ingredients);
             if (accepted < 0) return false;
         }
-        if (!debugIgnoreEnergy && batch.energy > getMaxInputEu() * batch.ticks) return false;
+        if (!debugIgnoreEnergy && tickCeiling(batch.energy, batch.ticks) > getMaxInputEu()) return false;
         // AE inventory hooks publish each quantity change. Persist each touched bus once per paid batch.
         Set<MTEHatchInputBusCompressed> compressed = null;
         for (var debit : debits.entrySet()) {
@@ -975,6 +997,23 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         System.arraycopy(batch.boostFluids, 0, boostFluids, 0, boostFluids.length);
         batchModules = batch.usedModules;
         batchRounds = batch.chargedRounds;
+        batchParallel = batch.parallel;
+        batchRoots = batch.roots;
+        weightedTicks = batch.weightedTicks;
+        processingEnergy = batch.processingEnergy;
+        maintenanceEnergy = batch.maintenanceEnergy;
+        processingSteam = batch.processingSteam;
+        maintenanceSteam = batch.maintenanceSteam;
+        billBreakdownKnown = true;
+        chainTimes = new NBTTagList();
+        for (CenterPlanner.ChainTime chain : batch.chains) {
+            NBTTagCompound row = new NBTTagCompound();
+            row.setLong("GraphId", chain.graphId);
+            row.setString("Name", chain.name);
+            row.setInteger("Roots", chain.roots);
+            row.setDouble("Ticks", chain.ticks);
+            chainTimes.appendTag(row);
+        }
         sequence++;
         pendingItems.addAll(batch.outputs);
         pendingFluids.addAll(batch.outputFluids);
@@ -1020,8 +1059,9 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             SteamGrade grade = STEAMS[i];
             Fluid fluid = grade.resolveFluid();
             if (fluid == null || !grade.isAcceptedBy(ClusterTier.get(tier))) continue;
-            int first = (int) ((batch.steam + batch.ticks * (long) grade.getDivisor() - 1)
-                / (batch.ticks * (long) grade.getDivisor()));
+            long needed = tickCeiling(batch.steam, batch.ticks * (long) grade.getDivisor());
+            if (needed > Integer.MAX_VALUE) continue;
+            int first = (int) needed;
             int remaining = first;
             for (FluidSlot slot : sources) {
                 FluidStack available = slot.get();
@@ -1033,12 +1073,24 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         return -1;
     }
 
+    private static long tickCeiling(long amount, long ticks) {
+        return amount / ticks + (amount % ticks == 0 ? 0 : 1);
+    }
+
+    /** Exact remainder distribution without multiplying an entire batch's bill by elapsed ticks. */
+    static long tickCharge(long amount, int elapsed, int ticks) {
+        long remainder = amount % ticks;
+        return amount / ticks + remainder * (elapsed + 1) / ticks - remainder * elapsed / ticks;
+    }
+
     private void payTick(IGregTechTileEntity te) {
         te.setActive(false);
         int density = STEAMS[steamKind].getDivisor();
-        long units = (steamTotal + density - 1) / density;
-        int steam = (int) (units * (elapsed + 1) / totalTicks - units * elapsed / totalTicks);
-        long eu = energyTotal * (elapsed + 1) / totalTicks - energyTotal * elapsed / totalTicks;
+        long units = tickCeiling(steamTotal, density);
+        long steamDebit = tickCharge(units, elapsed, totalTicks);
+        if (steamDebit > Integer.MAX_VALUE) return;
+        int steam = (int) steamDebit;
+        long eu = tickCharge(energyTotal, elapsed, totalTicks);
         Map<FluidSlot, Integer> money = null;
         MTEHatch steamTank = null;
         if (units > 0) {
@@ -1063,7 +1115,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         long stored = 0;
         for (MTEHatch hatch : mEnergyHatches) if (hatch.isValid()) {
             stored += Math.min(
-                eu,
+                eu - stored,
                 hatch.getBaseMetaTileEntity()
                     .getStoredEU());
             if (stored >= eu) break;
@@ -1289,6 +1341,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setInteger("CenterBatchModules", batchModules);
         tag.setInteger("CenterBatchRounds", batchRounds);
         tag.setLong("CenterEnergy", energyTotal);
+        writeBillDetails(tag, "Center");
         tag.setLong("CenterSequence", sequence);
         tag.setLong("CenterGraphRevision", graphRevision);
         tag.setLong("CenterNextGraphId", nextGraphId);
@@ -1335,6 +1388,17 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         for (int i = 0; i < boostFluids.length; i++)
             boostFluids[i] = i < fluidCosts.length ? Math.max(0, fluidCosts[i]) : 0;
         energyTotal = Math.max(0, tag.getLong("CenterEnergy"));
+        batchParallel = Math.max(0, Math.min(CenterPlanner.MAX_ROOTS, tag.getInteger("CenterTotalParallel")));
+        batchRoots = Math.max(0, Math.min(CenterPlanner.MAX_BATCH_ROOTS, tag.getInteger("CenterBatchRoots")));
+        billBreakdownKnown = tag.getBoolean("CenterBillBreakdownKnown");
+        processingEnergy = Math.max(0, tag.getLong("CenterProcessingEnergy"));
+        maintenanceEnergy = Math.max(0, tag.getLong("CenterMaintenanceEnergy"));
+        processingSteam = Math.max(0, tag.getLong("CenterProcessingSteam"));
+        maintenanceSteam = Math.max(0, tag.getLong("CenterMaintenanceSteam"));
+        weightedTicks = tag.getDouble("CenterWeightedTicks");
+        if (!Double.isFinite(weightedTicks) || weightedTicks < 0) weightedTicks = 0;
+        chainTimes = (NBTTagList) tag.getTagList("CenterChainTimes", 10)
+            .copy();
         sequence = tag.getLong("CenterSequence");
         graphRevision = Math.max(0, tag.getLong("CenterGraphRevision"));
         nextGraphId = Math.max(1, Math.min(Long.MAX_VALUE - CenterGraph.MAX_GRAPHS, tag.getLong("CenterNextGraphId")));

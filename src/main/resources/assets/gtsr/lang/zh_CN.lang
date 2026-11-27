@@ -5396,12 +5396,12 @@ gtsr.ore_center.graph.calc.row.0=批次耗时
 gtsr.ore_center.graph.calc.row.1=批次蒸汽
 gtsr.ore_center.graph.calc.row.2=批次耗电
 gtsr.ore_center.graph.calc.row.3=进线功率
-gtsr.ore_center.graph.calc.row.4=规模系数
-gtsr.ore_center.graph.calc.formula.0=向上取整（启动时间 + 档位耗时 × max（总工时 ÷ 并行，关键路径）÷ 速度），供电不足时延时
-gtsr.ore_center.graph.calc.formula.1=等效汽量 = 向上取整（规模 ×（基础热耗 + 加权维持与配方气耗）），再按密度折算
-gtsr.ore_center.graph.calc.formula.2=向上取整（规模 × 增幅电耗倍率 ×（配方耗电 + 加权待机功率 × 耗时））
-gtsr.ore_center.graph.calc.formula.3=净进线 = 进线功率 − 含规模倍率的加权待机功率
-gtsr.ore_center.graph.calc.formula.4=1 + 0.06 ×（扇区 − 1）+ 0.025 × max（0，参与图谱 − 1）
+gtsr.ore_center.graph.calc.row.4=并行 总 / 已用 / 空闲
+gtsr.ore_center.graph.calc.formula.0=各轮 max(1, ⌈Σ(实际原矿数 × 单矿链工时) / 实际原矿总数⌉) 累计
+gtsr.ore_center.graph.calc.formula.1=批次蒸汽 = 加工等效汽 + 维持等效汽，再按汽种密度折算
+gtsr.ore_center.graph.calc.formula.2=加工电量为原生总 EU 的 10%；维持电量按实际时间单列
+gtsr.ore_center.graph.calc.formula.3=实际耗电峰值不得超过进线功率；进线不足时延时
+gtsr.ore_center.graph.calc.formula.4=主机与物流的并行合计 × 原并行增幅；空位闲置、不分摊时间
 gtsr.ore_center.graph.source=物品栏 / NEI
 gtsr.ore_center.graph.source.return=返回工序属性
 gtsr.ore_center.graph.source.pack=物品栏
@@ -5554,3 +5554,25 @@ gtsr.nei.group.hatches=GTSR 仓室
 gtsr.nei.group.hubs_and_nodes=GTSR 枢纽与节点
 gtsr.nei.group.prosperity_relics=GTSR 繁荣信物
 gtsr.nei.group.prosperity_blocks=GTSR 繁荣方块
+gtsr.ore_center.graph.calc.row.5=每轮加权工时
+gtsr.ore_center.graph.calc.row.6=配方加工电量
+gtsr.ore_center.graph.calc.row.7=维持电量
+gtsr.ore_center.graph.calc.row.8=配方加工等效汽
+gtsr.ore_center.graph.calc.row.9=维持等效汽
+gtsr.ore_center.graph.calc.row.10=每 tick 需电峰值
+gtsr.ore_center.graph.calc.row.11=每 tick 需汽峰值
+gtsr.ore_center.graph.calc.formula.5=单矿链工时 = Σ(原生 tick × 0.5 / 包倍率) / 结构加速 / 速度增幅
+gtsr.ore_center.graph.calc.formula.6=Σ(原生 tick × |EU/t| × 实际执行次数) × 10%
+gtsr.ore_center.graph.calc.formula.7=维持功率 × 实际 tick，保留结构与增幅费用
+gtsr.ore_center.graph.calc.formula.8=Σ(原生 tick × 工序汽强度 × 执行次数) / (20 × 档位原宽度) × 10%
+gtsr.ore_center.graph.calc.formula.9=机体保温 + 模块维持；只此项保留增幅能源附加费
+gtsr.ore_center.graph.calc.formula.10=⌈整批总 EU / 整批 tick⌉
+gtsr.ore_center.graph.calc.formula.11=⌈汽种实扣量 / 整批 tick⌉
+gtsr.ore_center.graph.calc.chains=各链：实际原矿数 · 权重 · 单矿工时（滚轮查看）
+gtsr.ore_center.graph.calc.chain=%s · %s 件 · %s%% · %s t
+gtsr.ore_center.status.capacity=并行 %s · 已用 %s · 空闲 %s
+gtsr.ore_center.status.weighted=加权工时 %s t/轮 · %s 轮
+gtsr.ore_center.status.processing=加工 %s EU · %s L 等效汽
+gtsr.ore_center.status.maintenance=维持 %s EU · %s L 等效汽
+gtsr.ore_center.status.legacy_bill=历史账单未拆分
+gtsr.ore_center.graph.calc.legacy_bill=历史账单未拆分

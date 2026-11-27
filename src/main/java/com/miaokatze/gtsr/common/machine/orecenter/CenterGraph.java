@@ -19,7 +19,7 @@ import gregtech.api.util.GTUtility;
 /** Graphs are stored in display order. Forward-only links make the saved order a topological order. */
 public final class CenterGraph {
 
-    public static final int MAX_GRAPHS = 18;
+    public static final int MAX_GRAPHS = 54;
     public static final int MAX_NODES = 64;
     public static final int MAX_RULES = 128;
     public static final int BUS = -1;
@@ -156,9 +156,11 @@ public final class CenterGraph {
 
         public Node withAuxiliary(int slot, String key) {
             int size = process.auxiliarySlots();
-            if (slot < 0 || slot >= size * 2 || key.length() > 190
+            if (slot < 0 || slot >= size * 2
+                || key.length() > 190
                 || !key.isEmpty() && !(slot < size ? key.matches("[A-Za-z0-9_.|/-]+:[A-Za-z0-9_.|/-]+@[0-9]{1,5}")
-                    : key.matches("[A-Za-z0-9_.:/-]+"))) throw new IllegalArgumentException("Invalid auxiliary slot");
+                    : key.matches("[A-Za-z0-9_.:/-]+")))
+                throw new IllegalArgumentException("Invalid auxiliary slot");
             Node base = auxiliary == null ? withEmptyAuxiliary() : this;
             String[] keys = base.auxiliary.clone();
             keys[slot] = key;
@@ -180,8 +182,9 @@ public final class CenterGraph {
 
         boolean acceptsAuxiliary(FluidStack fluid) {
             if (auxiliary == null) return true;
-            for (int i = process.auxiliarySlots(); i < auxiliary.length; i++)
-                if (fluid.getFluid().getName().equals(auxiliary[i])) return true;
+            for (int i = process.auxiliarySlots(); i < auxiliary.length; i++) if (fluid.getFluid()
+                .getName()
+                .equals(auxiliary[i])) return true;
             return false;
         }
 
@@ -232,7 +235,8 @@ public final class CenterGraph {
         private static BusPosition load(NBTTagCompound graph, String key) {
             NBTTagCompound position = graph.getCompoundTag(key);
             return position.hasKey("X", 3) && position.hasKey("Y", 3)
-                ? new BusPosition(position.getInteger("X"), position.getInteger("Y")) : null;
+                ? new BusPosition(position.getInteger("X"), position.getInteger("Y"))
+                : null;
         }
     }
 
@@ -263,8 +267,10 @@ public final class CenterGraph {
     }
 
     private CenterGraph(long id, String name, int priority, boolean enabled, List<String> oreRules, List<Node> nodes,
-        List<EntryRoute> entryRoutes, List<String> excludedRules, BusPosition inputPosition, BusPosition outputPosition) {
-        if (nodes.size() > MAX_NODES || oreRules.size() > MAX_RULES || entryRoutes.size() > MAX_RULES
+        List<EntryRoute> entryRoutes, List<String> excludedRules, BusPosition inputPosition,
+        BusPosition outputPosition) {
+        if (nodes.size() > MAX_NODES || oreRules.size() > MAX_RULES
+            || entryRoutes.size() > MAX_RULES
             || excludedRules.size() > MAX_RULES) {
             throw new IllegalArgumentException("Graph exceeds its node or rule budget");
         }
@@ -336,13 +342,31 @@ public final class CenterGraph {
 
     public CenterGraph reconfigure(String name, int priority, boolean enabled, List<String> rules, List<Node> nodes,
         List<EntryRoute> entries) {
-        return new CenterGraph(id, name, priority, enabled, rules, nodes, entries, excludedRules, inputPosition,
+        return new CenterGraph(
+            id,
+            name,
+            priority,
+            enabled,
+            rules,
+            nodes,
+            entries,
+            excludedRules,
+            inputPosition,
             outputPosition);
     }
 
     CenterGraph withId(long replacement) {
-        return new CenterGraph(replacement, name, priority, enabled, rules, nodes, entryRoutes, excludedRules,
-            inputPosition, outputPosition);
+        return new CenterGraph(
+            replacement,
+            name,
+            priority,
+            enabled,
+            rules,
+            nodes,
+            entryRoutes,
+            excludedRules,
+            inputPosition,
+            outputPosition);
     }
 
     public CenterGraph withBusPositions(BusPosition input, BusPosition output) {
@@ -397,7 +421,8 @@ public final class CenterGraph {
     /** Resolves a clicked ore term against registered ore forms in bounded client-side slices. */
     public static final class PreviewInputs {
 
-        private static final String[] FORMS = { "ore", "variantOre", "crushed", "crushedPurified", "dustImpure", "dustPure" };
+        private static final String[] FORMS = { "ore", "variantOre", "crushed", "crushedPurified", "dustImpure",
+            "dustPure" };
         private final CenterOreRule rule;
         private final String[] names;
         private final Set<GTUtility.ItemId> listed = new HashSet<>();
@@ -407,7 +432,8 @@ public final class CenterGraph {
             rule = new CenterOreRule(expression);
             names = java.util.Arrays.stream(OreDictionary.getOreNames())
                 .filter(name -> name.startsWith("rawOre") && name.length() > 6 && Character.isUpperCase(name.charAt(6)))
-                .sorted().toArray(String[]::new);
+                .sorted()
+                .toArray(String[]::new);
         }
 
         public boolean advance(List<ItemStack> matches) {
@@ -538,8 +564,10 @@ public final class CenterGraph {
                 for (int slot = 0; slot < slots.tagCount(); slot++)
                     node = node.withAuxiliary(slot, slots.getStringTagAt(slot));
             }
-            steps.add(step.hasKey("X", 3) && step.hasKey("Y", 3)
-                ? node.withPosition(step.getInteger("X"), step.getInteger("Y")) : node);
+            steps.add(
+                step.hasKey("X", 3) && step.hasKey("Y", 3)
+                    ? node.withPosition(step.getInteger("X"), step.getInteger("Y"))
+                    : node);
         }
         var routes = tag.getTagList("EntryRoutes", 10);
         var deny = tag.getTagList("EntryExclusions", 8);
