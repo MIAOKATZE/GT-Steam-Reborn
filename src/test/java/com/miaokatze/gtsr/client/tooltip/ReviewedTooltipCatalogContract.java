@@ -52,8 +52,16 @@ public final class ReviewedTooltipCatalogContract {
                         id);
                     check(owner.has("meta") || id.startsWith("ammo.") || id.equals("item.SpacetimeAnchorBeacon"), id);
                     if (id.startsWith("centerPack.")) {
-                        check(owner.get("item").getAsString().equals("gtsr:ore_integration_module"), id);
-                        check(centerPackMetas.add(owner.get("meta").getAsInt()), id);
+                        check(
+                            owner.get("item")
+                                .getAsString()
+                                .equals("gtsr:ore_integration_module"),
+                            id);
+                        check(
+                            centerPackMetas.add(
+                                owner.get("meta")
+                                    .getAsInt()),
+                            id);
                     }
                 }
                 JsonObject tiers = item.getAsJsonObject("tiers");
@@ -114,8 +122,11 @@ public final class ReviewedTooltipCatalogContract {
         check(
             ids.size() == 234 && machines == 82 && routes == 29 && curves == 8 && matrices == 2 && state.size() == 6,
             "Coverage: " + ids.size() + "/" + machines + "/" + routes + "/" + curves + "/" + matrices + "/" + state);
-        check(ids.contains("machine.OreIntegrationCenter") && centerPackMetas.size() == 54
-            && java.util.stream.IntStream.range(0, 54).allMatch(centerPackMetas::contains), "Center registration coverage");
+        check(
+            ids.contains("machine.OreIntegrationCenter") && centerPackMetas.size() == 54
+                && java.util.stream.IntStream.range(0, 54)
+                    .allMatch(centerPackMetas::contains),
+            "Center registration coverage");
         List<String> vanilla = new ArrayList<>(Arrays.asList("name", "cover", "GTSR info", "fluid amount", "foreign"));
         check(GTSRReviewedPages.removeOwned(vanilla, Arrays.asList("GTSR info")), "owned block");
         check(

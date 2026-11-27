@@ -70,7 +70,9 @@ public final class CriticalEnergyRuntime {
         int idle = data.getInteger("idleTicks") + 1;
         if (idle >= CYCLE_TICKS) {
             int efficiency = CriticalEnergyMath.efficiency(data.getInteger("efficiency"));
-            data.setInteger("efficiency", CriticalEnergyMath.efficiency(efficiency - CriticalEnergyMath.EFFICIENCY_STEP));
+            data.setInteger(
+                "efficiency",
+                CriticalEnergyMath.efficiency(efficiency - CriticalEnergyMath.EFFICIENCY_STEP));
             idle = 0;
         }
         data.setInteger("idleTicks", idle);
@@ -84,7 +86,8 @@ public final class CriticalEnergyRuntime {
     /** Preserve the old warmth fraction independently of every already-paid batch receipt. */
     private static void migrateTurbineWarmth(CriticalMachineState state, NBTTagCompound data) {
         int policy = data.getInteger("turbinePolicy");
-        if (policy < 2 || policy > LAST_WARMUP_POLICY || data.getInteger("turbineWarmthScale") == LAST_WARMUP_POLICY) return;
+        if (policy < 2 || policy > LAST_WARMUP_POLICY || data.getInteger("turbineWarmthScale") == LAST_WARMUP_POLICY)
+            return;
         int ticks = 0, target = 0;
         if (policy == 2 || policy == 3) {
             ticks = Math.max(0, Math.min(LEGACY_TURBINE_WARMUP_TICKS, data.getInteger("turbineRunTicks")));

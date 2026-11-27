@@ -6,8 +6,8 @@ package com.miaokatze.gtsr.common.gui;
 import static com.miaokatze.gtsr.common.gui.CenterGraphGui.tr;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.LongFunction;
@@ -32,12 +32,12 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.miaokatze.gtsr.client.gui.CenterTerminalClient;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
+import com.miaokatze.gtsr.common.items.CenterModuleItems;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterPlanner;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterStructure;
-import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
-import com.miaokatze.gtsr.common.items.CenterModuleItems;
 
 final class CenterTerminalPages {
 
@@ -125,118 +125,261 @@ final class CenterTerminalPages {
 
     ParentWidget<?> assembly() {
         ParentWidget<?> page = new ParentWidget<>().name("center_assembly");
-        ParentWidget<?> bar = card("center_assembly_workbar").left(0).right(0).top(0).height(13);
+        ParentWidget<?> bar = card("center_assembly_workbar").left(0)
+            .right(0)
+            .top(0)
+            .height(13);
         bar.child(button("directory", () -> tr("assembly.directory"), () -> {
             showDirectory = !showDirectory;
             page.scheduleResize();
-        }).pos(3, 0).size(38, 13));
+        }).pos(3, 0)
+            .size(38, 13));
         bar.child(button("inspector", () -> tr("assembly.inspector"), () -> {
             showDetails = !showDetails;
             page.scheduleResize();
-        }).pos(43, 0).size(38, 13));
-        bar.child(CriticalGuiStyle.label(() -> tr("assembly.readout", tr(state().getBoolean("Active") ? "assembly.running"
-            : state().getBoolean("Formed") ? "assembly.idle"
-                : state().getBoolean("CheckingFormation") ? "assembly.rechecking" : "assembly.unformed"),
-            Integer.bitCount(mask()), installed(), sync.snapshot().capacity()),
-            () -> 0xFFEDE6D8, Alignment.CenterRight).left(84).right(2).top(0).height(13));
+        }).pos(43, 0)
+            .size(38, 13));
+        bar.child(
+            CriticalGuiStyle
+                .label(
+                    () -> tr(
+                        "assembly.readout",
+                        tr(
+                            state().getBoolean("Active") ? "assembly.running"
+                                : state().getBoolean("Formed") ? "assembly.idle"
+                                    : state().getBoolean("CheckingFormation") ? "assembly.rechecking"
+                                        : "assembly.unformed"),
+                        Integer.bitCount(mask()),
+                        installed(),
+                        sync.snapshot()
+                            .capacity()),
+                    () -> 0xFFEDE6D8,
+                    Alignment.CenterRight)
+                .left(84)
+                .right(2)
+                .top(0)
+                .height(13));
         page.child(bar);
-        ParentWidget<?> resources = card("center_assembly_resources").left(0).right(0).top(14).height(35);
-        for (int i = 0; i < 6; i++) {
+        ParentWidget<?> resources = card("center_assembly_resources").left(0)
+            .right(0)
+            .top(14)
+            .height(57);
+        for (int i = 0; i < 10; i++) {
             int row = i + 2;
-            var readout = CriticalGuiStyle.fitted(() -> CenterOperationText.line(state(), row),
-                () -> 0xFFD9E6E2, Alignment.CenterLeft).asWidget();
-            readout.widthRel(.48f).top(2 + (i / 2) * 11).height(11);
+            var readout = CriticalGuiStyle
+                .fitted(() -> CenterOperationText.line(state(), row), () -> 0xFFD9E6E2, Alignment.CenterLeft)
+                .asWidget();
+            readout.widthRel(.48f)
+                .top(2 + (i / 2) * 11)
+                .height(11);
             if ((i & 1) == 0) readout.left(4);
             else readout.right(3);
             resources.child(readout);
         }
         page.child(resources);
 
-        ParentWidget<?> queue = card("center_queue_controls").left(0).right(0).top(51).height(17);
-        queue.child(button("queue_toggle", () -> tr(state().getBoolean("QueueMode") ? "queue.on" : "queue.off"),
-            () -> sync.edit(CenterGraphSync.Action.QUEUE, sync.snapshot(), -1,
-                state().getBoolean("QueueMode") ? 0 : 1, 0, ""))
-            .pos(3, 2).size(66, 13));
-        queue.child(CriticalGuiStyle.fitted(() -> state().getInteger("QueueParallel") > 0
-            ? tr("queue.parallel", state().getInteger("QueueParallel")) : tr("queue.detecting"),
-            () -> 0xFFE3B87B, Alignment.CenterLeft).asWidget().left(73).top(2).size(109, 13));
-        queue.child(CriticalGuiStyle.fitted(() -> tr("queue.hint"),
-            () -> 0xFFC0C9C8, Alignment.CenterLeft).asWidget().left(187).right(3).top(2).height(13));
+        ParentWidget<?> queue = card("center_queue_controls").left(0)
+            .right(0)
+            .top(73)
+            .height(17);
+        queue.child(
+            button(
+                "queue_toggle",
+                () -> tr(state().getBoolean("QueueMode") ? "queue.on" : "queue.off"),
+                () -> sync.edit(
+                    CenterGraphSync.Action.QUEUE,
+                    sync.snapshot(),
+                    -1,
+                    state().getBoolean("QueueMode") ? 0 : 1,
+                    0,
+                    "")).pos(3, 2)
+                        .size(66, 13));
+        queue.child(
+            CriticalGuiStyle
+                .fitted(
+                    () -> state().getInteger("QueueParallel") > 0
+                        ? tr("queue.parallel", state().getInteger("QueueParallel"))
+                        : tr("queue.detecting"),
+                    () -> 0xFFE3B87B,
+                    Alignment.CenterLeft)
+                .asWidget()
+                .left(73)
+                .top(2)
+                .size(109, 13));
+        queue.child(
+            CriticalGuiStyle.fitted(() -> tr("queue.hint"), () -> 0xFFC0C9C8, Alignment.CenterLeft)
+                .asWidget()
+                .left(187)
+                .right(3)
+                .top(2)
+                .height(13));
         page.child(queue);
 
-        ParentWidget<?> directory = card("center_assembly_directory").left(0).top(70).bottom(0).width(113)
+        ParentWidget<?> directory = card("center_assembly_directory").left(0)
+            .top(92)
+            .bottom(0)
+            .width(113)
             .setEnabledIf(w -> showDirectory);
-        directory.child(label(() -> tr("assembly.pads")).pos(4, 3).size(103, 13));
+        directory.child(
+            label(() -> tr("assembly.pads")).pos(4, 3)
+                .size(103, 13));
         for (int filter = -1; filter < 2; filter++) {
             int id = filter;
-            directory.child(button("pad_filter_" + filter, () -> tr("terminal.pad_filter." + id), () -> scope = id)
-                .pos(4 + (filter + 1) * 35, 19).size(33, 13));
+            directory.child(
+                button("pad_filter_" + filter, () -> tr("terminal.pad_filter." + id), () -> scope = id)
+                    .pos(4 + (filter + 1) * 35, 19)
+                    .size(33, 13));
         }
-        directory.child(new PadDirectory().left(4).right(4).top(35).bottom(4));
+        directory.child(
+            new PadDirectory().left(4)
+                .right(4)
+                .top(35)
+                .bottom(4));
         page.child(directory);
 
-        ParentWidget<?> center = card("center_assembly_map").left(() -> showDirectory ? 115 : 0,
-            com.cleanroommc.modularui.widget.sizer.Unit.Measure.PIXEL)
+        ParentWidget<?> center = card("center_assembly_map")
+            .left(() -> showDirectory ? 115 : 0, com.cleanroommc.modularui.widget.sizer.Unit.Measure.PIXEL)
             .right(() -> showDetails ? 182 : 0, com.cleanroommc.modularui.widget.sizer.Unit.Measure.PIXEL)
-            .top(70).bottom(0);
-        ParentWidget<?> mapHead = new ParentWidget<>().background((IDrawable)
-            (ctx, x, y, width, height, theme) -> GuiDraw.drawRect(x, y, width, height, 0xFF27373C))
-            .left(0).right(0).top(1).height(14);
-        mapHead.child(label(() -> tr("terminal.assembly_view")).pos(3, 0).size(85, 14));
-        mapHead.child(CriticalGuiStyle.label(() -> tr("terminal.assembly_rings"),
-            () -> 0xFFCCCCBE, Alignment.CenterRight).left(89).right(3).top(0).height(14));
+            .top(92)
+            .bottom(0);
+        ParentWidget<?> mapHead = new ParentWidget<>()
+            .background(
+                (IDrawable) (ctx, x, y, width, height, theme) -> GuiDraw.drawRect(x, y, width, height, 0xFF27373C))
+            .left(0)
+            .right(0)
+            .top(1)
+            .height(14);
+        mapHead.child(
+            label(() -> tr("terminal.assembly_view")).pos(3, 0)
+                .size(85, 14));
+        mapHead.child(
+            CriticalGuiStyle.label(() -> tr("terminal.assembly_rings"), () -> 0xFFCCCCBE, Alignment.CenterRight)
+                .left(89)
+                .right(3)
+                .top(0)
+                .height(14));
         center.child(mapHead);
-        center.child(new Miniature().name("center_assembly_scene").left(1).right(1).top(15).bottom(16));
-        ParentWidget<?> mapFoot = card("center_assembly_sector_bar").left(1).right(1).bottom(1).height(15);
-        mapFoot.child(label(() -> tr("terminal.sector")).pos(1, 0).size(22, 15));
+        center.child(
+            new Miniature().name("center_assembly_scene")
+                .left(1)
+                .right(1)
+                .top(15)
+                .bottom(16));
+        ParentWidget<?> mapFoot = card("center_assembly_sector_bar").left(1)
+            .right(1)
+            .bottom(1)
+            .height(15);
+        mapFoot.child(
+            label(() -> tr("terminal.sector")).pos(1, 0)
+                .size(22, 15));
         for (int s = 0; s < 6; s++) {
             int sector = s;
-            mapFoot.child(button("sector_" + s, () -> "0" + (sector + 1), () -> select(sector * 6 + slot % 6))
-                .left(23 + s * 17).top(2).size(15, 12)
-                .background(new com.cleanroommc.modularui.drawable.DynamicDrawable(() -> sector == slot / 6
-                    ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)));
+            mapFoot.child(
+                button("sector_" + s, () -> "0" + (sector + 1), () -> select(sector * 6 + slot % 6)).left(23 + s * 17)
+                    .top(2)
+                    .size(15, 12)
+                    .background(
+                        new com.cleanroommc.modularui.drawable.DynamicDrawable(
+                            () -> sector == slot / 6 ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)));
         }
-        mapFoot.child(button("focus_sector", () -> tr(focused ? "assembly.whole" : "assembly.focus"),
-            () -> focused = !focused).right(3).top(2).size(49, 12)
-            .setEnabledIf(w -> Integer.bitCount(mask()) > 1));
+        mapFoot.child(
+            button("focus_sector", () -> tr(focused ? "assembly.whole" : "assembly.focus"), () -> focused = !focused)
+                .right(3)
+                .top(2)
+                .size(49, 12)
+                .setEnabledIf(w -> Integer.bitCount(mask()) > 1));
         center.child(mapFoot);
         page.child(center);
 
-        ParentWidget<?> detail = card("center_assembly_inspector").right(0).top(70).bottom(0).width(180)
+        ParentWidget<?> detail = card("center_assembly_inspector").right(0)
+            .top(92)
+            .bottom(0)
+            .width(180)
             .setEnabledIf(w -> showDetails);
-        detail.child(label(() -> tr("assembly.pad")).pos(4, 3).size(96, 13));
-        detail.child(CriticalGuiStyle.label(() -> "S0" + (slot / 6 + 1) + " / " + SLOT_CODES[slot % 6],
-            () -> 0xFFE3B87B, Alignment.CenterRight).right(4).top(3).size(71, 13));
-        ParentWidget<?> selection = card("center_assembly_selection").left(4).right(4).top(19).height(29);
-        selection.child(new SelectedPack().pos(4, 4).size(22, 22));
-        selection.child(label(() -> pack(selected, grade).getDisplayName()).left(28).right(3).top(2).height(13));
-        selection.child(label(() -> installedGrade() != 0 ? tr("terminal.installed_grade", GRADES[installedGrade() - 1])
-            : tr((mask() & 1 << (slot / 6)) == 0 ? "assembly.planned" : "assembly.vacant"))
-            .left(28).right(3).top(15).height(12));
+        detail.child(
+            label(() -> tr("assembly.pad")).pos(4, 3)
+                .size(96, 13));
+        detail.child(
+            CriticalGuiStyle
+                .label(
+                    () -> "S0" + (slot / 6 + 1) + " / " + SLOT_CODES[slot % 6],
+                    () -> 0xFFE3B87B,
+                    Alignment.CenterRight)
+                .right(4)
+                .top(3)
+                .size(71, 13));
+        ParentWidget<?> selection = card("center_assembly_selection").left(4)
+            .right(4)
+            .top(19)
+            .height(29);
+        selection.child(
+            new SelectedPack().pos(4, 4)
+                .size(22, 22));
+        selection.child(
+            label(() -> pack(selected, grade).getDisplayName()).left(28)
+                .right(3)
+                .top(2)
+                .height(13));
+        selection.child(
+            label(
+                () -> installedGrade() != 0 ? tr("terminal.installed_grade", GRADES[installedGrade() - 1])
+                    : tr((mask() & 1 << (slot / 6)) == 0 ? "assembly.planned" : "assembly.vacant")).left(28)
+                        .right(3)
+                        .top(15)
+                        .height(12));
         detail.child(selection);
-        detail.child(label(() -> tr("assembly.pack")).pos(4, 50).size(95, 12));
+        detail.child(
+            label(() -> tr("assembly.pack")).pos(4, 50)
+                .size(95, 12));
         for (int g = 1; g <= 3; g++) {
             int level = g;
-            detail.child(button("pack_grade_" + g, () -> tr("terminal.pack_grade", GRADES[level - 1]), () -> grade = level)
-                .right(4 + (3 - g) * 24).top(50).size(22, 12)
-                .background(new com.cleanroommc.modularui.drawable.DynamicDrawable(() -> grade == level
-                    ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)));
+            detail.child(
+                button("pack_grade_" + g, () -> tr("terminal.pack_grade", GRADES[level - 1]), () -> grade = level)
+                    .right(4 + (3 - g) * 24)
+                    .top(50)
+                    .size(22, 12)
+                    .background(
+                        new com.cleanroommc.modularui.drawable.DynamicDrawable(
+                            () -> grade == level ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)));
         }
-        detail.child(new PackPicker().pos(4, 65).size(171, 75));
-        detail.child(label(() -> tr("assembly.bus_count", count(selected, grade))).pos(4, 142).size(170, 13));
-        detail.child(button("apply_module", () -> tr((mask() & 1 << (slot / 6)) == 0
-            ? "terminal.wait_sector" : removing() ? "assembly.remove" : "assembly.install"), this::apply)
-            .left(4).right(4).top(157).height(14));
-        detail.child(label(() -> installedGrade() == 0 ? "" : roleText(MODULES[value("Modules", slot)]))
-            .pos(4, 174).size(170, 12).tooltipBuilder(t -> {
-                if (installedGrade() != 0) padTooltip(t, slot);
-            }));
-        detail.child(label(() -> installedGrade() == 0 ? "" : usageText(MODULES[value("Modules", slot)]))
-            .pos(4, 187).size(170, 12));
-        detail.child(label(() -> tr("assembly.bus")).pos(4, 203).size(103, 14));
-        detail.child(button("stock_all", () -> tr(allPacks ? "terminal.compatible_packs" : "terminal.all_packs"),
-            () -> allPacks = !allPacks).right(4).top(203).size(53, 14));
-        detail.child(new PackStock().left(4).right(4).top(219).bottom(4));
+        detail.child(
+            new PackPicker().pos(4, 65)
+                .size(171, 75));
+        detail.child(
+            label(() -> tr("assembly.bus_count", count(selected, grade))).pos(4, 142)
+                .size(170, 13));
+        detail.child(
+            button(
+                "apply_module",
+                () -> tr(
+                    (mask() & 1 << (slot / 6)) == 0 ? "terminal.wait_sector"
+                        : removing() ? "assembly.remove" : "assembly.install"),
+                this::apply).left(4)
+                    .right(4)
+                    .top(157)
+                    .height(14));
+        detail.child(
+            label(() -> installedGrade() == 0 ? "" : roleText(MODULES[value("Modules", slot)])).pos(4, 174)
+                .size(170, 12)
+                .tooltipBuilder(t -> { if (installedGrade() != 0) padTooltip(t, slot); }));
+        detail.child(
+            label(() -> installedGrade() == 0 ? "" : usageText(MODULES[value("Modules", slot)])).pos(4, 187)
+                .size(170, 12));
+        detail.child(
+            label(() -> tr("assembly.bus")).pos(4, 203)
+                .size(103, 14));
+        detail.child(
+            button(
+                "stock_all",
+                () -> tr(allPacks ? "terminal.compatible_packs" : "terminal.all_packs"),
+                () -> allPacks = !allPacks).right(4)
+                    .top(203)
+                    .size(53, 14));
+        detail.child(
+            new PackStock().left(4)
+                .right(4)
+                .top(219)
+                .bottom(4));
         return page.child(detail);
     }
 
@@ -249,7 +392,8 @@ final class CenterTerminalPages {
                 int used = 0;
                 for (CenterGraph.Node node : graph.nodes) used |= 1 << node.process.module.ordinal();
                 for (CenterModule candidate : MODULES)
-                    if ((used & 1 << candidate.ordinal()) != 0) moduleReferences.get(candidate.ordinal()).add(graph);
+                    if ((used & 1 << candidate.ordinal()) != 0) moduleReferences.get(candidate.ordinal())
+                        .add(graph);
             }
         }
         return moduleReferences.get(module.ordinal());
@@ -266,12 +410,22 @@ final class CenterTerminalPages {
     }
 
     private String usageText(CenterModule module) {
-        if (module.kind == 2)
-            return tr("assembly.usage.capacity", sync.snapshot().graphs().size(), sync.snapshot().capacity());
+        if (module.kind == 2) return tr(
+            "assembly.usage.capacity",
+            sync.snapshot()
+                .graphs()
+                .size(),
+            sync.snapshot()
+                .capacity());
         if (usedInBatch(module)) return tr("assembly.usage.in_batch");
         if (module.kind == 0) return tr("assembly.usage.boost_idle");
         List<CenterGraph> graphs = references(module);
-        return tr("assembly.usage.references", graphs.stream().filter(graph -> graph.enabled).count(), graphs.size());
+        return tr(
+            "assembly.usage.references",
+            graphs.stream()
+                .filter(graph -> graph.enabled)
+                .count(),
+            graphs.size());
     }
 
     private void padTooltip(com.cleanroommc.modularui.screen.RichTooltip tooltip, int pad) {
@@ -286,10 +440,15 @@ final class CenterTerminalPages {
         tooltip.add(roleText(module));
         if (module.kind == 1) {
             List<CenterGraph> graphs = references(module);
-            tooltip.add(tr("assembly.usage.references", graphs.stream().filter(graph -> graph.enabled).count(),
-                graphs.size()));
-            for (CenterGraph graph : graphs) tooltip.add("  " + graph.name + "  "
-                + tr(graph.enabled ? "enabled" : "disabled"));
+            tooltip.add(
+                tr(
+                    "assembly.usage.references",
+                    graphs.stream()
+                        .filter(graph -> graph.enabled)
+                        .count(),
+                    graphs.size()));
+            for (CenterGraph graph : graphs)
+                tooltip.add("  " + graph.name + "  " + tr(graph.enabled ? "enabled" : "disabled"));
         }
         if (module.kind != 1 || usedInBatch(module)) tooltip.add(usageText(module));
     }
@@ -302,21 +461,43 @@ final class CenterTerminalPages {
 
     ParentWidget<?> statistics() {
         ParentWidget<?> page = card("center_statistics");
-        page.child(label(() -> tr("stats.title")).pos(7, 5).size(80, 15));
+        page.child(
+            label(() -> tr("stats.title")).pos(7, 5)
+                .size(80, 15));
         for (int i = -1; i < 3; i++) {
             int column = i;
-            page.child(button("stats_column_" + i, () -> tr("stats.column." + column), () -> statsColumn = column)
-                .right(176 + (2 - i) * 36).top(3).size(34, 13));
+            page.child(
+                button("stats_column_" + i, () -> tr("stats.column." + column), () -> statsColumn = column)
+                    .right(176 + (2 - i) * 36)
+                    .top(3)
+                    .size(34, 13));
         }
-        page.child(search.right(55).top(3).size(116, 13)
-            .tooltipBuilder(t -> t.add(tr("stats.search"))));
+        page.child(
+            search.right(55)
+                .top(3)
+                .size(116, 13)
+                .tooltipBuilder(t -> t.add(tr("stats.search"))));
         page.child(button("stats_reset", () -> tr(resetArmed ? "stats.confirm" : "stats.reset"), () -> {
             if (resetArmed) sync.edit(CenterGraphSync.Action.RESET_LEDGER, sync.snapshot(), -1, 0, 0, "");
             resetArmed = !resetArmed;
-        }).right(5).top(3).size(47, 13));
-        page.child(label(() -> tr("terminal.ledger_hint")).left(3).right(3).top(18).height(10));
-        page.child(new Ledger().left(2).right(2).top(29).bottom(17));
-        page.child(label(() -> tr("terminal.ledger_detail")).left(3).right(3).bottom(3).height(12));
+        }).right(5)
+            .top(3)
+            .size(47, 13));
+        page.child(
+            label(() -> tr("terminal.ledger_hint")).left(3)
+                .right(3)
+                .top(18)
+                .height(10));
+        page.child(
+            new Ledger().left(2)
+                .right(2)
+                .top(29)
+                .bottom(17));
+        page.child(
+            label(() -> tr("terminal.ledger_detail")).left(3)
+                .right(3)
+                .bottom(3)
+                .height(12));
         return page;
     }
 
@@ -326,25 +507,60 @@ final class CenterTerminalPages {
 
     ParentWidget<?> calculation() {
         ParentWidget<?> page = new ParentWidget<>().name("center_calculation");
-        ParentWidget<?> tools = card("center_calculation_tools").left(0).right(0).top(0).height(22);
-        tools.child(label(() -> tr("calc.route")).pos(2, 3).size(47, 15));
+        ParentWidget<?> tools = card("center_calculation_tools").left(0)
+            .right(0)
+            .top(0)
+            .height(22);
+        tools.child(
+            label(() -> tr("calc.route")).pos(2, 3)
+                .size(47, 15));
         tools.child(button("calc_route", () -> {
             CenterGraph graph = calculationGraph();
             return graph == null || graph.name.isEmpty() ? tr("graph") + " " + (route + 1) : graph.name;
         }, () -> {
-            route = (route + 1) % Math.max(1, sync.snapshot().graphs().size());
+            route = (route + 1) % Math.max(
+                1,
+                sync.snapshot()
+                    .graphs()
+                    .size());
             outlet = 0;
             resetTrial();
-        }).pos(50, 4).size(83, 14));
-        tools.child(label(() -> tr("terminal.batch_size")).right(92).top(3).size(55, 15));
-        tools.child(batchSize.right(47).top(4).size(43, 13));
-        tools.child(button("calc_run", () -> tr("terminal.trial"), this::runTrial).right(4).top(4).size(40, 13));
+        }).pos(50, 4)
+            .size(83, 14));
+        tools.child(
+            label(() -> tr("terminal.batch_size")).right(92)
+                .top(3)
+                .size(55, 15));
+        tools.child(
+            batchSize.right(47)
+                .top(4)
+                .size(43, 13));
+        tools.child(
+            button("calc_run", () -> tr("terminal.trial"), this::runTrial).right(4)
+                .top(4)
+                .size(40, 13));
         page.child(tools);
-        page.child(label(() -> tr("terminal.path_readout", path().size())).left(3).right(3).top(24).height(13));
-        page.child(new PathTable().left(2).widthRel(.468f).top(39).bottom(17));
-        page.child(new CalculationTable().name("center_calculation_results").leftRelOffset(.468f, 5).right(2).top(39).bottom(17));
-        page.child(label(() -> tr(trialStatus == null ? "terminal.calc_live" : trialStatus))
-            .left(3).right(3).bottom(2).height(12));
+        page.child(
+            label(() -> tr("terminal.path_readout", path().size())).left(3)
+                .right(3)
+                .top(24)
+                .height(13));
+        page.child(
+            new PathTable().left(2)
+                .widthRel(.468f)
+                .top(39)
+                .bottom(17));
+        page.child(
+            new CalculationTable().name("center_calculation_results")
+                .leftRelOffset(.468f, 5)
+                .right(2)
+                .top(39)
+                .bottom(17));
+        page.child(
+            label(() -> tr(trialStatus == null ? "terminal.calc_live" : trialStatus)).left(3)
+                .right(3)
+                .bottom(2)
+                .height(12));
         return page;
     }
 
@@ -360,10 +576,13 @@ final class CenterTerminalPages {
         resetTrial();
         trialRequested = true;
         CenterGraph trialGraph = calculationGraph();
-        trialRevision = sync.snapshot().revision();
+        trialRevision = sync.snapshot()
+            .revision();
         int quantity;
         try {
-            quantity = Integer.parseInt(batchSize.getText().trim());
+            quantity = Integer.parseInt(
+                batchSize.getText()
+                    .trim());
         } catch (NumberFormatException invalid) {
             quantity = 0;
         }
@@ -405,26 +624,71 @@ final class CenterTerminalPages {
     }
 
     private CenterGraph calculationGraph() {
-        List<CenterGraph> graphs = sync.snapshot().graphs();
+        List<CenterGraph> graphs = sync.snapshot()
+            .graphs();
         return graphs.isEmpty() ? null : graphs.get(Math.min(route, graphs.size() - 1));
     }
+
+    private static final int CALC_ROWS = 12;
 
     private String amount(int row) {
         NBTTagCompound state = state();
         if (trialRequested && trialBatch == null && row != 3) return "—";
-        long time = trialRequested ? trialBatch == null ? 0 : trialBatch.ticks : state.getInteger("Duration");
-        long energy = trialRequested ? trialBatch == null ? 0 : trialBatch.energy : state.getLong("Energy");
-        long steam = trialRequested ? trialBatch == null ? 0 : trialBatch.steam : state.getLong("Steam");
+        CenterPlanner.Batch batch = trialRequested ? trialBatch : null;
+        if (row >= 6 && row <= 9 && batch == null && !state.getBoolean("BillBreakdownKnown"))
+            return tr("calc.legacy_bill");
+        int time = batch != null ? batch.ticks : state.getInteger("Duration");
+        long energy = batch != null ? batch.energy : state.getLong("Energy");
+        long steam = batch != null ? batch.steam : state.getLong("Steam");
         long density = Math.max(1, state.getInteger("SteamDensity"));
+        int parallel = batch != null ? batch.parallel : state.getInteger("TotalParallel");
+        int used = batch != null ? Math.min(batch.roots, parallel) : state.getInteger("UsedParallel");
         return switch (row) {
-            case 0 -> (trialRequested ? Long.toString(time) : state.getInteger("Elapsed") + " / " + time) + " t";
-            case 1 -> (steam + density - 1) / density + " L";
+            case 0 -> (trialRequested ? Integer.toString(time) : state.getInteger("Elapsed") + " / " + time) + " t";
+            case 1 -> CenterOperationText.ceilDivide(steam, density) + " L";
             case 2 -> energy + " EU";
             case 3 -> state.getLong("Power") + " EU/t";
-            default -> String.format(Locale.ROOT, "%.3f", 1 + .06 * Math.max(0, Integer.bitCount(mask()) - 1)
-                + (trialRequested ? 0 : .025 * Math.max(0,
-                    sync.snapshot().graphs().stream().filter(graph -> graph.enabled).count() - 1)));
+            case 4 -> parallel + " / " + used + " / " + Math.max(0, parallel - used);
+            case 5 -> String
+                .format(Locale.ROOT, "%.3f t", batch != null ? batch.weightedTicks : state.getDouble("WeightedTicks"));
+            case 6 -> (batch != null ? batch.processingEnergy : state.getLong("ProcessingEnergy")) + " EU";
+            case 7 -> (batch != null ? batch.maintenanceEnergy : state.getLong("MaintenanceEnergy")) + " EU";
+            case 8 -> (batch != null ? batch.processingSteam : state.getLong("ProcessingSteam")) + " L eq.";
+            case 9 -> (batch != null ? batch.maintenanceSteam : state.getLong("MaintenanceSteam")) + " L eq.";
+            case 10 -> time > 0 ? CenterOperationText.ceilDivide(energy, time) + " EU/t" : "0 EU/t";
+            default -> time > 0
+                ? CenterOperationText.ceilDivide(CenterOperationText.ceilDivide(steam, density), time) + " L/t"
+                : "0 L/t";
         };
+    }
+
+    private List<String> chainTimes() {
+        List<String> rows = new ArrayList<>();
+        if (trialRequested && trialBatch != null) {
+            for (var chain : trialBatch.chains) rows.add(
+                tr(
+                    "calc.chain",
+                    chain.name,
+                    chain.roots,
+                    String.format(Locale.ROOT, "%.2f", 100D * chain.roots / Math.max(1, trialBatch.roots)),
+                    String.format(Locale.ROOT, "%.3f", chain.ticks)));
+        } else if (!trialRequested) {
+            var chains = state().getTagList("ChainTimes", 10);
+            long roots = 0;
+            for (int i = 0; i < chains.tagCount(); i++) roots += chains.getCompoundTagAt(i)
+                .getInteger("Roots");
+            for (int i = 0; i < chains.tagCount(); i++) {
+                var chain = chains.getCompoundTagAt(i);
+                rows.add(
+                    tr(
+                        "calc.chain",
+                        chain.getString("Name"),
+                        chain.getInteger("Roots"),
+                        String.format(Locale.ROOT, "%.2f", 100D * chain.getInteger("Roots") / Math.max(1, roots)),
+                        String.format(Locale.ROOT, "%.3f", chain.getDouble("Ticks"))));
+            }
+        }
+        return rows;
     }
 
     private abstract static class Surface<S extends Surface<S>> extends Widget<S> implements Interactable {
@@ -479,11 +743,18 @@ final class CenterTerminalPages {
                     (sector == slot / 6 ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)
                         .draw(context, 0, y, getArea().width, 12, theme.getTheme());
                     text(context, tr("terminal.sector") + " 0" + (sector + 1), 1, y, 69, 12, sector == slot / 6);
-                    text(context, (mask() & 1 << sector) == 0 ? tr("assembly.planned") : levels + " / 6",
-                        getArea().width - 27, y, 25, 12, false);
+                    text(
+                        context,
+                        (mask() & 1 << sector) == 0 ? tr("assembly.planned") : levels + " / 6",
+                        getArea().width - 27,
+                        y,
+                        25,
+                        12,
+                        false);
                 } else {
                     int level = value("Grades", pad);
-                    if (pad == slot) TerminalUiStyle.CHIP_ACTIVE.draw(context, 0, y, getArea().width, 12, theme.getTheme());
+                    if (pad == slot)
+                        TerminalUiStyle.CHIP_ACTIVE.draw(context, 0, y, getArea().width, 12, theme.getTheme());
                     text(context, SLOT_CODES[pad % 6], 3, y, 23, 12, pad == slot);
                     String name = level == 0 ? tr("assembly.vacant")
                         : tr("assembly.short." + MODULES[value("Modules", pad)].key);
@@ -559,9 +830,16 @@ final class CenterTerminalPages {
             float hub = radius * .185f;
             GuiDraw.drawCircle(cx - hub, cy - hub, hub * 2, 0xFF718891, 24);
             GuiDraw.drawCircle(cx - hub + 2, cy - hub + 2, hub * 2 - 4, 0xFF263742, 24);
-            TerminalUiStyle.CHIP_NORMAL.draw(context, Math.round(cx) - 14, Math.round(cy) - 7, 28, 14, theme.getTheme());
-            text(context, tier() < 0 ? "—" : tr("terminal.tier." + tier()), Math.round(cx) - 14,
-                Math.round(cy) - 7, 28, 14, built != 0);
+            TerminalUiStyle.CHIP_NORMAL
+                .draw(context, Math.round(cx) - 14, Math.round(cy) - 7, 28, 14, theme.getTheme());
+            text(
+                context,
+                tier() < 0 ? "—" : tr("terminal.tier." + tier()),
+                Math.round(cx) - 14,
+                Math.round(cy) - 7,
+                28,
+                14,
+                built != 0);
 
             float scale = radius / 110f;
             halfWidth = Math.max(6, Math.min(18, Math.round(scale * 8)));
@@ -587,8 +865,14 @@ final class CenterTerminalPages {
                     }
                 }
                 GuiDraw.drawRect(x + 1, y + 2, 1, 2 * halfHeight - 4, stripe);
-                text(context, SLOT_CODES[i % 6], x + labelInset, y, 2 * halfWidth - labelInset - 2,
-                    2 * halfHeight, selectedPad);
+                text(
+                    context,
+                    SLOT_CODES[i % 6],
+                    x + labelInset,
+                    y,
+                    2 * halfWidth - labelInset - 2,
+                    2 * halfHeight,
+                    selectedPad);
             }
             markTooltipDirty();
         }
@@ -602,15 +886,50 @@ final class CenterTerminalPages {
                     if ((visibleMask & 1 << sector) == 0) continue;
                     double angle = bearing(sector);
                     boolean present = (built & 1 << sector) != 0;
-                    band(buffer, cx, cy, radius * .22f, radius, angle, halfGap,
+                    band(
+                        buffer,
+                        cx,
+                        cy,
+                        radius * .22f,
+                        radius,
+                        angle,
+                        halfGap,
                         present ? sector == selectedSector ? 0xFFDBAC72 : 0xFF6B8592 : 0xFF3E515C);
-                    band(buffer, cx, cy, radius * .22f + border, radius - border, angle, halfGap + border,
+                    band(
+                        buffer,
+                        cx,
+                        cy,
+                        radius * .22f + border,
+                        radius - border,
+                        angle,
+                        halfGap + border,
                         present ? 0xFF324653 : 0xFF222F3A);
-                    band(buffer, cx, cy, radius * .47f, radius * .48f, angle, halfGap + border,
+                    band(
+                        buffer,
+                        cx,
+                        cy,
+                        radius * .47f,
+                        radius * .48f,
+                        angle,
+                        halfGap + border,
                         present ? 0xFF7C7770 : 0xFF41515B);
-                    band(buffer, cx, cy, radius * .725f, radius * .74f, angle, halfGap + border,
+                    band(
+                        buffer,
+                        cx,
+                        cy,
+                        radius * .725f,
+                        radius * .74f,
+                        angle,
+                        halfGap + border,
                         present ? 0xFF718C97 : 0xFF41515B);
-                    band(buffer, cx, cy, radius * .93f, radius * .95f, angle, halfGap + border,
+                    band(
+                        buffer,
+                        cx,
+                        cy,
+                        radius * .93f,
+                        radius * .95f,
+                        angle,
+                        halfGap + border,
                         present ? 0xFF5B818B : 0xFF344952);
                 }
             });
@@ -633,7 +952,8 @@ final class CenterTerminalPages {
 
         private void vertex(BufferBuilder buffer, float cx, float cy, float radius, double angle, int color) {
             buffer.pos(cx + (float) Math.cos(angle) * radius, cy + (float) Math.sin(angle) * radius, 0)
-                .color(color >> 16 & 255, color >> 8 & 255, color & 255, 255).endVertex();
+                .color(color >> 16 & 255, color >> 8 & 255, color & 255, 255)
+                .endVertex();
         }
 
         private double bearing(int sector) {
@@ -742,6 +1062,7 @@ final class CenterTerminalPages {
     }
 
     private static final class StatRow {
+
         final ItemStack stack;
         final long[] amounts;
 
@@ -760,7 +1081,9 @@ final class CenterTerminalPages {
 
         @Override
         public void draw(ModularGuiContext context, WidgetThemeEntry<?> theme) {
-            String text = search.getText().toLowerCase(Locale.ROOT).trim();
+            String text = search.getText()
+                .toLowerCase(Locale.ROOT)
+                .trim();
             NBTTagList ledger = sync.ledger();
             if (seen != ledger || filtered != statsColumn || !text.equals(query)) {
                 if (filtered != statsColumn || !text.equals(query)) first = 0;
@@ -771,19 +1094,25 @@ final class CenterTerminalPages {
                 for (int i = 0; i < ledger.tagCount(); i++) {
                     NBTTagCompound nbt = ledger.getCompoundTagAt(i);
                     ItemStack stack = ItemStack.loadItemStackFromNBT(nbt.getCompoundTag("Item"));
-                    if (stack == null || !stack.getDisplayName().toLowerCase(Locale.ROOT).contains(query)
+                    if (stack == null || !stack.getDisplayName()
+                        .toLowerCase(Locale.ROOT)
+                        .contains(query)
                         && !String.valueOf(net.minecraft.item.Item.itemRegistry.getNameForObject(stack.getItem()))
-                            .toLowerCase(Locale.ROOT).contains(query)) continue;
+                            .toLowerCase(Locale.ROOT)
+                            .contains(query))
+                        continue;
                     long[] values = { nbt.getLong("C0"), nbt.getLong("C1"), nbt.getLong("C2") };
                     if (filtered < 0 || values[filtered] > 0) rows.add(new StatRow(stack, values));
                 }
-                if (filtered >= 0) rows.sort(Comparator.comparingLong((StatRow row) -> row.amounts[filtered]).reversed());
+                if (filtered >= 0) rows.sort(
+                    Comparator.comparingLong((StatRow row) -> row.amounts[filtered])
+                        .reversed());
             }
             int width = getArea().width, col = width / 6;
             TerminalUiStyle.CHIP_NORMAL.draw(context, 0, 0, width, 17, theme.getTheme());
             text(context, tr("stats.item"), 6, 0, 3 * col, 17, true);
-            for (int i = 0; i < 3; i++) text(context, tr("stats.column." + i), width - (3 - i) * col,
-                0, col, 17, i == filtered);
+            for (int i = 0; i < 3; i++)
+                text(context, tr("stats.column." + i), width - (3 - i) * col, 0, col, 17, i == filtered);
             int visible = Math.max(0, (getArea().height - 18) / 20);
             first = Math.min(first, Math.max(0, rows.size() - visible));
             for (int i = first; i < Math.min(first + visible, rows.size()); i++) {
@@ -792,8 +1121,14 @@ final class CenterTerminalPages {
                 if ((i & 1) != 0) GuiDraw.drawRect(0, y, width, 20, 0xFF394046);
                 item(context, row.stack, 4, y + 2, 16);
                 text(context, row.stack.getDisplayName(), 24, y, width - 3 * col - 25, 20, false);
-                for (int j = 0; j < 3; j++) text(context, String.format(Locale.ROOT, "%,d", row.amounts[j]),
-                    width - (3 - j) * col, y, col, 20, filtered == j);
+                for (int j = 0; j < 3; j++) text(
+                    context,
+                    String.format(Locale.ROOT, "%,d", row.amounts[j]),
+                    width - (3 - j) * col,
+                    y,
+                    col,
+                    20,
+                    filtered == j);
             }
             if (rows.isEmpty()) text(context, tr("stats.empty"), 6, 20, width - 12, 20, false);
         }
@@ -822,10 +1157,16 @@ final class CenterTerminalPages {
                 int port = Math.min(outlet, CenterGraphSync.outlets(node) - 1), y = 29 + i * 21;
                 if ((i & 1) != 0) GuiDraw.drawRect(2, y, width - 4, 21, 0xFF2F343B);
                 text(context, (i + 1) + "  " + CenterGraphGui.processName(node.process), 3, y, width / 3, 20, false);
-                text(context, tr("calc.outlet", port + 1) + " → " + (node.target(port) < 0
-                    ? tr(node.target(port) == CenterGraph.BUS ? "output" : "unconnected")
-                    : CenterGraphGui.processName(calculationGraph().nodes.get(node.target(port)).process)),
-                    width / 3, y, width * 2 / 3 - 7, 20, true);
+                text(
+                    context,
+                    tr("calc.outlet", port + 1) + " → "
+                        + (node.target(port) < 0 ? tr(node.target(port) == CenterGraph.BUS ? "output" : "unconnected")
+                            : CenterGraphGui.processName(calculationGraph().nodes.get(node.target(port)).process)),
+                    width / 3,
+                    y,
+                    width * 2 / 3 - 7,
+                    20,
+                    true);
             }
         }
 
@@ -842,7 +1183,8 @@ final class CenterTerminalPages {
         @Override
         public void onUpdate() {
             super.onUpdate();
-            if (trialRequested && sync.snapshot().revision() != trialRevision) resetTrial();
+            if (trialRequested && sync.snapshot()
+                .revision() != trialRevision) resetTrial();
             if (trialJob != null && trialJob.advance(4, 200_000)) {
                 trialBatch = trialJob.batch();
                 trialJob = null;
@@ -850,9 +1192,10 @@ final class CenterTerminalPages {
             }
         }
 
+        private int first;
         private int formulaRow;
-        private final IDrawable right = CriticalGuiStyle.fitted(() -> amount(formulaRow), () -> 0xFFE7DDC8,
-            Alignment.CenterRight);
+        private final IDrawable right = CriticalGuiStyle
+            .fitted(() -> amount(formulaRow), () -> 0xFFE7DDC8, Alignment.CenterRight);
 
         @Override
         public void draw(ModularGuiContext context, WidgetThemeEntry<?> theme) {
@@ -860,43 +1203,47 @@ final class CenterTerminalPages {
             TerminalUiStyle.CARD.draw(context, 0, 0, w, getArea().height, theme.getTheme());
             TerminalUiStyle.CHIP_NORMAL.draw(context, 1, 1, w - 2, 15, theme.getTheme());
             text(context, tr("calc.result"), 3, 1, w - 6, 15, true);
-            int y = 16;
-            for (int row = 0; row < 5; row++) {
-                if (row == 0 || row == 1 || row == 4) {
-                    GuiDraw.drawRect(2, y, w - 4, 11, 0xFF333940);
-                    text(context, tr("terminal.formula_group." + row), 3, y, w - 6, 11, false);
-                    y += 11;
-                }
+            List<String> chains = chainTimes();
+            int visible = Math.max(1, (getArea().height - 63) / 15);
+            int total = CALC_ROWS + 1 + chains.size();
+            first = Math.min(first, Math.max(0, total - visible));
+            for (int row = first; row < Math.min(total, first + visible); row++) {
+                int y = 16 + (row - first) * 15;
                 GuiDraw.drawRect(2, y, w - 4, 14, row == formula ? 0xFF474E58 : 0xFF2F343B);
-                text(context, tr("calc.row." + row), 3, y, w / 2, 14, row == formula);
-                formulaRow = row;
-                right.draw(context, w / 2, y, w / 2 - 3, 14, null);
-                y += 15;
+                if (row < CALC_ROWS) {
+                    text(context, tr("calc.row." + row), 3, y, w / 2, 14, row == formula);
+                    formulaRow = row;
+                    right.draw(context, w / 2, y, w / 2 - 3, 14, null);
+                } else text(
+                    context,
+                    row == CALC_ROWS ? tr("calc.chains") : chains.get(row - CALC_ROWS - 1),
+                    3,
+                    y,
+                    w - 6,
+                    14,
+                    row == CALC_ROWS);
             }
-            int detail = y + 20;
-            if (detail + 55 >= getArea().height) return;
+            int detail = getArea().height - 44;
             GuiDraw.drawRect(2, detail, w - 4, 1, 0xFF434B53);
             text(context, tr("calc.row." + formula) + " · " + tr("calc.detail"), 3, detail + 3, w - 6, 14, true);
-            text(context, tr("calc.formula." + formula), 3, detail + 18, w - 7, 15, false);
-            if (trialBatch != null) {
-                int consumed = trialBatch.consumed.stream().mapToInt(item -> item.stackSize).sum();
-                text(context, tr("terminal.trial_consumed", consumed), 3, detail + 34, w - 7, 15, false);
-            }
+            text(context, tr("calc.formula." + formula), 3, detail + 18, w - 7, 20, false);
         }
 
         @Override
         public Result onMousePressed(int button) {
             if (button != 0) return Result.IGNORE;
-            int y = getContext().getMouseY(), start = 16;
-            for (int row = 0; row < 5; row++) {
-                if (row == 0 || row == 1 || row == 4) start += 11;
-                if (y >= start && y < start + 14) {
-                    formula = row;
-                    return Result.SUCCESS;
-                }
-                start += 15;
-            }
-            return Result.IGNORE;
+            int y = getContext().getMouseY();
+            if (y < 16 || y >= getArea().height - 47) return Result.IGNORE;
+            int row = first + (y - 16) / 15;
+            if (row >= CALC_ROWS) return Result.IGNORE;
+            formula = row;
+            return Result.SUCCESS;
+        }
+
+        @Override
+        public boolean onMouseScroll(UpOrDown direction, int amount) {
+            first = Math.max(0, first + (direction == UpOrDown.UP ? -1 : 1));
+            return true;
         }
     }
 
@@ -905,7 +1252,8 @@ final class CenterTerminalPages {
     }
 
     static ParentWidget<?> card(String name) {
-        return new ParentWidget<>().name(name).background(TerminalUiStyle.CARD);
+        return new ParentWidget<>().name(name)
+            .background(TerminalUiStyle.CARD);
     }
 
     private static ButtonWidget<?> button(String key, java.util.function.Supplier<String> label, Runnable action) {

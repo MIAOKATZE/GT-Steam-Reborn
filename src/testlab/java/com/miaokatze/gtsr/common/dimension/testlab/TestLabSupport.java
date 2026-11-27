@@ -35,7 +35,9 @@ public final class TestLabSupport implements LabModule {
             TestLabRuntime.register();
             LabRegistry.register(MODULE);
             if (MTEMineralIntegrationCenter.REGISTRATION_ENABLED && CenterGraphTcpFixture.requested()
-                && FMLCommonHandler.instance().getSide().isClient()) {
+                && FMLCommonHandler.instance()
+                    .getSide()
+                    .isClient()) {
                 CenterGraphTcpClient.register();
             }
         }

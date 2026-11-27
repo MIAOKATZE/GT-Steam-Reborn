@@ -119,7 +119,8 @@ final class TestLabIntegrationCenter implements TestLabTask {
             frames.clear();
             pressureFrames.clear();
             ThreadMXBean threads = ManagementFactory.getThreadMXBean();
-            threadClock = threads.isCurrentThreadCpuTimeSupported() && threads.isThreadCpuTimeEnabled() ? threads : null;
+            threadClock = threads.isCurrentThreadCpuTimeSupported() && threads.isThreadCpuTimeEnabled() ? threads
+                : null;
             served = 0;
         }
     }
@@ -153,8 +154,10 @@ final class TestLabIntegrationCenter implements TestLabTask {
             NO_FLUIDS);
         require(
             crushing.mOutputs[0].stackSize == 2 && crushing.getOutputChance(0) == 10000
-                && milling.mOutputs[0].stackSize == 1 && milling.getOutputChance(0) == 10000
-                && separating.mOutputs[0].stackSize == 1 && separating.getOutputChance(0) == 10000,
+                && milling.mOutputs[0].stackSize == 1
+                && milling.getOutputChance(0) == 10000
+                && separating.mOutputs[0].stackSize == 1
+                && separating.getOutputChance(0) == 10000,
             "Unexpected native copper path");
         List<CenterGraph.Node> crush = Arrays.asList(node(CenterProcess.CRUSHER, -1));
         List<CenterGraph.Node> dry = Arrays.asList(
@@ -167,24 +170,56 @@ final class TestLabIntegrationCenter implements TestLabTask {
         int[] bronze = grades(CenterModule.CRUSHER, CenterModule.CENTRIFUGE, CenterModule.LOGISTICS);
         CenterPlanner.Batch first = plan(Arrays.asList(early, later), items, NO_FLUIDS, bronze, 0, 1, 0, 0, SEED);
         CenterPlanner.Batch ranked = plan(
-            Arrays.asList(early, graph(1, true, "rawOreCopper", dry)), items, NO_FLUIDS, bronze, 0, 1, 0, 0, SEED);
+            Arrays.asList(early, graph(1, true, "rawOreCopper", dry)),
+            items,
+            NO_FLUIDS,
+            bronze,
+            0,
+            1,
+            0,
+            0,
+            SEED);
         CenterPlanner.Batch disabled = plan(
-            Arrays.asList(graph(9, false, "rawOreCopper", dry), early), items, NO_FLUIDS, bronze, 0, 1, 0, 0, SEED);
+            Arrays.asList(graph(9, false, "rawOreCopper", dry), early),
+            items,
+            NO_FLUIDS,
+            bronze,
+            0,
+            1,
+            0,
+            0,
+            SEED);
         CenterPlanner.Batch roundTrip = plan(
             Arrays.asList(CenterGraph.load(early.save()), CenterGraph.load(later.save())),
-            items, NO_FLUIDS, bronze, 0, 1, 0, 0, SEED);
+            items,
+            NO_FLUIDS,
+            bronze,
+            0,
+            1,
+            0,
+            0,
+            SEED);
         int input = quantity(ranked.consumed, copper);
         require(input > 0 && input <= copper.stackSize, "Consumed count must match actual supplied ore");
-        require(quantity(first.outputs, crushing.mOutputs[0]) == 2 * quantity(first.consumed, copper), "Tie must select the first graph");
+        require(
+            quantity(first.outputs, crushing.mOutputs[0]) == 2 * quantity(first.consumed, copper),
+            "Tie must select the first graph");
         require(signature(first).equals(signature(roundTrip)), "Graph NBT round-trip changed plan");
-        require(quantity(ranked.outputs, separating.mOutputs[0]) == 2 * input, "Raised priority must execute all copper nodes");
-        require(quantity(disabled.outputs, crushing.mOutputs[0]) == 2 * quantity(disabled.consumed, copper), "Disabled graph must not intercept");
+        require(
+            quantity(ranked.outputs, separating.mOutputs[0]) == 2 * input,
+            "Raised priority must execute all copper nodes");
+        require(
+            quantity(disabled.outputs, crushing.mOutputs[0]) == 2 * quantity(disabled.consumed, copper),
+            "Disabled graph must not intercept");
         require(quantity(ranked.outputs, crushing.mOutputs[0]) == 0, "Intermediate copper leaked across shared output");
-        require(ranked.ticks > 0 && ranked.steam > 0 && ranked.energy == 0, "Bronze planning must account steam without EU");
+        require(
+            ranked.ticks > 0 && ranked.steam > 0 && ranked.energy == 0,
+            "Bronze planning must account steam without EU");
         require(copper.stackSize == 64, "Planning changed the borrowed inventory");
         verifyGraphFilters(early, dry, crushing, separating, bronze);
-        require(CenterPlanner.plan(
-            Arrays.asList(early), NO_ITEMS, NO_FLUIDS, bronze, 0, 1, 0, 0, 0, SEED) == null, "Empty inventory planned a free batch");
+        require(
+            CenterPlanner.plan(Arrays.asList(early), NO_ITEMS, NO_FLUIDS, bronze, 0, 1, 0, 0, 0, SEED) == null,
+            "Empty inventory planned a free batch");
 
         int[] boosted = bronze.clone();
         boosted[CenterModule.YIELD.ordinal()] = 1;
@@ -196,14 +231,19 @@ final class TestLabIntegrationCenter implements TestLabTask {
         CenterPlanner.Batch unboosted = plan(settings, items, NO_FLUIDS, boosted, 0, 1, 0, 0, SEED);
         CenterPlanner.Batch sameSeedFirst = plan(settings, items, fluids, boosted, 0, 1, 0, 0, SEED);
         CenterPlanner.Batch sameSeedLater = plan(settings, items, fluids, boosted, 0, 1, 0, 0, SEED);
-        require(signature(sameSeedFirst).equals(signature(sameSeedLater)), "Identical seed or borrowed inventory changed the batch");
+        require(
+            signature(sameSeedFirst).equals(signature(sameSeedLater)),
+            "Identical seed or borrowed inventory changed the batch");
         require(
             sameSeedFirst.consumedFluids.stream()
                 .filter(acid::isFluidEqual)
                 .mapToInt(value -> value.amount)
                 .sum() == 8,
             "Primary booster must charge one sulfuric-acid rate for the whole parallel round");
-        require(unboosted.consumedFluids.stream().noneMatch(acid::isFluidEqual), "Unavailable additive was consumed");
+        require(
+            unboosted.consumedFluids.stream()
+                .noneMatch(acid::isFluidEqual),
+            "Unavailable additive was consumed");
         ItemStack tin = GTOreDictUnificator.get(OrePrefixes.rawOre, Materials.Tin, 64L);
         require(tin != null, "Missing registered GT raw tin");
         CenterPlanner.Batch mixed = plan(
@@ -238,10 +278,14 @@ final class TestLabIntegrationCenter implements TestLabTask {
         // A six-sigma range tests real nonzero bonus and catches multiplication along the path.
         double mean = trials * .005D;
         double deviation = Math.sqrt(mean * .995D);
-        require(extras > 0 && Math.abs(extras - mean) <= 6 * deviation, "Primary bonus is inconsistent with one 0.5% draw");
+        require(
+            extras > 0 && Math.abs(extras - mean) <= 6 * deviation,
+            "Primary bonus is inconsistent with one 0.5% draw");
         require(acid.amount == availableAcid && copper.stackSize == 64, "Planning mutated borrowed resources");
         Map<String, Object> details = new LinkedHashMap<>();
-        details.put("scope", "native registered recipes and production planner; ownership, world output and reboot use separate cases");
+        details.put(
+            "scope",
+            "native registered recipes and production planner; ownership, world output and reboot use separate cases");
         details.put("copper", copper.toString());
         details.put("nativeDurations", Arrays.asList(crushing.mDuration, milling.mDuration, separating.mDuration));
         details.put("consumedOre", input);
@@ -254,7 +298,10 @@ final class TestLabIntegrationCenter implements TestLabTask {
         details.put("secondaryBonus", verifySecondaryBonus(early, crushing, bronze));
         details.put("registeredRecipes", registrations);
         details.put("graphControls", "bounded generator syntax, allow/deny per port, persisted order and switch");
-        return new TestLabReport.Result(TestLabReport.Status.PASS, "Native selection, priority, batch costs and seeded bonus", details);
+        return new TestLabReport.Result(
+            TestLabReport.Status.PASS,
+            "Native selection, priority, batch costs and seeded bonus",
+            details);
     }
 
     private Map<String, Object> verifySecondaryBonus(CenterGraph graph, GTRecipe recipe, int[] modules) {
@@ -282,8 +329,16 @@ final class TestLabIntegrationCenter implements TestLabTask {
         int trials = 0;
         int extraLots = 0;
         for (int i = 0; i < 256; i++) {
-            CenterPlanner.Batch batch = plan(graphs, input, new FluidStack[] { supply }, boosted,
-                0, 1, 0, 0, SEED + 113L * i);
+            CenterPlanner.Batch batch = plan(
+                graphs,
+                input,
+                new FluidStack[] { supply },
+                boosted,
+                0,
+                1,
+                0,
+                0,
+                SEED + 113L * i);
             int consumed = quantity(batch.consumed, copper);
             int charged = batch.consumedFluids.stream()
                 .filter(supply::isFluidEqual)
@@ -291,7 +346,8 @@ final class TestLabIntegrationCenter implements TestLabTask {
                 .sum();
             require(charged == 3, "Incorrect secondary reagent charge for one parallel round");
             int extra = quantity(batch.bonuses, product);
-            require(extra % product.stackSize == 0 && quantity(batch.outputs, product) >= extra,
+            require(
+                extra % product.stackSize == 0 && quantity(batch.outputs, product) >= extra,
                 "Secondary bonus was not settled to the native output product");
             extraLots += extra / product.stackSize;
             trials += consumed / inputSize;
@@ -299,7 +355,8 @@ final class TestLabIntegrationCenter implements TestLabTask {
         double probability = Math.min(1 - bestChance / 10000D, bestChance / 1_000_000D);
         double mean = trials * probability;
         double deviation = Math.sqrt(mean * (1 - probability));
-        require(extraLots > 0 && Math.abs(extraLots - mean) <= 6 * deviation,
+        require(
+            extraLots > 0 && Math.abs(extraLots - mean) <= 6 * deviation,
             "Secondary bonus does not match the configured relative 1% increase: " + extraLots + "/" + mean);
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("item", product.toString());
@@ -312,35 +369,51 @@ final class TestLabIntegrationCenter implements TestLabTask {
         return details;
     }
 
-    private void verifyGraphFilters(CenterGraph early, List<CenterGraph.Node> dry, GTRecipe crushing, GTRecipe separating,
-        int[] bronze) {
-        String entry="^(?!(?:ore|variantOre|rawOre)(?:CopperSulphate|Tin)$)(?:ore|rawOre|variantOre)(?:Any)?Copper.*$";
-        List<String> filter=Arrays.asList("^(?=crushed[A-Z])crushed(?:Any)?(?:Copper|Iron)$");
-        List<CenterGraph.Node> nodes=new ArrayList<>(dry);
-        nodes.set(0,new CenterGraph.Node(CenterProcess.CRUSHER,new int[]{1},0,
-            Arrays.asList(new CenterGraph.OutletFilter(0,true,filter))));
-        CenterGraph graph=new CenterGraph(10,"Copper refinement",0,true,Arrays.asList(entry),nodes);
-        CenterGraph saved=CenterGraph.load(graph.save());
-        require(saved.id==10 && saved.name.equals(graph.name) && saved.nodes.get(0).filters().size()==1,
+    private void verifyGraphFilters(CenterGraph early, List<CenterGraph.Node> dry, GTRecipe crushing,
+        GTRecipe separating, int[] bronze) {
+        String entry = "^(?!(?:ore|variantOre|rawOre)(?:CopperSulphate|Tin)$)(?:ore|rawOre|variantOre)(?:Any)?Copper.*$";
+        List<String> filter = Arrays.asList("^(?=crushed[A-Z])crushed(?:Any)?(?:Copper|Iron)$");
+        List<CenterGraph.Node> nodes = new ArrayList<>(dry);
+        nodes.set(
+            0,
+            new CenterGraph.Node(
+                CenterProcess.CRUSHER,
+                new int[] { 1 },
+                0,
+                Arrays.asList(new CenterGraph.OutletFilter(0, true, filter))));
+        CenterGraph graph = new CenterGraph(10, "Copper refinement", 0, true, Arrays.asList(entry), nodes);
+        CenterGraph saved = CenterGraph.load(graph.save());
+        require(
+            saved.id == 10 && saved.name.equals(graph.name)
+                && saved.nodes.get(0)
+                    .filters()
+                    .size() == 1,
             "Graph identity or output filter not persisted");
-        ItemStack tin=GTOreDictUnificator.get(OrePrefixes.rawOre,Materials.Tin,4);
-        require(tin!=null,"Missing native tin sample");
-        ItemStack[] sample={copper,tin};
-        CenterPlanner.Batch first=plan(Arrays.asList(early,saved),sample,NO_FLUIDS,bronze,0,1,0,0,SEED);
-        CenterPlanner.Batch afterDrag=plan(Arrays.asList(saved,early),sample,NO_FLUIDS,bronze,0,1,0,0,SEED);
-        require(quantity(afterDrag.consumed,tin)==0,"Negative assertion accepted tin");
-        require(quantity(first.outputs,crushing.mOutputs[0])==128
-                && quantity(afterDrag.outputs,separating.mOutputs[0])==128,
+        ItemStack tin = GTOreDictUnificator.get(OrePrefixes.rawOre, Materials.Tin, 4);
+        require(tin != null, "Missing native tin sample");
+        ItemStack[] sample = { copper, tin };
+        CenterPlanner.Batch first = plan(Arrays.asList(early, saved), sample, NO_FLUIDS, bronze, 0, 1, 0, 0, SEED);
+        CenterPlanner.Batch afterDrag = plan(Arrays.asList(saved, early), sample, NO_FLUIDS, bronze, 0, 1, 0, 0, SEED);
+        require(quantity(afterDrag.consumed, tin) == 0, "Negative assertion accepted tin");
+        require(
+            quantity(first.outputs, crushing.mOutputs[0]) == 128
+                && quantity(afterDrag.outputs, separating.mOutputs[0]) == 128,
             "Same priority must follow persisted tab order");
-        nodes.set(0,new CenterGraph.Node(CenterProcess.CRUSHER,new int[]{1},0,
-            Arrays.asList(new CenterGraph.OutletFilter(0,false,filter))));
-        CenterGraph denied=new CenterGraph(10,graph.name,0,true,Arrays.asList(entry),nodes);
-        CenterPlanner.Batch divert=plan(Arrays.asList(denied,early),sample,NO_FLUIDS,bronze,0,1,0,0,SEED);
-        require(quantity(divert.outputs,crushing.mOutputs[0])==128
-                && quantity(divert.outputs,separating.mOutputs[0])==0,
+        nodes.set(
+            0,
+            new CenterGraph.Node(
+                CenterProcess.CRUSHER,
+                new int[] { 1 },
+                0,
+                Arrays.asList(new CenterGraph.OutletFilter(0, false, filter))));
+        CenterGraph denied = new CenterGraph(10, graph.name, 0, true, Arrays.asList(entry), nodes);
+        CenterPlanner.Batch divert = plan(Arrays.asList(denied, early), sample, NO_FLUIDS, bronze, 0, 1, 0, 0, SEED);
+        require(
+            quantity(divert.outputs, crushing.mOutputs[0]) == 128
+                && quantity(divert.outputs, separating.mOutputs[0]) == 0,
             "Denied outlet must fall through to the shared output bus");
         try {
-            new CenterGraph(9,"",0,true,Arrays.asList("^(a+)+$"),dry);
+            new CenterGraph(9, "", 0, true, Arrays.asList("^(a+)+$"), dry);
             throw new AssertionError("Nested unbounded repetition was accepted");
         } catch (IllegalArgumentException expected) {
             // Only the bounded card syntax is accepted.
@@ -381,7 +454,8 @@ final class TestLabIntegrationCenter implements TestLabTask {
 
     private static void requireCrafting(ItemStack output) {
         int found = 0;
-        for (Object raw : CraftingManager.getInstance().getRecipeList()) {
+        for (Object raw : CraftingManager.getInstance()
+            .getRecipeList()) {
             if (!(raw instanceof IRecipe recipe)) continue;
             ItemStack candidate = recipe.getRecipeOutput();
             if (GTUtility.areStacksEqual(candidate, output, false) && candidate.stackSize == 1) found++;
@@ -392,11 +466,16 @@ final class TestLabIntegrationCenter implements TestLabTask {
     private static void requireAssembler(ItemStack output, ItemStack shell, ItemStack previous) {
         int found = 0;
         for (GTRecipe recipe : RecipeMaps.assemblerRecipes.getAllRecipes()) {
-            if (!recipe.mEnabled || recipe.mFakeRecipe || recipe.mOutputs.length != 1
+            if (!recipe.mEnabled || recipe.mFakeRecipe
+                || recipe.mOutputs.length != 1
                 || !GTUtility.areStacksEqual(recipe.mOutputs[0], output, false)) continue;
             if (recipe.mOutputs[0].stackSize != 1) continue;
-            require(shell == null || quantity(Arrays.asList(recipe.mInputs), shell) == 1, "Incorrect shell input for " + output);
-            require(previous == null || quantity(Arrays.asList(recipe.mInputs), previous) == 1, "Incorrect prior pack for " + output);
+            require(
+                shell == null || quantity(Arrays.asList(recipe.mInputs), shell) == 1,
+                "Incorrect shell input for " + output);
+            require(
+                previous == null || quantity(Arrays.asList(recipe.mInputs), previous) == 1,
+                "Incorrect prior pack for " + output);
             found++;
         }
         require(found == 1, "Expected exactly one assembler recipe for " + output + ", observed " + found);
@@ -412,8 +491,8 @@ final class TestLabIntegrationCenter implements TestLabTask {
         while (queue.size() < width && startedInPhase < SAMPLE_COUNT + 16) {
             long start = System.nanoTime();
             List<CenterGraph> graphs = recompile ? pressureGraphs() : compiled;
-            CenterPlanner.Session session = CenterPlanner.start(
-                graphs, oreBank, NO_FLUIDS, moduleGrades, 3, 6, 2048, 131072, 4500, SEED);
+            CenterPlanner.Session session = CenterPlanner
+                .start(graphs, oreBank, NO_FLUIDS, moduleGrades, 3, 6, 2048, 131072, 4500, SEED);
             long elapsed = System.nanoTime() - start;
             largestBegin = Math.max(largestBegin, elapsed);
             boolean measured = startedInPhase++ >= 16;
@@ -427,8 +506,8 @@ final class TestLabIntegrationCenter implements TestLabTask {
             PressureJob job = queue.removeFirst();
             long cpuStart = measuring && threadClock != null ? threadClock.getCurrentThreadCpuTime() : -1;
             long start = System.nanoTime();
-            boolean done = job.session.advance(
-                32, Math.min(SOFT_JOB_NS, Math.max(1L, SOFT_FRAME_NS - (start - frameStart))));
+            boolean done = job.session
+                .advance(32, Math.min(SOFT_JOB_NS, Math.max(1L, SOFT_FRAME_NS - (start - frameStart))));
             long elapsed = System.nanoTime() - start;
             long cpuEnd = cpuStart >= 0 ? threadClock.getCurrentThreadCpuTime() : -1;
             if (elapsed > largestSlice) {
@@ -443,7 +522,8 @@ final class TestLabIntegrationCenter implements TestLabTask {
                 continue;
             }
             CenterPlanner.Batch batch = job.session.batch();
-            require(batch != null && batch.ticks > 0 && !batch.consumed.isEmpty() && !batch.outputs.isEmpty(),
+            require(
+                batch != null && batch.ticks > 0 && !batch.consumed.isEmpty() && !batch.outputs.isEmpty(),
                 "Empty pressure sample");
             require(oreBank[0].stackSize == 2, "Pressure plan mutated supplied stacks");
             // Check first and last per workload outside the timed slice.
@@ -459,9 +539,17 @@ final class TestLabIntegrationCenter implements TestLabTask {
         if (measuring) {
             long elapsed = System.nanoTime() - frameStart;
             frames.add(elapsed);
-            pressureFrames.add(new PressureFrame(System.currentTimeMillis(), world.getTotalWorldTime(),
-                MinecraftServer.getServer().getTickCounter(), elapsed, largestBegin, largestSlice, largestSliceStart,
-                largestSliceCpu));
+            pressureFrames.add(
+                new PressureFrame(
+                    System.currentTimeMillis(),
+                    world.getTotalWorldTime(),
+                    MinecraftServer.getServer()
+                        .getTickCounter(),
+                    elapsed,
+                    largestBegin,
+                    largestSlice,
+                    largestSliceStart,
+                    largestSliceCpu));
         }
         if (invocationsInPhase < SAMPLE_COUNT + 16) return null;
         require(measuredJobs == SAMPLE_COUNT && maxQueued == width, "Invalid pressure sample or concurrency");
@@ -483,20 +571,27 @@ final class TestLabIntegrationCenter implements TestLabTask {
         invocationsInPhase = startedInPhase = measuredJobs = maxQueued = 0;
         if (++phase < CONTROLLERS.length * 2) return null;
         Map<String, Object> details = new LinkedHashMap<>();
-        details.put("scope", "production planner sessions on server thread; framePlanningNanos measures probe work, not full server tick");
+        details.put(
+            "scope",
+            "production planner sessions on server thread; framePlanningNanos measures probe work, not full server tick");
         details.put("inputIdentities", oreBank.length);
         details.put("graphsPerJob", GRAPH_COUNT);
         details.put("jobsIncludingWarmup", served);
         details.put("frameAdmissionNanos", ADMISSION_NS);
         details.put("threadCpuTimeAvailable", threadClock != null);
         details.put("performance", measurements);
-        return new TestLabReport.Result(TestLabReport.Status.PASS,
-            "All native pressure sessions produced matching plans; inspect independent latency budget counters", details);
+        return new TestLabReport.Result(
+            TestLabReport.Status.PASS,
+            "All native pressure sessions produced matching plans; inspect independent latency budget counters",
+            details);
     }
 
     private List<Map<String, Object>> worstPressureFrames(Comparator<PressureFrame> rank) {
         List<Map<String, Object>> tail = new ArrayList<>();
-        pressureFrames.stream().sorted(rank.reversed()).limit(8).forEach(frame -> tail.add(frame.fields()));
+        pressureFrames.stream()
+            .sorted(rank.reversed())
+            .limit(8)
+            .forEach(frame -> tail.add(frame.fields()));
         return tail;
     }
 
@@ -532,6 +627,7 @@ final class TestLabIntegrationCenter implements TestLabTask {
     }
 
     private static final class PressureJob {
+
         final CenterPlanner.Session session;
         final boolean measured;
         long nanoseconds;
@@ -544,7 +640,9 @@ final class TestLabIntegrationCenter implements TestLabTask {
     }
 
     private static long[] samples(List<Long> values) {
-        return values.stream().mapToLong(Long::longValue).toArray();
+        return values.stream()
+            .mapToLong(Long::longValue)
+            .toArray();
     }
 
     private static Map<String, Number> statistics(long[] samples, long budget) {
@@ -558,7 +656,11 @@ final class TestLabIntegrationCenter implements TestLabTask {
         result.put("max", samples[samples.length - 1]);
         if (budget < Long.MAX_VALUE) {
             result.put("targetNanos", budget);
-            result.put("overTarget", Arrays.stream(samples).filter(n -> n > budget).count());
+            result.put(
+                "overTarget",
+                Arrays.stream(samples)
+                    .filter(n -> n > budget)
+                    .count());
         }
         return result;
     }
@@ -602,7 +704,11 @@ final class TestLabIntegrationCenter implements TestLabTask {
 
     private static GTRecipe nativeRecipe(RecipeMap<?> map, ItemStack input, FluidStack[] fluids) {
         require(map != null && input != null, "Missing native map or input");
-        GTRecipe recipe = map.findRecipeQuery().items(input.copy()).fluids(fluids).voltage(32L).find();
+        GTRecipe recipe = map.findRecipeQuery()
+            .items(input.copy())
+            .fluids(fluids)
+            .voltage(32L)
+            .find();
         require(recipe != null && recipe.mOutputs.length > 0, "Native query failed for " + input);
         return recipe;
     }
@@ -621,22 +727,30 @@ final class TestLabIntegrationCenter implements TestLabTask {
         return result;
     }
 
-    private static CenterPlanner.Batch plan(
-        List<CenterGraph> configs, ItemStack[] items, FluidStack[] fluids, int[] grades,
-        int tier, int sectors, long voltage, long power, long seed
-    ) {
-        CenterPlanner.Batch batch = CenterPlanner.plan(configs, items, fluids, grades, tier, sectors, voltage, power, 0, seed);
+    private static CenterPlanner.Batch plan(List<CenterGraph> configs, ItemStack[] items, FluidStack[] fluids,
+        int[] grades, int tier, int sectors, long voltage, long power, long seed) {
+        CenterPlanner.Batch batch = CenterPlanner
+            .plan(configs, items, fluids, grades, tier, sectors, voltage, power, 0, seed);
         require(batch != null, "Production planner rejected a native fixture");
         return batch;
     }
 
     private static int quantity(List<ItemStack> stacks, ItemStack target) {
-        return stacks.stream().filter(stack -> GTUtility.areStacksEqual(stack, target, false)).mapToInt(s -> s.stackSize).sum();
+        return stacks.stream()
+            .filter(stack -> GTUtility.areStacksEqual(stack, target, false))
+            .mapToInt(s -> s.stackSize)
+            .sum();
     }
 
     private static List<Object> signature(CenterPlanner.Batch batch) {
-        return Arrays.asList(batch.outputs.toString(), batch.consumed.toString(), batch.consumedFluids.toString(),
-            batch.outputFluids.toString(), batch.ticks, batch.steam, batch.energy);
+        return Arrays.asList(
+            batch.outputs.toString(),
+            batch.consumed.toString(),
+            batch.consumedFluids.toString(),
+            batch.outputFluids.toString(),
+            batch.ticks,
+            batch.steam,
+            batch.energy);
     }
 
     private static long percentile(long[] sorted, double p) {

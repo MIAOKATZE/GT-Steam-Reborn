@@ -3,34 +3,34 @@
 
 package com.miaokatze.gtsr.common.gui;
 
-import java.util.LinkedHashSet;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.function.Supplier;
-import java.util.function.IntSupplier;
 import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
-import net.minecraft.util.StatCollector;
 
 import org.lwjgl.input.Keyboard;
 
 import com.cleanroommc.modularui.api.UpOrDown;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.api.widget.Interactable;
+import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.drawable.GuiDraw;
 import com.cleanroommc.modularui.drawable.Stencil;
-import com.cleanroommc.modularui.utils.GlStateManager;
-import com.cleanroommc.modularui.drawable.DynamicDrawable;
 import com.cleanroommc.modularui.drawable.text.TextRenderer;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
@@ -39,27 +39,26 @@ import com.cleanroommc.modularui.screen.viewport.ModularGuiContext;
 import com.cleanroommc.modularui.theme.WidgetTheme;
 import com.cleanroommc.modularui.theme.WidgetThemeEntry;
 import com.cleanroommc.modularui.utils.Alignment;
+import com.cleanroommc.modularui.utils.GlStateManager;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import com.miaokatze.gtsr.client.gui.CenterTerminalClient;
-import com.miaokatze.gtsr.common.gui.mui2.TerminalViewport;
 import com.miaokatze.gtsr.common.gui.mui2.TerminalUiStyle;
-import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.items.CenterModuleItems;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph.Node;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph.OutletFilter;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview;
-import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
-import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
-
-import com.cleanroommc.modularui.widgets.ListWidget;
-import com.cleanroommc.modularui.api.widget.IWidget;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets.Preset;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
+import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
+
 import cpw.mods.fml.common.registry.GameRegistry;
 import gregtech.api.enums.ItemList;
 import gregtech.api.util.GTUtility;
@@ -71,15 +70,14 @@ public final class CenterGraphGui {
     private static final int TAB_WIDTH = 64, TAB_HEIGHT = 15;
     private static final int UNRESTRICTED = 0, ALLOW = 1, DENY = 2;
     private static final int TEXT_LIMIT = 8192;
-    private static final CenterProcess[] PROCESSES = {
-        CenterProcess.CRUSHER, CenterProcess.WASHER, CenterProcess.SIFTER, CenterProcess.CENTRIFUGE,
-        CenterProcess.ELECTROLYZER, CenterProcess.DRYER, CenterProcess.FURNACE, CenterProcess.REACTOR,
-        CenterProcess.SEPARATOR, CenterProcess.EXTRACTOR, CenterProcess.THERMAL_CENTRIFUGE, CenterProcess.SMELTING,
-        CenterProcess.SEPARATION, CenterProcess.HAMMER, CenterProcess.SIMPLE_WASHER, CenterProcess.CHEMICAL_BATH,
-        CenterProcess.FLUID_EXTRACTOR, CenterProcess.RECYCLER
-    };
-    private static final java.util.regex.Pattern MINERAL = java.util.regex.Pattern.compile(
-        "(?:ore|variantOre|rawOre|crushedPurified|crushed|dustImpure|dustPure)([A-Z][A-Za-z0-9_]*)");
+    private static final CenterProcess[] PROCESSES = { CenterProcess.CRUSHER, CenterProcess.WASHER,
+        CenterProcess.SIFTER, CenterProcess.CENTRIFUGE, CenterProcess.ELECTROLYZER, CenterProcess.DRYER,
+        CenterProcess.FURNACE, CenterProcess.REACTOR, CenterProcess.SEPARATOR, CenterProcess.EXTRACTOR,
+        CenterProcess.THERMAL_CENTRIFUGE, CenterProcess.SMELTING, CenterProcess.SEPARATION, CenterProcess.HAMMER,
+        CenterProcess.SIMPLE_WASHER, CenterProcess.CHEMICAL_BATH, CenterProcess.FLUID_EXTRACTOR,
+        CenterProcess.RECYCLER };
+    private static final java.util.regex.Pattern MINERAL = java.util.regex.Pattern
+        .compile("(?:ore|variantOre|rawOre|crushedPurified|crushed|dustImpure|dustPure)([A-Z][A-Za-z0-9_]*)");
 
     private final MTEMineralIntegrationCenter machine;
 
@@ -93,18 +91,26 @@ public final class CenterGraphGui {
         CenterGraphSync sync = new CenterGraphSync(machine, manager, data.getPlayer());
         manager.syncValue("ore_center.graph", sync.allowC2S());
         Editor editor = new Editor(sync);
-        var presets = manager.syncedPanel("ore_center.generator", true,
-            (child, handler) -> editor.presetPanel(handler::closePanel));
+        var presets = manager
+            .syncedPanel("ore_center.generator", true, (child, handler) -> editor.presetPanel(handler::closePanel));
         editor.openPresets = presets::openPanel;
-        CenterTerminalPages pages = new CenterTerminalPages(sync,
+        CenterTerminalPages pages = new CenterTerminalPages(
+            sync,
             id -> editor.graphId == id ? editor.canvas.sample : null);
         int[] selectedPage = { 0 };
         ParentWidget<?> header = new ParentWidget<>().name("center_terminal_header")
             .background(TerminalUiStyle.CHIP_NORMAL)
-            .left(4).right(4).top(3).height(20);
-        header.child(new BrandMark().pos(3, 3).size(11, 14));
-        header.child(new ParentWidget<>().background(compact(() -> "GTSR", () -> 0xFFE3BA74, Alignment.CenterLeft))
-            .pos(14, 0).size(70, 8));
+            .left(4)
+            .right(4)
+            .top(3)
+            .height(20);
+        header.child(
+            new BrandMark().pos(3, 3)
+                .size(11, 14));
+        header.child(
+            new ParentWidget<>().background(compact(() -> "GTSR", () -> 0xFFE3BA74, Alignment.CenterLeft))
+                .pos(14, 0)
+                .size(70, 8));
         header.child(label(() -> tr("terminal.brand"), 14, 7, 73, 13));
         String[] ids = { "assembly", "routes", "stats", "calculation" };
         for (int i = 0; i < ids.length; i++) {
@@ -113,27 +119,52 @@ public final class CenterGraphGui {
                 selectedPage[0] = index;
                 pages.disarm();
                 panel.scheduleResize();
-            }).pos(89 + i * 48, 0).size(47, 20)
-                .background(new DynamicDrawable(
-                    () -> index == selectedPage[0] ? TerminalUiStyle.TAB_ACTIVE : TerminalUiStyle.TAB_INACTIVE))
-                .overlay(CriticalGuiStyle.fitted(() -> tr("page." + ids[index]),
-                    () -> index == selectedPage[0] ? 0xFFFFD197 : 0xFFC0C9C8, Alignment.CENTER)));
+            }).pos(89 + i * 48, 0)
+                .size(47, 20)
+                .background(
+                    new DynamicDrawable(
+                        () -> index == selectedPage[0] ? TerminalUiStyle.TAB_ACTIVE : TerminalUiStyle.TAB_INACTIVE))
+                .overlay(
+                    CriticalGuiStyle.fitted(
+                        () -> tr("page." + ids[index]),
+                        () -> index == selectedPage[0] ? 0xFFFFD197 : 0xFFC0C9C8,
+                        Alignment.CENTER)));
         }
         header.child(button("header_presets", () -> tr("preset.open"), () -> {
             selectedPage[0] = 1;
             pages.disarm();
             panel.scheduleResize();
             editor.openPresets.run();
-        }).right(29).top(3).size(66, 13));
+        }).right(29)
+            .top(3)
+            .size(66, 13));
         for (int i = 0; i < 4; i++) {
             int tier = i;
-            header.child(new ParentWidget<>().name("tier_" + i).right(98 + (3 - i) * 26).top(3).size(24, 13)
-                .background(new DynamicDrawable(() -> sync.terminal().hasKey("Tier")
-                    && sync.terminal().getInteger("Tier") == tier ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL))
-                .child(CriticalGuiStyle.fitted(() -> tr("terminal.tier." + tier),
-                    () -> 0xFFC0C9C8, Alignment.CENTER).asWidget().sizeRel(1f)));
+            header.child(
+                new ParentWidget<>().name("tier_" + i)
+                    .right(98 + (3 - i) * 26)
+                    .top(3)
+                    .size(24, 13)
+                    .background(
+                        new DynamicDrawable(
+                            () -> sync.terminal()
+                                .hasKey("Tier")
+                                && sync.terminal()
+                                    .getInteger("Tier") == tier ? TerminalUiStyle.CHIP_ACTIVE
+                                        : TerminalUiStyle.CHIP_NORMAL))
+                    .child(
+                        CriticalGuiStyle.fitted(() -> tr("terminal.tier." + tier), () -> 0xFFC0C9C8, Alignment.CENTER)
+                            .asWidget()
+                            .sizeRel(1f)));
         }
-        header.child(button("exit", () -> tr("exit"), () -> panel.getScreen().close()).right(1).top(3).size(26, 13));
+        header.child(
+            button(
+                "exit",
+                () -> tr("exit"),
+                () -> panel.getScreen()
+                    .close()).right(1)
+                        .top(3)
+                        .size(26, 13));
         panel.child(header);
         List<ParentWidget<?>> bodies = Arrays.asList(pages.assembly(), editor.content(() -> {
             selectedPage[0] = 3;
@@ -141,13 +172,29 @@ public final class CenterGraphGui {
         }), pages.statistics(), pages.calculation());
         for (int i = 0; i < bodies.size(); i++) {
             int index = i;
-            panel.child(bodies.get(i).left(4).right(4).top(24).bottom(15).setEnabledIf(w -> selectedPage[0] == index));
+            panel.child(
+                bodies.get(i)
+                    .left(4)
+                    .right(4)
+                    .top(24)
+                    .bottom(15)
+                    .setEnabledIf(w -> selectedPage[0] == index));
         }
         ParentWidget<?> footer = CenterTerminalPages.card("center_terminal_receipt")
-            .left(4).right(4).bottom(5).height(10);
-        footer.child(CriticalGuiStyle.label(() -> tr("terminal.receipt"), () -> 0xFFCFAA75, Alignment.CenterLeft)
-            .pos(2, 0).size(36, 10));
-        footer.child(CenterTerminalPages.label(() -> tr(sync.status())).left(39).right(3).top(0).height(10));
+            .left(4)
+            .right(4)
+            .bottom(5)
+            .height(10);
+        footer.child(
+            CriticalGuiStyle.label(() -> tr("terminal.receipt"), () -> 0xFFCFAA75, Alignment.CenterLeft)
+                .pos(2, 0)
+                .size(36, 10));
+        footer.child(
+            CenterTerminalPages.label(() -> tr(sync.status()))
+                .left(39)
+                .right(3)
+                .top(0)
+                .height(10));
         panel.child(footer);
         return panel;
     }
@@ -185,7 +232,8 @@ public final class CenterGraphGui {
         private boolean showSources, chooseOreTerm, showRules, checking, confirmDelete, showShortcuts;
         private String inspectedRule;
         private Runnable openPresets;
-        private Preset preset = CenterPresets.all().get(0);
+        private Preset preset = CenterPresets.all()
+            .get(0);
         private final Tabs tabs = new Tabs(this);
         private final Canvas canvas = new Canvas(this);
 
@@ -196,183 +244,386 @@ public final class CenterGraphGui {
         private ParentWidget<?> content(Runnable capacity) {
             ParentWidget<?> contents = new ParentWidget<>().name("center_routes");
             ParentWidget<?> sourceBar = CenterTerminalPages.card("center_graph_toolbar_source")
-                .left(0).right(0).top(0).height(13);
+                .left(0)
+                .right(0)
+                .top(0)
+                .height(13);
             sourceBar.child(button("source", () -> tr(showSources ? "source.return" : "source"), () -> {
                 if (showSources) {
                     showSources = false;
                     carried = null;
                 } else openSources(chooseOreTerm);
-            }).right(2).top(0).size(68, 13));
+            }).right(2)
+                .top(0)
+                .size(68, 13));
             contents.child(sourceBar);
             ParentWidget<?> documents = CenterTerminalPages.card("center_graph_documents")
-                .left(0).right(0).top(14).height(17);
-            documents.child(tabs.name("center_graph_tabs").left(2).right(41).top(1).height(TAB_HEIGHT)
-                .tooltipBuilder(t -> t.add(IKey.lang(PREFIX + "tabs.help"))));
-            documents.child(CenterTerminalPages.label(() -> tr("terminal.quota", snapshot.graphs().size(), snapshot.capacity()))
-                .right(1).top(1).size(37, 14));
+                .left(0)
+                .right(0)
+                .top(14)
+                .height(17);
+            documents.child(
+                tabs.name("center_graph_tabs")
+                    .left(2)
+                    .right(41)
+                    .top(1)
+                    .height(TAB_HEIGHT)
+                    .tooltipBuilder(t -> t.add(IKey.lang(PREFIX + "tabs.help"))));
+            documents.child(
+                CenterTerminalPages.label(
+                    () -> tr(
+                        "terminal.quota",
+                        snapshot.graphs()
+                            .size(),
+                        snapshot.capacity()))
+                    .right(1)
+                    .top(1)
+                    .size(37, 14));
             contents.child(documents);
 
-            ParentWidget<?> toolbar = CenterTerminalPages.card("center_graph_actions").left(0).right(0).top(32).height(16);
-            toolbar.child(button("enabled", this::enabledText, () -> edit(CenterGraphSync.Action.TOGGLE, 0, 0, ""))
-                .pos(2, 1).size(47, 14));
+            ParentWidget<?> toolbar = CenterTerminalPages.card("center_graph_actions")
+                .left(0)
+                .right(0)
+                .top(32)
+                .height(16);
+            toolbar.child(
+                button("enabled", this::enabledText, () -> edit(CenterGraphSync.Action.TOGGLE, 0, 0, "")).pos(2, 1)
+                    .size(47, 14));
             toolbar.child(label(() -> tr("priority"), 51, 1, 30, 14));
-            toolbar.child(priority.pos(82, 2).size(37, 12)
-                .tooltipBuilder(t -> t.add(tr("priority.help"))));
-            toolbar.child(button("save_priority", () -> tr("priority.apply"), this::savePriority).pos(121, 1).size(25, 14));
-            toolbar.child(button("add", () -> "+ " + tr("graph"), () -> edit(CenterGraphSync.Action.ADD, 0, 0, ""))
-                .pos(148, 1).size(42, 14));
-            toolbar.child(button("generator_presets", () -> tr("preset.open"), () -> openPresets.run())
-                .pos(192, 1).size(52, 14));
-            toolbar.child(name.pos(246, 2).size(72, 12));
-            toolbar.child(button("save_name", () -> tr("rename"),
-                () -> edit(CenterGraphSync.Action.RENAME, 0, 0, name.getText().trim()))
-                .pos(320, 1).size(27, 14));
+            toolbar.child(
+                priority.pos(82, 2)
+                    .size(37, 12)
+                    .tooltipBuilder(t -> t.add(tr("priority.help"))));
+            toolbar.child(
+                button("save_priority", () -> tr("priority.apply"), this::savePriority).pos(121, 1)
+                    .size(25, 14));
+            toolbar.child(
+                button("add", () -> "+ " + tr("graph"), () -> edit(CenterGraphSync.Action.ADD, 0, 0, "")).pos(148, 1)
+                    .size(42, 14));
+            toolbar.child(
+                button("generator_presets", () -> tr("preset.open"), () -> openPresets.run()).pos(192, 1)
+                    .size(52, 14));
+            toolbar.child(
+                name.pos(246, 2)
+                    .size(72, 12));
+            toolbar.child(
+                button(
+                    "save_name",
+                    () -> tr("rename"),
+                    () -> edit(
+                        CenterGraphSync.Action.RENAME,
+                        0,
+                        0,
+                        name.getText()
+                            .trim())).pos(320, 1)
+                                .size(27, 14));
             List<Widget<?>> docks = new java.util.ArrayList<>();
-            ParentWidget<?> more = new GraphActions(toolbar, top -> docks.forEach(dock -> dock.top(top)))
-                .pos(0, 16).size(318, 16);
-            more.child(button("add_mineral", () -> tr("rule.item"), () -> openSources(false))
-                .pos(2, 1).size(44, 14));
+            ParentWidget<?> more = new GraphActions(toolbar, top -> docks.forEach(dock -> dock.top(top))).pos(0, 16)
+                .size(318, 16);
+            more.child(
+                button("add_mineral", () -> tr("rule.item"), () -> openSources(false)).pos(2, 1)
+                    .size(44, 14));
             more.child(button("add_ore_term", () -> tr("rule.add"), () -> {
                 openSources(true);
                 inspectedRule = null;
                 showRules = true;
                 showSources = false;
-            }).pos(48, 1).size(44, 14));
-            more.child(button("validate", () -> tr("validation"), this::toggleValidation)
-                .pos(94, 1).size(47, 14)
-                .background(new DynamicDrawable(() -> checking ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.BUTTON))
-                .tooltipBuilder(t -> t.add(tr("validation.help"))));
-            more.child(button("rules_toggle", () -> tr("terminal.entry", graph == null ? 0 : graph.rules().size()), () -> {
-                boolean opening = !showRules || inspectedRule != null;
-                inspectedRule = null;
-                showRules = opening;
-                showSources = false;
-            }).pos(143, 1).size(54, 14));
-            more.child(button("capacity", () -> tr("terminal.capacity"), capacity).pos(199, 1).size(32, 14));
+            }).pos(48, 1)
+                .size(44, 14));
+            more.child(
+                button("validate", () -> tr("validation"), this::toggleValidation).pos(94, 1)
+                    .size(47, 14)
+                    .background(
+                        new DynamicDrawable(() -> checking ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.BUTTON))
+                    .tooltipBuilder(t -> t.add(tr("validation.help"))));
+            more.child(
+                button(
+                    "rules_toggle",
+                    () -> tr(
+                        "terminal.entry",
+                        graph == null ? 0
+                            : graph.rules()
+                                .size()),
+                    () -> {
+                        boolean opening = !showRules || inspectedRule != null;
+                        inspectedRule = null;
+                        showRules = opening;
+                        showSources = false;
+                    }).pos(143, 1)
+                        .size(54, 14));
+            more.child(
+                button("capacity", () -> tr("terminal.capacity"), capacity).pos(199, 1)
+                    .size(32, 14));
             more.child(button("delete", () -> tr(confirmDelete ? "delete.confirm" : "delete"), () -> {
                 if (graph == null) return;
                 if (confirmDelete) edit(CenterGraphSync.Action.DELETE, 0, 0, "");
                 confirmDelete = !confirmDelete;
-            }).pos(233, 1).size(52, 14));
-            more.child(button("cancel_delete", () -> tr("cancel"), () -> confirmDelete = false)
-                .pos(287, 1).size(30, 14).setEnabledIf(w -> confirmDelete));
+            }).pos(233, 1)
+                .size(52, 14));
+            more.child(
+                button("cancel_delete", () -> tr("cancel"), () -> confirmDelete = false).pos(287, 1)
+                    .size(30, 14)
+                    .setEnabledIf(w -> confirmDelete));
             toolbar.child(more);
             contents.child(toolbar);
 
-            contents.child(canvas.name("center_graph_canvas").left(93).right(146).top(65).bottom(18));
+            contents.child(
+                canvas.name("center_graph_canvas")
+                    .left(93)
+                    .right(146)
+                    .top(65)
+                    .bottom(18));
             docks.add(canvas);
-            ParentWidget<?> tools = CenterTerminalPages.card("center_process_toolbox").left(0).top(65).bottom(18).width(91);
+            ParentWidget<?> tools = CenterTerminalPages.card("center_process_toolbox")
+                .left(0)
+                .top(65)
+                .bottom(18)
+                .width(91);
             tools.child(label(() -> tr("terminal.processes"), 3, 1, 28, 13));
             tools.child(label(() -> tr("terminal.process_count", processCount(), PROCESSES.length), 36, 1, 52, 13));
-            tools.child(processSearch.pos(4, 16).size(83, 13)
-                .tooltipBuilder(t -> t.add(tr("terminal.find_process"))));
-            tools.child(new ProcessList(this).left(3).right(3).top(32).bottom(2));
+            tools.child(
+                processSearch.pos(4, 16)
+                    .size(83, 13)
+                    .tooltipBuilder(t -> t.add(tr("terminal.find_process"))));
+            tools.child(
+                new ProcessList(this).left(3)
+                    .right(3)
+                    .top(32)
+                    .bottom(2));
             contents.child(tools);
             docks.add(tools);
 
-            ParentWidget<?> inspector = CenterTerminalPages.card("center_graph_properties").right(0).top(65)
-                .bottom(18).width(144).setEnabledIf(w -> !showSources && !showRules);
-            inspector.child(label(() -> tr("terminal.properties"), 3, 3, 128, 15)
-                .setEnabledIf(w -> node() == null));
-            inspector.child(label(() -> tr("terminal.pick_process"), 3, 21, 129, 15)
-                .setEnabledIf(w -> node() == null));
-            ParentWidget<?> nodeDetails = new ParentWidget<>().sizeRel(1f).setEnabledIf(w -> node() != null);
+            ParentWidget<?> inspector = CenterTerminalPages.card("center_graph_properties")
+                .right(0)
+                .top(65)
+                .bottom(18)
+                .width(144)
+                .setEnabledIf(w -> !showSources && !showRules);
+            inspector.child(label(() -> tr("terminal.properties"), 3, 3, 128, 15).setEnabledIf(w -> node() == null));
+            inspector.child(label(() -> tr("terminal.pick_process"), 3, 21, 129, 15).setEnabledIf(w -> node() == null));
+            ParentWidget<?> nodeDetails = new ParentWidget<>().sizeRel(1f)
+                .setEnabledIf(w -> node() != null);
             nodeDetails.child(label(this::nodeText, 2, 3, 104, 15));
-            nodeDetails.child(button("focus_node", () -> tr("terminal.locate"), () -> canvas.focus(nodeIndex))
-                .right(3).top(3).size(29, 13));
-            nodeDetails.child(button("copy_node", () -> tr("terminal.copy"),
-                () -> edit(CenterGraphSync.Action.DUPLICATE, nodeIndex, 0, ""))
-                .pos(4, 19).size(42, 14));
-            nodeDetails.child(button("remove_process", () -> tr("remove_process"),
-                () -> edit(CenterGraphSync.Action.REMOVE_NODE, nodeIndex, 0, ""))
-                .right(3).top(19).size(56, 14));
-            nodeDetails.child(new OutletList(this).left(4).right(4).top(39).height(126));
+            nodeDetails.child(
+                button("focus_node", () -> tr("terminal.locate"), () -> canvas.focus(nodeIndex)).right(3)
+                    .top(3)
+                    .size(29, 13));
+            nodeDetails.child(
+                button(
+                    "copy_node",
+                    () -> tr("terminal.copy"),
+                    () -> edit(CenterGraphSync.Action.DUPLICATE, nodeIndex, 0, "")).pos(4, 19)
+                        .size(42, 14));
+            nodeDetails.child(
+                button(
+                    "remove_process",
+                    () -> tr("remove_process"),
+                    () -> edit(CenterGraphSync.Action.REMOVE_NODE, nodeIndex, 0, "")).right(3)
+                        .top(19)
+                        .size(56, 14));
+            nodeDetails.child(
+                new OutletList(this).left(4)
+                    .right(4)
+                    .top(39)
+                    .height(126));
 
-            nodeDetails.child(button("filter_mode", this::modeText, () -> filterMode = (filterMode + 1) % 3)
-                .left(4).top(167).size(52, 13));
-            nodeDetails.child(button("save_filter", () -> tr("save_filter"),
-                () -> edit(CenterGraphSync.Action.FILTER, nodeIndex, port * 3 + filterMode, filter.getText()))
-                .right(4).top(167).size(63, 13));
-            nodeDetails.child(filter.left(4).right(4).top(183).height(14)
-                .tooltipBuilder(t -> t.add(IKey.lang(PREFIX + "filter.help"))));
-            nodeDetails.child(button("target", this::targetText, this::nextTarget).left(4).top(201).size(93, 13));
-            nodeDetails.child(button("save_target", () -> tr("save"), () -> edit(CenterGraphSync.Action.TARGET,
-                nodeIndex, port * 65 + Math.max(-1, target) + 1, "")).right(4).top(201).size(32, 13));
+            nodeDetails.child(
+                button("filter_mode", this::modeText, () -> filterMode = (filterMode + 1) % 3).left(4)
+                    .top(167)
+                    .size(52, 13));
+            nodeDetails.child(
+                button(
+                    "save_filter",
+                    () -> tr("save_filter"),
+                    () -> edit(CenterGraphSync.Action.FILTER, nodeIndex, port * 3 + filterMode, filter.getText()))
+                        .right(4)
+                        .top(167)
+                        .size(63, 13));
+            nodeDetails.child(
+                filter.left(4)
+                    .right(4)
+                    .top(183)
+                    .height(14)
+                    .tooltipBuilder(t -> t.add(IKey.lang(PREFIX + "filter.help"))));
+            nodeDetails.child(
+                button("target", this::targetText, this::nextTarget).left(4)
+                    .top(201)
+                    .size(93, 13));
+            nodeDetails.child(
+                button(
+                    "save_target",
+                    () -> tr("save"),
+                    () -> edit(CenterGraphSync.Action.TARGET, nodeIndex, port * 65 + Math.max(-1, target) + 1, ""))
+                        .right(4)
+                        .top(201)
+                        .size(32, 13));
             nodeDetails.child(label(() -> "NC", 5, 221, 24, 14).setEnabledIf(w -> hasCircuit()));
-            nodeDetails.child(circuit.pos(31, 221).size(25, 13).setEnabledIf(w -> hasCircuit())
-                .tooltipBuilder(t -> t.add(tr("circuit.help"))));
+            nodeDetails.child(
+                circuit.pos(31, 221)
+                    .size(25, 13)
+                    .setEnabledIf(w -> hasCircuit())
+                    .tooltipBuilder(t -> t.add(tr("circuit.help"))));
             nodeDetails.child(button("save_circuit", () -> tr("save"), () -> {
                 try {
-                    edit(CenterGraphSync.Action.CIRCUIT, nodeIndex, Integer.parseInt(circuit.getText().trim()), "");
+                    edit(
+                        CenterGraphSync.Action.CIRCUIT,
+                        nodeIndex,
+                        Integer.parseInt(
+                            circuit.getText()
+                                .trim()),
+                        "");
                 } catch (NumberFormatException invalid) {
                     sync.setStatus("status.invalid");
                 }
-            }).right(4).top(221).size(35, 13).setEnabledIf(w -> hasCircuit()));
+            }).right(4)
+                .top(221)
+                .size(35, 13)
+                .setEnabledIf(w -> hasCircuit()));
             inspector.child(nodeDetails);
             contents.child(inspector);
             docks.add(inspector);
 
-            ParentWidget<?> entries = CenterTerminalPages.card("center_graph_entries").right(0).top(65)
-                .bottom(18).width(144).setEnabledIf(w -> showRules && !showSources);
+            ParentWidget<?> entries = CenterTerminalPages.card("center_graph_entries")
+                .right(0)
+                .top(65)
+                .bottom(18)
+                .width(144)
+                .setEnabledIf(w -> showRules && !showSources);
             entries.child(label(() -> tr("rules"), 3, 3, 133, 15).setEnabledIf(w -> inspectedRule == null));
             entries.child(label(() -> tr("rule.matches"), 3, 3, 133, 15).setEnabledIf(w -> inspectedRule != null));
-            entries.child(rules.left(4).right(4).top(21).height(16).setEnabledIf(w -> inspectedRule == null)
-                .tooltipBuilder(t -> t.add(IKey.lang(PREFIX + "rules.help"))));
+            entries.child(
+                rules.left(4)
+                    .right(4)
+                    .top(21)
+                    .height(16)
+                    .setEnabledIf(w -> inspectedRule == null)
+                    .tooltipBuilder(t -> t.add(IKey.lang(PREFIX + "rules.help"))));
             entries.child(button("save_rules", () -> tr("save_rules"), () -> {
                 edit(CenterGraphSync.Action.RULES, 0, 0, rules.getText());
                 showRules = false;
-            }).left(4).right(4).top(41).height(15).setEnabledIf(w -> inspectedRule == null));
-            entries.child(new MatchingMinerals(this).name("center_graph_matching").left(4).right(4).top(22).bottom(3)
-                .setEnabledIf(w -> inspectedRule != null));
+            }).left(4)
+                .right(4)
+                .top(41)
+                .height(15)
+                .setEnabledIf(w -> inspectedRule == null));
+            entries.child(
+                new MatchingMinerals(this).name("center_graph_matching")
+                    .left(4)
+                    .right(4)
+                    .top(22)
+                    .bottom(3)
+                    .setEnabledIf(w -> inspectedRule != null));
             contents.child(entries);
             docks.add(entries);
 
-            ParentWidget<?> sourcePanel = CenterTerminalPages.card("center_graph_source").right(0).top(65).bottom(18)
-                .width(144).setEnabledIf(w -> showSources);
+            ParentWidget<?> sourcePanel = CenterTerminalPages.card("center_graph_source")
+                .right(0)
+                .top(65)
+                .bottom(18)
+                .width(144)
+                .setEnabledIf(w -> showSources);
             sourcePanel.child(label(() -> tr("source.pack"), 3, 3, 133, 14));
-            sourcePanel.child(sourceSearch.left(4).right(4).top(85).height(14)
-                .tooltipBuilder(t -> t.add("NEI")));
-            sourcePanel.child(sourceItems.left(4).right(4).top(19).bottom(17));
-            sourcePanel.child(CenterTerminalPages.label(() -> carried == null ? tr("rule.drop") : carried.getDisplayName())
-                .left(2).right(2).bottom(2).height(13));
+            sourcePanel.child(
+                sourceSearch.left(4)
+                    .right(4)
+                    .top(85)
+                    .height(14)
+                    .tooltipBuilder(t -> t.add("NEI")));
+            sourcePanel.child(
+                sourceItems.left(4)
+                    .right(4)
+                    .top(19)
+                    .bottom(17));
+            sourcePanel.child(
+                CenterTerminalPages.label(() -> carried == null ? tr("rule.drop") : carried.getDisplayName())
+                    .left(2)
+                    .right(2)
+                    .bottom(2)
+                    .height(13));
             contents.child(sourcePanel);
             docks.add(sourcePanel);
 
             ParentWidget<?> status = CenterTerminalPages.card("center_graph_status")
-                .left(0).right(0).bottom(1).height(15);
-            status.child(CenterTerminalPages.label(() -> canvas.sample == null
-                ? tr("terminal.sample") : canvas.sample.getDisplayName()).left(1).right(390).top(0).height(15));
-            status.child(CriticalGuiStyle.label(() -> tr(graph != null && graph.runnable()
-                ? "terminal.connected" : "terminal.open_outlets"), () -> 0xFF9BC6AB, Alignment.CENTER)
-                .right(338).top(0).size(51, 15));
-            status.child(button("wire_outputs", () -> tr("wire_outputs"),
-                () -> edit(CenterGraphSync.Action.OUTLET_ALL, 0, 0, ""))
-                .right(287).top(0).size(49, 15));
-            status.child(button("undo", () -> tr("terminal.undo"), () -> edit(CenterGraphSync.Action.UNDO, 0, 0, ""))
-                .right(257).top(0).size(28, 15).tooltipBuilder(t -> t.add("Ctrl+Z")));
-            status.child(button("redo", () -> tr("terminal.redo"), () -> edit(CenterGraphSync.Action.REDO, 0, 0, ""))
-                .right(227).top(0).size(28, 15).tooltipBuilder(t -> t.add("Ctrl+Y / Ctrl+Shift+Z")));
-            status.child(button("box_select", () -> tr("terminal.box_select"), () -> canvas.boxMode = !canvas.boxMode)
-                .right(182).top(0).size(42, 15)
-                .background(new DynamicDrawable(() -> canvas.boxMode ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.BUTTON)));
+                .left(0)
+                .right(0)
+                .bottom(1)
+                .height(15);
+            status.child(
+                CenterTerminalPages
+                    .label(() -> canvas.sample == null ? tr("terminal.sample") : canvas.sample.getDisplayName())
+                    .left(1)
+                    .right(390)
+                    .top(0)
+                    .height(15));
+            status
+                .child(
+                    CriticalGuiStyle
+                        .label(
+                            () -> tr(
+                                graph != null && graph.runnable() ? "terminal.connected" : "terminal.open_outlets"),
+                            () -> 0xFF9BC6AB,
+                            Alignment.CENTER)
+                        .right(338)
+                        .top(0)
+                        .size(51, 15));
+            status.child(
+                button(
+                    "wire_outputs",
+                    () -> tr("wire_outputs"),
+                    () -> edit(CenterGraphSync.Action.OUTLET_ALL, 0, 0, "")).right(287)
+                        .top(0)
+                        .size(49, 15));
+            status.child(
+                button("undo", () -> tr("terminal.undo"), () -> edit(CenterGraphSync.Action.UNDO, 0, 0, "")).right(257)
+                    .top(0)
+                    .size(28, 15)
+                    .tooltipBuilder(t -> t.add("Ctrl+Z")));
+            status.child(
+                button("redo", () -> tr("terminal.redo"), () -> edit(CenterGraphSync.Action.REDO, 0, 0, "")).right(227)
+                    .top(0)
+                    .size(28, 15)
+                    .tooltipBuilder(t -> t.add("Ctrl+Y / Ctrl+Shift+Z")));
+            status.child(
+                button("box_select", () -> tr("terminal.box_select"), () -> canvas.boxMode = !canvas.boxMode).right(182)
+                    .top(0)
+                    .size(42, 15)
+                    .background(
+                        new DynamicDrawable(
+                            () -> canvas.boxMode ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.BUTTON)));
             status.child(button("arrange", () -> tr("terminal.arrange"), () -> {
                 edit(CenterGraphSync.Action.ARRANGE, 0, 0, "");
                 canvas.fitAfterSync = true;
-            }).right(140).top(0).size(40, 15));
-            status.child(button("fit", () -> tr("terminal.fit"), canvas::fit)
-                .right(111).top(0).size(27, 15));
-            status.child(button("zoom_out", () -> "−", () -> canvas.zoomBy(-0.12))
-                .right(95).top(0).size(14, 15));
-            status.child(button("zoom_reset", () -> (int) Math.round(canvas.zoom * 100) + "%", canvas::resetZoom)
-                .right(63).top(0).size(30, 15));
-            status.child(button("zoom_in", () -> "+", () -> canvas.zoomBy(0.12))
-                .right(47).top(0).size(14, 15));
-            status.child(button("shortcuts", () -> tr("terminal.shortcuts"), () -> showShortcuts = !showShortcuts)
-                .right(1).top(0).size(44, 15).tooltipBuilder(t -> t.add(tr("canvas.help"))));
+            }).right(140)
+                .top(0)
+                .size(40, 15));
+            status.child(
+                button("fit", () -> tr("terminal.fit"), canvas::fit).right(111)
+                    .top(0)
+                    .size(27, 15));
+            status.child(
+                button("zoom_out", () -> "−", () -> canvas.zoomBy(-0.12)).right(95)
+                    .top(0)
+                    .size(14, 15));
+            status.child(
+                button("zoom_reset", () -> (int) Math.round(canvas.zoom * 100) + "%", canvas::resetZoom).right(63)
+                    .top(0)
+                    .size(30, 15));
+            status.child(
+                button("zoom_in", () -> "+", () -> canvas.zoomBy(0.12)).right(47)
+                    .top(0)
+                    .size(14, 15));
+            status.child(
+                button("shortcuts", () -> tr("terminal.shortcuts"), () -> showShortcuts = !showShortcuts).right(1)
+                    .top(0)
+                    .size(44, 15)
+                    .tooltipBuilder(t -> t.add(tr("canvas.help"))));
             contents.child(status);
 
             ParentWidget<?> shortcuts = CenterTerminalPages.card("center_graph_shortcuts")
-                .right(2).bottom(18).size(188, 90).setEnabledIf(w -> showShortcuts);
+                .right(2)
+                .bottom(18)
+                .size(188, 90)
+                .setEnabledIf(w -> showShortcuts);
             shortcuts.child(label(() -> tr("terminal.shortcuts"), 4, 1, 175, 13));
             for (int i = 0; i < 6; i++) {
                 int row = i + 1;
@@ -386,57 +637,116 @@ public final class CenterGraphGui {
             var panel = new ModularPanel("gtsr_center_presets").size(387, 224)
                 .background(TerminalUiStyle.CLUSTER_PANEL);
             panel.child(label(() -> tr("preset.title"), 5, 3, 195, 16));
-            panel.child(button("preset_close", () -> tr("exit"), close).right(4).top(3).size(37, 15));
+            panel.child(
+                button("preset_close", () -> tr("exit"), close).right(4)
+                    .top(3)
+                    .size(37, 15));
             ListWidget<IWidget, ?> menu = new ListWidget<>();
-            menu.name("center_preset_groups").left(4).top(23).bottom(4).width(132);
+            menu.name("center_preset_groups")
+                .left(4)
+                .top(23)
+                .bottom(4)
+                .width(132);
             String group = "";
             for (Preset item : CenterPresets.all()) {
                 if (!item.group.equals(group)) {
                     group = item.group;
                     String label = item.group;
-                    menu.child(CenterTerminalPages.label(() -> label).fullWidth().height(13));
+                    menu.child(
+                        CenterTerminalPages.label(() -> label)
+                            .fullWidth()
+                            .height(13));
                 }
                 menu.child(button("preset_" + item.id, () -> item.name, () -> {
                     preset = item;
                     panel.scheduleResize();
-                }).fullWidth().height(16).background(new DynamicDrawable(() -> preset == item
-                    ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)));
+                }).fullWidth()
+                    .height(16)
+                    .background(
+                        new DynamicDrawable(
+                            () -> preset == item ? TerminalUiStyle.CHIP_ACTIVE : TerminalUiStyle.CHIP_NORMAL)));
             }
             panel.child(menu);
-            var detail = CenterTerminalPages.card("center_preset_details").left(140).right(4).top(23).bottom(4);
-            detail.child(CenterTerminalPages.label(() -> preset.name).left(4).right(4).top(3).height(14));
-            detail.child(IKey.dynamic(() -> preset.description).color(0xFFC9D3D1).asWidget()
-                .left(4).right(4).top(20).height(35));
-            detail.child(CenterTerminalPages.label(() -> tr("preset.nodes", preset.nodeCount()))
-                .left(4).right(4).top(57).height(13));
+            var detail = CenterTerminalPages.card("center_preset_details")
+                .left(140)
+                .right(4)
+                .top(23)
+                .bottom(4);
+            detail.child(
+                CenterTerminalPages.label(() -> preset.name)
+                    .left(4)
+                    .right(4)
+                    .top(3)
+                    .height(14));
+            detail.child(
+                IKey.dynamic(() -> preset.description)
+                    .color(0xFFC9D3D1)
+                    .asWidget()
+                    .left(4)
+                    .right(4)
+                    .top(20)
+                    .height(35));
+            detail.child(
+                CenterTerminalPages.label(() -> tr("preset.nodes", preset.nodeCount()))
+                    .left(4)
+                    .right(4)
+                    .top(57)
+                    .height(13));
             ListWidget<IWidget, ?> expressions = new ListWidget<>();
-            expressions.name("center_preset_expressions").left(4).right(4).top(73).bottom(21);
-            int rows = CenterPresets.all().stream().mapToInt(p -> p.expressions.size()).max().orElse(0);
+            expressions.name("center_preset_expressions")
+                .left(4)
+                .right(4)
+                .top(73)
+                .bottom(21);
+            int rows = CenterPresets.all()
+                .stream()
+                .mapToInt(p -> p.expressions.size())
+                .max()
+                .orElse(0);
             for (int i = 0; i < rows; i++) {
                 int row = i;
-                var expression = new ParentWidget<>().fullWidth().height(16)
+                var expression = new ParentWidget<>().fullWidth()
+                    .height(16)
                     .setEnabledIf(w -> row < preset.expressions.size());
-                expression.child(CenterTerminalPages.label(() -> row < preset.expressions.size()
-                    ? preset.expressions.get(row).label() : "").left(0).right(61).top(0).height(15));
-                expression.child(button("preset_expression_" + i, () -> tr(expressionFilter()
-                    ? "preset.use_outlet" : "preset.use_rule"), () -> useExpression(row, close))
-                    .right(0).top(0).size(59, 15).setEnabledIf(w -> graph != null && snapshot.writable())
-                    .tooltipBuilder(t -> {
-                        if (row < preset.expressions.size()) t.add(preset.expressions.get(row).rule());
-                    }));
+                expression.child(
+                    CenterTerminalPages.label(
+                        () -> row < preset.expressions.size() ? preset.expressions.get(row)
+                            .label() : "")
+                        .left(0)
+                        .right(61)
+                        .top(0)
+                        .height(15));
+                expression.child(
+                    button(
+                        "preset_expression_" + i,
+                        () -> tr(expressionFilter() ? "preset.use_outlet" : "preset.use_rule"),
+                        () -> useExpression(row, close)).right(0)
+                            .top(0)
+                            .size(59, 15)
+                            .setEnabledIf(w -> graph != null && snapshot.writable())
+                            .tooltipBuilder(
+                                t -> {
+                                    if (row < preset.expressions.size()) t.add(
+                                        preset.expressions.get(row)
+                                            .rule());
+                                }));
                 expressions.child(expression);
             }
             detail.child(expressions);
-            detail.child(button("preset_apply", () -> tr(preset.importable() ? "preset.apply" : "preset.rules_only"),
-                () -> {
+            detail.child(
+                button("preset_apply", () -> tr(preset.importable() ? "preset.apply" : "preset.rules_only"), () -> {
                     if (!preset.importable() || !snapshot.writable()) return;
-                    if (snapshot.graphs().size() >= snapshot.capacity()) {
+                    if (snapshot.graphs()
+                        .size() >= snapshot.capacity()) {
                         sync.setStatus("status.capacity");
                         return;
                     }
                     edit(CenterGraphSync.Action.PRESET, 0, 0, preset.id);
                     close.run();
-                }).left(4).right(4).bottom(3).height(15));
+                }).left(4)
+                    .right(4)
+                    .bottom(3)
+                    .height(15));
             return panel.child(detail);
         }
 
@@ -447,7 +757,8 @@ public final class CenterGraphGui {
 
         private void useExpression(int index, Runnable close) {
             if (graph == null || index >= preset.expressions.size() || !snapshot.writable()) return;
-            String expression = preset.expressions.get(index).rule();
+            String expression = preset.expressions.get(index)
+                .rule();
             if (expressionFilter()) {
                 if (node() == null || CenterGraphSync.direct(node().process)) {
                     sync.setStatus("preset.select_outlet");
@@ -468,7 +779,13 @@ public final class CenterGraphGui {
 
         private void savePriority() {
             try {
-                edit(CenterGraphSync.Action.PRIORITY, Integer.parseInt(priority.getText().trim()), 0, "");
+                edit(
+                    CenterGraphSync.Action.PRIORITY,
+                    Integer.parseInt(
+                        priority.getText()
+                            .trim()),
+                    0,
+                    "");
             } catch (NumberFormatException invalid) {
                 sync.setStatus("priority.invalid");
             }
@@ -508,8 +825,9 @@ public final class CenterGraphGui {
 
         private boolean hasCircuit() {
             Node current = node();
-            return current != null && (current.process == CenterProcess.REACTOR
-                || current.process == CenterProcess.ELECTROLYZER || current.process == CenterProcess.FURNACE);
+            return current != null
+                && (current.process == CenterProcess.REACTOR || current.process == CenterProcess.ELECTROLYZER
+                    || current.process == CenterProcess.FURNACE);
         }
 
         private void update() {
@@ -598,7 +916,8 @@ public final class CenterGraphGui {
         }
 
         private void edit(CenterGraphSync.Action action, int a, int b, String value) {
-            if (action != CenterGraphSync.Action.ADD && action != CenterGraphSync.Action.PRESET && graph == null) return;
+            if (action != CenterGraphSync.Action.ADD && action != CenterGraphSync.Action.PRESET && graph == null)
+                return;
             sync.edit(action, snapshot, graphId, a, b, value);
         }
 
@@ -621,8 +940,9 @@ public final class CenterGraphGui {
         }
 
         private String targetText() {
-            return target == CenterGraph.UNCONNECTED ? tr("unconnected") : target == CenterGraph.BUS ? tr("output")
-                : "→ " + (target + 1) + "  " + processName(graph.nodes.get(target).process);
+            return target == CenterGraph.UNCONNECTED ? tr("unconnected")
+                : target == CenterGraph.BUS ? tr("output")
+                    : "→ " + (target + 1) + "  " + processName(graph.nodes.get(target).process);
         }
 
         private void acceptSample(int destination, int port) {
@@ -635,7 +955,8 @@ public final class CenterGraphGui {
                     if (!matcher.matches()) continue;
                     if (chooseOreTerm) rule = tag;
                     else rule = "^(?:ore|variantOre|rawOre|crushedPurified|crushed|dustImpure|dustPure)"
-                        + matcher.group(1) + "$";
+                        + matcher.group(1)
+                        + "$";
                     break;
                 }
                 if (rule == null) {
@@ -655,11 +976,16 @@ public final class CenterGraphGui {
                 selectNode(destination);
                 this.port = port;
                 readPort();
-                Set<String> entries = new LinkedHashSet<>(Arrays.asList(filter.getText().split(";")));
+                Set<String> entries = new LinkedHashSet<>(
+                    Arrays.asList(
+                        filter.getText()
+                            .split(";")));
                 entries.remove("");
-                if (entries.add(rule))
-                    edit(CenterGraphSync.Action.FILTER, destination, port * 3 + Math.max(1, filterMode),
-                        String.join(";", entries));
+                if (entries.add(rule)) edit(
+                    CenterGraphSync.Action.FILTER,
+                    destination,
+                    port * 3 + Math.max(1, filterMode),
+                    String.join(";", entries));
             }
             carried = null;
         }
@@ -694,21 +1020,23 @@ public final class CenterGraphGui {
         @Override
         public void draw(ModularGuiContext context, WidgetThemeEntry<?> theme) {
             rows.clear();
-            String query = editor.processSearch.getText().trim().toLowerCase(java.util.Locale.ROOT);
+            String query = editor.processSearch.getText()
+                .trim()
+                .toLowerCase(java.util.Locale.ROOT);
             for (CenterProcess process : PROCESSES)
-                if (query.isEmpty() || processName(process).toLowerCase(java.util.Locale.ROOT).contains(query))
-                    rows.add(process);
+                if (query.isEmpty() || processName(process).toLowerCase(java.util.Locale.ROOT)
+                    .contains(query)) rows.add(process);
             int count = getArea().height / 16;
             first = Math.min(first, Math.max(0, rows.size() - count));
             for (int i = first; i < Math.min(rows.size(), first + count); i++) {
                 CenterProcess process = rows.get(i);
                 int y = (i - first) * 16;
-                boolean hover = context.getMouseY() / 16 == i - first
-                    && context.getMouseX() >= 0 && context.getMouseX() < getArea().width;
+                boolean hover = context.getMouseY() / 16 == i - first && context.getMouseX() >= 0
+                    && context.getMouseX() < getArea().width;
                 boolean available = editor.processReady(process) && editor.canvas.acceptsLink(process);
                 (hover && available ? TerminalUiStyle.HOVER
                     : available ? TerminalUiStyle.BUTTON : TerminalUiStyle.CHIP_NORMAL)
-                    .draw(context, 0, y, getArea().width, 15, theme.getTheme());
+                        .draw(context, 0, y, getArea().width, 15, theme.getTheme());
                 ItemStack icon = icons[process.ordinal()];
                 if (icon == null) icons[process.ordinal()] = icon = processIcon(process);
                 GuiDraw.drawItem(icon, 5, y + 3, 10, 10, context.getCurrentDrawingZ());
@@ -727,8 +1055,11 @@ public final class CenterGraphGui {
             CenterProcess process = rows.get(index);
             if (!editor.processReady(process) || !editor.canvas.acceptsLink(process)) return Result.IGNORE;
             if (editor.canvas.source >= 0) {
-                editor.edit(CenterGraphSync.Action.APPEND_NODE, editor.canvas.source,
-                    editor.canvas.sourcePort * PROCESSES.length + process.ordinal(), "");
+                editor.edit(
+                    CenterGraphSync.Action.APPEND_NODE,
+                    editor.canvas.source,
+                    editor.canvas.sourcePort * PROCESSES.length + process.ordinal(),
+                    "");
                 editor.canvas.clearLink();
             } else editor.edit(CenterGraphSync.Action.FREE_NODE, 0, process.ordinal(), "");
             return Result.SUCCESS;
@@ -838,7 +1169,8 @@ public final class CenterGraphGui {
             tooltipBuilder(t -> {
                 int index = first + getContext().getMouseY() / 16;
                 if (index < matches.size()) {
-                    for (String line : matches.get(index).getTooltip(CenterTerminalClient.player(), false)) t.add(line);
+                    for (String line : matches.get(index)
+                        .getTooltip(CenterTerminalClient.player(), false)) t.add(line);
                 }
             });
         }
@@ -862,11 +1194,15 @@ public final class CenterGraphGui {
                 ItemStack mineral = matches.get(first + i);
                 TerminalUiStyle.CHIP_NORMAL.draw(context, 0, i * 16, getArea().width, 15, theme.getTheme());
                 GuiDraw.drawItem(mineral, 2, i * 16 + 1, 13, 13, context.getCurrentDrawingZ());
-                CriticalGuiStyle.fitted(mineral::getDisplayName, () -> CriticalGuiStyle.TEXT_TITLE, Alignment.CenterLeft)
+                CriticalGuiStyle
+                    .fitted(mineral::getDisplayName, () -> CriticalGuiStyle.TEXT_TITLE, Alignment.CenterLeft)
                     .draw(context, 17, i * 16, getArea().width - 19, 15, theme.getTheme());
             }
-            if (matches.isEmpty()) CriticalGuiStyle.fitted(() -> tr(search == null ? "rule.no_matches" : "status.loading"),
-                () -> CriticalGuiStyle.TEXT_MUTED, Alignment.Center)
+            if (matches.isEmpty()) CriticalGuiStyle
+                .fitted(
+                    () -> tr(search == null ? "rule.no_matches" : "status.loading"),
+                    () -> CriticalGuiStyle.TEXT_MUTED,
+                    Alignment.Center)
                 .draw(context, 0, 0, getArea().width, 16, theme.getTheme());
             markTooltipDirty();
         }
@@ -876,14 +1212,18 @@ public final class CenterGraphGui {
             int index = first + getContext().getMouseY() / 16;
             if (button != 0 || index >= matches.size()) return Result.IGNORE;
             editor.checking = true;
-            editor.canvas.sample = matches.get(index).copy();
+            editor.canvas.sample = matches.get(index)
+                .copy();
             return Result.SUCCESS;
         }
 
         @Override
         public boolean onMouseScroll(UpOrDown direction, int amount) {
-            first = Math.max(0, Math.min(Math.max(0, matches.size() - getArea().height / 16),
-                first + (direction == UpOrDown.UP ? -1 : 1)));
+            first = Math.max(
+                0,
+                Math.min(
+                    Math.max(0, matches.size() - getArea().height / 16),
+                    first + (direction == UpOrDown.UP ? -1 : 1)));
             return true;
         }
     }
@@ -899,8 +1239,7 @@ public final class CenterGraphGui {
             this.editor = editor;
             tooltipBuilder(t -> {
                 ItemStack item = hit(getContext().getMouseX(), getContext().getMouseY());
-                if (item != null)
-                    for (String line : item.getTooltip(CenterTerminalClient.player(), false)) t.add(line);
+                if (item != null) for (String line : item.getTooltip(CenterTerminalClient.player(), false)) t.add(line);
             });
         }
 
@@ -909,7 +1248,9 @@ public final class CenterGraphGui {
             EntityPlayer player = CenterTerminalClient.player();
             if (player == null) return;
             List<ItemStack> catalog = CenterTerminalClient.catalog();
-            String search = editor.sourceSearch.getText().trim().toLowerCase(java.util.Locale.ROOT);
+            String search = editor.sourceSearch.getText()
+                .trim()
+                .toLowerCase(java.util.Locale.ROOT);
             if (source != catalog || !search.equals(query)) {
                 source = catalog;
                 query = search;
@@ -918,13 +1259,13 @@ public final class CenterGraphGui {
                 else {
                     filtered = new java.util.ArrayList<>();
                     for (ItemStack item : catalog) if (item != null && item.getDisplayName()
-                        .toLowerCase(java.util.Locale.ROOT).contains(query)) filtered.add(item);
+                        .toLowerCase(java.util.Locale.ROOT)
+                        .contains(query)) filtered.add(item);
                 }
             }
             for (int i = 0; i < 36; i++) {
                 int inventory = i < 27 ? i + 9 : i - 27;
-                slot(context, theme, player.inventory.getStackInSlot(inventory),
-                    i % 9 * 15, i / 9 * 15);
+                slot(context, theme, player.inventory.getStackInSlot(inventory), i % 9 * 15, i / 9 * 15);
             }
             int rows = rows();
             row = Math.min(row, Math.max(0, (filtered.size() + 8) / 9 - rows));
@@ -933,7 +1274,9 @@ public final class CenterGraphGui {
             markTooltipDirty();
         }
 
-        private int rows() { return Math.max(0, (getArea().height - 85) / 15); }
+        private int rows() {
+            return Math.max(0, (getArea().height - 85) / 15);
+        }
 
         private void slot(ModularGuiContext context, WidgetThemeEntry<?> theme, ItemStack item, int x, int y) {
             TerminalUiStyle.SLOT_FRAME.draw(context, x, y, 14, 14, theme.getTheme());
@@ -1058,7 +1401,6 @@ public final class CenterGraphGui {
         }
     }
 
-
     private static final class Canvas extends Widget<Canvas> implements Interactable {
 
         private static final int NODE_W = 92, HEAD = 14, ROW = 13, BUS_W = 69, BUS_H = 26, TILE_H = 16;
@@ -1111,18 +1453,23 @@ public final class CenterGraphGui {
                 }
                 int rule = ruleAt(x, y);
                 if (rule >= 0) {
-                    t.add(ruleIcons[rule] == null ? editor.graph.rules().get(rule) : ruleIcons[rule].getDisplayName());
+                    t.add(
+                        ruleIcons[rule] == null ? editor.graph.rules()
+                            .get(rule) : ruleIcons[rule].getDisplayName());
                     return;
                 }
-                if (trace == null || index < 0 || y < nodes[index][1] + portOffset(editor.graph.nodes.get(index))) return;
+                if (trace == null || index < 0 || y < nodes[index][1] + portOffset(editor.graph.nodes.get(index)))
+                    return;
                 int port = (y - nodes[index][1] - portOffset(editor.graph.nodes.get(index))) / ROW;
                 for (CenterGraphPreview.Product product : trace.products(index)) {
                     if (product.port != port) continue;
                     String name = product.item == null
                         ? product.fluid.getLocalizedName() + " " + product.fluid.amount + " L"
                         : product.item.getDisplayName() + " × " + product.item.stackSize;
-                    t.add(name + (product.chance < 10000
-                        ? " · " + String.format(java.util.Locale.ROOT, "%.2f%%", product.chance / 100.0) : ""));
+                    t.add(
+                        name + (product.chance < 10000
+                            ? " · " + String.format(java.util.Locale.ROOT, "%.2f%%", product.chance / 100.0)
+                            : ""));
                 }
             });
         }
@@ -1149,23 +1496,38 @@ public final class CenterGraphGui {
             moving = panning = selecting = boxMode = fitAfterSync = false;
         }
 
-        private void fit() { fitPending = true; }
+        private void fit() {
+            fitPending = true;
+        }
 
         private void fitLayout() {
-            zoom = Math.min(1, Math.min((getArea().width - 12.0) / (maxX - minX),
-                (getArea().height - 12.0) / (maxY - minY)));
+            zoom = Math
+                .min(1, Math.min((getArea().width - 12.0) / (maxX - minX), (getArea().height - 12.0) / (maxY - minY)));
             zoom = Math.max(.04, zoom);
             offX = (boardWidth() - minX - maxX) / 2;
             offY = (boardHeight() - minY - maxY) / 2;
             fitPending = false;
         }
 
-        private int boardWidth() { return (int) Math.ceil(getArea().width / zoom); }
-        private int boardHeight() { return (int) Math.ceil(getArea().height / zoom); }
-        private int mouseX() { return (int) Math.floor(getContext().getMouseX() / zoom); }
-        private int mouseY() { return (int) Math.floor(getContext().getMouseY() / zoom); }
+        private int boardWidth() {
+            return (int) Math.ceil(getArea().width / zoom);
+        }
 
-        private void resetZoom() { zoomBy(1 - zoom); }
+        private int boardHeight() {
+            return (int) Math.ceil(getArea().height / zoom);
+        }
+
+        private int mouseX() {
+            return (int) Math.floor(getContext().getMouseX() / zoom);
+        }
+
+        private int mouseY() {
+            return (int) Math.floor(getContext().getMouseY() / zoom);
+        }
+
+        private void resetZoom() {
+            zoomBy(1 - zoom);
+        }
 
         private void zoomBy(double amount) {
             zoomAt(amount, getArea().width / 2, getArea().height / 2);
@@ -1196,16 +1558,18 @@ public final class CenterGraphGui {
                 int[] terminals = new int[count];
                 int terminalCount = 0;
                 nodes = new int[count][4];
-                int ruleCount = graph.rules().size();
+                int ruleCount = graph.rules()
+                    .size();
                 ruleIcons = new ItemStack[ruleCount];
                 inputX = graph.inputPosition == null ? 0 : graph.inputPosition.x;
                 inputY = graph.inputPosition == null ? BUS_Y : graph.inputPosition.y;
                 minX = inputX + RULE_X - (Math.max(0, ruleCount - 1) / RULE_ROWS) * 82;
                 minY = inputY + SAMPLE_Y;
-                int right = count == 0 ? inputX + PROCESS_X + NODE_W
-                    : Math.max(PROCESS_X + NODE_W, inputX + BUS_W);
+                int right = count == 0 ? inputX + PROCESS_X + NODE_W : Math.max(PROCESS_X + NODE_W, inputX + BUS_W);
                 maxY = inputY + Math.max(1, Math.min(ruleCount, RULE_ROWS)) * RULE_STEP;
-                for (int i = 0; i < ruleCount; i++) ruleIcons[i] = mineralIcon(graph.rules().get(i));
+                for (int i = 0; i < ruleCount; i++) ruleIcons[i] = mineralIcon(
+                    graph.rules()
+                        .get(i));
                 for (int i = 0; i < count; i++) {
                     Node node = graph.nodes.get(i);
                     int layer = depth[i], h = cardHeight(node);
@@ -1255,11 +1619,25 @@ public final class CenterGraphGui {
             return null;
         }
 
-        private int busX(int bus) { return offX + (bus == IN ? inputX : outputX) + (dragBus == bus ? dx : 0); }
-        private int busY(int bus) { return offY + (bus == IN ? inputY : outputY) + (dragBus == bus ? dy : 0); }
-        private int ruleX(int index) { return busX(IN) + RULE_X - index / RULE_ROWS * 82; }
-        private int ruleY(int index) { return busY(IN) + index % RULE_ROWS * RULE_STEP; }
-        private int ruleWidth(int index) { return ruleIcons[index] == null ? BUS_W : TILE_H; }
+        private int busX(int bus) {
+            return offX + (bus == IN ? inputX : outputX) + (dragBus == bus ? dx : 0);
+        }
+
+        private int busY(int bus) {
+            return offY + (bus == IN ? inputY : outputY) + (dragBus == bus ? dy : 0);
+        }
+
+        private int ruleX(int index) {
+            return busX(IN) + RULE_X - index / RULE_ROWS * 82;
+        }
+
+        private int ruleY(int index) {
+            return busY(IN) + index % RULE_ROWS * RULE_STEP;
+        }
+
+        private int ruleWidth(int index) {
+            return ruleIcons[index] == null ? BUS_W : TILE_H;
+        }
 
         @Override
         public void draw(ModularGuiContext context, WidgetThemeEntry<?> theme) {
@@ -1269,7 +1647,13 @@ public final class CenterGraphGui {
             GuiDraw.drawRect(0, 0, width, height, BACKGROUND);
             CenterGraph graph = editor.graph;
             if (graph == null) {
-                caption(context, tr("empty"), Math.max(2, width / 2 - 82), height / 2, 164, 18,
+                caption(
+                    context,
+                    tr("empty"),
+                    Math.max(2, width / 2 - 82),
+                    height / 2,
+                    164,
+                    18,
                     CriticalGuiStyle.TEXT_MUTED);
                 return;
             }
@@ -1292,8 +1676,8 @@ public final class CenterGraphGui {
             for (int x = Math.floorMod(offX, stride); x < width; x += stride) rect(x, 0, 1, height, GRID);
             for (int y = Math.floorMod(offY, stride); y < height; y += stride) rect(0, y, width, 1, GRID);
             drawCircuits(graph, width, height, stride);
-            if (source >= 0 && source < nodes.length) wire(nodes[source][0] + NODE_W, portY(source, sourcePort),
-                mouseX(), mouseY(), 0xFFDFC381);
+            if (source >= 0 && source < nodes.length)
+                wire(nodes[source][0] + NODE_W, portY(source, sourcePort), mouseX(), mouseY(), 0xFFDFC381);
             int sampleX = busX(IN) + SAMPLE_X, sampleY = busY(IN) + SAMPLE_Y;
             if (sample != null && visible(sampleX, sampleY, 18, 18)) {
                 rect(sampleX, sampleY, 18, 18, 0xFFA8C6AD);
@@ -1303,7 +1687,13 @@ public final class CenterGraphGui {
             for (int i = 0; i < ruleIcons.length; i++) {
                 int x = ruleX(i), y = ruleY(i);
                 ItemStack icon = ruleIcons[i];
-                if (icon == null) box(context, theme, graph.rules().get(i), x, y);
+                if (icon == null) box(
+                    context,
+                    theme,
+                    graph.rules()
+                        .get(i),
+                    x,
+                    y);
                 else if (visible(x, y, TILE_H, TILE_H)) {
                     TerminalUiStyle.SLOT_FRAME.draw(context, x, y, TILE_H, TILE_H, theme);
                     GuiDraw.drawItem(icon, x + 2, y + 2, 12, 12, context.getCurrentDrawingZ());
@@ -1313,17 +1703,27 @@ public final class CenterGraphGui {
             int hover = hit(mouseX(), mouseY());
             if (ruleIcons.length == 0)
                 ghost(context, tr("ghost.rule"), ruleX(0), ruleY(0), BUS_W, hover == RULE_GHOST, null);
-            if (graph.nodes.isEmpty())
-                ghost(context, tr("ghost.process"), busX(IN) + PROCESS_X, busY(IN), NODE_W, hover == MODULE_GHOST,
-                    CenterProcess.CRUSHER);
+            if (graph.nodes.isEmpty()) ghost(
+                context,
+                tr("ghost.process"),
+                busX(IN) + PROCESS_X,
+                busY(IN),
+                NODE_W,
+                hover == MODULE_GHOST,
+                CenterProcess.CRUSHER);
             for (int i = 0; i < nodes.length; i++) {
                 Node node = graph.nodes.get(i);
                 int x = nodes[i][0], y = nodes[i][1];
                 int slots = CenterGraphSync.outlets(node), h = cardHeight(node);
                 if (x <= -NODE_W || x >= width || y <= -h || y >= height) continue;
                 boolean selected = i == editor.nodeIndex || marked.contains(i);
-                boolean reached = trace != null && !trace.products(i).isEmpty();
-                rect(x - 1, y - 1, NODE_W + 2, h + 2,
+                boolean reached = trace != null && !trace.products(i)
+                    .isEmpty();
+                rect(
+                    x - 1,
+                    y - 1,
+                    NODE_W + 2,
+                    h + 2,
                     selected ? CriticalGuiStyle.TEXT_ACCENT : reached ? 0xFFA4D3A5 : 0xFF667874);
                 rect(x, y, NODE_W, h, 0xFF2D3238);
                 rect(x + 2, y + 2, NODE_W - 4, HEAD - 2, 0xFF454B53);
@@ -1331,9 +1731,16 @@ public final class CenterGraphGui {
                     ItemStack icon = icons[node.process.ordinal()];
                     if (icon == null) icons[node.process.ordinal()] = icon = processIcon(node.process);
                     GuiDraw.drawItem(icon, x + 5, y + 3, 9, 9, context.getCurrentDrawingZ());
-                    caption(context, processName(node.process), x + 13, y + 1, NODE_W - (i == entry ? 29 : 15), HEAD,
+                    caption(
+                        context,
+                        processName(node.process),
+                        x + 13,
+                        y + 1,
+                        NODE_W - (i == entry ? 29 : 15),
+                        HEAD,
                         CriticalGuiStyle.TEXT_TITLE);
-                    if (i == entry) caption(context, tr("terminal.inlet"), x + NODE_W - 18, y + 1, 18, HEAD, 0xFFA6C9B6);
+                    if (i == entry)
+                        caption(context, tr("terminal.inlet"), x + NODE_W - 18, y + 1, 18, HEAD, 0xFFA6C9B6);
                     drawAuxiliaries(context, theme, node, x, y);
                 }
                 rect(x - 2, y + 8, 4, 4, LINE);
@@ -1348,8 +1755,8 @@ public final class CenterGraphGui {
                         caption(context, label, x + 2, row, reached ? 43 : NODE_W - 23, ROW, color);
                         if (reached) drawProducts(context, i, port, x + 40, row);
                         String restriction = direct ? tr("direct") : tr("unrestricted");
-                        for (OutletFilter f : node.filters()) if (f.slot == port)
-                            restriction = tr(f.allow ? "allow" : "deny");
+                        for (OutletFilter f : node.filters())
+                            if (f.slot == port) restriction = tr(f.allow ? "allow" : "deny");
                         caption(context, restriction, x + NODE_W - 18, row, 17, ROW, color);
                     }
                     rect(x + NODE_W - 2, row + ROW / 2 - 1, 5, 4, color);
@@ -1357,18 +1764,32 @@ public final class CenterGraphGui {
                 if (x >= 0 && x + NODE_W <= width && y >= 0 && y + h <= height) {
                     int footer = y + h - 10;
                     if (reached) {
-                        CenterGraphPreview.Product first = trace.products(i).get(0);
-                        caption(context, tr(trace.conditionalRecipe(i) ? "terminal.recipe_conditional" : "terminal.recipe", first.item == null
-                            ? first.fluid.getLocalizedName() : first.item.getDisplayName()), x + 2, footer,
-                            NODE_W - 3, 10, 0xFFDCCAA9);
+                        CenterGraphPreview.Product first = trace.products(i)
+                            .get(0);
+                        caption(
+                            context,
+                            tr(
+                                trace.conditionalRecipe(i) ? "terminal.recipe_conditional" : "terminal.recipe",
+                                first.item == null ? first.fluid.getLocalizedName() : first.item.getDisplayName()),
+                            x + 2,
+                            footer,
+                            NODE_W - 3,
+                            10,
+                            0xFFDCCAA9);
                     } else caption(context, tr("terminal.no_sample"), x + 2, footer, NODE_W - 3, 10, 0xFFC1C7BF);
                 }
                 if (canReceiveLink(i)) {
                     int top = receiverY(i), receiverHeight = receiveAtHeader() ? HEAD - 2 : 11;
                     if (!receiveAtHeader()) {
                         rect(x + 2, top, NODE_W - 4, receiverHeight, 0xFF293F36);
-                        caption(context, outletName(graph.nodes.get(source), sourcePort), x + 5, top, NODE_W - 10,
-                            receiverHeight, 0xFFB9E6B8);
+                        caption(
+                            context,
+                            outletName(graph.nodes.get(source), sourcePort),
+                            x + 5,
+                            top,
+                            NODE_W - 10,
+                            receiverHeight,
+                            0xFFB9E6B8);
                     }
                     int green = 0xFF9ADD9F;
                     rect(x + 2, top, NODE_W - 4, 1, green);
@@ -1376,20 +1797,35 @@ public final class CenterGraphGui {
                     rect(x + 2, top, 1, receiverHeight, green);
                     rect(x + NODE_W - 3, top, 1, receiverHeight, green);
                 }
-                if (source < 0 && hover == i && mouseY() < y + HEAD && !moving)
-                    caption(context, "✥", Math.min(width - 8, mouseX() + 5),
-                        Math.min(height - 10, mouseY() + 5), 8, 10, 0xFFF3D3A2);
+                if (source < 0 && hover == i && mouseY() < y + HEAD && !moving) caption(
+                    context,
+                    "✥",
+                    Math.min(width - 8, mouseX() + 5),
+                    Math.min(height - 10, mouseY() + 5),
+                    8,
+                    10,
+                    0xFFF3D3A2);
             }
             int inX = busX(IN), inY = busY(IN), outX = busX(OUT), outY = busY(OUT);
-            bus(context, theme, tr("input"), nodes.length == 0 ? tr("bus.entry") : "→ " + processName(graph.nodes.get(entry).process),
-                inX, inY);
+            bus(
+                context,
+                theme,
+                tr("input"),
+                nodes.length == 0 ? tr("bus.entry") : "→ " + processName(graph.nodes.get(entry).process),
+                inX,
+                inY);
             bus(context, theme, tr("output"), tr("bus.receive"), outX, outY);
             rect(inX - 2, inY + BUS_H / 2 - 2, 4, 4, LINE);
             rect(inX + BUS_W - 2, inY + BUS_H / 2 - 2, 4, 4, LINE);
             rect(outX - 2, outY + BUS_H / 2 - 2, 4, 4, 0xFFE2AD68);
-            if (dragBus != 0 || editor.snapshot.writable() && onBusBorder(hover, mouseX(), mouseY()))
-                caption(context, "✥", Math.min(width - 8, mouseX() + 5), Math.min(height - 10, mouseY() + 5),
-                    8, 10, 0xFFF3D3A2);
+            if (dragBus != 0 || editor.snapshot.writable() && onBusBorder(hover, mouseX(), mouseY())) caption(
+                context,
+                "✥",
+                Math.min(width - 8, mouseX() + 5),
+                Math.min(height - 10, mouseY() + 5),
+                8,
+                10,
+                0xFFF3D3A2);
             if (selecting) {
                 int x = Math.min(pressX, pressX + dx), y = Math.min(pressY, pressY + dy);
                 int w = Math.abs(dx) + 1, h = Math.abs(dy) + 1;
@@ -1448,7 +1884,8 @@ public final class CenterGraphGui {
                 int line = y + portOffset(node) - 12;
                 caption(context, "NC", x + 2, line, 25, 12, 0xFFC8C2B2);
                 TerminalUiStyle.SLOT_FRAME.draw(context, x + 32, line, 14, 12, theme);
-                if (node.circuit > 0) caption(context, Integer.toString(node.circuit), x + 33, line, 15, 12, 0xFFE2CA9E);
+                if (node.circuit > 0)
+                    caption(context, Integer.toString(node.circuit), x + 33, line, 15, 12, 0xFFE2CA9E);
             }
         }
 
@@ -1470,7 +1907,9 @@ public final class CenterGraphGui {
             return row / 14 * count + col / 17;
         }
 
-        private static int countRows(int count) { return count > 0 ? 28 : 0; }
+        private static int countRows(int count) {
+            return count > 0 ? 28 : 0;
+        }
 
         private void applyAuxiliary(int index, int slot) {
             Node node = editor.graph.nodes.get(index);
@@ -1490,7 +1929,8 @@ public final class CenterGraphGui {
                 } else if (stack != null) {
                     FluidStack fluid = GTUtility.getFluidForFilledItem(stack, true);
                     if (fluid == null) return;
-                    key = fluid.getFluid().getName();
+                    key = fluid.getFluid()
+                        .getName();
                 }
                 editor.edit(CenterGraphSync.Action.AUXILIARY, index, slot, key);
             }
@@ -1522,7 +1962,9 @@ public final class CenterGraphGui {
             return x + w > 0 && y + h > 0 && x < boardWidth() && y < boardHeight();
         }
 
-        private int portY(int node, int port) { return nodes[node][1] + portOffset(laidOut.nodes.get(node)) + port * ROW + ROW / 2; }
+        private int portY(int node, int port) {
+            return nodes[node][1] + portOffset(laidOut.nodes.get(node)) + port * ROW + ROW / 2;
+        }
 
         private void bus(ModularGuiContext context, WidgetTheme theme, String title, String subtitle, int x, int y) {
             if (!visible(x, y, BUS_W, BUS_H)) return;
@@ -1537,7 +1979,8 @@ public final class CenterGraphGui {
             caption(context, title, x + 4, y, BUS_W - 8, TILE_H, CriticalGuiStyle.TEXT_TITLE);
         }
 
-        private void ghost(ModularGuiContext context, String title, int x, int y, int w, boolean hovered, CenterProcess process) {
+        private void ghost(ModularGuiContext context, String title, int x, int y, int w, boolean hovered,
+            CenterProcess process) {
             int height = process == null ? TILE_H : 23;
             if (!visible(x, y, w, height)) return;
             rect(x, y, w, height, 0xFF28333B);
@@ -1558,7 +2001,13 @@ public final class CenterGraphGui {
                 labelInset = 18;
                 rect(x + 5, y + 16, w - 10, 1, 0xFF56676D);
             }
-            caption(context, title, x + labelInset, y, w - labelInset - 4, TILE_H,
+            caption(
+                context,
+                title,
+                x + labelInset,
+                y,
+                w - labelInset - 4,
+                TILE_H,
                 hovered ? CriticalGuiStyle.TEXT_TITLE : CriticalGuiStyle.TEXT_MUTED);
         }
 
@@ -1581,10 +2030,11 @@ public final class CenterGraphGui {
             int outX = busX(OUT), outY = busY(OUT) + BUS_H / 2;
             boxes.add(new int[] { inputX, inputY - BUS_H / 2, inputX + BUS_W, inputY + BUS_H / 2 });
             boxes.add(new int[] { outX, outY - BUS_H / 2, outX + BUS_W, outY + BUS_H / 2 });
-            if (nodes.length > 0) edges.add(new int[] { inputX + BUS_W, inputY, nodes[0][0], nodes[0][1] + 9, LINE, 0 });
+            if (nodes.length > 0)
+                edges.add(new int[] { inputX + BUS_W, inputY, nodes[0][0], nodes[0][1] + 9, LINE, 0 });
             Set<Integer> extraEntries = new LinkedHashSet<>();
-            for (var entry : graph.entryRoutes()) if (entry.node != 0 && extraEntries.add(entry.node))
-                edges.add(new int[] { inputX + BUS_W, inputY, nodes[entry.node][0], nodes[entry.node][1] + 9, LINE, 0 });
+            for (var entry : graph.entryRoutes()) if (entry.node != 0 && extraEntries.add(entry.node)) edges
+                .add(new int[] { inputX + BUS_W, inputY, nodes[entry.node][0], nodes[entry.node][1] + 9, LINE, 0 });
             if (sample != null) {
                 int x = inputX + SAMPLE_X, y = busY(IN) + SAMPLE_Y;
                 boxes.add(new int[] { x, y, x + 18, y + 18 });
@@ -1605,8 +2055,9 @@ public final class CenterGraphGui {
                     if (target == CenterGraph.UNCONNECTED) continue;
                     int toX = target < 0 ? outX : nodes[target][0];
                     int toY = target < 0 ? outY : nodes[target][1] + 9;
-                    edges.add(new int[] { x + NODE_W, portY(i, port), toX, toY,
-                        port == 0 ? 0xFFE2AD68 : LINE, port == 0 ? 0 : 1 });
+                    edges.add(
+                        new int[] { x + NODE_W, portY(i, port), toX, toY, port == 0 ? 0xFFE2AD68 : LINE,
+                            port == 0 ? 0 : 1 });
                 }
             }
             circuits.draw(width, height, offX, offY, gridStride, BACKGROUND, GRID, edges, boxes);
@@ -1632,7 +2083,8 @@ public final class CenterGraphGui {
             ItemStack icon = ruleIcons[index];
             if (icon != null && editor.checking) sample = icon.copy();
             else {
-                editor.inspectedRule = laidOut.rules().get(index);
+                editor.inspectedRule = laidOut.rules()
+                    .get(index);
                 editor.showRules = true;
                 editor.showSources = false;
             }
@@ -1652,8 +2104,8 @@ public final class CenterGraphGui {
             source = node;
             sourcePort = port;
             linkedProduct = product;
-            if (product != null) for (CenterProcess process : PROCESSES)
-                linkReceivers[process.ordinal()] = product.canEnter(process);
+            if (product != null)
+                for (CenterProcess process : PROCESSES) linkReceivers[process.ordinal()] = product.canEnter(process);
         }
 
         private void clearLink() {
@@ -1671,7 +2123,9 @@ public final class CenterGraphGui {
             return acceptsLink(process) && (linkedProduct == null || editor.processReady(process));
         }
 
-        private boolean receiveAtHeader() { return linkedProduct == null || sourcePort == 0; }
+        private boolean receiveAtHeader() {
+            return linkedProduct == null || sourcePort == 0;
+        }
 
         private int receiverY(int node) {
             return nodes[node][1] + (receiveAtHeader() ? 2 : cardHeight(laidOut.nodes.get(node)) - 11);
@@ -1707,9 +2161,15 @@ public final class CenterGraphGui {
                 return Result.SUCCESS;
             }
             if (source >= 0 && hit != source) {
-                if (hit == OUT || canReceiveLink(hit) && inside(pressX, pressY, nodes[hit][0] + 2,
-                    receiverY(hit), NODE_W - 4, receiveAtHeader() ? HEAD - 2 : 11)) {
-                    editor.edit(CenterGraphSync.Action.TARGET, source, sourcePort * 65 + (hit == OUT ? 0 : hit + 1), "");
+                if (hit == OUT || canReceiveLink(hit) && inside(
+                    pressX,
+                    pressY,
+                    nodes[hit][0] + 2,
+                    receiverY(hit),
+                    NODE_W - 4,
+                    receiveAtHeader() ? HEAD - 2 : 11)) {
+                    editor
+                        .edit(CenterGraphSync.Action.TARGET, source, sourcePort * 65 + (hit == OUT ? 0 : hit + 1), "");
                     clearLink();
                     return Result.SUCCESS;
                 }
@@ -1808,7 +2268,10 @@ public final class CenterGraphGui {
             }
             if (moving) moveMarked(dx, dy);
             if (dragBus != 0 && (dx != 0 || dy != 0)) {
-                editor.edit(CenterGraphSync.Action.MOVE_BUS, busX(dragBus) - offX, busY(dragBus) - offY,
+                editor.edit(
+                    CenterGraphSync.Action.MOVE_BUS,
+                    busX(dragBus) - offX,
+                    busY(dragBus) - offY,
                     dragBus == IN ? "input" : "output");
             }
             dragBus = 0;
@@ -1819,8 +2282,8 @@ public final class CenterGraphGui {
         private void moveMarked(int x, int y) {
             if (marked.isEmpty() || x == 0 && y == 0) return;
             StringJoiner edits = new StringJoiner(";");
-            for (int node : marked) if (node < nodes.length)
-                edits.add(node + "," + (nodes[node][2] + x) + "," + (nodes[node][3] + y));
+            for (int node : marked)
+                if (node < nodes.length) edits.add(node + "," + (nodes[node][2] + x) + "," + (nodes[node][3] + y));
             if (edits.length() > 0) editor.edit(CenterGraphSync.Action.MOVE, editor.nodeIndex, 0, edits.toString());
         }
 
@@ -1833,8 +2296,8 @@ public final class CenterGraphGui {
                     applyAuxiliary(target, auxiliary);
                     return;
                 }
-                if (row >= 0 && row / ROW < CenterGraphSync.outlets(node)
-                    && !CenterGraphSync.direct(node.process)) editor.acceptSample(target, row / ROW);
+                if (row >= 0 && row / ROW < CenterGraphSync.outlets(node) && !CenterGraphSync.direct(node.process))
+                    editor.acceptSample(target, row / ROW);
             } else if (target == IN || target == RULE_GHOST || ruleAt(x, y) >= 0) editor.acceptSample(-1, 0);
         }
 
@@ -1856,7 +2319,8 @@ public final class CenterGraphGui {
                 editor.showShortcuts = !editor.showShortcuts;
                 return Result.SUCCESS;
             }
-            if (key == Keyboard.KEY_ESCAPE && (source >= 0 || dragBus != 0 || selecting || boxMode || !marked.isEmpty())) {
+            if (key == Keyboard.KEY_ESCAPE
+                && (source >= 0 || dragBus != 0 || selecting || boxMode || !marked.isEmpty())) {
                 clearLink();
                 dragBus = 0;
                 selecting = boxMode = false;
@@ -1872,7 +2336,9 @@ public final class CenterGraphGui {
                 resetZoom();
                 return Result.SUCCESS;
             }
-            if (key == Keyboard.KEY_EQUALS || key == Keyboard.KEY_ADD || key == Keyboard.KEY_MINUS || key == Keyboard.KEY_SUBTRACT) {
+            if (key == Keyboard.KEY_EQUALS || key == Keyboard.KEY_ADD
+                || key == Keyboard.KEY_MINUS
+                || key == Keyboard.KEY_SUBTRACT) {
                 zoomBy(key == Keyboard.KEY_MINUS || key == Keyboard.KEY_SUBTRACT ? -.12 : .12);
                 return Result.SUCCESS;
             }
@@ -1894,8 +2360,12 @@ public final class CenterGraphGui {
                 return Result.SUCCESS;
             }
             if (CenterTerminalClient.control() && (key == Keyboard.KEY_Z || key == Keyboard.KEY_Y)) {
-                editor.edit(key == Keyboard.KEY_Y || CenterTerminalClient.shift()
-                    ? CenterGraphSync.Action.REDO : CenterGraphSync.Action.UNDO, 0, 0, "");
+                editor.edit(
+                    key == Keyboard.KEY_Y || CenterTerminalClient.shift() ? CenterGraphSync.Action.REDO
+                        : CenterGraphSync.Action.UNDO,
+                    0,
+                    0,
+                    "");
                 marked.clear();
                 return Result.SUCCESS;
             }
@@ -1947,15 +2417,17 @@ public final class CenterGraphGui {
             private final TextRenderer renderer = new TextRenderer();
 
             @Override
-            public void draw(com.cleanroommc.modularui.screen.viewport.GuiContext context, int x, int y,
-                int width, int height, WidgetTheme theme) {
+            public void draw(com.cleanroommc.modularui.screen.viewport.GuiContext context, int x, int y, int width,
+                int height, WidgetTheme theme) {
                 String value = text.get();
                 int available = Math.max(1, width - 3);
-                int measured = TextRenderer.getFontRenderer().getStringWidth(value);
+                int measured = TextRenderer.getFontRenderer()
+                    .getStringWidth(value);
                 float scale = Math.min(.82f, (float) available / Math.max(1, measured));
                 if (scale < minScale) {
                     scale = minScale;
-                    value = TextRenderer.getFontRenderer().trimStringToWidth(value, (int) (available / scale));
+                    value = TextRenderer.getFontRenderer()
+                        .trimStringToWidth(value, (int) (available / scale));
                 }
                 renderer.setColor(color.getAsInt());
                 renderer.setShadow(false);
@@ -1975,7 +2447,8 @@ public final class CenterGraphGui {
     }
 
     private static void setField(TextFieldWidget field, String value) {
-        field.getStringValue().setStringValue(value);
+        field.getStringValue()
+            .setStringValue(value);
         field.setText(value);
         field.markTooltipDirty();
     }

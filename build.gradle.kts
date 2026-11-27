@@ -13,6 +13,11 @@ tasks.withType<Test>().configureEach {
     failOnNoDiscoveredTests = false
 }
 
+// The native terminal's generic widget types exceed Checkstyle's default parser heap.
+tasks.withType<org.gradle.api.plugins.quality.Checkstyle>().configureEach {
+    maxHeapSize = "1g"
+}
+
 // Build tools use only the same pure Java 8 codec as runtime, without Minecraft or external executables.
 val assetCompiler = sourceSets.create("assetCompiler") {
     java.setSrcDirs(listOf("src/main/java", "tools/model-compiler/java"))
@@ -354,6 +359,8 @@ mapOf(
     "verifySteamFluidDrillCycle" to "com.miaokatze.gtsr.common.machine.SteamFluidDrillCycleContract",
     "verifySingularityIdentityDrop" to "com.miaokatze.gtsr.common.blocks.SingularityIdentityDropContract",
     "verifyCenterQueueMigration" to "com.miaokatze.gtsr.common.machine.orecenter.CenterQueueMigrationContracts",
+    "verifyCenterParallelBalance" to "com.miaokatze.gtsr.common.machine.orecenter.CenterParallelBalanceContracts",
+    "verifyCenterRecipes" to "com.miaokatze.gtsr.loader.recipes.OreIntegrationCenterRecipeContracts",
     "verifyChunkLoadingPolicy" to "com.miaokatze.gtsr.common.util.ChunkLoadingPolicyContracts",
     "verifyCenterRecovery" to "com.miaokatze.gtsr.common.machine.orecenter.CenterRecoveryContracts",
     "verifyRecoveryNativeClock" to "com.miaokatze.gtsr.common.machine.recovery.RecoveryNativeClockContracts",

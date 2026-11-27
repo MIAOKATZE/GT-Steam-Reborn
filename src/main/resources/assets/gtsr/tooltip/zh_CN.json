@@ -2310,7 +2310,8 @@
       "common":[
         {"type":"line","text":"§7§b队列模式§7 在装配页设置。开启后按混矿合计攒满当前有效并行量再开批，等待不扣费。§r"},
         {"type":"line","text":"§7§b工艺图谱§7 按矿词分配来料。中心预算整批产物、时间与耗能，再统一加工。§r"},
-        {"type":"line","text":"§7[right:右击] 主控打开图谱。每装一座物流设备可配置 §e1 张图谱§7。§r"},
+        {"type":"line","text":"§7§b真并行§7 同链少投不减时；混链按实际原矿数加权。加工能耗为原生的 §e10%§7，维持另计。§r"},
+        {"type":"line","text":"§7[right:右击] 主控打开图谱。物流 I／II／III 每包提供 §e1／2／3 张图谱§7，最多 §e54 张§7。§r"},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"divider"},
         {"type":"line","text":"§7§b必需接口§7 输入仓、输出仓、输入总线、输出总线各至少 §e1 个§7。§a免维护§7。§r"},
@@ -2318,8 +2319,11 @@
         {"type":"line","text":"§7每批使用一种蒸汽，优先取§b蒸汽仓§7。装蒸汽冷却仓后，每扣 §e160 L§7 普通汽等效量回收 §e1 L§7 [fluid:ic2distilledwater|蒸馏水]。§r"},
         {"type":"warning","text":"§e断汽或缺电§7时暂停已付款批次；§e输出满§7时保留产物，腾出空间后继续交付。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b主塔§7","§b模块最高级§7","§b基准耗汽 L/s§7","§b基础并行§7"],"rows":[["§6青铜§7","§fI§7","§e4,000§7","§e24§7"],["§f钢§7","§fI§7","§e24,000§7","§e48§7"],["§3钛§7","§bII§7","§e112,000§7","§e64§7"],["§9钨钢§7","§9III§7","§e384,000§7","§e128§7"]]},
-        {"type":"line","text":"§7单扇基准耗汽按普通蒸汽等效量计。加工、维持和扩建另计。§r"},
+        {"type":"table","columns":["§b主塔§7","§b模块最高级§7","§b基准耗汽 L/s§7","§b单扇基础并行§7"],"rows":[["§6青铜§7","§fI§7","§e4,000§7","§e240§7"],["§f钢§7","§fI§7","§e24,000§7","§e960§7"],["§3钛§7","§bII§7","§e112,000§7","§e1,920§7"],["§9钨钢§7","§9III§7","§e384,000§7","§e5,120§7"]]},
+        {"type":"line","text":"§7六扇基础并行依次为 §e1,440／5,760／11,520／30,720§7。物流每包另加 §e240／1,440／11,520§7，并行增幅作用于两者合计。§r"},
+        {"type":"line","text":"§7结构加速 §e1／2.5／5／10§7；加工包减时 §e1／6／48§7。工序先取原生时间的 §e50%§7，再除上述倍率及速度增幅。§r"},
+        {"type":"line","text":"§7同链投 §e1 件、半批或满批§7 耗时相同，空位闲置；混链按§b实际投入原矿数§7加权，批处理逐轮累计时间与费用。§r"},
+        {"type":"line","text":"§7加工电量与等效蒸汽为原生加工项的 §e10%§7；维持费单列，不随图谱数量加税。单扇保温表不含加工与模块维持。§r"},
         {"type":"line","text":"§7青铜可用所有蒸汽档。钢与钛需要过热或超临界档，钨钢需要超临界档。各档均可用对应的致密蒸汽。§r"},
         {"type":"line","text":"§7§b结构信道§7 主信道选主塔。子信道 ore_center_sectors 选 §e1–6 扇§7，每扇可装 §e1§7 增幅、§e2§7 加工、§e3§7 物流。§r"},
         {"type":"line","text":"§7§b分流§7 优先级数值大的先处理，同值按标签从左到右。出口未通过过滤的产物进入共享输出。§r"},
@@ -2328,7 +2332,8 @@
       "quick":[
         {"type":"line","text":"§7§b队列模式§7 在装配页设置。开启后按混矿合计攒满当前有效并行量再开批，等待不扣费。§r"},
         {"type":"line","text":"§7§b工艺图谱§7 按矿词分配来料。中心预算整批产物、时间与耗能，再统一加工。§r"},
-        {"type":"line","text":"§7[right:右击] 主控打开图谱。每装一座物流设备可配置 §e1 张图谱§7。§r"},
+        {"type":"line","text":"§7§b真并行§7 同链少投不减时；混链按实际原矿数加权。加工能耗为原生的 §e10%§7，维持另计。§r"},
+        {"type":"line","text":"§7[right:右击] 主控打开图谱。物流 I／II／III 每包提供 §e1／2／3 张图谱§7，最多 §e54 张§7。§r"},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"divider"},
         {"type":"line","text":"§7§b必需接口§7 输入仓、输出仓、输入总线、输出总线各至少 §e1 个§7。§a免维护§7。§r"},
@@ -2345,7 +2350,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§6青铜§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2363,7 +2368,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§6青铜§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2381,7 +2386,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§6青铜§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2399,7 +2404,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§6青铜§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2417,7 +2422,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§f钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"],["配方电耗","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2435,7 +2440,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"],["配方电耗","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2453,7 +2458,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"],["配方电耗","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2471,7 +2476,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"],["配方电耗","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2489,7 +2494,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§f钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"],["配方电耗","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2507,7 +2512,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§f钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"],["配方电耗","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2525,7 +2530,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§f钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"],["配方电耗","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2543,7 +2548,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§6青铜§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["工作汽强度","§e×1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bI 级§7"],"rows":[["速度","§a×1§7"],["维持汽强度","§e×1§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2561,7 +2566,7 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§6青铜§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e4 L§7 [fluid:hydrochloricacid|氢氯酸]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bI 级§7"],"rows":[["加工与维持汽耗","§e+5%§7"],["有电批次耗电","§e+3%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bI 级§7"],"rows":[["加工与维持汽耗","§e+5%§7"],["维持耗电","§e+3%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2579,7 +2584,7 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§6青铜§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e4 L§7 [fluid:nitricacid|硝酸]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bI 级§7"],"rows":[["加工与维持汽耗","§e+4%§7"],["有电批次耗电","§e+2%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bI 级§7"],"rows":[["加工与维持汽耗","§e+4%§7"],["维持耗电","§e+2%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2597,7 +2602,7 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§6青铜§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e8 L§7 [fluid:sulfuricacid|硫酸]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bI 级§7"],"rows":[["加工与维持汽耗","§e+8%§7"],["有电批次耗电","§e+4%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bI 级§7"],"rows":[["加工与维持汽耗","§e+8%§7"],["维持耗电","§e+4%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2615,7 +2620,7 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§6青铜§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e3 L§7 [fluid:ammoniumchloride|氯化铵]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bI 级§7"],"rows":[["加工与维持汽耗","§e+5%§7"],["有电批次耗电","§e+3%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bI 级§7"],"rows":[["加工与维持汽耗","§e+5%§7"],["维持耗电","§e+3%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2629,7 +2634,7 @@
     }},
     {"id":"centerPack.logistics-1","owner":{"item":"gtsr:ore_integration_module","meta":48},"tiers":{
       "common":[
-        {"type":"line","text":"§7§b图谱配额§a +1§7。I–III 级每台提供相同名额。§r"},
+        {"type":"line","text":"§7§b图谱配额§a +1§7，§b全中心并行§a +240§7。额外并行不再乘扇区数或结构档位。§r"},
         {"type":"line","text":"§7装在§b物流机位§7。主塔至少为§6青铜§7级。§r"},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
@@ -2647,7 +2652,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2665,7 +2670,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2683,7 +2688,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2701,7 +2706,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2719,7 +2724,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"],["配方电耗","§e×1.07§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2737,7 +2742,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"],["配方电耗","§e×1.07§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2755,7 +2760,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"],["配方电耗","§e×1.07§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2773,7 +2778,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"],["配方电耗","§e×1.07§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2791,7 +2796,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"],["配方电耗","§e×1.07§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2809,7 +2814,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"],["配方电耗","§e×1.07§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2827,7 +2832,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"],["配方电耗","§e×1.07§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2845,7 +2850,7 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×1.35§7"],["工作汽强度","§e×1.45§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bII 级§7"],"rows":[["速度","§a×6§7"],["维持汽强度","§e×1.45§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2863,7 +2868,7 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e14 L§7 [fluid:hydrochloricacid|氢氯酸]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bII 级§7"],"rows":[["加工与维持汽耗","§e+12%§7"],["有电批次耗电","§e+7%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bII 级§7"],"rows":[["加工与维持汽耗","§e+12%§7"],["维持耗电","§e+7%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2881,7 +2886,7 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e12 L§7 [fluid:nitricacid|硝酸]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bII 级§7"],"rows":[["加工与维持汽耗","§e+10%§7"],["有电批次耗电","§e+6%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bII 级§7"],"rows":[["加工与维持汽耗","§e+10%§7"],["维持耗电","§e+6%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2899,7 +2904,7 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e24 L§7 [fluid:sulfuricacid|硫酸]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bII 级§7"],"rows":[["加工与维持汽耗","§e+16%§7"],["有电批次耗电","§e+9%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bII 级§7"],"rows":[["加工与维持汽耗","§e+16%§7"],["维持耗电","§e+9%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2917,7 +2922,7 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e10 L§7 [fluid:ammoniumchloride|氯化铵]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bII 级§7"],"rows":[["加工与维持汽耗","§e+12%§7"],["有电批次耗电","§e+7%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bII 级§7"],"rows":[["加工与维持汽耗","§e+12%§7"],["维持耗电","§e+7%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
@@ -2931,7 +2936,7 @@
     }},
     {"id":"centerPack.logistics-2","owner":{"item":"gtsr:ore_integration_module","meta":49},"tiers":{
       "common":[
-        {"type":"line","text":"§7§b图谱配额§a +1§7。I–III 级每台提供相同名额。§r"},
+        {"type":"line","text":"§7§b图谱配额§a +2§7，§b全中心并行§a +1,440§7。额外并行不再乘扇区数或结构档位。§r"},
         {"type":"line","text":"§7装在§b物流机位§7。主塔至少为§3钛§7级。§r"},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
@@ -2950,8 +2955,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e1§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -2968,8 +2974,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e2§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -2986,8 +2993,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e3§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3004,8 +3012,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e4§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3022,8 +3031,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"],["配方电耗","§e×1.15§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e5§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3040,8 +3050,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"],["配方电耗","§e×1.15§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e6§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3058,8 +3069,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"],["配方电耗","§e×1.15§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e7§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3076,8 +3088,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"],["配方电耗","§e×1.15§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e8§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3094,8 +3107,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"],["配方电耗","§e×1.15§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e9§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3112,8 +3126,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"],["配方电耗","§e×1.15§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e10§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3130,8 +3145,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7运行需要§b蒸汽§7与§6电力§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"],["配方电耗","§e×1.15§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"],["配方电耗","§e原生 ×10%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e11§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3148,8 +3164,9 @@
         {"type":"line","text":"§7装在§b加工机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7本模块的工序只耗§b蒸汽§7。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×1.8§7"],["工作汽强度","§e×2.1§7"]]},
+        {"type":"table","columns":["§b工序参数§7","§bIII 级§7"],"rows":[["速度","§a×48§7"],["维持汽强度","§e×2.1§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e12§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3166,8 +3183,9 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e45 L§7 [fluid:hydrochloricacid|氢氯酸]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bIII 级§7"],"rows":[["加工与维持汽耗","§e+24%§7"],["有电批次耗电","§e+14%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bIII 级§7"],"rows":[["加工与维持汽耗","§e+24%§7"],["维持耗电","§e+14%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e13§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3184,8 +3202,9 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e36 L§7 [fluid:nitricacid|硝酸]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bIII 级§7"],"rows":[["加工与维持汽耗","§e+20%§7"],["有电批次耗电","§e+12%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bIII 级§7"],"rows":[["加工与维持汽耗","§e+20%§7"],["维持耗电","§e+12%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e14§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3202,8 +3221,9 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e75 L§7 [fluid:sulfuricacid|硫酸]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bIII 级§7"],"rows":[["加工与维持汽耗","§e+30%§7"],["有电批次耗电","§e+18%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bIII 级§7"],"rows":[["加工与维持汽耗","§e+30%§7"],["维持耗电","§e+18%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e15§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3220,8 +3240,9 @@
         {"type":"line","text":"§7装在§b增幅机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7每处理 1 件入口主料消耗 §e30 L§7 [fluid:ammoniumchloride|氯化铵]。§6液量不足§7时该模块不参与本批。§r"},
         {"type":"divider"},
-        {"type":"table","columns":["§b批次附加项§7","§bIII 级§7"],"rows":[["加工与维持汽耗","§e+22%§7"],["有电批次耗电","§e+14%§7"]]},
+        {"type":"table","columns":["§b批次附加项§7","§bIII 级§7"],"rows":[["加工与维持汽耗","§e+22%§7"],["维持耗电","§e+14%§7"]]},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e16§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ],
       "quick":[
@@ -3234,9 +3255,10 @@
     }},
     {"id":"centerPack.logistics-3","owner":{"item":"gtsr:ore_integration_module","meta":50},"tiers":{
       "common":[
-        {"type":"line","text":"§7§b图谱配额§a +1§7。I–III 级每台提供相同名额。§r"},
+        {"type":"line","text":"§7§b图谱配额§a +3§7，§b全中心并行§a +11,520§7。额外并行不再乘扇区数或结构档位。§r"},
         {"type":"line","text":"§7装在§b物流机位§7。主塔至少为§9钨钢§7级。§r"},
         {"type":"line","text":"§7§b装配§7 将模块包放入输入总线。批次之间，持螺丝刀 [key-right:Shift+右击] 主控正面切机位，再 [right:右击] 装拆。§r"},
+        {"type":"line","text":"§7装配线制造，固定功能电路 §e17§7。各等级沿用原物品身份。§r"},
         {"type":"line","role":"credit","text":"§f添加模组： §bGT§a-§6Steam§c-§9Reborn§r"}
       ]
     }},

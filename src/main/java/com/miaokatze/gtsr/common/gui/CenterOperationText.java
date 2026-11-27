@@ -13,7 +13,7 @@ import com.gtnewhorizon.gtnhlib.util.numberformatting.NumberFormatUtil;
 /** Common labels for the synchronized server totals shown by both center interfaces. */
 final class CenterOperationText {
 
-    static final int ROWS = 8;
+    static final int ROWS = 12;
     private static final String[] BOOSTS = { "speed", "parallel", "yield", "secondary" };
 
     private CenterOperationText() {}
@@ -30,7 +30,7 @@ final class CenterOperationText {
         int duration = state.getInteger("Duration");
         long steam = state.getLong("Steam"), energy = state.getLong("Energy");
         long density = Math.max(1, state.getInteger("SteamDensity"));
-        long steamUnits = (steam + density - 1) / density;
+        long steamUnits = ceilDivide(steam, density);
         int tier = state.getInteger("Tier");
         int sectors = Integer.bitCount(state.getInteger("Sectors"));
         String tierName = tier >= 0 && tier < 4
@@ -55,6 +55,25 @@ final class CenterOperationText {
                 format(steamUnits),
                 (nativeGui ? EnumChatFormatting.AQUA.toString() : "") + fluidName(state.getString("SteamFluid")));
             case 3 -> yellow + local("energy", white + rate(energy, duration), format(energy));
+            case 8 -> yellow + local(
+                "capacity",
+                white + format(state.getInteger("TotalParallel")),
+                format(state.getInteger("UsedParallel")),
+                format(state.getInteger("IdleParallel")));
+            case 9 -> yellow + local(
+                "weighted",
+                white + String.format(java.util.Locale.ROOT, "%.3f", state.getDouble("WeightedTicks")),
+                format(state.getInteger("BatchRounds")));
+            case 10 -> !state.getBoolean("BillBreakdownKnown") ? local("legacy_bill")
+                : yellow + local(
+                    "processing",
+                    white + format(state.getLong("ProcessingEnergy")),
+                    format(state.getLong("ProcessingSteam")));
+            case 11 -> !state.getBoolean("BillBreakdownKnown") ? local("legacy_bill")
+                : yellow + local(
+                    "maintenance",
+                    white + format(state.getLong("MaintenanceEnergy")),
+                    format(state.getLong("MaintenanceSteam")));
             default -> {
                 int boost = index - 4;
                 NBTTagCompound cost = state.getTagList("BoostCosts", 10)
@@ -83,7 +102,11 @@ final class CenterOperationText {
     }
 
     private static String rate(long total, int duration) {
-        return duration <= 0 ? "0" : format((total + duration - 1) / duration);
+        return duration <= 0 ? "0" : format(ceilDivide(total, duration));
+    }
+
+    static long ceilDivide(long total, long divisor) {
+        return total / divisor + (total % divisor == 0 ? 0 : 1);
     }
 
     private static String format(long value) {

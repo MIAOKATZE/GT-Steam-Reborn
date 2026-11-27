@@ -3,34 +3,6 @@
 
 package com.miaokatze.gtsr.loader.recipes;
 
-import static gregtech.api.enums.ItemList.Casing_BronzePlatedBricks;
-import static gregtech.api.enums.ItemList.Casing_Coil_Cupronickel;
-import static gregtech.api.enums.ItemList.Casing_Coil_Nichrome;
-import static gregtech.api.enums.ItemList.Casing_Gearbox_Bronze;
-import static gregtech.api.enums.ItemList.Casing_HeatProof;
-import static gregtech.api.enums.ItemList.Conveyor_Module_HV;
-import static gregtech.api.enums.ItemList.Conveyor_Module_IV;
-import static gregtech.api.enums.ItemList.Electric_Motor_HV;
-import static gregtech.api.enums.ItemList.Electric_Motor_IV;
-import static gregtech.api.enums.ItemList.Electric_Piston_EV;
-import static gregtech.api.enums.ItemList.Electric_Piston_HV;
-import static gregtech.api.enums.ItemList.Electric_Piston_IV;
-import static gregtech.api.enums.ItemList.Electric_Pump_EV;
-import static gregtech.api.enums.ItemList.Electric_Pump_HV;
-import static gregtech.api.enums.ItemList.Electric_Pump_IV;
-import static gregtech.api.enums.ItemList.Electric_Pump_LV;
-import static gregtech.api.enums.ItemList.Electric_Pump_LuV;
-import static gregtech.api.enums.ItemList.Machine_LV_Extractor;
-import static gregtech.api.enums.ItemList.Machine_LV_FluidExtractor;
-import static gregtech.api.enums.ItemList.Machine_MV_Electrolyzer;
-import static gregtech.api.enums.ItemList.Machine_MV_Polarizer;
-import static gregtech.api.enums.ItemList.Machine_MV_ThermalCentrifuge;
-import static gregtech.api.enums.ItemList.Machine_Multi_BlastFurnace;
-import static gregtech.api.enums.ItemList.Machine_Multi_LargeChemicalReactor;
-import static gregtech.api.enums.ItemList.Robot_Arm_HV;
-import static gregtech.api.enums.ItemList.Robot_Arm_IV;
-import static gregtech.api.enums.ItemList.Sensor_HV;
-import static gregtech.api.enums.ItemList.Sensor_IV;
 import static gregtech.api.enums.Materials.Bronze;
 import static gregtech.api.enums.Materials.EV;
 import static gregtech.api.enums.Materials.HV;
@@ -54,8 +26,10 @@ import static gregtech.api.enums.OrePrefixes.plateDouble;
 import static gregtech.api.enums.OrePrefixes.ring;
 import static gregtech.api.enums.OrePrefixes.rotor;
 import static gregtech.api.enums.OrePrefixes.stick;
-import static gregtech.api.enums.OrePrefixes.stickLong;
 import static gregtech.api.recipe.RecipeMaps.assemblerRecipes;
+import static gregtech.api.util.GTRecipeConstants.AssemblyLine;
+import static gregtech.api.util.GTRecipeConstants.RESEARCH_ITEM;
+import static gregtech.api.util.GTRecipeConstants.SCANNING;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,148 +47,181 @@ import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTUtility;
+import gregtech.api.util.recipe.Scanning;
+import gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList;
 
 public final class OreIntegrationCenterRecipes {
 
     private OreIntegrationCenterRecipes() {}
 
     public static void register() {
+        // Nine physical ingredients; the first processing line remains obtainable with steam infrastructure.
         recipe(
             GTSRItemList.OreIntegrationCenter.get(1),
             0,
             0,
-            item(Casing_BronzePlatedBricks, 3),
-            item(Casing_Gearbox_Bronze, 1),
-            ore(plate, Steel, 1),
-            ore(pipeLarge, Bronze, 2),
-            singularity(2));
+            item(GregtechItemList.Controller_SteamMaceratorMulti, 1),
+            item(GregtechItemList.Controller_SteamWasherMulti, 1),
+            item(GregtechItemList.Controller_SteamCentrifugeMulti, 1),
+            item(GregtechItemList.Controller_SteamFurnaceMulti, 1),
+            item(ItemList.Casing_Gearbox_Bronze, 1),
+            item(ItemList.Casing_BronzePlatedBricks, 1),
+            singularity(3));
 
-        recipe(CenterModuleItems.shell(1), 0, 0, ore(plate, Bronze, 2), ore(frameGt, Bronze, 1), ore(plate, Steel, 1));
+        recipe(
+            CenterModuleItems.shell(1),
+            0,
+            0,
+            ore(plateDouble, Bronze, 4),
+            ore(frameGt, Bronze, 2),
+            item(ItemList.Casing_Gearbox_Bronze, 1),
+            singularity(2));
         recipe(
             CenterModuleItems.shell(2),
             480,
-            300,
-            ore(plate, StainlessSteel, 8),
-            ore(frameGt, StainlessSteel, 2),
-            ore(bolt, Steel, 8));
+            600,
+            CenterModuleItems.shell(1),
+            item(ItemList.Casing_SolidSteel, 8),
+            ore(frameGt, StainlessSteel, 4),
+            ore(bolt, Steel, 16),
+            ore(circuit, HV, 4),
+            singularity(4));
         recipe(
             CenterModuleItems.shell(3),
             7680,
-            400,
-            ore(plate, TungstenSteel, 8),
-            ore(frameGt, TungstenSteel, 2),
-            ore(bolt, Titanium, 8));
+            800,
+            CenterModuleItems.shell(2),
+            item(ItemList.Casing_RobustTungstenSteel, 8),
+            ore(frameGt, TungstenSteel, 4),
+            ore(bolt, Titanium, 32),
+            ore(circuit, IV, 8),
+            singularity(8));
 
         module(
             CenterModule.CRUSHER,
             1,
             0,
             0,
+            item(ItemList.Machine_Bronze_Macerator, 1),
             ore(gearGt, Bronze, 2),
-            ore(plateDouble, Bronze, 1),
-            ore(stick, Steel, 1),
             singularity(3));
         module(
             CenterModule.CRUSHER,
             2,
             480,
-            600,
-            ore(gearGt, StainlessSteel, 4),
-            ore(stickLong, Steel, 4),
-            item(Electric_Piston_HV, 2),
-            singularity(2));
+            1200,
+            item(ItemList.Machine_HV_Macerator, 4),
+            item(ItemList.Electric_Piston_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(4));
         module(
             CenterModule.CRUSHER,
             3,
             7680,
-            800,
-            ore(gearGt, TungstenSteel, 4),
-            ore(stickLong, TungstenSteel, 4),
-            item(Electric_Piston_IV, 2),
-            singularity(4));
+            1600,
+            item(GregtechItemList.Industrial_MacerationStack, 2),
+            item(GregtechItemList.Casing_MacerationStack, 32),
+            item(ItemList.Electric_Piston_IV, 16),
+            ore(gearGt, TungstenSteel, 16),
+            ore(circuit, IV, 16),
+            singularity(8));
 
-        module(CenterModule.WASHER, 1, 0, 0, ore(pipeLarge, Bronze, 2), ore(rotor, Bronze, 2), singularity(3));
+        module(
+            CenterModule.WASHER,
+            1,
+            0,
+            0,
+            item(GregtechItemList.Controller_SteamWasherMulti, 1),
+            ore(pipeLarge, Bronze, 2),
+            singularity(3));
         module(
             CenterModule.WASHER,
             2,
             480,
-            600,
-            ore(pipeLarge, StainlessSteel, 4),
-            ore(rotor, StainlessSteel, 4),
-            item(Electric_Pump_HV, 2),
-            singularity(2));
+            1200,
+            item(ItemList.Machine_HV_OreWasher, 4),
+            item(ItemList.Electric_Pump_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(4));
         module(
             CenterModule.WASHER,
             3,
             7680,
-            800,
-            ore(pipeLarge, Titanium, 4),
-            ore(rotor, TungstenSteel, 4),
-            item(Electric_Pump_IV, 2),
-            singularity(4));
+            1600,
+            item(GregtechItemList.Industrial_WashPlant, 2),
+            item(GregtechItemList.Casing_WashPlant, 32),
+            item(ItemList.Electric_Pump_IV, 16),
+            ore(pipeLarge, Titanium, 16),
+            ore(circuit, IV, 16),
+            singularity(8));
 
+        // There is no steam sifter: its mechanical screen avoids introducing an electric gate here.
         module(
             CenterModule.SIFTER,
             1,
             0,
             0,
             ore(ring, Bronze, 2),
-            ore(frameGt, Bronze, 1),
-            ore(plate, Bronze, 2),
+            ore(frameGt, Bronze, 2),
+            ore(plate, Bronze, 1),
             singularity(2));
         module(
             CenterModule.SIFTER,
             2,
             480,
-            600,
-            ore(ring, StainlessSteel, 8),
-            ore(plate, StainlessSteel, 8),
-            item(Electric_Motor_HV, 2),
-            singularity(2));
+            1200,
+            item(ItemList.Machine_HV_Sifter, 4),
+            item(ItemList.Electric_Motor_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(4));
         module(
             CenterModule.SIFTER,
             3,
             7680,
-            800,
-            ore(ring, TungstenSteel, 8),
-            ore(plate, TungstenSteel, 8),
-            item(Electric_Motor_IV, 2),
-            singularity(4));
+            1600,
+            item(GregtechItemList.Industrial_Sifter, 2),
+            item(GregtechItemList.Casing_Sifter, 16),
+            item(GregtechItemList.Casing_SifterGrate, 16),
+            item(ItemList.Electric_Motor_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(8));
 
         module(
             CenterModule.CENTRIFUGE,
             1,
             0,
             0,
+            item(GregtechItemList.Controller_SteamCentrifugeMulti, 1),
             ore(rotor, Bronze, 2),
-            ore(gearGt, Bronze, 1),
-            ore(pipeLarge, Bronze, 1),
             singularity(3));
         module(
             CenterModule.CENTRIFUGE,
             2,
             480,
-            650,
-            ore(rotor, StainlessSteel, 4),
-            ore(gearGt, StainlessSteel, 4),
-            item(Electric_Motor_HV, 2),
-            singularity(2));
+            1300,
+            item(ItemList.Machine_HV_Centrifuge, 4),
+            item(ItemList.Electric_Motor_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(4));
         module(
             CenterModule.CENTRIFUGE,
             3,
             7680,
-            900,
-            ore(rotor, TungstenSteel, 4),
-            ore(gearGt, TungstenSteel, 4),
-            item(Electric_Motor_IV, 2),
-            singularity(4));
+            1800,
+            item(GregtechItemList.Industrial_Centrifuge, 2),
+            item(GregtechItemList.Casing_Centrifuge1, 32),
+            item(ItemList.Electric_Motor_IV, 16),
+            ore(rotor, TungstenSteel, 16),
+            ore(circuit, IV, 16),
+            singularity(8));
 
         module(
             CenterModule.ELECTROLYZER,
             1,
             120,
             640,
-            item(Machine_MV_Electrolyzer, 1),
+            item(ItemList.Machine_MV_Electrolyzer, 1),
             ore(circuit, MV, 4),
             ore(plate, Steel, 8),
             singularity(4));
@@ -222,28 +229,30 @@ public final class OreIntegrationCenterRecipes {
             CenterModule.ELECTROLYZER,
             2,
             480,
-            700,
-            ore(stickLong, StainlessSteel, 4),
-            ore(circuit, HV, 4),
-            item(Electric_Pump_HV, 2),
-            singularity(3));
+            1400,
+            item(ItemList.Machine_HV_Electrolyzer, 4),
+            item(ItemList.Electric_Pump_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(6));
         module(
             CenterModule.ELECTROLYZER,
             3,
             7680,
-            1000,
-            ore(stickLong, TungstenSteel, 4),
-            ore(circuit, IV, 4),
-            item(Electric_Pump_IV, 2),
-            singularity(6));
+            2000,
+            item(GregtechItemList.Industrial_Electrolyzer, 2),
+            item(GregtechItemList.Casing_Electrolyzer, 32),
+            item(ItemList.Electric_Pump_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(12));
 
         module(
             CenterModule.DRYER,
             1,
             7680,
             1200,
-            item(Electric_Pump_IV, 2),
-            item(Casing_Coil_Nichrome, 2),
+            item(GregtechItemList.GT_Dehydrator_IV, 1),
+            item(ItemList.Electric_Pump_IV, 2),
+            item(ItemList.Casing_Coil_Nichrome, 2),
             ore(plate, TungstenSteel, 8),
             ore(circuit, EV, 4),
             singularity(6));
@@ -251,83 +260,92 @@ public final class OreIntegrationCenterRecipes {
             CenterModule.DRYER,
             2,
             7680,
-            1500,
-            item(Electric_Pump_IV, 4),
-            ore(rotor, TungstenSteel, 4),
-            ore(circuit, IV, 4),
-            singularity(6));
+            3000,
+            item(GregtechItemList.GT_Dehydrator_IV, 4),
+            item(ItemList.Electric_Pump_IV, 8),
+            ore(rotor, TungstenSteel, 8),
+            ore(circuit, IV, 8),
+            singularity(12));
         module(
             CenterModule.DRYER,
             3,
             30720,
-            1900,
-            item(Electric_Pump_LuV, 2),
-            ore(gearGt, TungstenSteel, 8),
-            ore(circuit, LuV, 4),
-            singularity(8));
+            3800,
+            item(GregtechItemList.Controller_Vacuum_Furnace, 2),
+            item(GregtechItemList.Casing_Vacuum_Furnace, 32),
+            item(ItemList.Electric_Pump_LuV, 16),
+            item(ItemList.Casing_Coil_Nichrome, 16),
+            ore(circuit, LuV, 16),
+            singularity(16));
 
         module(
             CenterModule.FURNACE,
             1,
             1920,
             950,
-            item(Machine_Multi_BlastFurnace, 1),
+            item(ItemList.Machine_Multi_BlastFurnace, 1),
             ore(plate, Titanium, 8),
-            item(Casing_Coil_Nichrome, 2),
+            item(ItemList.Casing_Coil_Nichrome, 2),
             singularity(6));
         module(
             CenterModule.FURNACE,
             2,
             1920,
-            1150,
-            item(Casing_Coil_Nichrome, 4),
-            item(Electric_Piston_EV, 2),
-            ore(circuit, EV, 4),
-            singularity(4));
+            2300,
+            item(ItemList.Machine_Multi_BlastFurnace, 4),
+            item(ItemList.Casing_Coil_Nichrome, 8),
+            item(ItemList.Electric_Piston_EV, 8),
+            ore(circuit, EV, 8),
+            singularity(8));
         module(
             CenterModule.FURNACE,
             3,
             7680,
-            1500,
-            ore(plate, TungstenSteel, 12),
-            item(Casing_Coil_Nichrome, 8),
-            item(Electric_Piston_IV, 2),
-            singularity(6));
+            3000,
+            item(GregtechItemList.Machine_Adv_BlastFurnace, 2),
+            item(GregtechItemList.Casing_Adv_BlastFurnace, 32),
+            item(ItemList.Casing_Coil_Nichrome, 16),
+            item(ItemList.Electric_Piston_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(12));
 
         module(
             CenterModule.REACTOR,
             1,
             1920,
             950,
-            item(Machine_Multi_LargeChemicalReactor, 1),
+            item(ItemList.Machine_Multi_LargeChemicalReactor, 1),
             ore(pipeLarge, Polytetrafluoroethylene, 4),
-            item(Electric_Pump_EV, 2),
+            item(ItemList.Electric_Pump_EV, 2),
             singularity(6));
         module(
             CenterModule.REACTOR,
             2,
             1920,
-            1150,
+            2300,
+            item(ItemList.Machine_EV_ChemicalReactor, 4),
             ore(pipeLarge, Polytetrafluoroethylene, 8),
-            ore(rotor, Titanium, 4),
-            item(Electric_Pump_EV, 4),
-            singularity(4));
+            item(ItemList.Electric_Pump_EV, 8),
+            ore(circuit, EV, 8),
+            singularity(8));
         module(
             CenterModule.REACTOR,
             3,
             7680,
-            1500,
-            ore(pipeLarge, Polytetrafluoroethylene, 12),
-            ore(rotor, TungstenSteel, 4),
-            item(Electric_Pump_IV, 4),
-            singularity(6));
+            3000,
+            item(ItemList.Machine_Multi_LargeChemicalReactor, 2),
+            item(ItemList.Casing_Chemically_Inert, 32),
+            ore(pipeLarge, Polytetrafluoroethylene, 16),
+            item(ItemList.Electric_Pump_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(12));
 
         module(
             CenterModule.SEPARATOR,
             1,
             120,
             640,
-            item(Machine_MV_Polarizer, 1),
+            item(ItemList.Machine_MV_ElectromagneticSeparator, 1),
             ore(stick, SteelMagnetic, 8),
             ore(circuit, MV, 4),
             singularity(4));
@@ -335,152 +353,172 @@ public final class OreIntegrationCenterRecipes {
             CenterModule.SEPARATOR,
             2,
             480,
-            750,
+            1500,
+            item(ItemList.Machine_HV_ElectromagneticSeparator, 4),
             ore(stick, SteelMagnetic, 16),
-            ore(plate, StainlessSteel, 8),
-            item(Sensor_HV, 2),
-            singularity(3));
+            item(ItemList.Sensor_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(6));
         module(
             CenterModule.SEPARATOR,
             3,
             7680,
-            1000,
-            ore(stick, NeodymiumMagnetic, 8),
-            ore(plate, TungstenSteel, 8),
-            item(Sensor_IV, 2),
-            singularity(6));
+            2000,
+            item(GregtechItemList.Industrial_Electromagnetic_Separator, 2),
+            item(ItemList.Casing_RobustTungstenSteel, 32),
+            ore(stick, NeodymiumMagnetic, 16),
+            item(ItemList.Sensor_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(12));
 
         module(
             CenterModule.EXTRACTOR,
             1,
             30,
             540,
-            item(Machine_LV_Extractor, 1),
-            item(Machine_LV_FluidExtractor, 1),
-            item(Electric_Pump_LV, 2),
+            item(ItemList.Machine_LV_Extractor, 1),
+            item(ItemList.Machine_LV_FluidExtractor, 1),
+            item(ItemList.Electric_Pump_LV, 2),
             singularity(3));
         module(
             CenterModule.EXTRACTOR,
             2,
             480,
-            650,
-            ore(pipeLarge, StainlessSteel, 4),
-            item(Electric_Piston_HV, 2),
-            item(Electric_Pump_HV, 2),
-            singularity(3));
+            1300,
+            item(ItemList.Machine_HV_Extractor, 4),
+            item(ItemList.Machine_HV_FluidExtractor, 4),
+            item(ItemList.Electric_Pump_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(6));
+        // KPA accepts both extractor basic machines. An extruder would purchase an unrelated function.
         module(
             CenterModule.EXTRACTOR,
             3,
             7680,
-            900,
-            ore(pipeLarge, Titanium, 4),
-            item(Electric_Piston_IV, 2),
-            item(Electric_Pump_IV, 2),
-            singularity(5));
+            1800,
+            GTSRItemList.KineticProcessingArray.get(2),
+            item(ItemList.Machine_IV_Extractor, 8),
+            item(ItemList.Machine_IV_FluidExtractor, 8),
+            item(ItemList.Casing_RobustTungstenSteel, 32),
+            item(ItemList.Electric_Pump_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(10));
 
         module(
             CenterModule.THERMAL_CENTRIFUGE,
             1,
             120,
             720,
-            item(Machine_MV_ThermalCentrifuge, 1),
-            item(Casing_Coil_Cupronickel, 2),
-            item(Casing_HeatProof, 4),
+            item(ItemList.Machine_MV_ThermalCentrifuge, 1),
+            item(ItemList.Casing_Coil_Cupronickel, 2),
+            item(ItemList.Casing_HeatProof, 4),
             singularity(4));
         module(
             CenterModule.THERMAL_CENTRIFUGE,
             2,
             480,
-            820,
-            item(Casing_Coil_Nichrome, 2),
-            ore(rotor, StainlessSteel, 4),
-            item(Electric_Motor_HV, 2),
-            singularity(3));
+            1640,
+            item(ItemList.Machine_HV_ThermalCentrifuge, 4),
+            item(ItemList.Casing_Coil_Nichrome, 4),
+            item(ItemList.Electric_Motor_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(6));
         module(
             CenterModule.THERMAL_CENTRIFUGE,
             3,
             7680,
-            1060,
-            item(Casing_Coil_Nichrome, 4),
-            ore(rotor, TungstenSteel, 4),
-            item(Electric_Motor_IV, 2),
-            singularity(6));
+            2120,
+            item(GregtechItemList.Industrial_ThermalCentrifuge, 2),
+            item(GregtechItemList.Casing_ThermalCentrifuge, 32),
+            item(ItemList.Casing_Coil_Nichrome, 16),
+            item(ItemList.Electric_Motor_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(12));
 
         module(
             CenterModule.SMELTING,
             1,
             0,
             0,
-            item(Casing_BronzePlatedBricks, 2),
+            item(ItemList.Machine_Bronze_Furnace, 1),
+            item(ItemList.Casing_BronzePlatedBricks, 2),
             ore(plateDouble, Bronze, 1),
-            ore(pipeLarge, Bronze, 1),
             singularity(2));
         module(
             CenterModule.SMELTING,
             2,
             480,
-            540,
-            item(Casing_BronzePlatedBricks, 8),
-            ore(plate, StainlessSteel, 8),
-            item(Electric_Piston_HV, 2),
-            singularity(2));
+            1080,
+            item(ItemList.Machine_HV_E_Furnace, 4),
+            item(ItemList.Electric_Piston_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(4));
         module(
             CenterModule.SMELTING,
             3,
             7680,
-            780,
-            item(Casing_HeatProof, 8),
-            ore(plate, TungstenSteel, 8),
-            item(Electric_Piston_IV, 2),
-            singularity(4));
+            1560,
+            item(ItemList.Machine_Multi_Furnace, 2),
+            item(ItemList.Casing_HeatProof, 32),
+            item(ItemList.Casing_Coil_Nichrome, 16),
+            item(ItemList.Electric_Piston_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(8));
 
+        // Auxiliary packs buy their actual mechanical/control functions, without unrelated controllers.
         module(
             CenterModule.SPEED,
             1,
             0,
             0,
             ore(gearGt, Bronze, 2),
-            ore(rotor, Bronze, 1),
+            ore(rotor, Bronze, 2),
             ore(stick, Steel, 1),
-            singularity(2));
+            singularity(3));
         module(
             CenterModule.SPEED,
             2,
             480,
-            600,
-            ore(rotor, StainlessSteel, 4),
-            item(Conveyor_Module_HV, 2),
-            item(Electric_Motor_HV, 2),
-            singularity(2));
+            1200,
+            ore(rotor, StainlessSteel, 8),
+            item(ItemList.Conveyor_Module_HV, 8),
+            item(ItemList.Electric_Motor_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(4));
         module(
             CenterModule.SPEED,
             3,
             7680,
-            850,
-            ore(rotor, TungstenSteel, 4),
-            item(Conveyor_Module_IV, 2),
-            item(Electric_Motor_IV, 2),
-            singularity(4));
+            1700,
+            item(ItemList.Casing_Gearbox_TungstenSteel, 32),
+            ore(rotor, TungstenSteel, 16),
+            item(ItemList.Conveyor_Module_IV, 16),
+            item(ItemList.Electric_Motor_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(8));
 
-        module(CenterModule.PARALLEL, 1, 0, 0, ore(gearGt, Bronze, 2), ore(frameGt, Bronze, 2), singularity(2));
+        module(CenterModule.PARALLEL, 1, 0, 0, ore(gearGt, Bronze, 2), ore(frameGt, Bronze, 3), singularity(3));
         module(
             CenterModule.PARALLEL,
             2,
             480,
-            600,
-            ore(frameGt, StainlessSteel, 4),
-            item(Robot_Arm_HV, 2),
-            item(Conveyor_Module_HV, 2),
-            singularity(2));
+            1200,
+            ore(frameGt, StainlessSteel, 8),
+            item(ItemList.Robot_Arm_HV, 8),
+            item(ItemList.Conveyor_Module_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(4));
         module(
             CenterModule.PARALLEL,
             3,
             7680,
-            850,
-            ore(frameGt, TungstenSteel, 4),
-            item(Robot_Arm_IV, 2),
-            item(Conveyor_Module_IV, 2),
-            singularity(4));
+            1700,
+            item(ItemList.Casing_RobustTungstenSteel, 32),
+            ore(frameGt, TungstenSteel, 16),
+            item(ItemList.Robot_Arm_IV, 16),
+            item(ItemList.Conveyor_Module_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(8));
 
         module(
             CenterModule.YIELD,
@@ -490,65 +528,84 @@ public final class OreIntegrationCenterRecipes {
             ore(gearGt, Bronze, 1),
             ore(rotor, Bronze, 1),
             ore(plate, Steel, 1),
-            singularity(4));
+            singularity(5));
         module(
             CenterModule.YIELD,
             2,
             480,
-            900,
-            ore(rotor, StainlessSteel, 4),
-            item(Sensor_HV, 2),
-            ore(circuit, HV, 4),
-            singularity(4));
+            1800,
+            ore(rotor, StainlessSteel, 8),
+            item(ItemList.Sensor_HV, 8),
+            item(ItemList.Robot_Arm_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(8));
         module(
             CenterModule.YIELD,
             3,
             7680,
-            1200,
-            ore(rotor, TungstenSteel, 4),
-            item(Sensor_IV, 2),
-            ore(circuit, IV, 4),
-            singularity(8));
+            2400,
+            item(ItemList.Casing_RobustTungstenSteel, 32),
+            ore(rotor, TungstenSteel, 16),
+            item(ItemList.Sensor_IV, 16),
+            item(ItemList.Robot_Arm_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(16));
 
-        module(CenterModule.SECONDARY, 1, 0, 0, ore(ring, Bronze, 2), ore(rotor, Bronze, 1), singularity(4));
+        module(CenterModule.SECONDARY, 1, 0, 0, ore(ring, Bronze, 2), ore(rotor, Bronze, 1), singularity(5));
         module(
             CenterModule.SECONDARY,
             2,
             480,
-            780,
-            ore(ring, StainlessSteel, 8),
-            item(Sensor_HV, 2),
-            ore(circuit, HV, 4),
-            singularity(4));
+            1560,
+            ore(ring, StainlessSteel, 16),
+            item(ItemList.Sensor_HV, 8),
+            item(ItemList.Electric_Pump_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(8));
         module(
             CenterModule.SECONDARY,
             3,
             7680,
-            1080,
-            ore(ring, TungstenSteel, 8),
-            item(Sensor_IV, 2),
-            ore(circuit, IV, 4),
-            singularity(8));
+            2160,
+            item(ItemList.Casing_RobustTungstenSteel, 32),
+            ore(ring, TungstenSteel, 32),
+            item(ItemList.Sensor_IV, 16),
+            item(ItemList.Electric_Pump_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(16));
 
-        module(CenterModule.LOGISTICS, 1, 0, 0, ore(frameGt, Bronze, 2), ore(pipeLarge, Bronze, 2), singularity(2));
         module(
             CenterModule.LOGISTICS,
-            2,
-            480,
-            520,
-            ore(frameGt, StainlessSteel, 4),
-            item(Robot_Arm_HV, 2),
-            item(Conveyor_Module_HV, 2),
+            1,
+            0,
+            0,
+            item(GregtechItemList.Hatch_Input_Bus_Steam, 1),
+            item(GregtechItemList.Hatch_Output_Bus_Steam, 1),
+            ore(frameGt, Bronze, 2),
+            ore(pipeLarge, Bronze, 2),
             singularity(2));
         module(
             CenterModule.LOGISTICS,
+            2,
+            480,
+            1040,
+            item(ItemList.Casing_SolidSteel, 8),
+            item(ItemList.Robot_Arm_HV, 8),
+            item(ItemList.Conveyor_Module_HV, 8),
+            item(ItemList.Electric_Pump_HV, 8),
+            ore(circuit, HV, 8),
+            singularity(4));
+        module(
+            CenterModule.LOGISTICS,
             3,
             7680,
-            780,
-            ore(frameGt, TungstenSteel, 4),
-            item(Robot_Arm_IV, 2),
-            item(Conveyor_Module_IV, 2),
-            singularity(4));
+            1560,
+            item(ItemList.Casing_RobustTungstenSteel, 32),
+            item(ItemList.Robot_Arm_IV, 16),
+            item(ItemList.Conveyor_Module_IV, 16),
+            item(ItemList.Electric_Pump_IV, 16),
+            ore(circuit, IV, 16),
+            singularity(8));
     }
 
     private static ItemStack ore(OrePrefixes prefix, Materials material, int amount) {
@@ -564,16 +621,66 @@ public final class OreIntegrationCenterRecipes {
         return item.get(amount);
     }
 
+    private static ItemStack item(GregtechItemList item, int amount) {
+        if (!item.hasBeenSet()) throw new IllegalStateException("Missing ore integration component: " + item);
+        return item.get(amount);
+    }
+
     private static ItemStack singularity(int amount) {
         return GTSRItemList.SteamEntangledSingularity.get(amount);
     }
 
     private static void module(CenterModule module, int level, int eut, int duration, ItemStack... components) {
-        ItemStack[] inputs = new ItemStack[components.length + (level == 1 ? 1 : 2)];
+        // The selector is a non-consumed GT circuit. Real circuitry is purchased separately above.
+        boolean selector = level < 3 && eut != 0;
+        int baseInputs = level == 1 ? 1 : 2;
+        ItemStack[] inputs = new ItemStack[baseInputs + components.length + (selector ? 1 : 0)];
         inputs[0] = CenterModuleItems.shell(level);
         if (level > 1) inputs[1] = CenterModuleItems.stack(module, level - 1);
-        System.arraycopy(components, 0, inputs, inputs.length - components.length, components.length);
+        System.arraycopy(components, 0, inputs, baseInputs, components.length);
+        if (selector) inputs[inputs.length - 1] = GTUtility.getIntegratedCircuit(selector(module));
+
+        if (level == 3) {
+            // Native scanning writes the assembly-line data stick for this exact grade-II research item.
+            // The line itself needs LuV infrastructure; ordinary recipes draw IV, the dryer draws LuV.
+            int researchEut = module == CenterModule.DRYER ? 30720 : 7680;
+            int researchTicks = module == CenterModule.DRYER ? 3600 : 2400;
+            GTValues.RA.stdBuilder()
+                .metadata(RESEARCH_ITEM, CenterModuleItems.stack(module, 2))
+                .metadata(SCANNING, new Scanning(researchTicks, researchEut))
+                .itemInputs(inputs)
+                .fluidInputs(Materials.SolderingAlloy.getMolten(1440), Materials.Lubricant.getFluid(1000))
+                .itemOutputs(CenterModuleItems.stack(module, level))
+                .duration(duration)
+                .eut(eut)
+                .addTo(AssemblyLine);
+            return;
+        }
         recipe(CenterModuleItems.stack(module, level), eut, duration, inputs);
+    }
+
+    // Stable configurations mirror CenterModuleItems' explicit metadata order, never enum ordinals.
+    private static int selector(CenterModule module) {
+        return switch (module) {
+            case CRUSHER -> 1;
+            case WASHER -> 2;
+            case SIFTER -> 3;
+            case CENTRIFUGE -> 4;
+            case ELECTROLYZER -> 5;
+            case DRYER -> 6;
+            case FURNACE -> 7;
+            case REACTOR -> 8;
+            case SEPARATOR -> 9;
+            case EXTRACTOR -> 10;
+            case THERMAL_CENTRIFUGE -> 11;
+            case SMELTING -> 12;
+            case SPEED -> 13;
+            case PARALLEL -> 14;
+            case YIELD -> 15;
+            case SECONDARY -> 16;
+            case LOGISTICS -> 17;
+            default -> throw new IllegalArgumentException("Unknown ore integration module: " + module);
+        };
     }
 
     private static void recipe(ItemStack output, int eut, int duration, ItemStack... inputs) {

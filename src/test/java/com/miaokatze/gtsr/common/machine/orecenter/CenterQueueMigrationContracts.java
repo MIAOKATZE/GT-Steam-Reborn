@@ -19,6 +19,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.CraftingManager;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
@@ -91,27 +92,27 @@ public final class CenterQueueMigrationContracts {
             .eut(2)
             .addTo(RecipeMaps.maceratorRecipes);
 
-        ItemStack[] scarce = { ore(a, 12), ore(b, 11), ore(unrelated, 100000) };
-        check(plan(scarce, true) == null, "unrelated items cannot fill the current 24 parallel lanes");
-        check(scarce[0].stackSize == 12 && scarce[1].stackSize == 11, "waiting leaves input stacks unchanged");
-        CenterPlanner.Batch mixed = plan(new ItemStack[] { ore(a, 12), ore(b, 12) }, true);
-        check(mixed != null && mixed.roots == 24, "different ores combine to fill current parallel exactly");
+        ItemStack[] scarce = { ore(a, 120), ore(b, 119), ore(unrelated, 100000) };
+        check(plan(scarce, true) == null, "unrelated items cannot fill the current 240 parallel lanes");
+        check(scarce[0].stackSize == 120 && scarce[1].stackSize == 119, "waiting leaves input stacks unchanged");
+        CenterPlanner.Batch mixed = plan(new ItemStack[] { ore(a, 120), ore(b, 120) }, true);
+        check(mixed != null && mixed.roots == 240, "different ores combine to fill current parallel exactly");
         check(mixed.consumed.size() == 2, "both ore identities are consumed by the accepted plan");
         check(
             plan(new ItemStack[] { ore(a, 6), ore(missing, 24) }, true) == null,
             "a matching ore without a native recipe cannot fill the committed parallel lanes");
         CenterPlanner.Batch immediate = plan(new ItemStack[] { ore(a, 1) }, false);
         check(immediate != null && immediate.roots == 1, "disabled queue retains immediate small batches");
-        check(plan(new ItemStack[] { ore(a, 23) }, true) == null, "one short of full parallel remains queued");
-        CenterPlanner.Session expanded = planner(new ItemStack[] { ore(a, 47) }, true, 0, 2, 0);
-        check(expanded.parallelLimit() == 48 && expanded.batch() == null, "sector expansion raises the queue target");
+        check(plan(new ItemStack[] { ore(a, 239) }, true) == null, "one short of full parallel remains queued");
+        CenterPlanner.Session expanded = planner(new ItemStack[] { ore(a, 479) }, true, 0, 2, 0);
+        check(expanded.parallelLimit() == 480 && expanded.batch() == null, "sector expansion raises the queue target");
         check(
-            planner(new ItemStack[] { ore(a, 48) }, true, 0, 2, 0).batch().roots == 48,
+            planner(new ItemStack[] { ore(a, 480) }, true, 0, 2, 0).batch().roots == 480,
             "expanded sectors accept their full parallel count");
-        CenterPlanner.Session upgraded = planner(new ItemStack[] { ore(a, 95) }, true, 1, 1, 0);
-        check(upgraded.parallelLimit() == 96 && upgraded.batch() == null, "structure grade raises the queue target");
+        CenterPlanner.Session upgraded = planner(new ItemStack[] { ore(a, 959) }, true, 1, 1, 0);
+        check(upgraded.parallelLimit() == 960 && upgraded.batch() == null, "structure grade raises the queue target");
         check(
-            planner(new ItemStack[] { ore(a, 96) }, true, 1, 1, 0).batch().roots == 96,
+            planner(new ItemStack[] { ore(a, 960) }, true, 1, 1, 0).batch().roots == 960,
             "upgraded structure accepts its full parallel count");
 
         Fluid original = Materials.NitricAcid.mFluid;
@@ -120,27 +121,27 @@ public final class CenterQueueMigrationContracts {
         Materials.NitricAcid.mFluid = acid;
         try {
             CenterPlanner.Session unpaid = planner(
-                new ItemStack[] { ore(a, 24) },
+                new ItemStack[] { ore(a, 240) },
                 true,
                 0,
                 1,
                 1,
                 new FluidStack(acid, 3));
             check(
-                unpaid.parallelLimit() == 24 && unpaid.batch() != null,
+                unpaid.parallelLimit() == 240 && unpaid.batch() != null,
                 "a booster without its dose cannot increase the admission target");
             CenterPlanner.Session boosted = planner(
-                new ItemStack[] { ore(a, 37) },
+                new ItemStack[] { ore(a, 379) },
                 true,
                 0,
                 1,
                 1,
                 new FluidStack(acid, 4));
             check(
-                boosted.parallelLimit() == 38 && boosted.batch() == null,
+                boosted.parallelLimit() == 380 && boosted.batch() == null,
                 "the paid parallel boost updates the target before native planning");
             check(
-                planner(new ItemStack[] { ore(a, 38) }, true, 0, 1, 1, new FluidStack(acid, 4)).batch().roots == 38,
+                planner(new ItemStack[] { ore(a, 380) }, true, 0, 1, 1, new FluidStack(acid, 4)).batch().roots == 380,
                 "paid parallel boost admits a full batch");
         } finally {
             Materials.NitricAcid.mFluid = original;
@@ -251,6 +252,23 @@ public final class CenterQueueMigrationContracts {
         saved.setInteger("CenterElapsed", 37);
         saved.setLong("CenterSteam", 12345);
         saved.setLong("CenterEnergy", 20000);
+        saved.setInteger("CenterTotalParallel", 960);
+        saved.setInteger("CenterBatchRoots", 915);
+        saved.setInteger("CenterBatchRounds", 1);
+        saved.setBoolean("CenterBillBreakdownKnown", true);
+        saved.setLong("CenterProcessingEnergy", 16000);
+        saved.setLong("CenterMaintenanceEnergy", 4000);
+        saved.setLong("CenterProcessingSteam", 12000);
+        saved.setLong("CenterMaintenanceSteam", 345);
+        saved.setDouble("CenterWeightedTicks", 42.5);
+        NBTTagList chains = new NBTTagList();
+        NBTTagCompound chain = new NBTTagCompound();
+        chain.setLong("GraphId", 7);
+        chain.setString("Name", "fixture ore");
+        chain.setInteger("Roots", 915);
+        chain.setDouble("Ticks", 42.5);
+        chains.appendTag(chain);
+        saved.setTag("CenterChainTimes", chains);
         center.loadNBTData(saved);
         NBTTagCompound restored = new NBTTagCompound();
         center.saveNBTData(restored);
@@ -261,6 +279,20 @@ public final class CenterQueueMigrationContracts {
                 && restored.getLong("CenterEnergy") == 20000,
             "queue persistence preserves the paid batch progress and bill");
         check(
+            restored.getInteger("CenterTotalParallel") == 960 && restored.getInteger("CenterBatchRoots") == 915
+                && restored.getInteger("CenterBatchRounds") == 1,
+            "new batch parallel, actual roots and charged round count survive NBT");
+        check(
+            restored.getBoolean("CenterBillBreakdownKnown") && restored.getLong("CenterProcessingEnergy") == 16000
+                && restored.getLong("CenterMaintenanceEnergy") == 4000
+                && restored.getLong("CenterProcessingSteam") == 12000
+                && restored.getLong("CenterMaintenanceSteam") == 345,
+            "processing and maintenance bill components survive the production NBT round trip");
+        check(
+            restored.getDouble("CenterWeightedTicks") == 42.5
+                && chains.equals(restored.getTagList("CenterChainTimes", 10)),
+            "weighted duration and original chain rows survive NBT without recomputation");
+        check(
             "status.read_only".equals(center.configureQueue(null, false)),
             "queue settings require the normal player authority");
         center.loadNBTData(new NBTTagCompound());
@@ -268,6 +300,14 @@ public final class CenterQueueMigrationContracts {
         check(
             !restored.getBoolean("CenterQueueMode"),
             "old saves retain immediate processing until queue mode is enabled");
+        check(
+            !restored.getBoolean("CenterBillBreakdownKnown") && restored.getLong("CenterProcessingEnergy") == 0
+                && restored.getLong("CenterMaintenanceEnergy") == 0
+                && restored.getLong("CenterProcessingSteam") == 0
+                && restored.getLong("CenterMaintenanceSteam") == 0
+                && restored.getTagList("CenterChainTimes", 10)
+                    .tagCount() == 0,
+            "old saves mark the unavailable breakdown unknown and do not retain a previous batch ledger");
     }
 
     private static void check(boolean condition, String description) {

@@ -128,8 +128,10 @@ public class SingularityTuningWand extends Item {
         list.add(EnumChatFormatting.AQUA + StatCollector.translateToLocal("gtsr.tooltip.tuning_wand.desc.3"));
         list.add(EnumChatFormatting.GRAY + StatCollector.translateToLocal("gtsr.tooltip.tuning_wand.desc.4"));
         String active = MachineDebugRegistry.activeFamily(stack);
-        list.add(EnumChatFormatting.GREEN + StatCollector.translateToLocalFormatted(
-            "gtsr.wand.debug.active", StatCollector.translateToLocal("gtsr.wand.debug.family." + active)));
+        list.add(
+            EnumChatFormatting.GREEN + StatCollector.translateToLocalFormatted(
+                "gtsr.wand.debug.active",
+                StatCollector.translateToLocal("gtsr.wand.debug.family." + active)));
         for (String family : MachineDebugRegistry.families()) {
             var adapter = MachineDebugRegistry.findFamily(family);
             var options = adapter.options(null);
