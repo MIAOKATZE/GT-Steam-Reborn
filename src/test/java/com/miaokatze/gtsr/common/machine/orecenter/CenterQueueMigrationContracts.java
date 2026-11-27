@@ -25,6 +25,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.OreDictionary;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
+import com.miaokatze.gtsr.common.api.enums.MetaTileEntityID;
 import com.miaokatze.gtsr.common.items.CenterModuleItems;
 import com.miaokatze.gtsr.loader.recipes.ClusterRecipes;
 import com.miaokatze.gtsr.loader.recipes.PortableWeaponRecipeContracts;
@@ -52,6 +53,17 @@ public final class CenterQueueMigrationContracts {
         nativeSetup.invoke(null);
         fixtureItem = PortableWeaponRecipeContracts.class.getDeclaredMethod("item", String.class);
         fixtureItem.setAccessible(true);
+        check(MetaTileEntityID.ORE_INTEGRATION_CENTER.ID == 14858, "center uses work-machine ID 14858");
+        check(
+            Arrays.stream(MetaTileEntityID.values())
+                .mapToInt(entry -> entry.ID)
+                .distinct()
+                .count() == MetaTileEntityID.values().length,
+            "all GTSR MTE IDs remain unique");
+        check(
+            Arrays.stream(MetaTileEntityID.values())
+                .noneMatch(entry -> entry.ID == 14972),
+            "former center slot is no longer registered by GTSR");
         queueAdmission();
         queuePersistence();
         migrationRecipes();
