@@ -31,7 +31,7 @@ import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gtPlusPlus.xmod.gregtech.api.enums.GregtechItemList;
 
-/** Real GT .277 registration and matching, with isolated ingredient identities; never starts a game. */
+/** Native GT .277 recipe APIs with isolated ingredient identities, not full mod initialization or a running game. */
 public final class OreIntegrationCenterRecipeContracts {
 
     private static int checks;
@@ -46,8 +46,29 @@ public final class OreIntegrationCenterRecipeContracts {
         Method setup = PortableWeaponRecipeContracts.class.getDeclaredMethod("bootstrapGt");
         setup.setAccessible(true);
         setup.invoke(null);
-        prepareIngredients();
+        // Isolate this regression even if a shared bootstrap later starts supplying unrelated GT++ entries.
+        GregtechItemList obsoleteSeparator = GregtechItemList.Industrial_Electromagnetic_Separator;
+        Field legacyStack = GregtechItemList.class.getDeclaredField("mStack");
+        Field legacyUnset = GregtechItemList.class.getDeclaredField("mHasNotBeenSet");
+        legacyStack.setAccessible(true);
+        legacyUnset.setAccessible(true);
+        Object previousStack = legacyStack.get(obsoleteSeparator);
+        boolean previousUnset = legacyUnset.getBoolean(obsoleteSeparator);
+        try {
+            legacyStack.set(obsoleteSeparator, null);
+            legacyUnset.setBoolean(obsoleteSeparator, true);
+            prepareIngredients();
+            check(!obsoleteSeparator.hasBeenSet(), "obsolete GT++ separator is absent from ingredient fixtures");
+            verifyRecipes();
+            check(!obsoleteSeparator.hasBeenSet(), "full recipe registration never initializes the obsolete separator");
+        } finally {
+            legacyStack.set(obsoleteSeparator, previousStack);
+            legacyUnset.setBoolean(obsoleteSeparator, previousUnset);
+        }
+        System.out.println("PASS ore center manufacturing: " + checks + " checks; game_started=false");
+    }
 
+    private static void verifyRecipes() {
         List<IRecipe> crafting = CraftingManager.getInstance()
             .getRecipeList();
         int start = crafting.size();
@@ -102,7 +123,6 @@ public final class OreIntegrationCenterRecipeContracts {
                 if (same(recipe.mOutputs[0], output)) routes++;
             check(routes == 1, "exactly one recipe for shell " + grade);
         }
-        System.out.println("PASS ore center manufacturing: " + checks + " checks; game_started=false");
     }
 
     private static void assembler(CenterModule module, int grade, GTRecipe recipe) {
@@ -149,6 +169,9 @@ public final class OreIntegrationCenterRecipeContracts {
         check(same(recipe.mResearchItem, previous), "research scans the corresponding II pack");
         check(amount(recipe.mInputs, previous) == 1, "line consumes the corresponding II pack");
         check(amount(recipe.mInputs, CenterModuleItems.shell(3)) == 1, "line consumes shell III");
+        if (module == CenterModule.SEPARATOR) check(
+            amount(recipe.mInputs, ItemList.Machine_Multi_IndustrialElectromagneticSeparator.get(1)) == 2,
+            "separator III consumes two identities of the GT industrial electromagnetic separator entry");
         check(recipe.mInputs.length >= 4 && recipe.mInputs.length <= 16, "native line item slot bounds");
         check(recipe.mFluidInputs.length >= 1 && recipe.mFluidInputs.length <= 4, "native line fluid slot bounds");
         boolean dryer = module == CenterModule.DRYER;
@@ -174,8 +197,43 @@ public final class OreIntegrationCenterRecipeContracts {
         fixture.setAccessible(true);
         Item components = (Item) fixture.invoke(null, "gtsr_ore_recipe_contract:components");
         int metadata = 0;
-        for (ItemList entry : ItemList.values()) entry.set(new ItemStack(components, 1, metadata++));
-        for (GregtechItemList entry : GregtechItemList.values()) entry.set(new ItemStack(components, 1, metadata++));
+        // Reviewed, finite recipe dependencies. Add new identities explicitly when a recipe changes;
+        // populating every enum value hides production references to controllers GT never registers.
+        ItemList[] gtIngredients = { ItemList.Casing_BronzePlatedBricks, ItemList.Casing_Chemically_Inert,
+            ItemList.Casing_Coil_Cupronickel, ItemList.Casing_Coil_Nichrome, ItemList.Casing_Gearbox_Bronze,
+            ItemList.Casing_Gearbox_TungstenSteel, ItemList.Casing_HeatProof, ItemList.Casing_RobustTungstenSteel,
+            ItemList.Casing_SolidSteel, ItemList.Conveyor_Module_HV, ItemList.Conveyor_Module_IV,
+            ItemList.Electric_Motor_HV, ItemList.Electric_Motor_IV, ItemList.Electric_Piston_EV,
+            ItemList.Electric_Piston_HV, ItemList.Electric_Piston_IV, ItemList.Electric_Pump_EV,
+            ItemList.Electric_Pump_HV, ItemList.Electric_Pump_IV, ItemList.Electric_Pump_LuV, ItemList.Electric_Pump_LV,
+            ItemList.Machine_Bronze_Furnace, ItemList.Machine_Bronze_Macerator, ItemList.Machine_EV_ChemicalReactor,
+            ItemList.Machine_HV_Centrifuge, ItemList.Machine_HV_E_Furnace, ItemList.Machine_HV_Electrolyzer,
+            ItemList.Machine_HV_ElectromagneticSeparator, ItemList.Machine_HV_Extractor,
+            ItemList.Machine_HV_FluidExtractor, ItemList.Machine_HV_Macerator, ItemList.Machine_HV_OreWasher,
+            ItemList.Machine_HV_Sifter, ItemList.Machine_HV_ThermalCentrifuge, ItemList.Machine_IV_Extractor,
+            ItemList.Machine_IV_FluidExtractor, ItemList.Machine_LV_Extractor, ItemList.Machine_LV_FluidExtractor,
+            ItemList.Machine_Multi_BlastFurnace, ItemList.Machine_Multi_Furnace,
+            ItemList.Machine_Multi_IndustrialElectromagneticSeparator, ItemList.Machine_Multi_LargeChemicalReactor,
+            ItemList.Machine_MV_Electrolyzer, ItemList.Machine_MV_ElectromagneticSeparator,
+            ItemList.Machine_MV_ThermalCentrifuge, ItemList.Robot_Arm_HV, ItemList.Robot_Arm_IV, ItemList.Sensor_HV,
+            ItemList.Sensor_IV,
+            // Native assembly-line research advertises these data carriers.
+            ItemList.Tool_DataStick, ItemList.Tool_DataOrb };
+        GregtechItemList[] gtppIngredients = { GregtechItemList.Casing_Adv_BlastFurnace,
+            GregtechItemList.Casing_Centrifuge1, GregtechItemList.Casing_Electrolyzer,
+            GregtechItemList.Casing_MacerationStack, GregtechItemList.Casing_Sifter,
+            GregtechItemList.Casing_SifterGrate, GregtechItemList.Casing_ThermalCentrifuge,
+            GregtechItemList.Casing_Vacuum_Furnace, GregtechItemList.Casing_WashPlant,
+            GregtechItemList.Controller_SteamCentrifugeMulti, GregtechItemList.Controller_SteamFurnaceMulti,
+            GregtechItemList.Controller_SteamMaceratorMulti, GregtechItemList.Controller_SteamWasherMulti,
+            GregtechItemList.Controller_Vacuum_Furnace, GregtechItemList.GT_Dehydrator_IV,
+            GregtechItemList.Hatch_Input_Bus_Steam, GregtechItemList.Hatch_Output_Bus_Steam,
+            GregtechItemList.Industrial_Centrifuge, GregtechItemList.Industrial_Electrolyzer,
+            GregtechItemList.Industrial_MacerationStack, GregtechItemList.Industrial_Sifter,
+            GregtechItemList.Industrial_ThermalCentrifuge, GregtechItemList.Industrial_WashPlant,
+            GregtechItemList.Machine_Adv_BlastFurnace };
+        for (ItemList entry : gtIngredients) entry.set(new ItemStack(components, 1, metadata++));
+        for (GregtechItemList entry : gtppIngredients) entry.set(new ItemStack(components, 1, metadata++));
         ItemList.Circuit_Integrated.set((Item) fixture.invoke(null, "gtsr_ore_recipe_contract:selector"));
         for (GTSRItemList entry : Arrays.asList(
             GTSRItemList.SteamEntangledSingularity,
@@ -183,15 +241,61 @@ public final class OreIntegrationCenterRecipeContracts {
             GTSRItemList.KineticProcessingArray)) {
             entry.set(new ItemStack(components, 1, metadata++));
         }
-        OrePrefixes[] prefixes = { OrePrefixes.bolt, OrePrefixes.circuit, OrePrefixes.frameGt, OrePrefixes.gearGt,
-            OrePrefixes.pipeLarge, OrePrefixes.plate, OrePrefixes.plateDouble, OrePrefixes.ring, OrePrefixes.rotor,
-            OrePrefixes.stick };
-        Materials[] materials = { Materials.Bronze, Materials.EV, Materials.HV, Materials.IV, Materials.LuV,
-            Materials.MV, Materials.NeodymiumMagnetic, Materials.Polytetrafluoroethylene, Materials.StainlessSteel,
-            Materials.Steel, Materials.SteelMagnetic, Materials.Titanium, Materials.TungstenSteel };
-        for (OrePrefixes prefix : prefixes) for (Materials material : materials) {
-            GTOreDictUnificator.set(prefix, material, new ItemStack(components, 1, metadata++));
-        }
+        metadata = ores(components, metadata, OrePrefixes.bolt, Materials.Steel, Materials.Titanium);
+        metadata = ores(
+            components,
+            metadata,
+            OrePrefixes.circuit,
+            Materials.MV,
+            Materials.HV,
+            Materials.EV,
+            Materials.IV,
+            Materials.LuV);
+        metadata = ores(
+            components,
+            metadata,
+            OrePrefixes.frameGt,
+            Materials.Bronze,
+            Materials.StainlessSteel,
+            Materials.TungstenSteel);
+        metadata = ores(components, metadata, OrePrefixes.gearGt, Materials.Bronze, Materials.TungstenSteel);
+        metadata = ores(
+            components,
+            metadata,
+            OrePrefixes.pipeLarge,
+            Materials.Bronze,
+            Materials.Titanium,
+            Materials.Polytetrafluoroethylene);
+        metadata = ores(
+            components,
+            metadata,
+            OrePrefixes.plate,
+            Materials.Bronze,
+            Materials.Steel,
+            Materials.Titanium,
+            Materials.TungstenSteel);
+        metadata = ores(components, metadata, OrePrefixes.plateDouble, Materials.Bronze);
+        metadata = ores(
+            components,
+            metadata,
+            OrePrefixes.ring,
+            Materials.Bronze,
+            Materials.StainlessSteel,
+            Materials.TungstenSteel);
+        metadata = ores(
+            components,
+            metadata,
+            OrePrefixes.rotor,
+            Materials.Bronze,
+            Materials.StainlessSteel,
+            Materials.TungstenSteel);
+        ores(
+            components,
+            metadata,
+            OrePrefixes.stick,
+            Materials.Steel,
+            Materials.SteelMagnetic,
+            Materials.NeodymiumMagnetic);
         Fluid solder = new Fluid("gtsr_ore_recipe_contract_solder");
         Fluid lubricant = new Fluid("gtsr_ore_recipe_contract_lubricant");
         check(
@@ -223,6 +327,12 @@ public final class OreIntegrationCenterRecipeContracts {
         } finally {
             active.set(controller, previous);
         }
+    }
+
+    private static int ores(Item components, int metadata, OrePrefixes prefix, Materials... materials) {
+        for (Materials material : materials)
+            GTOreDictUnificator.set(prefix, material, new ItemStack(components, 1, metadata++));
+        return metadata;
     }
 
     private static boolean same(ItemStack left, ItemStack right) {
