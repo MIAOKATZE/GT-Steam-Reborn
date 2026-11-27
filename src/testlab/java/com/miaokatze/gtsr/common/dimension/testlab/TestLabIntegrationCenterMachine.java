@@ -93,7 +93,8 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
     public void start(WorldServer world, int originX, int originY, int originZ) throws IOException {
         require(world.provider instanceof TestLabWorldProvider, "Expected the owned Lab dimension");
         x = originX + 120;
-        y = originY;
+        // The Lab's immutable quartz floor is Y64. Keep the logistics module's lowest paid voxel above it.
+        y = originY + 2;
         z = originZ + 36;
         cursor = phase = 0;
         pauseAt = -1;
@@ -311,7 +312,8 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                     require(elapsedTicks - pauseAt < 20, "Controller chunk never unloaded on the native provider tick");
                     return null;
                 }
-                require(center.batchProgress() == checkpoint.getInteger("CenterElapsed"),
+                require(
+                    center.batchProgress() == checkpoint.getInteger("CenterElapsed"),
                     "Controller ticked while its chunk was unloading");
                 ForgeChunkManager.forceChunk(controllerTicket, controllerChunk);
                 controllerTicket = null;
@@ -325,10 +327,12 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                 steam = (MTEHatchInput) tile(world, 7).getMetaTileEntity();
                 ordinaryInput = (MTEHatchInput) tile(world, 3).getMetaTileEntity();
                 cooling = (MTESteamCoolingHatch) tile(world, -7).getMetaTileEntity();
-                require(center.batchSequence() == initialSequence + 1
-                    && center.batchProgress() == checkpoint.getInteger("CenterElapsed"),
+                require(
+                    center.batchSequence() == initialSequence + 1
+                        && center.batchProgress() == checkpoint.getInteger("CenterElapsed"),
                     "Native chunk read did not restore the paid batch");
-                require(input.getStackInSlot(0) == null && quantity(output, product) == 0,
+                require(
+                    input.getStackInSlot(0) == null && quantity(output, product) == 0,
                     "Native chunk reload duplicated input or output");
                 require(controller.isAllowedToWork(), "Reload changed the controller's work switch");
                 reloadedController = true;
@@ -399,6 +403,8 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                     report.put("footprintSamples", positions.size());
                     report.put("constructNanos", buildNanos);
                     report.put("restoreScope", "in-place checkpoint and native chunk reload into a new controller");
+                    report.put("fixtureOriginYOffset", 2);
+                    report.put("actualController", Arrays.asList(x, y, z));
                     return new TestLabReport.Result(
                         TestLabReport.Status.PASS,
                         "Live assembly, real controller chunk reload and atomic output",

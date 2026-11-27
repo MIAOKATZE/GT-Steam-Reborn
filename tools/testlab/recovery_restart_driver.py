@@ -164,7 +164,8 @@ def verify_host_cleanup(receipt):
 def verify_native(receipt, case, expected):
     report = receipt.get('nativeReport')
     if not report or receipt.get('case') != case:
-        raise ValueError('Missing/mismatched correlated native report')
+        raise ValueError('Missing/mismatched correlated native report; hostStatus=' + str(receipt.get('status'))
+                         + '; hostError=' + str(receipt.get('primaryError')))
     target = Path(report['path'])
     raw = target.read_bytes()
     if hashlib.sha256(raw).hexdigest() != report['sha256']:

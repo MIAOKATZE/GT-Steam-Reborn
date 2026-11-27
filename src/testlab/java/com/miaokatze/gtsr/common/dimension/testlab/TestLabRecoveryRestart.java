@@ -453,6 +453,10 @@ public final class TestLabRecoveryRestart implements TestLabTask {
             return null;
         }
         journal.setTag("controller", position(controller));
+        evidence.put(
+            "actualController",
+            Arrays.asList(controller.getXCoord(), controller.getYCoord(), controller.getZCoord()));
+        if ("center".equals(key)) evidence.put("fixtureOriginYOffset", 2);
         journal.setInteger("controllerX", controller.getXCoord());
         journal.setInteger("controllerY", controller.getYCoord());
         journal.setInteger("controllerZ", controller.getZCoord());

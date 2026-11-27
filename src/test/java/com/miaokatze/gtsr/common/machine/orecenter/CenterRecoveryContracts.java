@@ -91,6 +91,7 @@ public final class CenterRecoveryContracts {
             gregtech.api.metatileentity.implementations.MTEMultiBlockBase.class.getResource("MTEMultiBlockBase.class")
                 .toString());
         modules();
+        assembledCenterFloorBoundary();
         failedTransactions();
         worldMutations();
         neighboringCallback();
@@ -219,6 +220,10 @@ public final class CenterRecoveryContracts {
     }
 
     static IGregTechTileEntity tile(SparseWorld w, ForgeDirection facing) {
+        return tile(w, facing, 80);
+    }
+
+    static IGregTechTileEntity tile(SparseWorld w, ForgeDirection facing, int controllerY) {
         RecoveryMachine recovery = new RecoveryMachine();
         return (IGregTechTileEntity) Proxy.newProxyInstance(
             IGregTechTileEntity.class.getClassLoader(),
@@ -232,7 +237,7 @@ public final class CenterRecoveryContracts {
                     case "getFrontFacing":
                         return facing;
                     case "getYCoord":
-                        return (short) 80;
+                        return (short) controllerY;
                     case "getXCoord":
                     case "getZCoord":
                         return 0;
@@ -297,6 +302,101 @@ public final class CenterRecoveryContracts {
     static Shape shape(int slot, CenterModule mod, int grade) {
         return CenterStructure
             .optionalShape("module-" + slot % 6 + "-" + mod.key.toLowerCase(Locale.ROOT) + "-" + grade);
+    }
+
+    /** Reproduce the real Lab's quartz floor and the actual one-sector crusher/logistics assembly. */
+    static void assembledCenterFloorBoundary() throws Exception {
+        Shape body = CenterStructure.optionalShape("tower-service-0");
+        Shape outer = CenterStructure.optionalShape("outer-0");
+        Shape crusher = shape(1, CenterModule.CRUSHER, 1);
+        Shape logistics = shape(3, CenterModule.LOGISTICS, 1);
+        for (int controllerY : new int[] { 65, 67 }) {
+            SparseWorld world = world();
+            for (int x = -110; x <= 110; x++)
+                for (int z = -110; z <= 150; z++) world.cells.put(key(x, 64, z), new Cell(Blocks.quartz_block, 0));
+            IGregTechTileEntity te = tile(world, ForgeDirection.NORTH, controllerY);
+            Frame frame = new Frame(te);
+            fill(world, frame, body);
+            fill(world, frame, outer);
+            Map<String, Cell> canonical = new HashMap<>(world.cells);
+            CenterStructure center = ready(te);
+            set(center, "towerTier", 0);
+            set(center, "serviceFront", true);
+            set(center, "formedSectors", 1);
+            ((CriticalStructureMonitor) get(center, "tower")).restoreValidation(body.count());
+            ((CriticalStructureMonitor[]) get(center, "sectors"))[0].restoreValidation(
+                CenterStructure.optionalShape("sector-0")
+                    .count());
+            check(
+                center.install(te, 1, CenterModule.CRUSHER, 1),
+                "full service tower and outer wing accept the first crusher");
+            for (int i = 0; i < 100 && !center.moduleIntact(te, 1, CenterModule.CRUSHER, 1); i++)
+                scan(center, te, 1, crusher);
+            check(
+                center.moduleIntact(te, 1, CenterModule.CRUSHER, 1),
+                "the real crusher geometry validates above the Lab floor");
+            Map<String, Cell> withCrusher = new HashMap<>(world.cells);
+            int writes = world.writes;
+            if (controllerY == 65) {
+                int floorVoxels = 0;
+                for (int i = 0; i < logistics.count(); i++) {
+                    int[] at = pos(frame, logistics, i, 3);
+                    if (at[1] == 64) {
+                        floorVoxels++;
+                        check(
+                            world.getBlock(at[0], at[1], at[2]) == Blocks.quartz_block,
+                            "the low logistics pad collides with the Lab's foreign quartz floor");
+                    }
+                }
+                check(floorVoxels > 0, "Y65 reproduces the real logistics pad's floor collision");
+                check(
+                    !center.install(te, 3, CenterModule.LOGISTICS, 1) && world.writes == writes,
+                    "a logistics package never overwrites the foreign floor or partially writes its pad");
+                check(
+                    sameNonAirCells(world, withCrusher),
+                    "refused floor placement preserves the tower, crusher and entire floor");
+            } else {
+                check(
+                    center.install(te, 3, CenterModule.LOGISTICS, 1),
+                    "Y67 full assembly accepts the logistics package without foreign voxel adoption");
+                for (int i = 0; i < 100 && !center.moduleIntact(te, 3, CenterModule.LOGISTICS, 1); i++)
+                    scan(center, te, 3, logistics);
+                check(
+                    center.moduleIntact(te, 3, CenterModule.LOGISTICS, 1),
+                    "the raised logistics module validates in the actual tower/wing/crusher assembly");
+                check(
+                    center.remove(te, 3, CenterModule.LOGISTICS, 1),
+                    "raised logistics dismantles only its paid generated voxels");
+                check(
+                    sameNonAirCells(world, withCrusher) && center.moduleIntact(te, 1, CenterModule.CRUSHER, 1),
+                    "logistics removal preserves the main tower, outer wing and already installed crusher");
+                check(!center.remove(te, 3, CenterModule.LOGISTICS, 1), "raised logistics cannot be refunded twice");
+            }
+            check(
+                center.remove(te, 1, CenterModule.CRUSHER, 1),
+                "the original crusher remains independently removable");
+            check(
+                sameNonAirCells(world, canonical),
+                "module lifecycle leaves the canonical tower, wing and foreign floor unchanged");
+        }
+        result.put(
+            "assembledFloorBoundary",
+            "Y65 quartz floor rejected without writes; Y67 tower/wing/crusher/logistics install and removal preserve foreign materials");
+    }
+
+    static boolean sameNonAirCells(SparseWorld world, Map<String, Cell> expected) {
+        long count = expected.values()
+            .stream()
+            .filter(cell -> cell.block() != Blocks.air)
+            .count();
+        if (world.nonAir() != count) return false;
+        for (Map.Entry<String, Cell> entry : expected.entrySet()) {
+            Cell want = entry.getValue();
+            if (want.block() == Blocks.air) continue;
+            Cell actual = world.cells.get(entry.getKey());
+            if (actual == null || actual.block() != want.block() || actual.meta() != want.meta()) return false;
+        }
+        return true;
     }
 
     static void modules() throws Exception {
