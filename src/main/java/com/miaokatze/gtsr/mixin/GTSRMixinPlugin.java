@@ -16,11 +16,16 @@ import org.spongepowered.asm.lib.tree.MethodNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
+import com.miaokatze.gtsr.client.nei.PreviewCacheHooks;
+
 /**
  * Selects optional GTNL transforms from the startup config before target classes are loaded.
  * The native identity bridge remains active to preserve upstream input/output ownership when features are off.
  */
 public class GTSRMixinPlugin implements IMixinConfigPlugin {
+
+    private static final String PREVIEW_WORLD_MIXIN = "com.miaokatze.gtsr.mixin.nei.CriticalPreviewWorldMixin";
+    private static final String PREVIEW_SCENE_MIXIN = "com.miaokatze.gtsr.mixin.nei.CriticalPreviewSceneMixin";
 
     public static boolean supportsAngelicaCapture() {
         return AngelicaCaptureShape.SUPPORTED;
@@ -68,7 +73,33 @@ public class GTSRMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
-        // 无需后处理
+        // Selection checks the original classes. Conflicting transformers can still remove an injection point.
+        if (PREVIEW_WORLD_MIXIN.equals(mixinClassName)) {
+            PreviewCacheHooks.setWorldReady(callsPreviewHook(targetClass, "gtsr$worldCleared", "clear")
+                && callsPreviewHook(targetClass, "gtsr$blockWrite", "setBlock", "func_147465_d")
+                && callsPreviewHook(targetClass, "gtsr$metadataWrite", "setBlockMetadataWithNotify", "func_72921_c")
+                && callsPreviewHook(targetClass, "gtsr$tileWrite", "setTileEntity", "func_147455_a")
+                && callsPreviewHook(targetClass, "gtsr$tileRemoved", "removeTileEntity", "func_147475_p")
+                && callsPreviewHook(targetClass, "gtsr$layerChanged", "setVisibleYLevel"));
+        } else if (PREVIEW_SCENE_MIXIN.equals(mixinClassName)) {
+            PreviewCacheHooks.setSceneReady(callsPreviewHook(targetClass, "gtsr$rememberWorld", "<init>")
+                && callsPreviewHook(targetClass, "gtsr$selectionChanged", "resetRenderedBlocks")
+                && callsPreviewHook(targetClass, "gtsr$selectionChanged", "setRenderAllFaces")
+                && callsPreviewHook(targetClass, "gtsr$appendCachedGeometry", "renderBlocks"));
+        }
+    }
+
+    private static boolean callsPreviewHook(ClassNode target, String handler, String... methods) {
+        for (MethodNode method : target.methods) {
+            boolean candidate = false;
+            for (String name : methods) if (name.equals(method.name)) candidate = true;
+            if (!candidate) continue;
+            for (AbstractInsnNode instruction : method.instructions.toArray()) {
+                if (instruction instanceof MethodInsnNode call && call.owner.equals(target.name)
+                    && call.name.endsWith(handler)) return true;
+            }
+        }
+        return false;
     }
 
     /** The optional optimization is coupled to the inspected 1.4.25 scene/batch contract. */
@@ -105,6 +136,9 @@ public class GTSRMixinPlugin implements IMixinConfigPlugin {
                         "fastIterable",
                         "(Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;)Lit/unimi/dsi/fastutil/objects/ObjectIterable;")
                     && field(world, "tileMap", "Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;")
+                    && field(world, "blockMap", "Lit/unimi/dsi/fastutil/longs/Long2ObjectMap;")
+                    && field(world, "blockMetaMap", "Lit/unimi/dsi/fastutil/longs/Long2IntMap;")
+                    && field(world, "visibleYLevel", "I")
                     && method(world, "clear", "()V")
                     && (method(world, "setBlock", "(IIILnet/minecraft/block/Block;II)Z")
                         || method(world, "func_147465_d", "(IIILnet/minecraft/block/Block;II)Z"))

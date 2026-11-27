@@ -56,7 +56,7 @@ public abstract class CriticalPreviewWorldMixin implements StructurePreviewWorld
         return gtsr$previewRevision;
     }
 
-    @Inject(method = "clear()V", at = @At("HEAD"), require = 1)
+    @Inject(method = "clear()V", at = @At("HEAD"))
     private void gtsr$worldCleared(CallbackInfo callback) {
         if (gtsr$structurePreview) gtsr$previewRevision++;
     }
@@ -64,8 +64,7 @@ public abstract class CriticalPreviewWorldMixin implements StructurePreviewWorld
     // The optional jar uses SRG names in production and MCP names in the development classpath.
     @Inject(
         method = { "setBlock(IIILnet/minecraft/block/Block;II)Z", "func_147465_d(IIILnet/minecraft/block/Block;II)Z" },
-        at = @At("HEAD"),
-        require = 1)
+        at = @At("HEAD"))
     private void gtsr$blockWrite(int x, int y, int z, Block block, int metadata, int flags,
         CallbackInfoReturnable<Boolean> callback) {
         if (!gtsr$structurePreview) return;
@@ -75,7 +74,7 @@ public abstract class CriticalPreviewWorldMixin implements StructurePreviewWorld
             gtsr$previewRevision++;
     }
 
-    @Inject(method = { "setBlockMetadataWithNotify(IIIII)Z", "func_72921_c(IIIII)Z" }, at = @At("HEAD"), require = 1)
+    @Inject(method = { "setBlockMetadataWithNotify(IIIII)Z", "func_72921_c(IIIII)Z" }, at = @At("HEAD"))
     private void gtsr$metadataWrite(int x, int y, int z, int metadata, int flags,
         CallbackInfoReturnable<Boolean> callback) {
         if (!gtsr$structurePreview) return;
@@ -86,18 +85,17 @@ public abstract class CriticalPreviewWorldMixin implements StructurePreviewWorld
     @Inject(
         method = { "setTileEntity(IIILnet/minecraft/tileentity/TileEntity;)V",
             "func_147455_a(IIILnet/minecraft/tileentity/TileEntity;)V" },
-        at = @At("HEAD"),
-        require = 1)
+        at = @At("HEAD"))
     private void gtsr$tileWrite(int x, int y, int z, TileEntity tile, CallbackInfo callback) {
         if (gtsr$structurePreview && tileMap.get(CoordinatePacker.pack(x, y, z)) != tile) gtsr$previewRevision++;
     }
 
-    @Inject(method = { "removeTileEntity(III)V", "func_147475_p(III)V" }, at = @At("HEAD"), require = 1)
+    @Inject(method = { "removeTileEntity(III)V", "func_147475_p(III)V" }, at = @At("HEAD"))
     private void gtsr$tileRemoved(int x, int y, int z, CallbackInfo callback) {
         if (gtsr$structurePreview && tileMap.containsKey(CoordinatePacker.pack(x, y, z))) gtsr$previewRevision++;
     }
 
-    @Inject(method = "setVisibleYLevel(I)V", at = @At("HEAD"), require = 1)
+    @Inject(method = "setVisibleYLevel(I)V", at = @At("HEAD"))
     private void gtsr$layerChanged(int level, CallbackInfo callback) {
         if (gtsr$structurePreview && visibleYLevel != level) gtsr$previewRevision++;
     }

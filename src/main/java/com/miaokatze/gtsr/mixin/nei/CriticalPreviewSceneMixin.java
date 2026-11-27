@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.miaokatze.gtsr.client.nei.PreviewCacheHooks;
 import com.miaokatze.gtsr.client.nei.StructurePreviewMaterials;
 import com.miaokatze.gtsr.common.structure.StructurePreviewWorld;
 import com.miaokatze.miaokatzecore.client.preview.PreviewGeometryCache;
@@ -44,7 +45,7 @@ public abstract class CriticalPreviewSceneMixin {
     @Unique
     private PreviewGeometryCache gtsr$previewCache;
 
-    @Inject(method = "<init>", at = @At("RETURN"), require = 1)
+    @Inject(method = "<init>", at = @At("RETURN"))
     private void gtsr$rememberWorld(@Coerce World world, CallbackInfo callback) {
         gtsr$previewWorld = world;
     }
@@ -58,16 +59,15 @@ public abstract class CriticalPreviewSceneMixin {
         return gtsr$previewCache;
     }
 
-    @Inject(method = { "resetRenderedBlocks", "setRenderAllFaces" }, at = @At("RETURN"), require = 2)
+    @Inject(method = { "resetRenderedBlocks", "setRenderAllFaces" }, at = @At("RETURN"))
     private void gtsr$selectionChanged(CallbackInfo callback) {
         if (gtsr$previewCache != null) gtsr$previewCache.invalidate();
     }
 
-    @Inject(method = "renderBlocks", at = @At("HEAD"), cancellable = true, require = 1)
+    @Inject(method = "renderBlocks", at = @At("HEAD"), cancellable = true)
     private void gtsr$appendCachedGeometry(Tessellator tessellator, LongCollection positions, boolean faded,
         CallbackInfo callback) {
-        if (faded || positions != renderedBlocks
-            || positions.isEmpty()
+        if (!PreviewCacheHooks.isReady() || faded || positions != renderedBlocks || positions.isEmpty()
             || !PreviewGeometryCache.supports(tessellator)) return;
         PreviewGeometryCache cache = gtsr$cache();
         if (cache == null || !cache.prepare(positions)) return;
