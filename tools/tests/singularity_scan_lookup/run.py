@@ -3,6 +3,7 @@
 """Compile the production lookup against small native-API models; no Minecraft/performance claim."""
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 repo = Path(__file__).resolve().parents[3]
@@ -66,7 +67,9 @@ for name, text in sources.items():
     path = src / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, 'utf-8')
-registry = json.loads((repo.parent / 'plan/testlab-instances.json').read_text('utf-8-sig'))
+sys.path.insert(0, str(repo.parent / 'tools/testlab'))
+import host
+registry = host.load_registry()
 java = Path(registry['java_home']) / 'bin'
 classes = out / 'classes'
 classes.mkdir(parents=True, exist_ok=True)

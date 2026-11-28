@@ -370,7 +370,7 @@ def main():
     parser.add_argument("action", choices=["prepare", "run"])
     parser.add_argument("--sandbox", type=Path, help="Existing historical owned sandbox; never prepared implicitly")
     parser.add_argument("--legacy-sandbox", action="store_true", help="Explicit compatibility with an existing owned sandbox")
-    parser.add_argument("--registry", type=Path, default=ROOT.parent / 'plan/testlab-instances.json')
+    parser.add_argument("--registry", type=Path, default=ROOT.parent / 'Testlab/instances.json')
     parser.add_argument("--bundle", type=Path, help="Explicit candidate bundle; otherwise use the current GTSR/Core configuration")
     parser.add_argument("--case", default="all")
     parser.add_argument("--execute", action="store_true", help="Without this flag only produce a read-only plan")

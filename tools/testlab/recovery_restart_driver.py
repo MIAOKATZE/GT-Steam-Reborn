@@ -262,7 +262,7 @@ def invoke(command, target, allowed=(0,)):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--host', type=Path, default=ROOT.parent / 'tools/testlab/host.py')
-    parser.add_argument('--registry', type=Path, default=ROOT.parent / 'plan/testlab-instances.json')
+    parser.add_argument('--registry', type=Path, default=ROOT.parent / 'Testlab/instances.json')
     parser.add_argument('--bundle', type=Path, required=True)
     parser.add_argument('--case', choices=KEYS, required=True)
     parser.add_argument('--phase', choices=('both', 'prepare', 'resume'), default='both')
