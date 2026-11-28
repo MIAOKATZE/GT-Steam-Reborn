@@ -1,62 +1,25 @@
 # MUI2 客户端 QA 使用说明
 
-此工具把生产候选 jar 装入独立的 owned 客户端沙箱，启动真实 Minecraft GL 客户端、集成服务端与玩家容器，并通过真实 MUI2 控件树执行脚本。它不修改生产 jar，也不复制来源实例的存档或账户。
+复用工作区 `Testlab/instances.json` 中的 GTSR 客户端。runner 直接启动 Java 26，固定最大堆 4 GiB，系统预留 1 GiB；使用私有桌面与目标实例租约。启动与恢复总入口见 [项目指南](../../../plan/测试维度指南.md)。
 
-脚本输入由进程内合成，经 ModularScreen hit-test/focus 和 lwjgl3ify `injectTextEvent` 送入；这不代表物理鼠标、键盘或 IME 验收。客户端与集成服务端使用 Forge `LocalChannel`，不能据此宣称 TCP 或远程专用服务器网络已验证。
-
-以下命令均从仓库根目录运行。
-
-原生区块票据同存档重开使用独立 `--mode ticket-restart`，不执行 UI 套件。其同 JVM 同 save、6 GiB heap + 4 GiB 余量、全局 lease、真实票据事件顺序及完整巨构未测边界见 [TICKET_RESTART.md](TICKET_RESTART.md)。
-
-## 准备隔离环境
-
-`prepare.py` 读取 Prism 实例根目录、生产混淆 jar 与本地 Prism cache，准备独立客户端沙箱，但不启动游戏。沙箱必须是仓库 `build/` 下全新的直接子目录，名称以 `client-testlab-` 开头。来源实例不会复制存档或账户；不要把当前运行的用户实例目录当作写入目标。
+1. 客户端模式为 `ui/gallery/gallery-batch`。旧 `ticket-restart` 已退役，跨 JVM 恢复走 `tools/testlab/recovery_restart_driver.py`；[TICKET_RESTART.md](TICKET_RESTART.md)仅供历史记录查询。
+2. 平台或缓存变化后重建元数据，复用登记实例，不复制整包或另建客户端沙箱。以下准备命令从 GTSR 仓根执行，不启动游戏：
 
 ```powershell
-$workspace = "build/mui2-client-qa-r8"
-$clientSandbox = "build/client-testlab-mui2-r8"
-$jar = "build/mui2-v12138/migration-candidate-r8.jar"
-
-python -X utf8 tools/testlab/client_qa/prepare.py `
-  --source "<Prism 实例根目录>" `
-  --jar $jar `
-  --workspace $workspace `
-  --client-sandbox $clientSandbox
-
-python -X utf8 tools/testlab/client_qa/compile.py `
-  --workspace $workspace `
-  --client-sandbox $clientSandbox
+python -B tools/testlab/client_qa/prepare.py --jar <实际候选.jar>
+python -B tools/testlab/client_qa/compile.py
 ```
 
-每一步都显式传同一组 `--workspace` 与 `--client-sandbox`：两者必须是仓库 `build/` 下的直接子目录。换候选 jar 时更新 `$jar`，并为本次准备选择新的沙箱名；`prepare.py` 不会覆盖已存在的沙箱。`compile.py` 只编译并安装 QA helper jar 到沙箱，不改生产 jar；存在共享 lease 时它会拒绝替换 helper。
-
-## 组合并运行计划
-
-`merge_plans.py` 接受一个输出路径和一个或多个计划片段，冻结合并 plan、片段 SHA、group 区间与 manifest。输出 plan 或 manifest 已存在时会拒绝覆盖。manifest 状态为 `PREPARED_NOT_RUN`，只表示计划已冻结，不代表已执行。
+3. 编译只生成项目 `build/mui2-client-qa` 下的 helper 与回执，执行时由 runner 临时安装并恢复。共享源码沿 `HostEnvironment/OwnedClientScope/ClientAccess` 取用；占用检查针对登记实例。
+4. gallery 使用 `merge_plans.py --output <冻结计划.json> <片段...>` 准备计划。实际启动由共享宿主持有租约并调用本 runner；候选按当前配置或显式 bundle，沿项目 `profile.py` 选择。下列为获准测试时的命令形式：
 
 ```powershell
-python -X utf8 tools/testlab/client_qa/merge_plans.py `
-  --output "$workspace/plan-r8.json" `
-  tools/testlab/client_qa/plans/small-canvas.json `
-  tools/testlab/client_qa/plans/inventory.json `
-  tools/testlab/client_qa/plans/hubs-workers.json
-
-python -X utf8 tools/testlab/client_qa/run.py `
-  --workspace $workspace `
-  --client-sandbox $clientSandbox `
-  --jar $jar `
-  --plan "$workspace/plan-r8.json" `
-  --run r8-zh-small `
-  --language zh_CN `
-  --width 427 --height 240 --scale 2 `
-  --render-distance 3 `
-  --heap-gib 5 --reserve-gib 4 `
-  --deadline 1800
+python -B ../tools/testlab/host.py doctor --mod gtsr --lane client --task gallery --client-plan <冻结计划.json> --prepare
+python -B ../tools/testlab/host.py run --mod gtsr --lane client --task gallery --client-plan <冻结计划.json> --prepare --execute
 ```
 
-实际验收时按目标窗口与计划调整语言、分辨率、scale 和 run 名。runner 默认预留 4 GiB；`--reserve-gib` 最低 1 GiB。推荐 `--heap-gib 5 --reserve-gib 4`，为 6 GiB Java heap 预留客户端/native 开销，启动前要求至少 10 GiB 可用，低于门槛时只写 preflight 并拒绝启动。R8 的一次 6 GiB 配置观测到 RSS 峰值 9.45 GiB、private bytes 10.67 GiB；heap 不代表进程总物理占用，也不能跨不同 heap 配置直接比较。
-
-一次只运行一项 owned client QA。runner 建立共享 `.gtsr-native-server.lease`，超时处理只会终止它自己启动的客户端子进程；不要手动结束其它实例或 launcher 进程。
+5. 结束时先完成项目场景恢复和自有客户端退出，再恢复原包、配置及选项、回收本轮临时资源并释放实例租约；异常时保留未恢复记录。图库脚本、实际机器操作和跨 JVM 恢复协议仍由本项目维护。
+6. 输入沿实际 MUI2 hit-test/focus、lwjgl3ify 文本事件及原生容器通道；物理 OS 输入和专服 TCP 分别按对应专项验收。
 
 ## 脚本输入与屏幕记录
 

@@ -30,21 +30,19 @@ def main():
     if (fixture / '.testlab-host/lease.json').exists() or host.recovery_pending(item):
         raise RuntimeError('Registered client leased or pending recovery')
     args.javac = args.javac or Path(item['client_java']).with_name('javac.exe')
-    lease = ROOT.parent / ".gtsr-native-server.lease"
-    if lease.exists():
-        raise RuntimeError("A test process holds the shared lease; do not replace its helper jar")
     classes = out / "qa-classes"
     classes.mkdir(parents=True, exist_ok=True)
     source = Path(__file__).with_name("Mui2ClientQa.java")
     environment_source = ROOT.parent / 'tools/testlab/client_qa/HostEnvironment.java'
     scope_source = ROOT.parent / 'tools/testlab/client_qa/OwnedClientScope.java'
+    access_source = ROOT.parent / 'tools/testlab/client_qa/ClientAccess.java'
     profile_source = ROOT / 'src/testlab/java/com/miaokatze/gtsr/common/dimension/testlab/MegaTurbineProfileFixture.java'
     extra_sources = [profile_source.resolve(strict=True), profile_source.with_name("MegaTurbineProximityFixture.java").resolve(strict=True)] if args.include_mega_turbine_profile else []
     if args.include_native_tooltip:
         extra_sources.append(profile_source.with_name('SolarNativeTooltipFixture.java').resolve(strict=True))
     launch = json.loads((out / 'client-launch.json').read_text(encoding='utf-8'))['command']
     classpath = launch[launch.index('-cp') + 1] + ';' + ';'.join(str(p) for p in sorted((fixture / 'mods').rglob('*.jar')))
-    options = ["-encoding", "UTF-8", "-proc:none", "--release", "8", "-cp", classpath, "-d", str(classes), *[str(p) for p in sorted(source.parent.glob("*.java"))], str(environment_source), str(scope_source), *map(str, extra_sources)]
+    options = ["-encoding", "UTF-8", "-proc:none", "--release", "8", "-cp", classpath, "-d", str(classes), *[str(p) for p in sorted(source.parent.glob("*.java"))], str(environment_source), str(scope_source), str(access_source), *map(str, extra_sources)]
     argfile = out / "qa-compile.args"
     argfile.write_text("\n".join('"' + s.replace("\\", "/") + '"' for s in options), encoding="utf-8")
     result = subprocess.run([str(args.javac.resolve(strict=True)), "-J-Duser.language=en", "@" + str(argfile)], capture_output=True, text=True, encoding="utf-8", errors="replace")
@@ -54,7 +52,7 @@ def main():
     jar = out / "gtsr-mui2-qa-owned-only.jar"
     artifacts = sorted(classes.rglob("*.class"))
     # Only this helper's output is packaged; stale unrelated classes are not included.
-    artifacts = [p for p in artifacts if p.relative_to(classes).as_posix().startswith(("audit/Mui2ClientQa", "audit/CoreTooltipInteractionFixture", "audit/UiQaWireCounter", "audit/UiQaScript", "audit/UiQaGallery", "audit/UiGalleryBatch", "audit/TicketRestartQa", "miaotest/host/HostEnvironment", "miaotest/host/OwnedClientScope"))]
+    artifacts = [p for p in artifacts if p.relative_to(classes).as_posix().startswith(("audit/Mui2ClientQa", "audit/CoreTooltipInteractionFixture", "audit/UiQaWireCounter", "audit/UiQaScript", "audit/UiQaGallery", "audit/UiGalleryBatch", "audit/TicketRestartQa", "miaotest/host/HostEnvironment", "miaotest/host/OwnedClientScope", "miaotest/host/ClientAccess"))]
     if args.include_mega_turbine_profile:
         artifacts.extend(sorted((classes / 'com/miaokatze/gtsr/common/dimension/testlab').glob('MegaTurbineProfileFixture*.class')))
         artifacts.extend(sorted((classes / 'com/miaokatze/gtsr/common/dimension/testlab').glob('MegaTurbineProximityFixture*.class')))
@@ -69,6 +67,7 @@ def main():
         "sourceSHA256": hashlib.sha256(source.read_bytes()).hexdigest(),
         "sources": {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(source.parent.glob("*.java"))},
         "environmentSourceSHA256": hashlib.sha256(environment_source.read_bytes()).hexdigest(),
+        "accessSourceSHA256": hashlib.sha256(access_source.read_bytes()).hexdigest(),
         "ownedScopeSourceSHA256": hashlib.sha256(scope_source.read_bytes()).hexdigest(),
         "explicitProfileSources": {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in extra_sources},
         "jarSHA256": hashlib.sha256(jar.read_bytes()).hexdigest(),
