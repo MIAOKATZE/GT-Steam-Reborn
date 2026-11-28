@@ -5,6 +5,7 @@ package com.miaokatze.gtsr.loader.recipes;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -46,6 +47,8 @@ public final class OreIntegrationCenterRecipeContracts {
         Method setup = PortableWeaponRecipeContracts.class.getDeclaredMethod("bootstrapGt");
         setup.setAccessible(true);
         setup.invoke(null);
+        // This gate reads reviewed upstream/source evidence, before any ingredient placeholders exist.
+        CenterIngredientRegistrationContracts.verify();
         // Isolate this regression even if a shared bootstrap later starts supplying unrelated GT++ entries.
         GregtechItemList obsoleteSeparator = GregtechItemList.Industrial_Electromagnetic_Separator;
         Field legacyStack = GregtechItemList.class.getDeclaredField("mStack");
@@ -60,6 +63,7 @@ public final class OreIntegrationCenterRecipeContracts {
             prepareIngredients();
             check(!obsoleteSeparator.hasBeenSet(), "obsolete GT++ separator is absent from ingredient fixtures");
             verifyRecipes();
+            requiredIngredientGuards();
             check(!obsoleteSeparator.hasBeenSet(), "full recipe registration never initializes the obsolete separator");
         } finally {
             legacyStack.set(obsoleteSeparator, previousStack);
@@ -333,6 +337,86 @@ public final class OreIntegrationCenterRecipeContracts {
         for (Materials material : materials)
             GTOreDictUnificator.set(prefix, material, new ItemStack(components, 1, metadata++));
         return metadata;
+    }
+
+    private static void requiredIngredientGuards() throws Exception {
+        Method item = OreIntegrationCenterRecipes.class
+            .getDeclaredMethod("requiredItem", ItemStack.class, String.class, int.class);
+        item.setAccessible(true);
+        ItemStack valid = ItemList.Sensor_IV.get(1);
+        check(item.invoke(null, valid, "valid", 1) == valid, "registered ingredient identity is preserved");
+        rejected(item, "null", null, "null", 1);
+        rejected(item, "null Item wrapper", new ItemStack((Item) null, 1), "null Item", 1);
+        rejected(item, "unregistered Item", new ItemStack(new Item(), 1), "unregistered", 1);
+        rejected(item, "wrong amount", valid, "wrong amount", 2);
+        ItemStack selector = GTUtility.getIntegratedCircuit(1);
+        check(selector.stackSize == 0, "native selector has zero consumed amount");
+        check(item.invoke(null, selector, "selector", 0) == selector, "registered zero-size selector remains valid");
+        rejected(item, "negative amount", valid, "negative amount", -1);
+        invalidEnumStack(ItemList.Sensor_IV);
+        invalidEnumStack(GregtechItemList.Industrial_Centrifuge);
+        invalidEnumStack(GTSRItemList.KineticProcessingArray);
+
+        Method fluid = OreIntegrationCenterRecipes.class
+            .getDeclaredMethod("requiredFluid", FluidStack.class, String.class, int.class);
+        fluid.setAccessible(true);
+        FluidStack lubricant = Materials.Lubricant.getFluid(1000);
+        check(fluid.invoke(null, lubricant, "Lubricant", 1000) == lubricant, "registered recipe fluid is preserved");
+        rejected(fluid, "null fluid", null, "missing fluid", 1000);
+        rejected(fluid, "wrong fluid amount", lubricant, "wrong fluid amount", 999);
+        rejected(fluid, "zero fluid amount", lubricant, "zero fluid amount", 0);
+        FluidStack unregisteredAlias = new FluidStack(
+            new Fluid(
+                lubricant.getFluid()
+                    .getName()),
+            1000);
+        rejected(fluid, "same name without a registered fluid identity", unregisteredAlias, "unregistered alias", 1000);
+        Fluid solder = Materials.SolderingAlloy.mStandardMoltenFluid;
+        Fluid oil = Materials.Lubricant.mFluid;
+        try {
+            Materials.SolderingAlloy.mStandardMoltenFluid = null;
+            Materials.Lubricant.mFluid = null;
+            rejected(fluid, "missing native solder", Materials.SolderingAlloy.getMolten(1440), "SolderingAlloy", 1440);
+            rejected(fluid, "missing native lubricant", Materials.Lubricant.getFluid(1000), "Lubricant", 1000);
+        } finally {
+            Materials.SolderingAlloy.mStandardMoltenFluid = solder;
+            Materials.Lubricant.mFluid = oil;
+        }
+    }
+
+    private static void invalidEnumStack(Enum<?> entry) throws Exception {
+        Class<?> owner = entry.getDeclaringClass();
+        Field stack = owner.getDeclaredField("mStack"), unset = owner.getDeclaredField("mHasNotBeenSet");
+        stack.setAccessible(true);
+        unset.setAccessible(true);
+        Object previous = stack.get(entry);
+        boolean wasUnset = unset.getBoolean(entry);
+        Method item = OreIntegrationCenterRecipes.class.getDeclaredMethod("item", owner, int.class);
+        item.setAccessible(true);
+        try {
+            stack.set(entry, null);
+            unset.setBoolean(entry, false);
+            // hasBeenSet is true even though the internal stack is invalid: this was the old blind spot.
+            check(
+                (Boolean) owner.getMethod("hasBeenSet")
+                    .invoke(entry),
+                "set flag alone is not material validity");
+            rejected(item, "set flag with no material: " + entry, entry, 1);
+        } finally {
+            stack.set(entry, previous);
+            unset.setBoolean(entry, wasUnset);
+        }
+    }
+
+    private static void rejected(Method method, String description, Object... args) throws Exception {
+        try {
+            method.invoke(null, args);
+            throw new AssertionError("Accepted invalid ingredient: " + description);
+        } catch (InvocationTargetException rejected) {
+            check(
+                rejected.getCause() instanceof IllegalStateException,
+                "invalid ingredient fails explicitly: " + description);
+        }
     }
 
     private static boolean same(ItemStack left, ItemStack right) {

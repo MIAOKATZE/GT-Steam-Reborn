@@ -510,6 +510,11 @@ apply(from = "gradle/licensing.gradle.kts")
 
 apply(from = "gradle/gtnh-compatibility.gradle")
 
+// Reuse the existing isolated ASM stack when reading the reviewed modern GT registration classes.
+tasks.named<JavaExec>("verifyCenterRecipes") {
+    classpath = configurations.getByName("gtnhLinkageAsm") + classpath
+}
+
 val verifyGTNHBootstrapProfiles = tasks.register<JavaExec>("verifyGTNHBootstrapProfiles") {
     group = "verification"
     dependsOn(tasks.named("testClasses"))

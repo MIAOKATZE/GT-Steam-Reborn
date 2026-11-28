@@ -1,0 +1,1116 @@
+{
+  "schema": 1,
+  "gtVersion": "5.09.54.277",
+  "gtArtifactSha256": "88a0ac96a01e11fa04f738784722ecf27d4c72488973ff41eeb1399a167801e7",
+  "sourceHashFormat": "utf8-lf",
+  "reviewBasis": "Manual exact .277 registration producer and normal lifecycle audit; fingerprints prevent silent drift. Not full mod initialization, not runtime-transformed class proof, and not arbitrary-config availability.",
+  "noAutomaticRefresh": true,
+  "sourceSha256": {
+    "src/main/java/com/miaokatze/gtsr/main/CommonProxy.java": "074ab0bd3b1dd2382ae17492e2b196dce18fa69c2ba3b1c56b02fc13396ad72c",
+    "src/main/java/com/miaokatze/gtsr/loader/ItemLoader.java": "f5da793e6816310641675adc07694f5b9e6cc96b8bc0f8a293fc8dda8e48bce5",
+    "src/main/java/com/miaokatze/gtsr/loader/MachineLoader.java": "194284a2d466815cd51d3d799e68a7669dc70972b8b7ffdf83389b430858578e",
+    "src/main/java/com/miaokatze/gtsr/loader/GTSRRecipeLoader.java": "3502b360ab0767642ad77908fbe345753b736e691eb51232849dbe734b48000b",
+    "src/main/java/com/miaokatze/gtsr/common/api/enums/GTSRItemList.java": "697ed6d346946a386fa5fa8ab1e44a3327f23ab07ac4fd4d45f190e94177f58c",
+    "src/main/java/com/miaokatze/gtsr/common/items/CenterModuleItems.java": "952e4e5689ff536b60220f7b27ee54e6a82b74b1529afccabd44f5e03f554f10",
+    "src/main/java/com/miaokatze/gtsr/common/machine/orecenter/MTEMineralIntegrationCenter.java": "4a91c94e1ed09f9c8909b4763e681ea59398b62c838c94833a8bf8c5239a58e2",
+    "src/main/java/com/miaokatze/gtsr/loader/recipes/OreIntegrationCenterRecipes.java": "6248d13723b4ae8eca9b63be03e6169bb448701c365e7ac1564c4bd9f0efe3f9"
+  },
+  "providerClassSha256": {
+    "gregtech/GTMod": [
+      "40cfa462027e622e84487b47a36c0e2c1d0d0b8a6bd2bed992b9a4ba1795c83b",
+      "5d1efa51a34000705c85e2f4daa4e35cf4b8a3ccb7958a755a9dc15ed23b502e"
+    ],
+    "gregtech/api/enums/ItemList": [
+      "d732d6af47c287789f6136bc24a3fcde86957b600147faed9ff4526447cda086",
+      "7525bac97deb47af5b0456fecb80bb0b1be3370118ed97bca9350a2d571913a2"
+    ],
+    "gregtech/api/enums/Materials": [
+      "f940daf21803ea4ecb3e3fcaa80669f56b71ecbb56ecfb134a43763b1e04f6ff",
+      "948dd089609dd6dee8492711bb1a0f519fa62e04d7db1060b93a176afaf05388"
+    ],
+    "gregtech/api/enums/OrePrefixes": [
+      "faf96a4eec74f4751f027459374f915324ae7ab482838bcd26936b4043b00267",
+      "15d7014d57a0f5b1af910fdf46fdf59acf3056939e5ee9d25da38bddc68e9e54"
+    ],
+    "gregtech/api/items/GTGenericItem": [
+      "e0a7447e788d098c52390c4991118581306a281526de97b23552d0046c5f7f6b",
+      "f3a076068a9ac925f9272c5dd3391b7409af210e71d9183951f08bc10c8832e9"
+    ],
+    "gregtech/api/items/MetaGeneratedItem": [
+      "21424153c9704c92c00fcea497b0fdc0d019e9bd2e779a414997ca6bd6d15d25",
+      "452daf2e5780a34e7f3064c7cf92f610c3cc0518f68d8972f170520a0eb5ba06"
+    ],
+    "gregtech/api/items/MetaGeneratedItemX32": [
+      "ecb67fc1528d5b2e400b186568091d099a9a000260ae8d86ae06d3c0142ccb68"
+    ],
+    "gregtech/api/metatileentity/CommonMetaTileEntity": [
+      "85b45464d4c3a2078a0b9be9648b3fd5bdc763e84d3b5f8a0eea94956472f0f5",
+      "f22ce8f8879c777abce1616f1371960aba935f9a2fcd994f5c792eb81c566249"
+    ],
+    "gregtech/api/metatileentity/MetaTileEntity": [
+      "c86c1f59f3b2734b63bbd4e00ed20939c508d414a5040309d3d09de08896ffbf",
+      "65b21113818aad4cb3e8e3d644aacab0cc4e29e6ee547a621bf63d24440d4ccc"
+    ],
+    "gregtech/common/blocks/BlockCasings1": [
+      "93c537a95d3e83e1ca23c09c9d462cafd5d4485cdbf472e80882b9224fd4f4b4"
+    ],
+    "gregtech/common/blocks/BlockCasings2": [
+      "66e76b094d63dafa676d77e7459e53c5308ef188c76f0d11718867cee576ab89"
+    ],
+    "gregtech/common/blocks/BlockCasings4": [
+      "86cd780075d022e4b33a9029cca39f39196e5417da091aad727b3b4018c496ff"
+    ],
+    "gregtech/common/blocks/BlockCasings5": [
+      "7a45e0914a7aec77bd0b0d11f3331434d99938908021706a17e11d973a2be3a5",
+      "5ae9e25ef37e31967ec225bba4c353228e1d0a2312fada8f4259fca73858ad8d"
+    ],
+    "gregtech/common/blocks/BlockCasings8": [
+      "f0270087eb8e7e3bfb241fa7d717dbba62ded34616f3eeb3b74131606151b5cf"
+    ],
+    "gregtech/common/blocks/BlockCasingsAbstract": [
+      "398f3f275c1ffd737de58c587a712eb9f21ac12907a06edcccfa7f4a3edd3d03",
+      "0ed231223ff330a8d43612d8c64ae6cad43c42a189f0a1d59c8b98919343720f"
+    ],
+    "gregtech/common/items/ItemIntegratedCircuit": [
+      "501d88cf7488b02a83e38871c083d60bcc5134472280497bc7076f93dc08eb56",
+      "a1e3d527809320cc4ec1cea78d81002d2c46063d714e8c95b64f1b28c19f6029"
+    ],
+    "gregtech/common/items/MetaGeneratedItem01": [
+      "1b2111f4d150b76bf28e0825405acd188f98c44b0885927fc289cb1cb8b385ac",
+      "fba3038d2e3bcbd951762a4c6bc0afb13f6821e68b968b9bc6d3292cccf37d33"
+    ],
+    "gregtech/common/items/MetaGeneratedItem02": [
+      "6b60f8151ed411c58805e3e38e13180a8495cb43dfccbb137e190a98970a75d3",
+      "26e6cf815cc2c0b6d163e86ce1a8173d098d4451bf06d25d223e3504b28e713b"
+    ],
+    "gregtech/loaders/preload/LoaderGTBlockFluid": [
+      "7212b5a399020c15af4f8ca5971fbb258ab7ebff125d8a86db4e49be1f455e67",
+      "e1ba7cb0384dbd77800da60f84b872c64aceb40a0db32d1d195e9d9dea9fc354"
+    ],
+    "gregtech/loaders/preload/LoaderMetaPipeEntities": [
+      "17b5400ff9eb648f2e7ae60c269ec3019468911be4bcbe45bb704874933d9092",
+      "ca064e7d6bb2bda16dcd276f3f5974b2443c27b62cfe7d2f421da74672ba1f76"
+    ],
+    "gregtech/loaders/preload/LoaderMetaTileEntities": [
+      "051540ca6afc5e4da1e24f5e3b6a9dadb6759b5d3d113f969ffd22d9947cec3f",
+      "7ddfbb9f50e47de6c97f50fc26ffa6928edc88d7714075c503bb49d190a1ded9"
+    ],
+    "gtPlusPlus/GTplusplus": [
+      "af6b5b68fbbe9913996064b7eb9252fa2bde0b2b1fb239911a4d1c3627388a99"
+    ],
+    "gtPlusPlus/core/common/CommonProxy": [
+      "aa562873e6c6314c82134136957980da82f0ada57e4d0cd093ca09dbf2037441"
+    ],
+    "gtPlusPlus/core/handler/CompatHandler": [
+      "c3c1f20ec8c3933f07fb56a1305bd56947429c8e1caca7558f594dbfdbe99cd2",
+      "e5d0c20835318b8f004a477bde9c3a81df6c02bb94c8f935494c17fcb916966b"
+    ],
+    "gtPlusPlus/core/handler/CompatIntermodStaging": [
+      "d74700b76a2d9a0401c2ec61902f83af7ab24725cc1d2e6697b6f85c6c5be11d"
+    ],
+    "gtPlusPlus/xmod/gregtech/HandlerGT": [
+      "d041b93ee61eb40ddbb90db20ac49f9c718c22f153948db66241661f8b02debc"
+    ],
+    "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList": [
+      "5b92879194eb481c0ec05b2783cc50fa167fcc2ad0d07729906262d573f149e7",
+      "6344626b92ac7cf2cc9c63bd1a6891141dfcf008a587ca8cf49caa97b1db726c"
+    ],
+    "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks": [
+      "3426ab05cb64537dc634fc0b87f084004dc65f2ded2a5997d8413d75d64b8297"
+    ],
+    "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks2": [
+      "c60adffe73aea863fb5a27160ea09fe1bba6a16b3e3b272e02353344c04abc40",
+      "4cf8c2e0813b3314f5f76c492e519c8f77075ad7762aa43e79d87453349c1678"
+    ],
+    "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks3": [
+      "ffa2b33621610618a674befec5a4f51095ab1d77bf0b5b2b73b088cbb0f29a9a",
+      "cf957169278d3b0cddf9b488f75c80fa7347d79179cb0eddb242299ee07dfcb7"
+    ],
+    "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks4": [
+      "b3be9e56dfafdd34c37489b90194e8e324c6b563579eaad7079170e513d0673b"
+    ],
+    "gtPlusPlus/xmod/gregtech/loaders/GTPPBlocks": [
+      "26cf6c315938e12eb53fbcdbf092289fffa44a31d10880d1fdf6b2bb9838a227"
+    ],
+    "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechDehydrator": [
+      "03bd1ec5559bdfdbf34b549cc844a664c9b919b8ccf73404f2179c97fd7520b3"
+    ],
+    "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechFactoryGradeReplacementMultis": [
+      "65e7590debefa8caf6db422972fcfd723f5e6eb96e2486f7622b6e0dcaddff7a"
+    ],
+    "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialCentrifuge": [
+      "29311aebc561dd9a83f73bd9a8ce5a9f8d266b924a254e9135fbf5f2e6dfee6b"
+    ],
+    "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialElectrolyzer": [
+      "9ff0e507b6b9c585afab6afb2cad55fc95cf602810cb1da961c365f7f66a0a99"
+    ],
+    "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialMacerator": [
+      "aff2750599006e36f7003c2bad2a7821157d4977855ba977fa069e19e5450676"
+    ],
+    "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialSifter": [
+      "aa2d3895fcbe09051c43404eac9e7509a9df8c4d634aba7504f4e108ba382d00"
+    ],
+    "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialThermalCentrifuge": [
+      "efa31019e5afe7abf0c5575ef309ac4585d64a44a5a4060737e0fc846ad091fc"
+    ],
+    "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialWashPlant": [
+      "3d9179068a3e22633e12286f7952580bef8792381f105ebbca273dcb08ec081c"
+    ],
+    "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechSteamMultis": [
+      "251ac8fa2f815fb3263def21f31b7c1162325b3304d7cd797b3642fcde3a6e62"
+    ]
+  },
+  "enums": [
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_Bronze_Furnace",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerSteamMachines",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_Bronze_Macerator",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerSteamMachines",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_Multi_BlastFurnace",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerMultiblockControllers",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_Multi_Furnace",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerMultiblockControllers",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_Multi_LargeChemicalReactor",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerMultiblockControllers",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_Multi_IndustrialElectromagneticSeparator",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerMultiblockControllers",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_EV_ChemicalReactor",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerChemicalReactor",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_LV_FluidExtractor",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerFluidExtractor",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_HV_FluidExtractor",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerFluidExtractor",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_IV_FluidExtractor",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerFluidExtractor",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_HV_E_Furnace",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerElectricFurnace",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_MV_Electrolyzer",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerElectrolyzer",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_HV_Electrolyzer",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerElectrolyzer",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_MV_ElectromagneticSeparator",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerElectromagneticSeparator",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_HV_ElectromagneticSeparator",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerElectromagneticSeparator",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_LV_Extractor",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerExtractor",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_HV_Extractor",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerExtractor",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_IV_Extractor",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerExtractor",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_HV_Macerator",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerMacerator",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_HV_OreWasher",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerOreWashingPlant",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_HV_Sifter",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerSiftingMachine",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_MV_ThermalCentrifuge",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerThermalCentrifuge",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_HV_ThermalCentrifuge",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerThermalCentrifuge",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Machine_HV_Centrifuge",
+      "role": "direct",
+      "providerClass": "gregtech/loaders/preload/LoaderMetaTileEntities",
+      "providerMethod": "registerCentrifuge",
+      "write": "set",
+      "producer": "Reviewed NEW MTE or MTEBasicMachineWithRecipeBuilder.build -> getStackForm(1) -> ItemList.set; CommonMetaTileEntity registers the ID in METATILEENTITIES. sBlockMachines is registered first; ID/load-phase conflicts throw.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> LoaderMetaTileEntities.run (initial preInit; repeated-preload early return is not a missing registration)."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Electric_Motor_HV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Electric_Motor_HV.ID=602, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Electric_Motor_IV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Electric_Motor_IV.ID=604, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Electric_Piston_HV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Electric_Piston_HV.ID=642, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Electric_Piston_EV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Electric_Piston_EV.ID=643, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Electric_Piston_IV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Electric_Piston_IV.ID=644, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Electric_Pump_LV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Electric_Pump_LV.ID=610, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Electric_Pump_HV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Electric_Pump_HV.ID=612, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Electric_Pump_EV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Electric_Pump_EV.ID=613, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Electric_Pump_IV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Electric_Pump_IV.ID=614, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Electric_Pump_LuV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Electric_Pump_LuV.ID=615, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Conveyor_Module_HV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Conveyor_Module_HV.ID=632, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Conveyor_Module_IV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Conveyor_Module_IV.ID=634, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Robot_Arm_HV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Robot_Arm_HV.ID=652, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Robot_Arm_IV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Robot_Arm_IV.ID=654, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Sensor_HV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Sensor_HV.ID=692, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Sensor_IV",
+      "role": "direct",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Sensor_IV.ID=694, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Tool_DataStick",
+      "role": "support",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Tool_DataStick.ID=708, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Tool_DataOrb",
+      "role": "support",
+      "providerClass": "gregtech/common/items/MetaGeneratedItem01",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "Reviewed IDMetaItem01.Tool_DataOrb.ID=707, in addItem valid range 0..765; localization helper -> addItem -> registered MetaGeneratedItem stack at 32000+ID -> set. GTGenericItem registers this Item before subclass writes.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW MetaGeneratedItem01; reviewed component registration range has no bypass branch."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Circuit_Integrated",
+      "role": "support",
+      "providerClass": "gregtech/common/items/ItemIntegratedCircuit",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "GTGenericItem registers this actual Item, then ItemList.Circuit_Integrated.set(this); native getWithDamage(0,config) deliberately returns a zero-consumption selector. Module selector configurations 1..17 are within native 0..24.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW ItemIntegratedCircuit"
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Casing_BronzePlatedBricks",
+      "role": "direct",
+      "providerClass": "gregtech/common/blocks/BlockCasings1",
+      "providerMethod": "<init>",
+      "write": "register",
+      "producer": "Reviewed register(10, ItemList.Casing_BronzePlatedBricks) -> BlockCasingsAbstract.register -> new ItemStack(this,1,meta).copy -> IItemContainer.set. GTGenericBlock registers the Block/ItemBlock before subclass register calls.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW BlockCasings1; relevant constructors called unconditionally."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Casing_HeatProof",
+      "role": "direct",
+      "providerClass": "gregtech/common/blocks/BlockCasings1",
+      "providerMethod": "<init>",
+      "write": "register",
+      "producer": "Reviewed register(11, ItemList.Casing_HeatProof) -> BlockCasingsAbstract.register -> new ItemStack(this,1,meta).copy -> IItemContainer.set. GTGenericBlock registers the Block/ItemBlock before subclass register calls.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW BlockCasings1; relevant constructors called unconditionally."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Casing_SolidSteel",
+      "role": "direct",
+      "providerClass": "gregtech/common/blocks/BlockCasings2",
+      "providerMethod": "<init>",
+      "write": "register",
+      "producer": "Reviewed register(0, ItemList.Casing_SolidSteel) -> BlockCasingsAbstract.register -> new ItemStack(this,1,meta).copy -> IItemContainer.set. GTGenericBlock registers the Block/ItemBlock before subclass register calls.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW BlockCasings2; relevant constructors called unconditionally."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Casing_Gearbox_Bronze",
+      "role": "direct",
+      "providerClass": "gregtech/common/blocks/BlockCasings2",
+      "providerMethod": "<init>",
+      "write": "register",
+      "producer": "Reviewed register(2, ItemList.Casing_Gearbox_Bronze) -> BlockCasingsAbstract.register -> new ItemStack(this,1,meta).copy -> IItemContainer.set. GTGenericBlock registers the Block/ItemBlock before subclass register calls.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW BlockCasings2; relevant constructors called unconditionally."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Casing_Gearbox_TungstenSteel",
+      "role": "direct",
+      "providerClass": "gregtech/common/blocks/BlockCasings2",
+      "providerMethod": "<init>",
+      "write": "register",
+      "producer": "Reviewed register(5, ItemList.Casing_Gearbox_TungstenSteel) -> BlockCasingsAbstract.register -> new ItemStack(this,1,meta).copy -> IItemContainer.set. GTGenericBlock registers the Block/ItemBlock before subclass register calls.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW BlockCasings2; relevant constructors called unconditionally."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Casing_RobustTungstenSteel",
+      "role": "direct",
+      "providerClass": "gregtech/common/blocks/BlockCasings4",
+      "providerMethod": "<init>",
+      "write": "register",
+      "producer": "Reviewed register(0, ItemList.Casing_RobustTungstenSteel) -> BlockCasingsAbstract.register -> new ItemStack(this,1,meta).copy -> IItemContainer.set. GTGenericBlock registers the Block/ItemBlock before subclass register calls.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW BlockCasings4; relevant constructors called unconditionally."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Casing_Coil_Cupronickel",
+      "role": "direct",
+      "providerClass": "gregtech/common/blocks/BlockCasings5",
+      "providerMethod": "<init>",
+      "write": "register",
+      "producer": "Reviewed register(0, ItemList.Casing_Coil_Cupronickel) -> BlockCasingsAbstract.register -> new ItemStack(this,1,meta).copy -> IItemContainer.set. GTGenericBlock registers the Block/ItemBlock before subclass register calls.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW BlockCasings5; relevant constructors called unconditionally."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Casing_Coil_Nichrome",
+      "role": "direct",
+      "providerClass": "gregtech/common/blocks/BlockCasings5",
+      "providerMethod": "<init>",
+      "write": "register",
+      "producer": "Reviewed register(2, ItemList.Casing_Coil_Nichrome) -> BlockCasingsAbstract.register -> new ItemStack(this,1,meta).copy -> IItemContainer.set. GTGenericBlock registers the Block/ItemBlock before subclass register calls.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW BlockCasings5; relevant constructors called unconditionally."
+    },
+    {
+      "owner": "gregtech/api/enums/ItemList",
+      "field": "Casing_Chemically_Inert",
+      "role": "direct",
+      "providerClass": "gregtech/common/blocks/BlockCasings8",
+      "providerMethod": "<init>",
+      "write": "register",
+      "producer": "Reviewed register(0, ItemList.Casing_Chemically_Inert) -> BlockCasingsAbstract.register -> new ItemStack(this,1,meta).copy -> IItemContainer.set. GTGenericBlock registers the Block/ItemBlock before subclass register calls.",
+      "lifecycle": "GTMod.onPreInitialization -> LoaderGTBlockFluid.run -> NEW BlockCasings8; relevant constructors called unconditionally."
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Controller_SteamMaceratorMulti",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechSteamMultis",
+      "providerMethod": "run",
+      "write": "set",
+      "producer": "NEW MTESteamMacerator -> getStackForm(1) -> set; actual MTE ID/BlockMachines item, not a placeholder.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechSteamMultis.run"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Controller_SteamWasherMulti",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechSteamMultis",
+      "providerMethod": "run",
+      "write": "set",
+      "producer": "NEW MTESteamWasher -> getStackForm(1) -> set; actual MTE ID/BlockMachines item, not a placeholder.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechSteamMultis.run"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Controller_SteamCentrifugeMulti",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechSteamMultis",
+      "providerMethod": "run",
+      "write": "set",
+      "producer": "NEW MTESteamCentrifuge -> getStackForm(1) -> set; actual MTE ID/BlockMachines item, not a placeholder.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechSteamMultis.run"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Controller_SteamFurnaceMulti",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechSteamMultis",
+      "providerMethod": "run",
+      "write": "set",
+      "producer": "NEW MTESteamFurnaceMulti -> getStackForm(1) -> set; actual MTE ID/BlockMachines item, not a placeholder.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechSteamMultis.run"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Hatch_Input_Bus_Steam",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechSteamMultis",
+      "providerMethod": "run",
+      "write": "set",
+      "producer": "NEW MTEHatchSteamBusInput -> getStackForm(1) -> set; actual MTE ID/BlockMachines item, not a placeholder.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechSteamMultis.run"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Hatch_Output_Bus_Steam",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechSteamMultis",
+      "providerMethod": "run",
+      "write": "set",
+      "producer": "NEW MTEHatchSteamBusOutput -> getStackForm(1) -> set; actual MTE ID/BlockMachines item, not a placeholder.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechSteamMultis.run"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Industrial_MacerationStack",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialMacerator",
+      "providerMethod": "run",
+      "write": "set",
+      "producer": "Reviewed real MTEIndustrialMaceratorLegacy construction/build -> getStackForm(1) -> set. Legacy in a type name does not mean the registered controller is absent.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechIndustrialMacerator.run -> run"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Industrial_WashPlant",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialWashPlant",
+      "providerMethod": "run1",
+      "write": "set",
+      "producer": "Reviewed real MTEIndustrialWashPlantLegacy construction/build -> getStackForm(1) -> set. Legacy in a type name does not mean the registered controller is absent.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechIndustrialWashPlant.run -> run1"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Industrial_Sifter",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialSifter",
+      "providerMethod": "run1",
+      "write": "set",
+      "producer": "Reviewed real MTEIndustrialSifterLegacy construction/build -> getStackForm(1) -> set. Legacy in a type name does not mean the registered controller is absent.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechIndustrialSifter.run -> run1"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Industrial_Centrifuge",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialCentrifuge",
+      "providerMethod": "run1",
+      "write": "set",
+      "producer": "Reviewed real MTEIndustrialCentrifugeLegacy construction/build -> getStackForm(1) -> set. Legacy in a type name does not mean the registered controller is absent.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechIndustrialCentrifuge.run -> run1"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Industrial_Electrolyzer",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialElectrolyzer",
+      "providerMethod": "run1",
+      "write": "set",
+      "producer": "Reviewed real MTEIndustrialElectrolyzerLegacy construction/build -> getStackForm(1) -> set. Legacy in a type name does not mean the registered controller is absent.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechIndustrialElectrolyzer.run -> run1"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Industrial_ThermalCentrifuge",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechIndustrialThermalCentrifuge",
+      "providerMethod": "run1",
+      "write": "set",
+      "producer": "Reviewed real MTEIndustrialThermalCentrifugeLegacy construction/build -> getStackForm(1) -> set. Legacy in a type name does not mean the registered controller is absent.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechIndustrialThermalCentrifuge.run -> run1"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Machine_Adv_BlastFurnace",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechFactoryGradeReplacementMultis",
+      "providerMethod": "run1",
+      "write": "set",
+      "producer": "Reviewed real MTEAdvEBF construction/build -> getStackForm(1) -> set. Legacy in a type name does not mean the registered controller is absent.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechFactoryGradeReplacementMultis.run -> run1"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Controller_Vacuum_Furnace",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechDehydrator",
+      "providerMethod": "registerMTEs",
+      "write": "set",
+      "producer": "Reviewed real MTEIndustrialDehydrator construction/build -> getStackForm(1) -> set. Legacy in a type name does not mean the registered controller is absent.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechDehydrator.run -> registerMTEs"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "GT_Dehydrator_IV",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/registration/gregtech/GregtechDehydrator",
+      "providerMethod": "registerMTEs",
+      "write": "set",
+      "producer": "Reviewed real MTEBasicMachineWithRecipeBuilder.build construction/build -> getStackForm(1) -> set. Legacy in a type name does not mean the registered controller is absent.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> CompatHandler.registerGregtechMachines; reviewed relevant calls have no config/mod-presence gate. -> GregtechDehydrator.run -> registerMTEs"
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Casing_Centrifuge1",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "new ItemStack(this,1,0) -> set. Super chain reaches GTGenericBlock/GameRegistry.registerBlock before this constructor writes the enum.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> GTPPBlocks.run -> registered casing constructor."
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Casing_Electrolyzer",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "new ItemStack(this,1,5) -> set. Super chain reaches GTGenericBlock/GameRegistry.registerBlock before this constructor writes the enum.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> GTPPBlocks.run -> registered casing constructor."
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Casing_MacerationStack",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "new ItemStack(this,1,7) -> set. Super chain reaches GTGenericBlock/GameRegistry.registerBlock before this constructor writes the enum.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> GTPPBlocks.run -> registered casing constructor."
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Casing_ThermalCentrifuge",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks2",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "new ItemStack(this,1,0) -> set. Super chain reaches GTGenericBlock/GameRegistry.registerBlock before this constructor writes the enum.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> GTPPBlocks.run -> registered casing constructor."
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Casing_WashPlant",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks2",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "new ItemStack(this,1,4) -> set. Super chain reaches GTGenericBlock/GameRegistry.registerBlock before this constructor writes the enum.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> GTPPBlocks.run -> registered casing constructor."
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Casing_Sifter",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks2",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "new ItemStack(this,1,5) -> set. Super chain reaches GTGenericBlock/GameRegistry.registerBlock before this constructor writes the enum.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> GTPPBlocks.run -> registered casing constructor."
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Casing_SifterGrate",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks2",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "new ItemStack(this,1,6) -> set. Super chain reaches GTGenericBlock/GameRegistry.registerBlock before this constructor writes the enum.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> GTPPBlocks.run -> registered casing constructor."
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Casing_Adv_BlastFurnace",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks3",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "new ItemStack(this,1,11) -> set. Super chain reaches GTGenericBlock/GameRegistry.registerBlock before this constructor writes the enum.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> GTPPBlocks.run -> registered casing constructor."
+    },
+    {
+      "owner": "gtPlusPlus/xmod/gregtech/api/enums/GregtechItemList",
+      "field": "Casing_Vacuum_Furnace",
+      "role": "direct",
+      "providerClass": "gtPlusPlus/xmod/gregtech/common/blocks/GregtechMetaCasingBlocks4",
+      "providerMethod": "<init>",
+      "write": "set",
+      "producer": "new ItemStack(this,1,10) -> set. Super chain reaches GTGenericBlock/GameRegistry.registerBlock before this constructor writes the enum.",
+      "lifecycle": "GTplusplus.init -> CommonProxy.init -> CompatIntermodStaging.init -> HandlerGT.init -> GTPPBlocks.run -> registered casing constructor."
+    },
+    {
+      "owner": "com/miaokatze/gtsr/common/api/enums/GTSRItemList",
+      "field": "SteamEntangledSingularity",
+      "role": "direct",
+      "providerClass": "com/miaokatze/gtsr/loader/ItemLoader",
+      "providerMethod": "registerSteamEntangledSingularity",
+      "write": "setAndRegister",
+      "producer": "NEW SteamEntangledSingularity -> GameRegistry.registerItem -> setAndRegister",
+      "lifecycle": "CommonProxy.preInit -> ItemLoader.initItems -> registerSteamEntangledSingularity"
+    },
+    {
+      "owner": "com/miaokatze/gtsr/common/api/enums/GTSRItemList",
+      "field": "KineticProcessingArray",
+      "role": "direct",
+      "providerClass": "com/miaokatze/gtsr/loader/MachineLoader",
+      "providerMethod": "registerAllMachines",
+      "write": "set",
+      "producer": "NEW MTEKineticProcessingArray -> native MTE registration -> set",
+      "lifecycle": "CommonProxy.preInit schedules sAfterGTPreload -> MachineLoader.initMachines -> registerAllMachines before recipe callback"
+    },
+    {
+      "owner": "com/miaokatze/gtsr/common/api/enums/GTSRItemList",
+      "field": "OreIntegrationCenter",
+      "role": "direct",
+      "providerClass": "com/miaokatze/gtsr/loader/MachineLoader",
+      "providerMethod": "registerAllMachines",
+      "write": "set",
+      "producer": "NEW MTEMineralIntegrationCenter -> native MTE registration -> set; REGISTRATION_ENABLED=true and same condition guards its recipe group",
+      "lifecycle": "CommonProxy.preInit schedules sAfterGTPreload -> MachineLoader.initMachines -> registerAllMachines; postInit recipe callback runs later"
+    }
+  ],
+  "ores": [
+    {
+      "prefix": "bolt",
+      "material": "Steel",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "bolt",
+      "material": "Titanium",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "circuit",
+      "material": "EV",
+      "evidence": "MetaGeneratedItem01.<init> custom circuits explicitly supply circuit/Materials tier ore data through native addItem; tier entries MV/HV/EV/IV/LuV reviewed in exact .277."
+    },
+    {
+      "prefix": "circuit",
+      "material": "HV",
+      "evidence": "MetaGeneratedItem01.<init> custom circuits explicitly supply circuit/Materials tier ore data through native addItem; tier entries MV/HV/EV/IV/LuV reviewed in exact .277."
+    },
+    {
+      "prefix": "circuit",
+      "material": "IV",
+      "evidence": "MetaGeneratedItem01.<init> custom circuits explicitly supply circuit/Materials tier ore data through native addItem; tier entries MV/HV/EV/IV/LuV reviewed in exact .277."
+    },
+    {
+      "prefix": "circuit",
+      "material": "LuV",
+      "evidence": "MetaGeneratedItem01.<init> custom circuits explicitly supply circuit/Materials tier ore data through native addItem; tier entries MV/HV/EV/IV/LuV reviewed in exact .277."
+    },
+    {
+      "prefix": "circuit",
+      "material": "MV",
+      "evidence": "MetaGeneratedItem01.<init> custom circuits explicitly supply circuit/Materials tier ore data through native addItem; tier entries MV/HV/EV/IV/LuV reviewed in exact .277."
+    },
+    {
+      "prefix": "frameGt",
+      "material": "Bronze",
+      "evidence": "LoaderMetaPipeEntities.registerFrames -> BlockFrameBox + GTOreDictUnificator.registerOre; material generation conditions apply."
+    },
+    {
+      "prefix": "frameGt",
+      "material": "StainlessSteel",
+      "evidence": "LoaderMetaPipeEntities.registerFrames -> BlockFrameBox + GTOreDictUnificator.registerOre; material generation conditions apply."
+    },
+    {
+      "prefix": "frameGt",
+      "material": "TungstenSteel",
+      "evidence": "LoaderMetaPipeEntities.registerFrames -> BlockFrameBox + GTOreDictUnificator.registerOre; material generation conditions apply."
+    },
+    {
+      "prefix": "gearGt",
+      "material": "Bronze",
+      "evidence": "MetaGeneratedItem02.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "gearGt",
+      "material": "TungstenSteel",
+      "evidence": "MetaGeneratedItem02.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "pipeLarge",
+      "material": "Bronze",
+      "evidence": "LoaderMetaPipeEntities.registerFluidPipes -> FluidPipeBuilder.build includes Bronze/Titanium/PTFE and large-pipe prefix; native pipe registration produces actual stacks."
+    },
+    {
+      "prefix": "pipeLarge",
+      "material": "Polytetrafluoroethylene",
+      "evidence": "LoaderMetaPipeEntities.registerFluidPipes -> FluidPipeBuilder.build includes Bronze/Titanium/PTFE and large-pipe prefix; native pipe registration produces actual stacks."
+    },
+    {
+      "prefix": "pipeLarge",
+      "material": "Titanium",
+      "evidence": "LoaderMetaPipeEntities.registerFluidPipes -> FluidPipeBuilder.build includes Bronze/Titanium/PTFE and large-pipe prefix; native pipe registration produces actual stacks."
+    },
+    {
+      "prefix": "plate",
+      "material": "Bronze",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "plate",
+      "material": "Steel",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "plate",
+      "material": "Titanium",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "plate",
+      "material": "TungstenSteel",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "plateDouble",
+      "material": "Bronze",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "ring",
+      "material": "Bronze",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "ring",
+      "material": "StainlessSteel",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "ring",
+      "material": "TungstenSteel",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "rotor",
+      "material": "Bronze",
+      "evidence": "MetaGeneratedItem02.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "rotor",
+      "material": "StainlessSteel",
+      "evidence": "MetaGeneratedItem02.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "rotor",
+      "material": "TungstenSteel",
+      "evidence": "MetaGeneratedItem02.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "stick",
+      "material": "NeodymiumMagnetic",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "stick",
+      "material": "Steel",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    },
+    {
+      "prefix": "stick",
+      "material": "SteelMagnetic",
+      "evidence": "MetaGeneratedItem01.<init> includes prefix; MetaGeneratedItemX32 checks generated material, parent mod, bits, exclusions and generation condition before native add/registerOre. A source path is not proof that arbitrary runtime configuration enables the material."
+    }
+  ],
+  "fluids": [
+    {
+      "material": "SolderingAlloy",
+      "getter": "getMolten",
+      "amount": 1440,
+      "evidence": "LoaderGTBlockFluid.run includes SolderingAlloy in native molten registration; buildAndRegister/configureMaterials supplies native molten field before recipe callback. Runtime amount/registry validity checked separately."
+    },
+    {
+      "material": "Lubricant",
+      "getter": "getFluid",
+      "amount": 1000,
+      "evidence": "LoaderGTBlockFluid.run builds/registers lubricant and configures Materials.Lubricant before recipe callback. Runtime amount/registry validity checked separately."
+    }
+  ]
+}
