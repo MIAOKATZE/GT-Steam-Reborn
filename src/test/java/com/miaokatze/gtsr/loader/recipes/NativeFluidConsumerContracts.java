@@ -349,8 +349,20 @@ public final class NativeFluidConsumerContracts {
                 "definition refresh retains completed and claimed state");
             writeStamp.invoke(null, Tags.VERSION);
             check(!(Boolean) needsRefresh.invoke(null), "new definition revision makes repeat startup idempotent");
+            BQ_Settings.curWorldDir = directory.resolve("cold/betterquesting")
+                .toFile();
+            writeStamp.invoke(null, Tags.VERSION);
+            check(
+                Files.isRegularFile(directory.resolve("cold/betterquesting/gtsr-injected.json")),
+                "first startup creates the missing BQ directory before publishing its stamp");
+            check(
+                !(Boolean) needsRefresh.invoke(null),
+                "cold-start stamp reads back without a repeated definition refresh");
         } finally {
             BQ_Settings.curWorldDir = previous;
+            Files.deleteIfExists(directory.resolve("cold/betterquesting/gtsr-injected.json"));
+            Files.deleteIfExists(directory.resolve("cold/betterquesting"));
+            Files.deleteIfExists(directory.resolve("cold"));
             Files.deleteIfExists(stamp);
             Files.delete(directory);
         }

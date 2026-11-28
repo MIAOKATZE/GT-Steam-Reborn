@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -394,8 +395,15 @@ public final class BqQuestInjector {
         JsonObject o = new JsonObject();
         o.addProperty("version", version);
         o.addProperty("definitionRevision", DEFINITION_REVISION);
-        try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
-            new Gson().toJson(o, w);
+        try {
+            // BQ may create its world directory only on the first save, after ServerStarted injection.
+            Files.createDirectories(
+                f.toPath()
+                    .toAbsolutePath()
+                    .getParent());
+            try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
+                new Gson().toJson(o, w);
+            }
         } catch (Exception e) {
             GTSteamReborn.LOG.warn("[BQ] 版本戳写入失败（下次启动可能重复刷新一次定义）", e);
         }
