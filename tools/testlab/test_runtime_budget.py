@@ -39,7 +39,7 @@ class RuntimeBudgetTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 ore.memory_budget()
 
-    def test_client_checks_five_gib_before_acquiring_native_lease(self):
+    def test_client_checks_five_gib_before_launch_preparation(self):
         for available in (5 * 1024**3 - 1, 5 * 1024**3):
             with self.subTest(available=available), tempfile.TemporaryDirectory() as temp, ExitStack() as stack:
                 root = Path(temp).resolve()
@@ -58,17 +58,16 @@ class RuntimeBudgetTests(unittest.TestCase):
                 args = ['run.py', '--workspace', str(workspace), '--client-sandbox', str(fixture),
                         '--owner-host-run', 'host-run', '--jar', str(jar), '--run', 'budget']
                 stack.enter_context(patch.object(client, 'ROOT', root))
-                stack.enter_context(patch.object(client, 'LEASE', root / 'native.lease'))
                 stack.enter_context(patch.object(client, 'OUT', workspace))
                 stack.enter_context(patch.object(client, 'FIXTURE', fixture))
                 stack.enter_context(patch.object(sys, 'argv', args))
                 stack.enter_context(patch.object(host, 'find_registered', return_value={}))
                 java = stack.enter_context(patch.object(host, 'require_java26'))
                 stack.enter_context(patch.object(host, 'available_memory', return_value=available))
-                acquire = stack.enter_context(patch.object(client.os, 'open', side_effect=RuntimeError('lease boundary')))
+                acquire = stack.enter_context(patch.object(Path, 'write_text', side_effect=RuntimeError('launch preparation boundary')))
                 with self.assertRaises(RuntimeError) as error:
                     client.main()
-                self.assertEqual(str(error.exception) == 'lease boundary', available == 5 * 1024**3)
+                self.assertEqual(str(error.exception) == 'launch preparation boundary', available == 5 * 1024**3)
                 java.assert_called_once_with('java.exe')
                 self.assertEqual(acquire.call_count, int(available == 5 * 1024**3))
 

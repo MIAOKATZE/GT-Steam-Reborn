@@ -5,7 +5,6 @@ import argparse, ctypes, hashlib, json, os, re, shutil, subprocess, time
 ROOT=Path(__file__).resolve().parents[3]
 OUT=ROOT/'build/mui2-client-qa'
 FIXTURE=ROOT/'build/client-testlab-mui2'
-LEASE=ROOT.parent/'.gtsr-native-server.lease'
 
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def read_json(p):return json.loads(Path(p).read_text(encoding='utf-8-sig'))
@@ -54,9 +53,8 @@ def main():
     if not 2<=a.render_distance<=16:raise ValueError('Require render distance2..16')
     host.require_java26(spec['command'][0])
     available=host.require_memory();required=host.required_memory()
-    preflight=dict(availableBytes=available,requiredBytes=required,heapGiB=host.HEAP_GIB,reserveGiB=host.SYSTEM_RESERVE_GIB,renderDistance=a.render_distance,leaseExists=LEASE.exists(),state='PRECHECK')
+    preflight=dict(availableBytes=available,requiredBytes=required,heapGiB=host.HEAP_GIB,reserveGiB=host.SYSTEM_RESERVE_GIB,renderDistance=a.render_distance,leaseExists=host_lease.exists(),state='PRECHECK')
     (result/'preflight.json').write_text(json.dumps(preflight,indent=2),encoding='utf-8')
-    fd=os.open(LEASE,os.O_CREAT|os.O_EXCL|os.O_WRONLY);lease_token=dict(pid=os.getpid(),fixture=str(FIXTURE),run=a.run,created=time.time());os.write(fd,json.dumps(lease_token).encode('utf-8'));os.close(fd)
     owned_world=None;installed_helper=FIXTURE/'mods/gtsr-mui2-qa-owned-only.jar';helper_owned=False
     proc=None;desktop=None;payload=None;options=FIXTURE/'options.txt';original_options=options.read_bytes() if options.exists() else None;receipt=dict(status='PREPARED',sourceJar=str(a.jar.resolve()),candidateSHA256=sha(a.jar),helperSHA256=sha(helper),inputType='Synthetic actual ModularScreen hit-test/key/drag dispatch, lwjgl3ify injectTextEvent, legacy GuiScreen.keyTyped and native PlayerController.windowClick; physical mouse/keyboard/IME NOT_RUN',mode='Real full client with integrated server',forcedStop=False,qaMode=a.mode)
     scoped_backups={}
@@ -220,9 +218,7 @@ def main():
                     receipt.update(status='ERROR',worldCleanupError=str(error))
                     host.write(FIXTURE/'.testlab-host/business-recovery-pending.json',dict(runId=a.run,world=str(owned_world),evidence=str(result)))
         (result/'receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')
-        if proc is None or proc.poll() is not None:
-            if LEASE.exists() and read_json(LEASE).get('pid')==os.getpid():LEASE.unlink()
-        else:print('Owned process remains alive; lease retained for explicit recovery',flush=True)
+        if proc is not None and proc.poll() is None:print('Owned process remains alive; host lease retained for explicit recovery',flush=True)
         if desktop and (proc is None or proc.poll() is not None):
             receipt['hiddenDesktop']['handleClosed']=bool(user32.CloseDesktop(desktop))
             (result/'receipt.json').write_text(json.dumps(receipt,indent=2),encoding='utf-8')

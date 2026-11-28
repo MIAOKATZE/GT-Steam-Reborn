@@ -371,7 +371,7 @@ def main():
     parser.add_argument("--sandbox", type=Path, help="Existing historical owned sandbox; never prepared implicitly")
     parser.add_argument("--legacy-sandbox", action="store_true", help="Explicit compatibility with an existing owned sandbox")
     parser.add_argument("--registry", type=Path, default=ROOT.parent / 'plan/testlab-instances.json')
-    parser.add_argument("--bundle", type=Path, default=ROOT.parent / '.artifacts/testlab-system-optimization/delivery/bundle.json')
+    parser.add_argument("--bundle", type=Path, help="Explicit candidate bundle; otherwise use the current GTSR/Core configuration")
     parser.add_argument("--case", default="all")
     parser.add_argument("--execute", action="store_true", help="Without this flag only produce a read-only plan")
     parser.add_argument("--instance", type=Path)
@@ -382,7 +382,7 @@ def main():
     parser.add_argument("--java", type=Path)
     parser.add_argument("--motion-shape", action="store_true",
                         help="Use the opt-in new Air/Atmos shape fixture; the default tests legacy shapes")
-    parser.add_argument("--xmx-gib", type=int, choices=[3, 4, 6, 8], default=3)
+    parser.add_argument("--xmx-gib", type=int, choices=[4], default=4)
     parser.add_argument("--deadline", type=int, default=1800)
     parser.add_argument("--wait-memory-seconds", type=int, default=600)
     parser.add_argument("--expect-disabled", action="store_true",
@@ -419,7 +419,7 @@ def main():
         if not any(x['modId'] == 'gtsr' and host.sha(args.jar) == x['sha256'] for x in selected):
             parser.error('--jar must be the complete testlab variant from bundle')
     argv = ['doctor' if args.action == 'prepare' else 'run', '--module', 'gtsr', '--registry', str(args.registry),
-            '--bundle', str(args.bundle), '--case', args.case, '--heap-mib', str(args.xmx_gib * 1024), '--timeout', str(args.deadline)]
+            *(['--bundle', str(args.bundle)] if args.bundle else []), '--case', args.case, '--heap-mib', str(args.xmx_gib * 1024), '--timeout', str(args.deadline)]
     if args.execute and args.action == 'run':
         argv.append('--execute')
     raise SystemExit(host.main(argv))
