@@ -43,4 +43,25 @@ final class MaterialIdFileStore {
                 throw new IOException("Published mapping verification failed");
         }
     }
+
+    static void requireUnchanged(Path source, byte[] expected) throws IOException {
+        if (Files.isSymbolicLink(source)) throw new IOException("Symbolic-link source rejected");
+        byte[] current = Files.exists(source) ? Files.readAllBytes(source) : null;
+        if (!Arrays.equals(expected, current)) throw new IOException("Mapping changed after preflight: " + source);
+    }
+
+    static void publishWithReadOnlySource(Path target, byte[] expected, byte[] replacement, Path source,
+        byte[] sourceBytes) throws IOException {
+        if (target.toAbsolutePath()
+            .normalize()
+            .equals(
+                source.toAbsolutePath()
+                    .normalize()))
+            throw new IOException("V2 target must differ from read-only historical source");
+        publish(target, expected, replacement, (path, contents) -> {
+            requireUnchanged(source, sourceBytes);
+            AtomicFilePublisher.publishAtomic(path, contents);
+            requireUnchanged(source, sourceBytes);
+        });
+    }
 }

@@ -20,6 +20,7 @@ import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
+import com.miaokatze.gtsr.common.dimension.prosperity.fluid.ProsperityFluidContainers;
 import com.miaokatze.gtsr.common.dimension.prosperity.industrial.IndustrialRecipeLedger;
 import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialMaterials;
 import com.miaokatze.miaokatzecore.api.items.ItemOrderCatalog;
@@ -110,7 +111,11 @@ public final class GTSRItemOrderCatalog {
         result.addAll(ordinary);
         appendEntries(result, dimension, DIMENSION_ENTRIES);
         result.addAll(dimension);
-        result.addAll(generatedDimensionItems());
+        for (ItemStack generated : generatedDimensionItems()) {
+            // Core .31 owns Item/Damage, not NBT. IC2 owns the shared cell item; its native
+            // subitems supply fluid variants without claiming every fluid cell for GTSR.
+            if (!isNativeCell(generated)) appendUnique(result, generated);
+        }
         return result;
     }
 
@@ -124,7 +129,7 @@ public final class GTSRItemOrderCatalog {
     }
 
     /**
-     * NEI 专用的自有 GT 生成项。只查注册声明的粉三形态或 Cell，以及真实流体 display；
+     * NEI 专用的自有粉三形态、原生流体 display 与 NBT 通用单元；旧 cell 只纳入真实登记的兼容形态。
      * 不扫描 OrePrefixes，不接受矿辞替代品，不将潜在但尚未生成的形式塞进创造页。
      */
     public static List<ItemStack> generatedDimensionItems() {
@@ -135,8 +140,8 @@ public final class GTSRItemOrderCatalog {
             GTSRProsperityAirMaterials.AbyssalObsession, GTSRProsperityAirMaterials.WitheredBreath }) {
             if (material == null) continue;
             appendGenerated(result, material, OrePrefixes.cell);
-            appendFluidDisplay(result, material.getGas(1));
-            appendFluidDisplay(result, material.getFluid(1));
+            appendFluidForms(result, material.getGas(1));
+            appendFluidForms(result, material.getFluid(1));
         }
         for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {
             Materials material;
@@ -152,10 +157,26 @@ public final class GTSRItemOrderCatalog {
                 appendGenerated(result, material, OrePrefixes.dust);
             } else {
                 appendGenerated(result, material, OrePrefixes.cell);
-                appendFluidDisplay(result, "gas".equals(definition.phase) ? material.getGas(1) : material.getFluid(1));
+                appendFluidForms(result, "gas".equals(definition.phase) ? material.getGas(1) : material.getFluid(1));
             }
         }
         return result;
+    }
+
+    private static void appendFluidForms(List<ItemStack> items, FluidStack fluid) {
+        if (fluid == null || FluidRegistry.getFluid(
+            fluid.getFluid()
+                .getName())
+            != fluid.getFluid()) return;
+        appendFluidDisplay(items, fluid);
+        if (!ItemList.Cell_Universal_Fluid.hasBeenSet() || ItemList.Cell_Universal_Fluid.getItem() == null) return;
+        FluidStack contents = fluid.copy();
+        contents.amount = 1000;
+        appendUnique(items, ProsperityFluidContainers.filledCell(contents));
+    }
+
+    private static boolean isNativeCell(ItemStack stack) {
+        return ItemList.Cell_Universal_Fluid.hasBeenSet() && stack.getItem() == ItemList.Cell_Universal_Fluid.getItem();
     }
 
     private static void appendGenerated(List<ItemStack> items, Materials material, OrePrefixes prefix) {
@@ -199,10 +220,12 @@ public final class GTSRItemOrderCatalog {
     public static boolean isDimensionItem(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return false;
         if (stack.getItem() instanceof MetaGeneratedItemX32
-            || (ItemList.Display_Fluid.hasBeenSet() && stack.getItem() == ItemList.Display_Fluid.getItem())) {
+            || (ItemList.Display_Fluid.hasBeenSet() && stack.getItem() == ItemList.Display_Fluid.getItem())
+            || (ItemList.Cell_Universal_Fluid.hasBeenSet()
+                && stack.getItem() == ItemList.Cell_Universal_Fluid.getItem())) {
             for (ItemStack generated : generatedDimensionItems()) {
-                if (generated.getItem() == stack.getItem() && generated.getItemDamage() == stack.getItemDamage())
-                    return true;
+                if (generated.getItem() == stack.getItem() && generated.getItemDamage() == stack.getItemDamage()
+                    && ItemStack.areItemStackTagsEqual(generated, stack)) return true;
             }
         }
         for (GTSRItemList entry : DIMENSION_ENTRIES) {
@@ -263,7 +286,8 @@ public final class GTSRItemOrderCatalog {
     private static void appendUnique(List<ItemStack> items, ItemStack stack) {
         if (stack == null || stack.getItem() == null) return;
         for (ItemStack item : items) {
-            if (item.getItem() == stack.getItem() && item.getItemDamage() == stack.getItemDamage()) return;
+            if (item.getItem() == stack.getItem() && item.getItemDamage() == stack.getItemDamage()
+                && ItemStack.areItemStackTagsEqual(item, stack)) return;
         }
         items.add(stack.copy());
     }

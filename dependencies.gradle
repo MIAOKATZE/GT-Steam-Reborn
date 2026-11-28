@@ -77,6 +77,13 @@ dependencies {
     // BetterQuesting：任务线运行时注入（crossmod/bq/BqQuestInjector，按 assets/gtsr/bqquests/index.json 清单装载）。
     // 仅编译期依赖；运行时 BQ 缺席时经 BqCompat 探测静默停用（BqCompat/BqQuestInjector 不加载 BQ 类）。
     compileOnly("com.github.GTNewHorizons:BetterQuesting:3.8.94-GTNH:dev") { transitive = false }
+    // Native fluid contracts exercise BQ's real NBT retrieval matching, not a placeholder matcher.
+    testCompileOnly("com.github.GTNewHorizons:BetterQuesting:3.8.94-GTNH:dev") { transitive = false }
+
+    // Optional fixture input: use the selected instance's exact IC2 implementation, remapped by RFG.
+    // It is test-only and is never copied into ordinary, dev or sources delivery jars.
+    def nativeFluidIc2 = project.findProperty("nativeFluidContractIc2Jar")
+    if (nativeFluidIc2) testRuntimeOnly(rfg.deobf(project.files(nativeFluidIc2)))
 
     // UniMixins is automatically included by the GTNH build script because usesMixins = true in gradle.properties.
     // No need to declare it manually.

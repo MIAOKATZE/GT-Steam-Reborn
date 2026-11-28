@@ -44,6 +44,7 @@ public final class GTSRTooltipCatalog {
 
     private static final String PREFIX = "gtsr.tooltip.catalog.";
     private static final Map<Item, Map<Integer, Generated>> GENERATED = new IdentityHashMap<>();
+    private static final Map<Fluid, Generated> NATIVE_CELLS = new IdentityHashMap<>();
     private static final Map<Item, Set<Integer>> MACHINES = new IdentityHashMap<>();
 
     private static final class Generated {
@@ -63,6 +64,7 @@ public final class GTSRTooltipCatalog {
     /** Called after GT has generated its materials. The authoritative NEI catalog supplies the exact stacks. */
     public static void initialize() {
         GENERATED.clear();
+        NATIVE_CELLS.clear();
         MACHINES.clear();
         for (GTSRItemList entry : GTSRItemList.values()) {
             if (!entry.hasBeenSet() || entry.getItem() == null) continue;
@@ -73,7 +75,13 @@ public final class GTSRTooltipCatalog {
             Fluid fluid = null;
             String key;
             String form;
-            if (ItemList.Display_Fluid.hasBeenSet() && stack.getItem() == ItemList.Display_Fluid.getItem()) {
+            if (isNativeCell(stack)) {
+                FluidStack decoded = GTUtility.getFluidForFilledItem(stack, true);
+                if (decoded == null || decoded.amount != 1000) continue;
+                fluid = decoded.getFluid();
+                NATIVE_CELLS.put(fluid, new Generated(fluid, fluidPurpose(fluid), "cell"));
+                continue;
+            } else if (ItemList.Display_Fluid.hasBeenSet() && stack.getItem() == ItemList.Display_Fluid.getItem()) {
                 FluidStack decoded = GTUtility.getFluidFromDisplayStack(stack);
                 if (decoded == null) continue;
                 fluid = decoded.getFluid();
@@ -131,6 +139,11 @@ public final class GTSRTooltipCatalog {
     /** Null means foreign: the event must leave every original line untouched. Empty means brand only. */
     public static List<String> descriptionKeys(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return null;
+        if (isNativeCell(stack)) {
+            FluidStack contents = GTUtility.getFluidForFilledItem(stack, true);
+            Generated cell = contents == null || contents.amount <= 0 ? null : NATIVE_CELLS.get(contents.getFluid());
+            return cell == null ? null : generatedKeys(cell);
+        }
         Map<Integer, Generated> forms = GENERATED.get(stack.getItem());
         Generated generated = forms == null ? null : forms.get(stack.getItemDamage());
         if (generated != null) {
@@ -141,9 +154,7 @@ public final class GTSRTooltipCatalog {
                     || decoded.getFluid() != generated.fluid
                     || stack.getItemDamage() != generated.fluid.getID()) return null;
             }
-            if (generated.key.startsWith("air."))
-                return keys(generated.key + ".source", generated.key + ".use", generated.form);
-            return keys(generated.key, generated.form);
+            return generatedKeys(generated);
         }
         GameRegistry.UniqueIdentifier id = GameRegistry.findUniqueIdentifierFor(stack.getItem());
         if (id == null || !"gtsr".equals(id.modId)) {
@@ -165,6 +176,16 @@ public final class GTSRTooltipCatalog {
             // Existing chip, catalyst, beacon, terminal and weapon classes retain their actual use/NBT text.
             default -> Collections.emptyList();
         };
+    }
+
+    private static boolean isNativeCell(ItemStack stack) {
+        return ItemList.Cell_Universal_Fluid.hasBeenSet() && stack.getItem() == ItemList.Cell_Universal_Fluid.getItem();
+    }
+
+    private static List<String> generatedKeys(Generated generated) {
+        if (generated.key.startsWith("air."))
+            return keys(generated.key + ".source", generated.key + ".use", generated.form);
+        return keys(generated.key, generated.form);
     }
 
     private static List<String> blockKeys(Block block, String name) {

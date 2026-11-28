@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fluids.FluidContainerRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
 import com.google.gson.Gson;
@@ -32,6 +31,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.miaokatze.gtsr.Tags;
+import com.miaokatze.gtsr.common.dimension.prosperity.fluid.ProsperityFluidContainers;
 import com.miaokatze.gtsr.config.Config;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 import com.miaokatze.miaokatzecore.api.bq.QuestDefinitionPreflight;
@@ -50,8 +50,7 @@ import betterquesting.questing.QuestLineDatabase;
 import betterquesting.questing.QuestLineEntry;
 import cpw.mods.fml.common.Loader;
 import gregtech.api.enums.Materials;
-import gregtech.api.enums.OrePrefixes;
-import gregtech.api.util.GTOreDictUnificator;
+import gregtech.api.util.GTUtility;
 
 /**
  * BetterQuesting 运行时任务注入器。
@@ -93,6 +92,9 @@ public final class BqQuestInjector {
 
     /** 世界侧版本戳文件名（位于 BQ_Settings.curWorldDir 下），记录最近一次注入所用定义版本 */
     private static final String STAMP_FILE_NAME = "gtsr-injected.json";
+
+    /** Refresh old permissive cell definitions even when upgrading a build with the same mod version. */
+    private static final int DEFINITION_REVISION = 1;
 
     /** Only this UUID namespace is owned by the bundled pack; shared/foreign quests are not deletions. */
     private static final long MANAGED_QUEST_HIGH = 0x4754535200000000L;
@@ -352,8 +354,8 @@ public final class BqQuestInjector {
     }
 
     /**
-     * 版本戳判定：世界目录缺少版本戳文件（旧版注入器未写版本戳）或版本号
-     * 与当前构建 {@link Tags#VERSION} 不同时返回 true。
+     * 版本戳判定：缺文件、定义修订旧于当前容器合同，或版本号与当前构建
+     * {@link Tags#VERSION} 不同时返回 true；旧任务由原有进度快照/merge 路径更新。
      */
     private static boolean isDefinitionRefreshNeeded() {
         String stamped = readStamp();
@@ -373,6 +375,8 @@ public final class BqQuestInjector {
             1024)) {
             JsonObject o = new JsonParser().parse(br)
                 .getAsJsonObject();
+            if (!o.has("definitionRevision") || o.get("definitionRevision")
+                .getAsInt() != DEFINITION_REVISION) return null;
             return o.has("version") && o.get("version")
                 .isJsonPrimitive() ? o.get("version")
                     .getAsString() : null;
@@ -389,6 +393,7 @@ public final class BqQuestInjector {
         File f = new File(BQ_Settings.curWorldDir, STAMP_FILE_NAME);
         JsonObject o = new JsonObject();
         o.addProperty("version", version);
+        o.addProperty("definitionRevision", DEFINITION_REVISION);
         try (Writer w = new OutputStreamWriter(new FileOutputStream(f), StandardCharsets.UTF_8)) {
             new Gson().toJson(o, w);
         } catch (Exception e) {
@@ -419,12 +424,31 @@ public final class BqQuestInjector {
         QuestDefinitionPreflight.validateJsonIds(element);
     }
 
-    /** Resolve only GTSR's explicitly marked targets after GT has registered its material cells. */
+    /** Resolve only GTSR's six explicitly marked targets, preserving their quest/task identities. */
     private static void resolveRuntimeTargets(JsonElement element) {
         if (element.isJsonArray()) {
             for (JsonElement child : element.getAsJsonArray()) resolveRuntimeTargets(child);
         } else if (element.isJsonObject()) {
             JsonObject object = element.getAsJsonObject();
+            if (object.has("taskID:8") && "bq_standard:retrieval".equals(
+                object.get("taskID:8")
+                    .getAsString())
+                && object.has("requiredItems:9")) {
+                for (Map.Entry<String, JsonElement> entry : object.getAsJsonObject("requiredItems:9")
+                    .entrySet()) {
+                    if (entry.getValue()
+                        .isJsonObject()
+                        && rawGasTarget(
+                            entry.getValue()
+                                .getAsJsonObject())
+                            != null) {
+                        // All native fluid cells share Item/Damage. Compare every requested Fluid
+                        // field while allowing names/other extra tags; remove the ore fallback below.
+                        object.addProperty("ignoreNBT:1", 0);
+                        object.addProperty("partialMatch:1", 1);
+                    }
+                }
+            }
             if (object.has("gtsrDimension:8") && "prosperity".equals(
                 object.get("gtsrDimension:8")
                     .getAsString())) {
@@ -441,21 +465,13 @@ public final class BqQuestInjector {
             if (object.has("OreDict:8")) {
                 String ore = object.get("OreDict:8")
                     .getAsString();
-                String materialName = switch (ore) {
-                    case "cellwastesigh" -> "wastesigh";
-                    case "cellthickgrease" -> "thickgrease";
-                    case "cellmetalgrit" -> "metalgrit";
-                    case "cellumbralmire" -> "umbralmire";
-                    case "cellsanzu_residual_steam" -> "sanzu_residual_steam";
-                    case "cellwithered_breath" -> "withered_breath";
-                    default -> null;
-                };
+                String materialName = rawGasTarget(object);
                 if (materialName != null) {
                     int count = object.get("Count:3")
                         .getAsInt();
                     Materials material = Materials.get(materialName);
-                    ItemStack cell = GTOreDictUnificator.get(OrePrefixes.cell, material, count);
-                    FluidStack fluid = cell == null ? null : FluidContainerRegistry.getFluidForFilledItem(cell);
+                    ItemStack cell = ProsperityFluidContainers.filledCell(material.getGas(1000), count);
+                    FluidStack fluid = GTUtility.getFluidForFilledItem(cell, true);
                     if (count <= 0 || fluid == null
                         || fluid.amount != 1000
                         || !materialName.equals(
@@ -467,6 +483,7 @@ public final class BqQuestInjector {
                         .NBTtoJSON_Compound(cell.writeToNBT(new NBTTagCompound()), new JsonObject(), true);
                     object.addProperty("id:8", Item.itemRegistry.getNameForObject(cell.getItem()));
                     object.add("Damage:2", stack.get("Damage:2"));
+                    object.remove("OreDict:8");
                     object.remove("tag:10");
                     if (stack.has("tag:10")) object.add("tag:10", stack.get("tag:10"));
                 }
@@ -475,6 +492,20 @@ public final class BqQuestInjector {
                 resolveRuntimeTargets(entry.getValue());
             }
         }
+    }
+
+    private static String rawGasTarget(JsonObject object) {
+        if (!object.has("OreDict:8")) return null;
+        return switch (object.get("OreDict:8")
+            .getAsString()) {
+            case "cellwastesigh" -> "wastesigh";
+            case "cellthickgrease" -> "thickgrease";
+            case "cellmetalgrit" -> "metalgrit";
+            case "cellumbralmire" -> "umbralmire";
+            case "cellsanzu_residual_steam" -> "sanzu_residual_steam";
+            case "cellwithered_breath" -> "withered_breath";
+            default -> null;
+        };
     }
 
     /**

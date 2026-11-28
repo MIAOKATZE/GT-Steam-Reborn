@@ -194,6 +194,20 @@ public final class MaterialIdPreflight {
         if (record.length() != 0) errors.add("Incomplete continued property at line " + startLine);
     }
 
+    /** Strict parser shared by the v2 planner; retains duplicate/escape diagnostics before Properties collapse. */
+    public static Properties parse(byte[] source, List<String> errors) {
+        Properties loaded = new Properties() {
+
+            @Override
+            public synchronized Object put(Object key, Object value) {
+                if (containsKey(key)) errors.add("Duplicate property key: " + key);
+                return super.put(key, value);
+            }
+        };
+        if (source != null) loadSource(loaded, source, errors);
+        return loaded;
+    }
+
     public static byte[] encode(Result result, String gtVersion) {
         result.requireValid("encode");
         TreeMap<String, String> entries = entries(result.ids);

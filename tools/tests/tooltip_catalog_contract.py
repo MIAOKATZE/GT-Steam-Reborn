@@ -82,7 +82,7 @@ stubs = {
  private final int id; public Fluid(int value){id=value;} public int getID(){return id;}
 }''',
     'net.minecraftforge.fluids.FluidStack': '''public class FluidStack {
- private final Fluid fluid; public FluidStack(Fluid value){fluid=value;} public Fluid getFluid(){return fluid;}
+ public int amount=1000; private final Fluid fluid; public FluidStack(Fluid value){fluid=value;} public Fluid getFluid(){return fluid;}
 }''',
     'gregtech.api.enums.Materials': '''public class Materials {
  public net.minecraftforge.fluids.Fluid fluid;
@@ -90,7 +90,7 @@ stubs = {
  public net.minecraftforge.fluids.FluidStack getGas(int amount){return getFluid(amount);}
 }''',
     'gregtech.api.enums.OrePrefixes': 'public enum OrePrefixes {dustTiny,dustSmall,dust,cell}',
-    'gregtech.api.enums.ItemList': '''public enum ItemList { Display_Fluid;
+    'gregtech.api.enums.ItemList': '''public enum ItemList { Display_Fluid,Cell_Universal_Fluid;
  public final net.minecraft.item.Item item=new net.minecraft.item.Item();
  public boolean hasBeenSet(){return true;} public net.minecraft.item.Item getItem(){return item;}
 }''',
@@ -106,6 +106,8 @@ stubs = {
     'gregtech.api.util.GTUtility': '''public class GTUtility {
  public static net.minecraftforge.fluids.FluidStack getFluidFromDisplayStack(net.minecraft.item.ItemStack stack){
  return stack.fluid==null?null:new net.minecraftforge.fluids.FluidStack(stack.fluid);}
+ public static net.minecraftforge.fluids.FluidStack getFluidForFilledItem(net.minecraft.item.ItemStack stack,boolean check){
+ return stack.item!=gregtech.api.enums.ItemList.Cell_Universal_Fluid.getItem()||stack.fluid==null?null:new net.minecraftforge.fluids.FluidStack(stack.fluid);}
 }''',
     'com.miaokatze.gtsr.register.GTSRItemOrderCatalog': '''public class GTSRItemOrderCatalog {
  public static final java.util.List<net.minecraft.item.ItemStack> ITEMS=new java.util.ArrayList<>();
@@ -219,7 +221,7 @@ public final class TooltipContract {
    if(index<42){for(OrePrefixes prefix:new OrePrefixes[]{OrePrefixes.dustTiny,OrePrefixes.dustSmall,OrePrefixes.dust}){
     ItemStack stack=new ItemStack(shared,meta++);stack.data=new ItemData(material,prefix);generated.add(stack);}}
    else {
-    ItemStack cell=new ItemStack(shared,meta++);cell.data=new ItemData(material,OrePrefixes.cell);generated.add(cell);
+    ItemStack cell=new ItemStack(ItemList.Cell_Universal_Fluid.getItem(),0);cell.fluid=material.fluid;generated.add(cell);
     ItemStack display=new ItemStack(ItemList.Display_Fluid.getItem(),material.fluid.getID());display.fluid=material.fluid;generated.add(display);
    }
   }
@@ -235,7 +237,11 @@ public final class TooltipContract {
   check(GTSRTooltipCatalog.descriptionKeys(new ItemStack(shared,99))==null,"adjacent GT meta rejected");
   check(GTSRTooltipCatalog.descriptionKeys(new ItemStack(machine,41))==null,"adjacent machine meta rejected");
   check(GTSRTooltipCatalog.descriptionKeys(new ItemStack(machine,42))!=null,"exact machine included");
-  ItemStack display=generated.stream().filter(s->s.fluid!=null).findFirst().orElseThrow();
+  ItemStack emptyCell=new ItemStack(ItemList.Cell_Universal_Fluid.getItem(),0);
+  check(GTSRTooltipCatalog.descriptionKeys(emptyCell)==null,"empty native cell stays foreign");
+  emptyCell.fluid=new Fluid(12345);
+  check(GTSRTooltipCatalog.descriptionKeys(emptyCell)==null,"foreign fluid native cell stays untouched");
+  ItemStack display=generated.stream().filter(s->s.item==ItemList.Display_Fluid.getItem()).findFirst().orElseThrow();
   ItemStack spoof=new ItemStack(display.item,display.damage);spoof.fluid=new Fluid(display.damage);
   check(GTSRTooltipCatalog.descriptionKeys(spoof)==null,"same fluid ID with foreign object rejected");
   spoof.fluid=null;check(GTSRTooltipCatalog.descriptionKeys(spoof)==null,"invalid fluid display rejected");

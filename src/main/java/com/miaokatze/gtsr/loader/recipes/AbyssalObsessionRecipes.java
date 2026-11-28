@@ -6,21 +6,22 @@ package com.miaokatze.gtsr.loader.recipes;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.FluidStack;
 
 import com.miaokatze.gtsr.api.compat.GTVersionCompat;
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.blocks.BlocksGTSR;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
+import com.miaokatze.gtsr.common.dimension.prosperity.fluid.ProsperityFluidContainers;
 import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialMaterials;
 
 import gregtech.api.enums.GTValues;
-import gregtech.api.enums.ItemList;
 import gregtech.api.enums.OrePrefixes;
 import gregtech.api.recipe.RecipeMap;
 import gregtech.api.recipe.RecipeMaps;
 import gregtech.api.util.GTModHandler;
 import gregtech.api.util.GTOreDictUnificator;
-import gregtech.api.util.GTRecipeConstants;
+import gregtech.api.util.GTRecipeBuilder;
 import gregtech.common.tileentities.machines.basic.MTERockBreaker;
 
 /** Independent abyssal route; existing prosperity R6 stages and material IDs remain stable. */
@@ -65,18 +66,7 @@ public final class AbyssalObsessionRecipes {
             .duration(100)
             .eut(120)
             .addTo(RecipeMaps.fluidHeaterRecipes);
-        // Singleblocks have one fluid input. UniversalChemical converts the filled cell to a second
-        // fluid input for the LCR and removes the returned empty cell from that variant.
-        GTValues.RA.stdBuilder()
-            .itemInputs(
-                GTOreDictUnificator
-                    .get(OrePrefixes.cell, ProsperityIndustrialMaterials.get("planned:prosperity_obsession"), 1))
-            .itemOutputs(ItemList.Cell_Empty.get(1))
-            .fluidInputs(GTSRProsperityAirMaterials.SanzuResidualSteam.getGas(1000))
-            .fluidOutputs(GTSRProsperityAirMaterials.AbyssalObsession.getFluid(2000))
-            .duration(200)
-            .eut(120)
-            .addTo(GTRecipeConstants.UniversalChemical);
+        registerAbyssalReaction();
 
         registerSingleRockBreaker(Blocks.lava);
         registerSingleRockBreaker(Blocks.flowing_lava);
@@ -90,6 +80,28 @@ public final class AbyssalObsessionRecipes {
             .eut(30)
             .addTo(rockBreakerRecipes);
         registered = true;
+    }
+
+    /** One reaction bill, with the singleblock's second fluid supplied in a native NBT cell. */
+    static void registerAbyssalReaction() {
+        FluidStack obsession = ProsperityIndustrialMaterials.get("planned:prosperity_obsession")
+            .getFluid(1000);
+        FluidStack steam = GTSRProsperityAirMaterials.SanzuResidualSteam.getGas(1000);
+        GTRecipeBuilder bill = GTValues.RA.stdBuilder()
+            .fluidOutputs(GTSRProsperityAirMaterials.AbyssalObsession.getFluid(2000))
+            .duration(200)
+            .eut(120);
+        bill.copy()
+            .itemInputs(ProsperityFluidContainers.filledCell(obsession))
+            .itemOutputs(ProsperityFluidContainers.emptyCell(1))
+            .fluidInputs(steam)
+            .nbtSensitive()
+            .addTo(RecipeMaps.chemicalReactorRecipes);
+        // UniversalChemical only removes the legacy Cell_Empty, so the all-fluid LCR variant
+        // is explicit: no physical container entered this machine and none can be returned.
+        bill.copy()
+            .fluidInputs(obsession, steam)
+            .addTo(RecipeMaps.multiblockChemicalReactorRecipes);
     }
 
     private static void registerSingleRockBreaker(Block lava) {

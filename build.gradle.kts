@@ -371,6 +371,10 @@ mapOf(
     "verifyCenterRecipes" to "com.miaokatze.gtsr.loader.recipes.OreIntegrationCenterRecipeContracts",
     "verifyCenterGraphCache" to "com.miaokatze.gtsr.common.machine.orecenter.CenterGraphCacheContracts",
     "verifyMaterialIdSafety" to "com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdPreflightContracts",
+    "verifyMaterialWorldAdmission" to "com.miaokatze.gtsr.common.dimension.prosperity.industrial.compat.MaterialWorldAdmissionContracts",
+    "verifyNativeFluidRegistration" to "com.miaokatze.gtsr.common.dimension.prosperity.fluid.NativeFluidRegistrationContracts",
+    "verifyNativeFluidLegacyRegistration" to "com.miaokatze.gtsr.common.dimension.prosperity.fluid.NativeFluidRegistrationContracts",
+    "verifyNativeFluidConsumers" to "com.miaokatze.gtsr.loader.recipes.NativeFluidConsumerContracts",
     "verifyMaterialIdOfflineCopy" to "com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdOfflineCopyContracts",
     "verifyChunkLoadingPolicy" to "com.miaokatze.gtsr.common.util.ChunkLoadingPolicyContracts",
     "verifyCenterRecovery" to "com.miaokatze.gtsr.common.machine.orecenter.CenterRecoveryContracts",
@@ -385,6 +389,11 @@ mapOf(
             sourceSets["main"].compileClasspath + portableRecipeContractRuntime
         mainClass.set(entry)
         if (name == "verifyNEIGrouping") classpath += neiGroupingContractRuntime
+        if (name == "verifyNativeFluidLegacyRegistration") args("legacy")
+        if (name.startsWith("verifyNativeFluid")) {
+            systemProperty("gtsr.contract.earlyTransformer",
+                "com.miaokatze.gtsr.common.dimension.prosperity.fluid.NativeFluidEventTransformer")
+        }
         if (name == "verifyNEILegacyGrouping") {
             classpath = classpath.filter { !it.name.startsWith("NotEnoughItems-") } +
                 neiGroupingContractRuntime + neiLegacyGroupingContractRuntime
@@ -396,7 +405,10 @@ mapOf(
         maxHeapSize = "256m"
         systemProperty("java.awt.headless", "true")
     }
-    tasks.named("check") { dependsOn(contract) }
+    // Exact native IC2 implementation is an explicit fixture input, not a game dependency.
+    if (!name.startsWith("verifyNativeFluid") || providers.gradleProperty("nativeFluidContractIc2Jar").isPresent) {
+        tasks.named("check") { dependsOn(contract) }
+    }
 }
 
 tasks.register<JavaExec>("materialIdOfflineCopy") {

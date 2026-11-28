@@ -14,6 +14,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 EDITOR_ROOT = REPO_ROOT.parent / "MiaoBQ"
 LINE_HIGH = 5139824686389002240
 LINE_LOW = 1
+RAW_GAS_CELL_MARKERS = {
+    "cellwastesigh", "cellthickgrease", "cellmetalgrit", "cellumbralmire",
+    "cellsanzu_residual_steam", "cellwithered_breath",
+}
 
 
 def load_module(name, path):
@@ -107,6 +111,13 @@ def install_adapter(shared, codec):
             else:
                 entry = original_tasks([task])["0:10"]
                 entry["index:3"] = index
+                if entry.get("taskID:8") == "bq_standard:retrieval" and any(
+                    stack.get("OreDict:8") in RAW_GAS_CELL_MARKERS
+                    for stack in entry.get("requiredItems:9", {}).values()
+                ):
+                    # Runtime replaces these six markers with NBT native cells and removes OreDict.
+                    entry["ignoreNBT:1"] = 0
+                    entry["partialMatch:1"] = 1
             result["%d:10" % index] = entry
         return result
 

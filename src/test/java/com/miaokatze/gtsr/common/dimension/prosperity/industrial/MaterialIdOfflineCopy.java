@@ -95,6 +95,13 @@ public final class MaterialIdOfflineCopy {
         public String sourceGtsrArtifact, sourceGtsrArtifactSha256, targetGtsrArtifact, targetGtsrArtifactSha256;
         public String mode;
         public List<Rule> rules;
+        // v2 only: explicit legacy-cell adapters, never part of the production jar.
+        public String targetGtArtifact, targetGtArtifactSha256, sourceLevelData, sourceLevelDataSha256;
+        public String targetLevelData, targetLevelDataSha256, semanticEvidence, semanticEvidenceSha256;
+        public String aeArtifact, aeArtifactSha256, ic2Artifact, ic2ArtifactSha256;
+        public String sourceHistory;
+        public String targetFingerprint;
+        public List<MaterialIdFluidCellCopy.FluidRule> fluidRules;
     }
 
     static final class Context {
@@ -104,6 +111,7 @@ public final class MaterialIdOfflineCopy {
         final List<String> operations = new ArrayList<>();
         final Map<String, Long> quantities = new TreeMap<>();
         long nodes;
+        MaterialIdFluidCellCopy.State fluids;
 
         Context(Plan plan, Map<Integer, String> registry) {
             this.plan = plan;
@@ -131,8 +139,14 @@ public final class MaterialIdOfflineCopy {
         rejectOverlap(source, target);
         if (reviewFile.startsWith(source) || reviewFile.startsWith(target))
             throw new IOException("Review must be outside source and target");
+        Path reviewAncestor = reviewFile;
+        while (reviewAncestor != null && !Files.exists(reviewAncestor, LinkOption.NOFOLLOW_LINKS))
+            reviewAncestor = reviewAncestor.getParent();
+        if (reviewAncestor == null || !reviewAncestor.toRealPath()
+            .equals(reviewAncestor)) throw new IOException("Review alias/symbolic-link ancestor rejected");
         Plan plan = JSON.fromJson(new String(Files.readAllBytes(planFile), StandardCharsets.UTF_8), Plan.class);
         Context context = validated(plan, planFile.getParent());
+        if (context.fluids != null) MaterialIdFluidCellCopy.bindSource(source, context);
         String planHash = hash(planFile);
         Map<String, String> before = inventory(source);
         if (before.containsKey(MARKER))
@@ -147,7 +161,9 @@ public final class MaterialIdOfflineCopy {
         report.put("worldReady", false);
         report.put(
             "support",
-            "Native NBT/region records only. Unknown opaque storage and AE are blocked. No native reopen/save verification performed.");
+            context.fluids == null
+                ? "v1 native same-item Damage migration; AE and GT delegates blocked. No native reopen/save verification."
+                : "v2 reviewed MC/GT/AE legacy adapters, exact per-location semantic evidence; unknown storage blocked. No game reopen/save verification.");
         if (!dry) {
             if (!Files.isRegularFile(reviewFile)) throw new IOException("A saved dry-run review is required");
             @SuppressWarnings("unchecked")
@@ -212,6 +228,7 @@ public final class MaterialIdOfflineCopy {
             if (!inventory(source).equals(before) || !hash(planFile).equals(planHash))
                 throw new IOException("Source/plan changed during conversion");
             validated(plan, planFile.getParent()); // Also recheck mapping, registry, artifact and occupancy evidence.
+            if (context.fluids != null) MaterialIdFluidCellCopy.finish(context, report);
             report.put("operations", context.operations);
             report.put("targetQuantities", context.quantities);
             if (dry) {
@@ -223,6 +240,7 @@ public final class MaterialIdOfflineCopy {
                 report.put("outputFiles", outputFiles);
                 report.put("status", "COPY_CONVERTED_REQUIRES_NATIVE_REOPEN");
                 publishJson(target.resolve(MARKER), report);
+                if (context.fluids != null) MaterialIdFluidCellCopy.publishAdmission(target, reviewFile, context);
             }
         }
         System.out.println(
@@ -235,6 +253,7 @@ public final class MaterialIdOfflineCopy {
     }
 
     static Context validated(Plan plan, Path base) throws Exception {
+        if ("gtsr.material-copy/v2".equals(plan.schema)) return MaterialIdFluidCellCopy.validated(plan, base);
         if (!"gtsr.material-copy/v1".equals(plan.schema) || !"reviewed-offline-copy".equals(plan.mode))
             throw new IOException("Unsupported plan schema/mode");
         if (plan.sourceGt == null || plan.sourceGtsr == null
@@ -313,6 +332,10 @@ public final class MaterialIdOfflineCopy {
     }
 
     static void rewrite(NBTBase tag, String path, Context context, int depth) throws IOException {
+        if (context.fluids != null) {
+            MaterialIdFluidCellCopy.rewrite(tag, path, context, depth);
+            return;
+        }
         if (depth > 64 || ++context.nodes > 4_000_000)
             throw new IOException("NBT depth/node budget exceeded at " + path);
         if (tag instanceof NBTTagCompound) {

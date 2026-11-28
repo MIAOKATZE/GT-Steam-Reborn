@@ -57,6 +57,8 @@ class ReviewedPackTests(unittest.TestCase):
             stack = task["requiredItems:9"]["0:10"]
             ws_stack = self.by_seq[seq]["tasks"][0]["items"][0]
             self.assertEqual(0, task["consume:1"])
+            self.assertEqual(0, task["ignoreNBT:1"])
+            self.assertEqual(1, task["partialMatch:1"])
             self.assertEqual(("gregtech:gt.metaitem.01", 0, 1),
                              (stack["id:8"], stack["Damage:2"], stack["Count:3"]))
             self.assertEqual(ws_stack["oredict"], stack["OreDict:8"])

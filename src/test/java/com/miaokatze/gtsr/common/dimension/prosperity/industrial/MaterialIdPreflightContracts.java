@@ -146,9 +146,127 @@ public final class MaterialIdPreflightContracts {
             oldReader.size() == 105,
             "provenance is comment-only; old Properties reader sees numeric identities only");
         for (String key : oldReader.stringPropertyNames()) Integer.parseInt(oldReader.getProperty(key));
+        schemaV2(initialized.ids, definitions, slots);
         filePublication();
         System.out
             .println("PASS material ID preflight: " + checks + " checks; exact_gt_277=true; player_world_access=false");
+    }
+
+    private static void schemaV2(Properties historical, List<MaterialIdPreflight.Definition> definitions,
+        Map<Integer, String> actualSlots) throws Exception {
+        List<MaterialIdPreflight.Definition> dust = new ArrayList<>(), fluids = new ArrayList<>();
+        Map<String, String> phases = new HashMap<>();
+        for (IndustrialRecipeLedger.MaterialDefinition entry : IndustrialRecipeLedger.get().materials)
+            phases.put(entry.id, entry.phase);
+        for (MaterialIdPreflight.Definition definition : definitions)
+            ("dust".equals(phases.get(definition.key)) ? dust : fluids).add(definition);
+        check(dust.size() == 42 && fluids.size() == 63, "v2 catalog uses actual ledger 42 dust and 63 retired fluids");
+        MaterialIdSchema.Result fresh = inspectV2(null, null, dust, fluids, actualSlots);
+        check(
+            fresh.errors.isEmpty() && fresh.identity.activeDustIds.size() == 42
+                && fresh.identity.retiredFluidIds.isEmpty()
+                && fresh.identity.legacyFluidAliases.isEmpty(),
+            "automatic fresh reservation uses only 42 real dust identities without JVM flag");
+        check(
+            fresh.identity.isGeneratedUnbound() && fresh.identity.sourceSha256.isEmpty(),
+            "fresh mapping explicitly has no old-world source claim");
+        byte[] freshBytes = MaterialIdSchema.encode(fresh, "5.09.54.277");
+        MaterialIdSchema.Result reloaded = inspectV2(freshBytes, null, dust, fluids, actualSlots);
+        check(
+            reloaded.errors.isEmpty() && reloaded.identity.isGeneratedUnbound()
+                && reloaded.identity.fingerprint.equals(fresh.identity.fingerprint),
+            "persisted automatic mapping remains unbound and idempotent on second startup");
+        byte[] original = encodeLegacy(historical), preserved = original.clone();
+        MaterialIdSchema.Result imported = inspectV2(null, original, dust, fluids, actualSlots);
+        check(
+            imported.errors.isEmpty() && imported.identity.legacyFluidAliases.size() == 63
+                && MaterialIdSchema.LEGACY_IMPORT.equals(imported.identity.origin)
+                && imported.identity.sourceSha256.equals(MaterialIdPreflight.sha256(original)),
+            "complete legacy mapping preserves audited source and every actually free legacy alias");
+        for (MaterialIdPreflight.Definition entry : dust) check(
+            imported.identity.activeDustIds.get(entry.key)
+                .toString()
+                .equals(historical.getProperty(entry.key)),
+            "v2 imports original dust ID " + entry.key);
+        check(Arrays.equals(original, preserved), "v2 importer never changes old cfg bytes");
+        Properties signed = copy(historical);
+        signed.setProperty(dust.get(0).key, "+" + historical.getProperty(dust.get(0).key));
+        MaterialIdSchema.Result signedImport = inspectV2(null, encodeLegacy(signed), dust, fluids, actualSlots);
+        check(
+            signedImport.errors.isEmpty()
+                && signedImport.identity.activeDustIds.equals(imported.identity.activeDustIds),
+            "historically legal signed ID syntax preserves the original numeric identity");
+        Properties old705 = copy(historical);
+        old705.setProperty("planned:native_acid_cut", "705");
+        byte[] conflictSource = encodeLegacy(old705);
+        MaterialIdSchema.Result conflict = inspectV2(null, conflictSource, dust, fluids, actualSlots);
+        check(
+            conflict.errors.isEmpty() && conflict.identity.retiredFluidIds.get("planned:native_acid_cut") == 705
+                && conflict.identity.conflictedFluidIds.get("planned:native_acid_cut") == 705
+                && !conflict.identity.legacyFluidAliases.containsKey("planned:native_acid_cut"),
+            "real .277 DistilledWater 705 isolates historical acid alias without blocking pure fluid registration");
+        check(
+            actualSlots.get(705)
+                .equals(Materials.DistilledWater.mName)
+                && actualSlots.size() == MaterialIdOfflineCopy.NATIVE_277_IDS.length,
+            "historical conflict never rewrites the actual native occupancy evidence");
+        check(
+            conflict.identity.activeDustIds.equals(imported.identity.activeDustIds),
+            "retiring conflicted acid never reallocates any original dust ID");
+        byte[] encodedConflict = MaterialIdSchema.encode(conflict, "5.09.54.277");
+        MaterialIdSchema.Result conflictReload = inspectV2(encodedConflict, conflictSource, dust, fluids, actualSlots);
+        check(
+            conflictReload.errors.isEmpty() && conflictReload.identity.fingerprint.equals(conflict.identity.fingerprint)
+                && conflictReload.identity.conflictedFluidIds.equals(conflict.identity.conflictedFluidIds),
+            "retired conflicting evidence and safe alias fingerprint survive second startup");
+        Properties badDust = copy(old705);
+        badDust.setProperty(dust.get(0).key, "1");
+        check(
+            contains(inspectV2(null, encodeLegacy(badDust), dust, fluids, actualSlots).errors, "Occupied dust ID"),
+            "retired-fluid exception never waives an actual Hydrogen dust conflict");
+        Properties missing = copy(historical);
+        missing.remove(dust.get(0).key);
+        check(
+            contains(inspectV2(null, encodeLegacy(missing), dust, fluids, actualSlots).errors, "Missing historical ID"),
+            "partial original cfg never becomes guessed powder mapping");
+        check(
+            !inspectV2(new byte[0], null, dust, fluids, actualSlots).errors.isEmpty(),
+            "present empty v2 is damaged configuration, not an automatic new install");
+        check(
+            !inspectV2(freshBytes, original, dust, fluids, actualSlots).errors.isEmpty(),
+            "later discovered original cfg cannot silently replace an automatic unbound map");
+        check(
+            !inspectV2(encodedConflict, original, dust, fluids, actualSlots).errors.isEmpty(),
+            "changed legacy source cannot silently override recorded mapping provenance");
+        byte[] tamperedProvenance = new String(encodedConflict, StandardCharsets.ISO_8859_1)
+            .replace("__gtsr.source-sha256=", "__gtsr.source-sha256=a")
+            .getBytes(StandardCharsets.ISO_8859_1);
+        check(
+            contains(
+                inspectV2(tamperedProvenance, null, dust, fluids, actualSlots).errors,
+                "provenance record fingerprint mismatch"),
+            "provenance has independent integrity even when original cfg is temporarily unavailable");
+        byte[] tampered = new String(encodedConflict, StandardCharsets.ISO_8859_1)
+            .replace("retired\\:planned\\:native_acid_cut=705", "retired\\:planned\\:native_acid_cut=706")
+            .getBytes(StandardCharsets.ISO_8859_1);
+        check(
+            !Arrays.equals(tampered, encodedConflict) && contains(
+                inspectV2(tampered, conflictSource, dust, fluids, actualSlots).errors,
+                "fingerprint mismatch"),
+            "retired evidence tampering is checked even though that slot is inactive");
+        try {
+            fresh.identity.activeDustIds.clear();
+            throw new AssertionError("startup identity mutable");
+        } catch (UnsupportedOperationException expected) {
+            check(true, "world guard and handshake receive immutable startup identity");
+        }
+    }
+
+    private static MaterialIdSchema.Result inspectV2(byte[] v2, byte[] original,
+        List<MaterialIdPreflight.Definition> dust, List<MaterialIdPreflight.Definition> fluids,
+        Map<Integer, String> actualSlots) {
+        return MaterialIdSchema
+            .inspect(v2, original, dust, fluids, actualSlots, Collections.<String, String>emptyMap());
     }
 
     private static void filePublication() throws Exception {
@@ -184,6 +302,26 @@ public final class MaterialIdPreflightContracts {
             }
             MaterialIdFileStore.publish(target, before, after);
             check(Arrays.equals(after, Files.readAllBytes(target)), "Core atomic publisher round-trip");
+            Path readOnly = scratch.resolve("original.cfg");
+            Files.write(readOnly, before);
+            try {
+                try {
+                    MaterialIdFileStore.publishWithReadOnlySource(target, after, before, readOnly, after);
+                    throw new AssertionError("changed original cfg accepted");
+                } catch (java.io.IOException expected) {
+                    check(
+                        Arrays.equals(after, Files.readAllBytes(target))
+                            && Arrays.equals(before, Files.readAllBytes(readOnly)),
+                        "source change refuses v2 publication and preserves both files");
+                }
+                MaterialIdFileStore.publishWithReadOnlySource(target, after, before, readOnly, before);
+                check(
+                    Arrays.equals(before, Files.readAllBytes(target))
+                        && Arrays.equals(before, Files.readAllBytes(readOnly)),
+                    "v2 publishes separately while original cfg stays byte-identical");
+            } finally {
+                Files.deleteIfExists(readOnly);
+            }
         } finally {
             Files.deleteIfExists(target);
             Files.deleteIfExists(scratch.resolve("industrial-material-ids.cfg.registration.lock"));

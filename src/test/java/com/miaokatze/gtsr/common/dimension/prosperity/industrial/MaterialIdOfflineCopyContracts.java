@@ -32,9 +32,12 @@ public final class MaterialIdOfflineCopyContracts {
         Path scratch = Files.createTempDirectory("gtsr-material-copy-contract-");
         try {
             run(scratch);
+            int fluidChecks = MaterialIdFluidCellCopyContracts.run(scratch);
             System.out.println(
                 "PASS offline material copy: " + checks
-                    + " checks; synthetic_only=true; AE_supported=false; world_ready=false");
+                    + " v1 checks; "
+                    + fluidChecks
+                    + " v2 adapter checks; synthetic_only=true; AE1104_item_cells_patterns=true; world_ready=false");
         } finally {
             // Only the directory returned by createTempDirectory above is ever removed.
             try (java.util.stream.Stream<Path> paths = Files.walk(scratch)) {
