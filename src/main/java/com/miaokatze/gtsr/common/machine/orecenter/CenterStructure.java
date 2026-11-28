@@ -7,6 +7,7 @@ import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -64,6 +65,7 @@ public final class CenterStructure {
     private static final String SERVICE_TOWER = "tower-service-";
     private static final Map<String, Shape> SHAPES = new HashMap<>();
     private static final int MAX_FOOTPRINT_CACHE = 128;
+    final WeakReference<CenterStructure> scanQueueReference = new WeakReference<>(this);
     private final Map<FootprintKey, long[]> footprints = new LinkedHashMap<>(MAX_FOOTPRINT_CACHE, 0.75F, true) {
 
         @Override
@@ -87,6 +89,9 @@ public final class CenterStructure {
     private int survivalCursor, survivalTier = -1, survivalMask;
     private boolean serviceFront;
     private SavedFormation savedFormation, lastFormation, portIdentity;
+    // Unlike lastFormation, these obligations survive revocation of a damaged optional piece.
+    private int reviewSectors;
+    private long reviewModules;
     private final java.util.Set<Integer> knownPorts = new HashSet<>();
     private boolean portIndexReady, portIndexUnknown;
     private int portIndexCursor;
@@ -161,6 +166,11 @@ public final class CenterStructure {
         if (!portIndexReady || !knownPortsReady(frame)) return false;
         if (!footprintLoaded(towerShape(towerTier, serviceFront), frame, 0, 0, 0)) return false;
         int expectedSectors = formedSectors | (lastFormation == null ? 0 : lastFormation.sectors);
+        for (int i = 0; i < sectors.length; i++)
+            if ((reviewSectors & 1 << i) != 0 && sectors[i].hasKnownDamage()) return false;
+        for (int i = 0; i < modules.length; i++)
+            if ((reviewModules & 1L << i) != 0 && modules[i] != null && modules[i].monitor.hasKnownDamage())
+                return false;
         for (int i = 0; i < sectors.length; i++) if ((expectedSectors & 1 << i) != 0) {
             if (sectors[i].getStatus() == Status.PENDING || sectors[i].getStatus() == Status.UNLOADED
                 || !footprintLoaded(shape("sector-" + i), frame, 0, 0, 0)) return false;
@@ -171,6 +181,47 @@ public final class CenterStructure {
                 || !footprintLoaded(shape(modules[i].resource), frame, at[0], at[2], at[3])) return false;
         }
         return true;
+    }
+
+    /** A cached verdict may protect paid work, but cannot authorize a fresh debit before its full recheck. */
+    boolean isNewBatchReady(IGregTechTileEntity te) {
+        if (!isExecutionReady(te) || reviewSectors != 0 || reviewModules != 0 || !verified(tower)) return false;
+        for (int i = 0; i < sectors.length; i++)
+            if ((formedSectors & 1 << i) != 0 && !verified(sectors[i])) return false;
+        for (ModuleCheck module : modules)
+            if (module != null && !module.damaged && !verified(module.monitor)) return false;
+        return true;
+    }
+
+    private static boolean verified(CriticalStructureMonitor monitor) {
+        // Paid construction is already checked voxel by voxel and legitimately has zero monitor rounds.
+        return !monitor.isFastSweep() && monitor.getStatus() == Status.VALID;
+    }
+
+    private static boolean reviewed(CriticalStructureMonitor monitor) {
+        return !monitor.isFastSweep() && monitor.getCompletedRounds() > 0
+            && (monitor.getStatus() == Status.VALID || monitor.getStatus() == Status.BROKEN);
+    }
+
+    private void finishReviews() {
+        for (int i = 0; i < sectors.length; i++)
+            if ((reviewSectors & 1 << i) != 0 && reviewed(sectors[i])) reviewSectors &= ~(1 << i);
+        for (int i = 0; i < modules.length; i++)
+            if ((reviewModules & 1L << i) != 0 && modules[i] != null && reviewed(modules[i].monitor))
+                reviewModules &= ~(1L << i);
+    }
+
+    /** Release only runtime references. Generated voxel ownership and paid batch state are unchanged. */
+    public void detach(IGregTechTileEntity te) {
+        if (te != null && te.getWorld() != null) CenterClaims.detach(te.getWorld(), this);
+        clearRuntimeReferences();
+    }
+
+    void clearRuntimeReferences() {
+        footprints.clear();
+        footprintWorld = null;
+        footprintFacing = ForgeDirection.UNKNOWN;
+        attachClaims = true;
     }
 
     void collectHatches(IGregTechTileEntity te, ObjIntConsumer<IGregTechTileEntity> accept) {
@@ -310,18 +361,19 @@ public final class CenterStructure {
             if (tower.hasKnownDamage() && te.getMetaTileEntity() instanceof MTEMultiBlockBase machine)
                 GtsrStructureRecovery.confirmedDamage(machine);
         } finally {
+            finishReviews();
             claims.countScan(System.nanoTime() - started);
         }
     }
 
     private void scanStructure(IGregTechTileEntity te, Frame frame, CenterClaims claims) {
+        if (attachClaims || te.getFrontFacing() != facing) claims.track(frame, this);
         if (attachClaims) {
             for (int slot = 0; slot < modules.length; slot++)
                 if (modules[slot] != null) claims.attach(frame, slot, this);
             attachClaims = false;
         }
         if (te.getFrontFacing() != facing) {
-            claims.track(frame, this);
             facing = te.getFrontFacing();
             towerTier = -1;
             tower.reset();
@@ -389,7 +441,8 @@ public final class CenterStructure {
                     sectors[i].invalidate();
                     revokeSector(i);
                     // An absent, never-formed optional wing needs no ongoing full sweep.
-                    if (lastFormation == null || (lastFormation.sectors & 1 << i) == 0) continue;
+                    if ((reviewSectors & 1 << i) == 0
+                        && (lastFormation == null || (lastFormation.sectors & 1 << i) == 0)) continue;
                 }
                 boolean fast = sectors[i].isFastSweep();
                 if (scan(
@@ -405,7 +458,7 @@ public final class CenterStructure {
                     fast ? CriticalStructureMonitor.MAX_INITIAL_CHECKS_PER_TICK
                         - (CriticalStructureMonitor.MAX_CHECKS_PER_TICK - remaining) : remaining))
                     formedSectors |= 1 << i;
-                else formedSectors &= ~(1 << i);
+                else if (!sectors[i].hasKnownDamage()) formedSectors &= ~(1 << i);
                 if (sectors[i].hasKnownDamage()) revokeSector(i);
                 if (fast) return;
                 remaining -= sectors[i].getLastChecks();
@@ -856,6 +909,7 @@ public final class CenterStructure {
         CenterClaims.get(frame.world)
             .release(frame, slot);
         modules[slot] = null;
+        reviewModules &= ~(1L << slot);
         return true;
     }
 
@@ -946,6 +1000,10 @@ public final class CenterStructure {
 
     void invalidateModule(int slot) {
         if (modules[slot] == null) return;
+        if (!modules[slot].damaged) {
+            reviewModules |= 1L << slot;
+            modules[slot].monitor.requestFastSweep();
+        }
         modules[slot].monitor.invalidate();
         modules[slot].damaged = true;
         lastFormation = without(lastFormation, 0, 1L << slot);
@@ -1003,6 +1061,11 @@ public final class CenterStructure {
     }
 
     private void revokeSector(int sector) {
+        if ((reviewSectors & 1 << sector) == 0 && ((formedSectors & 1 << sector) != 0
+            || lastFormation != null && (lastFormation.sectors & 1 << sector) != 0)) {
+            reviewSectors |= 1 << sector;
+            sectors[sector].requestFastSweep();
+        }
         formedSectors &= ~(1 << sector);
         long moduleMask = 63L << (sector * 6);
         lastFormation = without(lastFormation, 1 << sector, moduleMask);
@@ -1025,6 +1088,8 @@ public final class CenterStructure {
 
     public void save(NBTTagCompound tag, IGregTechTileEntity te) {
         NBTTagCompound app = new NBTTagCompound();
+        app.setInteger("ReviewSectors", reviewSectors);
+        app.setLong("ReviewModules", reviewModules);
         for (int i = 0; i < modules.length; i++) if (modules[i] != null) {
             app.setString(Integer.toString(i), modules[i].resource);
             if (modules[i].damaged) app.setBoolean("d" + i, true);
@@ -1106,6 +1171,9 @@ public final class CenterStructure {
         facing = ForgeDirection.UNKNOWN;
         towerTier = -1;
         lastFormation = savedFormation;
+        reviewSectors = (app.getInteger("ReviewSectors") | (savedFormation == null ? 0 : savedFormation.sectors)) & 63;
+        reviewModules = (app.getLong("ReviewModules") | (savedFormation == null ? 0 : savedFormation.modules))
+            & ((1L << 36) - 1);
         portIdentity = savedFormation;
         knownPorts.clear();
         int[] ports = app.getIntArray("Ports");

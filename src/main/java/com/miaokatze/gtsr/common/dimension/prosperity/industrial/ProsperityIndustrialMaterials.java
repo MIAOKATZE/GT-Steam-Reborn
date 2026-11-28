@@ -4,12 +4,12 @@
 package com.miaokatze.gtsr.common.dimension.prosperity.industrial;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -20,6 +20,8 @@ import net.minecraftforge.fluids.FluidStack;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
+import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.ModContainer;
 import gregtech.api.enums.MaterialBuilder;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
@@ -51,53 +53,43 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
         // values() is still empty inside this callback; the material map contains the live pre-init definitions.
         for (Materials material : Materials.getMaterialsMap()
             .values()) {
-            if (material.mMetaItemSubID >= 0) occupied.put(material.mMetaItemSubID, material.mName);
+            if (material.mMetaItemSubID >= 0)
+                occupied.merge(material.mMetaItemSubID, material.mName, (left, right) -> left + "," + right);
         }
-        Properties ids = loadIds();
-        boolean firstAllocation = !idFile.exists();
-        boolean updated = firstAllocation;
-        // Reserve every saved slot before allocating additions; a new material cannot steal an old ID.
-        Map<Integer, String> savedSlots = new HashMap<>();
-        for (String key : ids.stringPropertyNames()) {
-            int saved = Integer.parseInt(ids.getProperty(key));
-            if (saved < 0 || saved >= 1000 || savedSlots.put(saved, key) != null)
-                throw new IllegalStateException("Invalid or duplicate saved industrial material ID: " + key);
+        List<MaterialIdPreflight.Definition> definitions = new ArrayList<>();
+        Map<String, String> occupiedNames = new HashMap<>();
+        for (Materials material : Materials.getMaterialsMap()
+            .values()) {
+            if (!GTSRProsperityAirMaterials.isRawGas(material)) occupiedNames.put(material.mName, material.mName);
         }
         for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {
-            if (Materials.getMaterialsMap()
-                .containsKey(definition.name)) {
-                throw new IllegalStateException("Industrial material name already occupied: " + definition.name);
-            }
-            int id;
-            String saved = ids.getProperty(definition.id);
-            if (saved == null && !firstAllocation && definition.introducedVersion == 0)
-                throw new IllegalStateException("Missing persistent industrial material ID: " + definition.id);
-            if (saved == null) {
-                id = 999;
-                while (id >= 0 && (occupied.containsKey(id) || savedSlots.containsKey(id))) id--;
-                if (id < 0)
-                    throw new IllegalStateException("Not enough GT material IDs for prosperity industrial materials");
-                ids.setProperty(definition.id, Integer.toString(id));
-                savedSlots.put(id, definition.id);
-                updated = true;
-            } else {
-                id = Integer.parseInt(saved);
-            }
-            if (id < 0 || id >= 1000 || occupied.containsKey(id)) {
-                throw new IllegalStateException(
-                    "Industrial material ID conflict: " + definition.id
-                        + "="
-                        + id
-                        + " occupied by "
-                        + occupied.get(id)
-                        + "; keep the saved ID file and resolve the mod conflict");
-            }
-            occupied.put(id, definition.name);
+            definitions.add(
+                new MaterialIdPreflight.Definition(
+                    definition.id,
+                    definition.name,
+                    definition.introducedVersion > 0,
+                    false));
         }
-        // Preserve every existing industrial ID and its first-allocation order before allocating raw gas cells.
-        updated |= GTSRProsperityAirMaterials.reserveCellIds(ids, occupied);
-        // Save the complete mapping before creating any materials; failure cannot partially remap saved stacks.
-        if (updated) saveIds(ids);
+        definitions.addAll(GTSRProsperityAirMaterials.cellIdDefinitions());
+        occupiedNames.putAll(GTSRProsperityAirMaterials.cellRegistrationProblems());
+        byte[] original = loadIdBytes();
+        MaterialIdPreflight.Result preflight = MaterialIdPreflight.inspect(
+            original,
+            Boolean.getBoolean("gtsr.materialIds.initializeNewInstance"),
+            definitions,
+            occupied,
+            occupiedNames);
+        ModContainer gregtech = Loader.instance()
+            .getIndexedModList()
+            .get("gregtech");
+        String gtVersion = gregtech == null ? "missing" : gregtech.getVersion();
+        preflight.requireValid("GT=" + gtVersion + ", cfg=" + idFile.getAbsolutePath());
+        Properties ids = preflight.ids;
+        // Reservation remains pure: no raw gas numeric identity changes before durable publication.
+        GTSRProsperityAirMaterials.reserveCellIds(ids, new HashMap<>(occupied));
+        byte[] published = MaterialIdPreflight.encode(preflight, gtVersion);
+        if (!Arrays.equals(original, published)) saveIds(original, published);
+        GTSRProsperityAirMaterials.applyCellIds(ids);
         for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {
             MaterialBuilder builder = new MaterialBuilder().setName(definition.name)
                 .setDefaultLocalName(definition.en)
@@ -125,38 +117,24 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
         GTSteamReborn.LOG.info("[GTSR] prosperity industrial materials registered: " + MATERIALS.size());
     }
 
-    private static Properties loadIds() {
-        Properties ids = new Properties();
-        if (idFile.exists()) {
-            try (FileInputStream input = new FileInputStream(idFile)) {
-                ids.load(input);
-            } catch (Exception e) {
-                throw new IllegalStateException("Cannot read saved industrial material IDs: " + idFile, e);
-            }
+    private static byte[] loadIdBytes() {
+        try {
+            if (Files.isSymbolicLink(idFile.toPath())) throw new java.io.IOException("Symbolic-link ID file rejected");
+            return Files.exists(idFile.toPath()) ? Files.readAllBytes(idFile.toPath()) : null;
+        } catch (Exception failure) {
+            throw new IllegalStateException("Cannot read saved industrial material IDs: " + idFile, failure);
         }
-        return ids;
     }
 
-    private static void saveIds(Properties ids) {
-        File parent = idFile.getAbsoluteFile()
-            .getParentFile();
-        if (!parent.isDirectory() && !parent.mkdirs()) {
-            throw new IllegalStateException("Cannot create industrial ID directory: " + parent);
-        }
-        File temporary = new File(parent, idFile.getName() + ".tmp");
-        try (FileOutputStream output = new FileOutputStream(temporary)) {
-            ids.store(output, "Persistent GT IDs. Do not delete or reallocate after creating a world.");
-        } catch (Exception e) {
-            throw new IllegalStateException("Cannot save industrial material IDs", e);
-        }
+    private static void saveIds(byte[] expected, byte[] replacement) {
+        java.nio.file.Path target = idFile.toPath()
+            .toAbsolutePath();
         try {
-            Files.move(
-                temporary.toPath(),
-                idFile.toPath(),
-                StandardCopyOption.ATOMIC_MOVE,
-                StandardCopyOption.REPLACE_EXISTING);
-        } catch (Exception e) {
-            throw new IllegalStateException("Cannot atomically install industrial material ID file: " + idFile, e);
+            MaterialIdFileStore.publish(target, expected, replacement);
+        } catch (Exception failure) {
+            throw new IllegalStateException(
+                "Cannot publish industrial IDs; no material identities applied: " + target,
+                failure);
         }
     }
 

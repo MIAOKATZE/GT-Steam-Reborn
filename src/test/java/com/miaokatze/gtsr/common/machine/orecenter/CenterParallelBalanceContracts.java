@@ -65,6 +65,7 @@ public final class CenterParallelBalanceContracts {
         unchangedBoosterValues();
         numericBoundaries();
         tickRemainderBoundaries();
+        CenterPlannerCacheContracts.run(fixtureItem);
         System.out.println("PASS center parallel balance: " + checks + " checks; game_started=false");
     }
 

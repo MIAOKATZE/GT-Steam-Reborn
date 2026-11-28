@@ -150,9 +150,8 @@ final class CenterTerminalPages {
                         "assembly.readout",
                         tr(
                             state().getBoolean("Active") ? "assembly.running"
-                                : state().getBoolean("Formed") ? "assembly.idle"
-                                    : state().getBoolean("CheckingFormation") ? "assembly.rechecking"
-                                        : "assembly.unformed"),
+                                : state().getBoolean("CheckingFormation") ? "assembly.rechecking"
+                                    : state().getBoolean("Formed") ? "assembly.idle" : "assembly.unformed"),
                         Integer.bitCount(mask()),
                         installed(),
                         sync.snapshot()

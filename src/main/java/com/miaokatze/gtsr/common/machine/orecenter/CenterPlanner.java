@@ -1,8 +1,12 @@
 package com.miaokatze.gtsr.common.machine.orecenter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +28,8 @@ import gregtech.api.util.GTUtility.ItemId;
 
 public final class CenterPlanner {
 
-    private static final int BASE_WORK = 4096, MAX_LOTS = 4096, MAX_CANDIDATES = 32;
+    private static final int BASE_WORK = 4096, MAX_LOTS = 4096;
+    static final int MAX_CANDIDATES = 32;
     static final int MAX_OUTPUTS = 2048, MAX_ROOTS = 4_000_000, MAX_BATCH_ROOTS = 64_000_000;
     private static final int MAX_BATCH_WORK = Integer.MAX_VALUE - 1;
     private static final double BATCH_TICKS = 128;
@@ -210,6 +215,147 @@ public final class CenterPlanner {
         }
     }
 
+    /** Controller-owned decisions only; neither a session's queues nor inventory escape into this cache. */
+    static final class RouteCache {
+
+        private static final int LIMIT = 512;
+        private final Map<RouteKey, RouteDecision> decisions = new LinkedHashMap<>();
+        private CenterGraph[] graphs;
+        private int[] grades;
+        private long revision;
+        private int tier, sectors;
+        private long hits, misses, evictions;
+
+        void clear() {
+            decisions.clear();
+            graphs = null;
+            grades = null;
+        }
+
+        private void bind(List<WorkGraph> effective, int[] best, int tier, int sectors, long revision) {
+            boolean same = graphs != null && graphs.length == effective.size()
+                && this.revision == revision
+                && this.tier == tier
+                && this.sectors == sectors
+                && Arrays.equals(grades, best);
+            for (int i = 0; same && i < graphs.length; i++) same = graphs[i] == effective.get(i).graph;
+            if (same) return;
+            clear();
+            graphs = new CenterGraph[effective.size()];
+            for (int i = 0; i < graphs.length; i++) graphs[i] = effective.get(i).graph;
+            grades = best.clone();
+            this.tier = tier;
+            this.sectors = sectors;
+            this.revision = revision;
+        }
+
+        private RouteDecision get(RouteKey key) {
+            RouteDecision result = decisions.get(key);
+            if (result == null) misses++;
+            else hits++;
+            return result;
+        }
+
+        private void put(RouteKey key, RouteDecision route) {
+            if (decisions.size() == LIMIT && !decisions.containsKey(key)) {
+                decisions.remove(
+                    decisions.keySet()
+                        .iterator()
+                        .next());
+                evictions++;
+            }
+            decisions.put(key, route);
+        }
+
+        long hits() {
+            return hits;
+        }
+
+        long misses() {
+            return misses;
+        }
+
+        long evictions() {
+            return evictions;
+        }
+
+        int size() {
+            return decisions.size();
+        }
+    }
+
+    private static final class RouteKey {
+
+        final ItemId item;
+        final String[] tags;
+
+        RouteKey(ItemStack stack, String[] tags) {
+            // ItemId.createNoCopy is safe here only with our private NBT snapshot.
+            item = itemKey(stack.copy());
+            this.tags = tags.clone();
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * item.hashCode() + Arrays.hashCode(tags);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (!(other instanceof RouteKey)) return false;
+            RouteKey key = (RouteKey) other;
+            return item.equals(key.item) && Arrays.equals(tags, key.tags);
+        }
+    }
+
+    private static final class RouteDecision {
+
+        final long graphId;
+        final int entry;
+        final boolean raw, intermediate;
+
+        RouteDecision(long graphId, int entry, boolean raw, boolean intermediate) {
+            this.graphId = graphId;
+            this.entry = entry;
+            this.raw = raw;
+            this.intermediate = intermediate;
+        }
+    }
+
+    /** One cold graph/entry comparison per existing advance work unit. */
+    private static final class PendingRoute {
+
+        final RouteKey key;
+        final boolean raw, feed;
+        int graphCursor, entryCursor;
+        WorkGraph selected, fallback;
+
+        PendingRoute(ItemStack stack) {
+            key = new RouteKey(stack, CenterGraph.tags(stack));
+            raw = anyTag(key.tags, RAW);
+            feed = anyTag(key.tags, FEED);
+        }
+    }
+
+    /** References stay current as this session consumes them; no quantity or reservation is cached. */
+    private static final class NodeStocks {
+
+        final List<ItemStack> items = new ArrayList<>();
+        final List<FluidStack> fluids = new ArrayList<>();
+        final Iterator<ItemStack> auxiliary;
+        final ItemStack circuit;
+        int fluidCursor;
+        boolean ready;
+
+        NodeStocks(CenterGraph.Node node, Map<ItemId, ItemStack> auxiliary) {
+            this.auxiliary = node.process.auxiliarySlots() > 0 ? auxiliary.values()
+                .iterator()
+                : Collections.<ItemStack>emptyList()
+                    .iterator();
+            circuit = node.circuit == 0 ? null : ItemList.Circuit_Integrated.getWithDamage(0, node.circuit);
+        }
+    }
+
     public static Batch plan(List<CenterGraph> graphs, ItemStack[] items, FluidStack[] fluids, int[] grades, int tier,
         int sectors, long voltage, long availableEUt, int heat, long seed) {
         Session planner = start(graphs, items, fluids, grades, tier, sectors, voltage, availableEUt, heat, seed);
@@ -288,6 +434,10 @@ public final class CenterPlanner {
         private final List<FluidStack> consumedFluids = new ArrayList<>(), outputFluids = new ArrayList<>();
         private final Map<ItemId, ItemStack> auxiliary = new LinkedHashMap<>();
         private final Map<ItemId, FeedRoute> feedRoutes = new HashMap<>();
+        private final Map<Long, WorkGraph> routeGraphs = new HashMap<>();
+        private final Map<CenterGraph.Node, NodeStocks> nodeStocks = new IdentityHashMap<>();
+        private final CenterRecipeMemo recipeMemo = new CenterRecipeMemo();
+        private final RouteCache routeCache;
         private final Map<ItemId, Origin> origins = new LinkedHashMap<>();
         private final List<FluidStack> available = new ArrayList<>();
         private final List<ItemStack> inputs = new ArrayList<>();
@@ -305,9 +455,11 @@ public final class CenterPlanner {
         private boolean batched;
         private boolean queueMode;
         private int executions, rootPaid, proposedRoots;
+        private int routeChecks, stockViewEntries;
         private double weightedTicks, workSteam, recipeEU, steamMultiplier = 1, euMultiplier = 1;
         private boolean finished, failed, workLimitReached, boostConfigured;
         private Batch result;
+        private PendingRoute pendingRoute;
 
         Session(List<CenterGraph> configured, ItemStack[] items, FluidStack[] fluids, int[][] counts, int tier,
             int sectors, long voltage, long maxEUt, int heat, long seed) {
@@ -336,6 +488,28 @@ public final class CenterPlanner {
         Session(List<CenterGraph> configured, ItemStack[] items, FluidStack[] fluids, int[][] counts, int tier,
             int sectors, long voltage, long maxEUt, int heat, long seed, boolean ignoreFluids, boolean ignoreEnergy,
             int rootLimit, int batchRounds) {
+            this(
+                configured,
+                items,
+                fluids,
+                counts,
+                tier,
+                sectors,
+                voltage,
+                maxEUt,
+                heat,
+                seed,
+                ignoreFluids,
+                ignoreEnergy,
+                rootLimit,
+                batchRounds,
+                null,
+                0);
+        }
+
+        Session(List<CenterGraph> configured, ItemStack[] items, FluidStack[] fluids, int[][] counts, int tier,
+            int sectors, long voltage, long maxEUt, int heat, long seed, boolean ignoreFluids, boolean ignoreEnergy,
+            int rootLimit, int batchRounds, RouteCache cache, long routingRevision) {
             if (tier < 0 || tier > 3 || sectors < 1 || sectors > 6 || configured.size() > CenterGraph.MAX_GRAPHS) {
                 throw new IllegalArgumentException("Invalid center configuration");
             }
@@ -369,11 +543,16 @@ public final class CenterPlanner {
                 graphs.add(new WorkGraph(graph));
                 for (CenterGraph.Node node : graph.nodes) weight[node.process.module.ordinal()] = .20;
             }
+            boolean uniqueIds = true;
+            for (WorkGraph graph : graphs) if (routeGraphs.put(graph.graph.id, graph) != null) uniqueIds = false;
+            // Old fixtures/configuration may reuse an ID; their queue binding must remain unambiguous.
+            routeCache = uniqueIds ? cache : null;
+            if (routeCache != null) routeCache.bind(graphs, best, tier, sectors, routingRevision);
             for (ItemStack stack : items) if (stack != null && stack.stackSize > 0) inputs.add(stack.copy());
         }
 
         private void prepare(ItemStack stack, boolean reserveOthers) {
-            FeedRoute route = feedRoutes.computeIfAbsent(itemKey(stack), key -> route(stack));
+            FeedRoute route = feedRoutes.get(itemKey(stack));
             LotQueue queue = route.queue;
             if (queue != null && proposedRoots < admissionLimit) {
                 Origin known = origins.get(itemKey(stack));
@@ -398,25 +577,85 @@ public final class CenterPlanner {
             }
         }
 
-        private FeedRoute route(ItemStack stack) {
-            String[] tags = CenterGraph.tags(stack);
-            WorkGraph graph = pick(stack, tags);
-            if (graph == null) return new FeedRoute(null, false, false, 0);
-            boolean raw = anyTag(tags, RAW);
-            int entry = graph.graph.entry(stack, tags);
-            RecipeMap<?> map = graph.graph.nodes.get(entry).process.recipes();
-            // Use the existing native input index, not a second recipe search or a recipe-table scan.
-            if (raw && (map == null || !map.containsInput(stack))) return new FeedRoute(null, false, false, 0);
-            return new FeedRoute(graph.input.get(entry), raw, !raw && anyTag(tags, FEED), graph.graph.id);
+        private boolean prepareRoute(ItemStack stack) {
+            ItemId item = itemKey(stack);
+            if (feedRoutes.containsKey(item)) return true;
+            if (pendingRoute == null) {
+                pendingRoute = new PendingRoute(stack);
+                RouteDecision cached = routeCache == null ? null : routeCache.get(pendingRoute.key);
+                if (cached != null) {
+                    bindRoute(item, stack, cached);
+                    pendingRoute = null;
+                    return true;
+                }
+            }
+            PendingRoute pending = pendingRoute;
+            if (pending.selected == null && pending.graphCursor < graphs.size()) {
+                routeChecks++;
+                WorkGraph graph = graphs.get(pending.graphCursor++);
+                if (!graph.graph.fallback() && graph.graph.matches(stack, pending.key.tags)) pending.selected = graph;
+                else if (pending.fallback == null && graph.graph.fallback()
+                    && pending.feed
+                    && graph.graph.permitsInputExclusions(stack, pending.key.tags)) pending.fallback = graph;
+                return false;
+            }
+            if (pending.selected == null) pending.selected = pending.fallback;
+            int entry = 0;
+            if (pending.selected != null) {
+                List<CenterGraph.EntryRoute> entries = pending.selected.graph.entryRoutes();
+                if (pending.entryCursor < entries.size()) {
+                    routeChecks++;
+                    CenterGraph.EntryRoute candidate = entries.get(pending.entryCursor++);
+                    if (!candidate.matches(stack, pending.key.tags)) return false;
+                    entry = candidate.node;
+                }
+            }
+            RouteDecision decision = new RouteDecision(
+                pending.selected == null ? 0 : pending.selected.graph.id,
+                pending.selected == null ? -1 : entry,
+                pending.raw,
+                !pending.raw && pending.feed);
+            if (routeCache != null) routeCache.put(pending.key, decision);
+            bindRoute(item, stack, decision);
+            pendingRoute = null;
+            return true;
         }
 
-        private WorkGraph pick(ItemStack stack, String[] rules) {
-            WorkGraph fallback = null;
-            for (WorkGraph graph : graphs) {
-                if (!graph.graph.fallback() && graph.graph.matches(stack, rules)) return graph;
-                if (fallback == null && graph.graph.fallback() && anyTag(rules, FEED)) fallback = graph;
+        private void bindRoute(ItemId item, ItemStack stack, RouteDecision decision) {
+            WorkGraph graph = decision.entry < 0 ? null : routeGraphs.get(decision.graphId);
+            // Duplicate-ID legacy sessions still use their own selected graph, never the cross-batch cache.
+            if (routeCache == null && pendingRoute != null && decision.entry >= 0) graph = pendingRoute.selected;
+            if (graph != null && decision.raw) {
+                RecipeMap<?> map = graph.graph.nodes.get(decision.entry).process.recipes();
+                // Recheck the native index even on a cross-batch hit: recipes can be added after a prior rejection.
+                if (map == null || !map.containsInput(stack)) graph = null;
             }
-            return fallback;
+            feedRoutes.put(
+                item,
+                new FeedRoute(
+                    graph == null ? null : graph.input.get(decision.entry),
+                    decision.raw,
+                    decision.intermediate,
+                    graph == null ? 0 : graph.graph.id));
+        }
+
+        private boolean prepareStocks(CenterGraph.Node node) {
+            NodeStocks stocks = nodeStocks.computeIfAbsent(node, key -> new NodeStocks(key, auxiliary));
+            if (stocks.ready) return true;
+            if (stocks.auxiliary.hasNext()) {
+                stockViewEntries++;
+                ItemStack stack = stocks.auxiliary.next();
+                if (node.acceptsAuxiliary(stack)) stocks.items.add(stack);
+                return false;
+            }
+            if (stocks.fluidCursor < available.size()) {
+                stockViewEntries++;
+                FluidStack fluid = available.get(stocks.fluidCursor++);
+                if (node.acceptsAuxiliary(fluid)) stocks.fluids.add(fluid);
+                return false;
+            }
+            stocks.ready = true;
+            return true;
         }
 
         private int configureBoosts() {
@@ -478,8 +717,30 @@ public final class CenterPlanner {
             return workLimit;
         }
 
+        long nativeRecipeQueries() {
+            return recipeMemo.queries();
+        }
+
+        long reusedRecipeQueries() {
+            return recipeMemo.hits();
+        }
+
+        long cachedCandidateChecks() {
+            return recipeMemo.checks();
+        }
+
+        int routeChecks() {
+            return routeChecks;
+        }
+
+        int stockViewEntries() {
+            return stockViewEntries;
+        }
+
         public boolean advance(int queryBudget, long timeBudgetNanos) {
             if (finished) return true;
+            // No recipe revision is exposed by GT. A different tick always returns to the native index.
+            recipeMemo.clear();
             long start = System.nanoTime();
             int used = 0;
             if (!boostConfigured) {
@@ -490,12 +751,20 @@ public final class CenterPlanner {
             }
             while (!failed && inputIndex < inputs.size()) {
                 if (used >= queryBudget || used > 0 && System.nanoTime() - start >= timeBudgetNanos) return false;
-                prepare(inputs.get(inputIndex++), true);
+                ItemStack stack = inputs.get(inputIndex);
+                if (prepareRoute(stack)) {
+                    inputIndex++;
+                    prepare(stack, true);
+                }
                 used++;
             }
             while (!failed && deferredIndex < deferredInputs.size() && proposedRoots < admissionLimit) {
                 if (used >= queryBudget || used > 0 && System.nanoTime() - start >= timeBudgetNanos) return false;
-                prepare(deferredInputs.get(deferredIndex++), false);
+                ItemStack stack = deferredInputs.get(deferredIndex);
+                if (prepareRoute(stack)) {
+                    prepare(stack, false);
+                    deferredIndex++;
+                }
                 used++;
             }
             if (proposedRoots == 0 || queueMode && proposedRoots < parallelLimit()) {
@@ -513,6 +782,10 @@ public final class CenterPlanner {
                 LotQueue lots = work.input.get(nodeIndex);
                 if (lots.cursor == lots.lots.size()) {
                     nodeIndex++;
+                    continue;
+                }
+                if (!prepareStocks(work.graph.nodes.get(nodeIndex))) {
+                    used++;
                     continue;
                 }
                 Lot lot = lots.next();
@@ -546,24 +819,24 @@ public final class CenterPlanner {
             int index = node.process.module.ordinal();
             long recipeVoltage = ignoreEnergy ? Integer.MAX_VALUE : recipeVoltage(node.process, tier, voltage);
             RecipeMap<?> map = node.process.recipes();
+            NodeStocks stocks = nodeStocks.get(node);
             var candidates = new ArrayList<ItemStack>();
             var matchedAuxiliary = new ArrayList<ItemStack>();
             candidates.add(lot.stack.copy());
             if (node.process.auxiliarySlots() > 0) {
-                for (ItemStack stack : auxiliary.values()) if (stack.stackSize > 0 && node.acceptsAuxiliary(stack)) {
+                for (ItemStack stack : stocks.items) if (stack.stackSize > 0) {
                     candidates.add(stack.copy());
                     matchedAuxiliary.add(stack);
                 }
             }
-            if (node.circuit != 0) candidates.add(ItemList.Circuit_Integrated.getWithDamage(0, node.circuit));
+            if (stocks.circuit != null) candidates.add(stocks.circuit.copy());
             ItemStack[] itemStocks = candidates.toArray(new ItemStack[0]);
             List<FluidStack> matchedFluids = new ArrayList<>();
-            for (FluidStack fluid : available)
-                if (fluid.amount > 0 && node.acceptsAuxiliary(fluid)) matchedFluids.add(fluid);
+            for (FluidStack fluid : stocks.fluids) if (fluid.amount > 0) matchedFluids.add(fluid);
             FluidStack[] fluidStocks = matchedFluids.stream()
                 .map(FluidStack::copy)
                 .toArray(FluidStack[]::new);
-            GTRecipe recipe = findRecipe(map, itemStocks, fluidStocks, recipeVoltage, heat);
+            GTRecipe recipe = recipeMemo.find(map, itemStocks, fluidStocks, recipeVoltage, heat);
             if (ignoreFluids && recipe == null)
                 recipe = findWithoutFluidStock(map, node, itemStocks, recipeVoltage, heat);
             int times = 0;
@@ -809,8 +1082,17 @@ public final class CenterPlanner {
     }
 
     static GTRecipe findRecipe(RecipeMap<?> map, ItemStack[] items, FluidStack[] fluids, long voltage, int heat) {
-        if (map == null) return null;
+        return selectRecipe(findRecipeCandidates(map, items, fluids, voltage, heat));
+    }
+
+    static GTRecipe selectRecipe(List<GTRecipe> found) {
+        return found.isEmpty() || found.size() > MAX_CANDIDATES ? null : found.get(0);
+    }
+
+    static List<GTRecipe> findRecipeCandidates(RecipeMap<?> map, ItemStack[] items, FluidStack[] fluids, long voltage,
+        int heat) {
         List<GTRecipe> found = new ArrayList<>();
+        if (map == null) return found;
         map.findRecipeQuery()
             .items(items)
             .fluids(fluids)
@@ -820,7 +1102,7 @@ public final class CenterPlanner {
             .findAll()
             .limit(MAX_CANDIDATES + 1L)
             .forEach(found::add);
-        return found.isEmpty() || found.size() > MAX_CANDIDATES ? null : found.get(0);
+        return found;
     }
 
     static boolean usableRecipe(GTRecipe recipe, int heat) {

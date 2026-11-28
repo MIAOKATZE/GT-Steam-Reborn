@@ -3,7 +3,10 @@
 
 package com.miaokatze.gtsr.common.dimension.prosperity.air;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -11,6 +14,7 @@ import java.util.Set;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 
+import com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdPreflight;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import gregtech.api.enums.MaterialBuilder;
@@ -151,9 +155,52 @@ public class GTSRProsperityAirMaterials implements IMaterialHandler {
                         + "; keep the saved ID file and resolve the mod conflict");
             }
             occupied.put(id, material.mName);
-            material.mMetaItemSubID = id;
+            // Numeric identities are applied only after the complete mapping is durably published.
         }
         return updated;
+    }
+
+    private static Materials[] rawGases() {
+        return new Materials[] { WastesSigh, ThickGrease, MetalGrit, UmbralMire, SanzuResidualSteam, WitheredBreath };
+    }
+
+    public static boolean isRawGas(Materials candidate) {
+        for (Materials material : rawGases()) if (material != null && material == candidate) return true;
+        return false;
+    }
+
+    public static List<MaterialIdPreflight.Definition> cellIdDefinitions() {
+        List<MaterialIdPreflight.Definition> definitions = new ArrayList<>();
+        String[] names = { "wastesigh", "thickgrease", "metalgrit", "umbralmire", "sanzu_residual_steam",
+            "withered_breath" };
+        for (int i = 0; i < names.length; i++) {
+            definitions.add(new MaterialIdPreflight.Definition("air." + names[i], names[i], true, true));
+        }
+        return definitions;
+    }
+
+    public static Map<String, String> cellRegistrationProblems() {
+        Map<String, String> problems = new HashMap<>();
+        List<MaterialIdPreflight.Definition> definitions = cellIdDefinitions();
+        Materials[] materials = rawGases();
+        for (int i = 0; i < materials.length; i++) {
+            if (materials[i] == null || !definitions.get(i).name.equals(materials[i].mName))
+                problems.put(definitions.get(i).name, "raw-gas registration missing or name mismatch");
+        }
+        return problems;
+    }
+
+    /** Apply an already validated and durably published reservation; never allocate here. */
+    public static void applyCellIds(Properties ids) {
+        Materials[] gases = rawGases();
+        int[] validated = new int[gases.length];
+        for (int i = 0; i < gases.length; i++) {
+            if (gases[i] == null) throw new IllegalStateException("Prosperity raw gas material registration failed");
+            validated[i] = Integer.parseInt(ids.getProperty("air." + gases[i].mName));
+            if (validated[i] < 0 || validated[i] >= 1000)
+                throw new IllegalStateException("Invalid published raw gas ID");
+        }
+        for (int i = 0; i < gases.length; i++) gases[i].mMetaItemSubID = validated[i];
     }
 
     /**

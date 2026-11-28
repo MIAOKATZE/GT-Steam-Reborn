@@ -1,9 +1,12 @@
 package com.miaokatze.gtsr.common.machine.orecenter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import net.minecraft.item.ItemStack;
@@ -40,6 +43,14 @@ public final class CenterGraph {
             this.rule = rule;
             this.compiled = new CenterOreRule(rule);
         }
+
+        boolean matches(ItemStack stack, String[] tags) {
+            try {
+                return compiled.matches(stack, tags);
+            } catch (CenterOreRule.Limit ignored) {
+                return false;
+            }
+        }
     }
 
     public static final class OutletFilter {
@@ -48,6 +59,18 @@ public final class CenterGraph {
         public final boolean allow;
         private final List<String> rules;
         private final List<CenterOreRule> compiled;
+        private final Map<GTUtility.ItemId, FilterVerdict> decisions = new LinkedHashMap<>(64, .75F, true);
+
+        private static final class FilterVerdict {
+
+            final String[] tags;
+            final boolean accepted;
+
+            FilterVerdict(String[] tags, boolean accepted) {
+                this.tags = tags;
+                this.accepted = accepted;
+            }
+        }
 
         public OutletFilter(int slot, boolean allow, List<String> rules) {
             if (slot < 0 || slot >= 64) throw new IllegalArgumentException("Invalid outlet slot");
@@ -62,11 +85,22 @@ public final class CenterGraph {
         }
 
         boolean accepts(ItemStack stack) {
+            String[] names = tags(stack);
+            GTUtility.ItemId lookup = GTUtility.ItemId.createNoCopy(stack);
+            FilterVerdict previous = decisions.get(lookup);
+            if (previous != null && Arrays.equals(previous.tags, names)) return previous.accepted;
+            boolean accepted;
             try {
-                return matchesRules(compiled, stack, tags(stack)) == allow;
+                accepted = matchesRules(compiled, stack, names) == allow;
             } catch (CenterOreRule.Limit ignored) {
-                return false;
+                accepted = false;
             }
+            if (previous == null && decisions.size() >= 512) decisions.remove(
+                decisions.keySet()
+                    .iterator()
+                    .next());
+            decisions.put(GTUtility.ItemId.create(stack), new FilterVerdict(names, accepted));
+            return accepted;
         }
     }
 
@@ -398,18 +432,23 @@ public final class CenterGraph {
 
     boolean matches(ItemStack stack, String[] tags) {
         try {
-            return !matchesRules(excluded, stack, tags) && matchesRules(compiled, stack, tags);
+            return permitsInputExclusions(stack, tags) && matchesRules(compiled, stack, tags);
+        } catch (CenterOreRule.Limit ignored) {
+            return false;
+        }
+    }
+
+    /** Both explicit and fallback admission must honor the same saved exclusions. */
+    boolean permitsInputExclusions(ItemStack stack, String[] tags) {
+        try {
+            return !matchesRules(excluded, stack, tags);
         } catch (CenterOreRule.Limit ignored) {
             return false;
         }
     }
 
     int entry(ItemStack stack, String[] tags) {
-        for (EntryRoute route : entryRoutes) try {
-            if (route.compiled.matches(stack, tags)) return route.node;
-        } catch (CenterOreRule.Limit ignored) {
-            // The rule budget is independent of the next entry branch.
-        }
+        for (EntryRoute route : entryRoutes) if (route.matches(stack, tags)) return route.node;
         return 0;
     }
 

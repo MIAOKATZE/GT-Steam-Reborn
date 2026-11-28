@@ -31,7 +31,7 @@ public final class CenterClaims extends WorldSavedData {
     private final Map<Owner, Claim> owners = new HashMap<>();
     private final Map<Long, List<Claim>> chunks = new HashMap<>();
     private final Map<Owner, WeakReference<CenterStructure>> centers = new HashMap<>();
-    private final java.util.LinkedHashMap<CenterStructure, Long> waitingScans = new java.util.LinkedHashMap<>();
+    private final java.util.LinkedHashMap<WeakReference<CenterStructure>, Long> waitingScans = new java.util.LinkedHashMap<>();
     private long scanTick = Long.MIN_VALUE, scanNanos;
     private int internalWrites;
     private final ArrayDeque<int[]> writePositions = new ArrayDeque<>();
@@ -55,16 +55,18 @@ public final class CenterClaims extends WorldSavedData {
             scanTick = tick;
             scanNanos = 0;
         }
-        waitingScans.put(center, tick);
-        java.util.Iterator<Map.Entry<CenterStructure, Long>> waiters = waitingScans.entrySet()
+        waitingScans.put(center.scanQueueReference, tick);
+        java.util.Iterator<Map.Entry<WeakReference<CenterStructure>, Long>> waiters = waitingScans.entrySet()
             .iterator();
         while (waiters.hasNext()) {
-            Map.Entry<CenterStructure, Long> next = waiters.next();
-            if (tick - next.getValue() > 2) {
+            Map.Entry<WeakReference<CenterStructure>, Long> next = waiters.next();
+            CenterStructure waiting = next.getKey()
+                .get();
+            if (waiting == null || tick - next.getValue() > 2) {
                 waiters.remove();
                 continue;
             }
-            if (next.getKey() != center || scanNanos >= 2_000_000L) return false;
+            if (waiting != center || scanNanos >= 2_000_000L) return false;
             waiters.remove();
             return true;
         }
@@ -98,6 +100,41 @@ public final class CenterClaims extends WorldSavedData {
 
     public static void load(World world) {
         if (!world.isRemote) get(world);
+    }
+
+    /** Runtime indices are disposable; the WorldSavedData and its unsaved claims remain owned by storage. */
+    public static void unload(World world) {
+        CenterClaims data = WORLDS.remove(world);
+        if (data == null) return;
+        for (WeakReference<CenterStructure> reference : data.waitingScans.keySet()) {
+            CenterStructure center = reference.get();
+            if (center != null) center.clearRuntimeReferences();
+        }
+        for (WeakReference<CenterStructure> reference : data.centers.values()) {
+            CenterStructure center = reference.get();
+            if (center != null) center.clearRuntimeReferences();
+        }
+        for (Claim claim : data.owners.values()) {
+            CenterStructure center = claim.source == null ? null : claim.source.get();
+            if (center != null) center.clearRuntimeReferences();
+            claim.source = null;
+        }
+        data.waitingScans.clear();
+        data.centers.clear();
+        data.writePositions.clear();
+        data.internalWrites = 0;
+        data.scanTick = Long.MIN_VALUE;
+        data.scanNanos = 0;
+    }
+
+    static void detach(World world, CenterStructure structure) {
+        CenterClaims data = WORLDS.get(world);
+        if (data == null) return;
+        data.waitingScans.remove(structure.scanQueueReference);
+        data.centers.values()
+            .removeIf(reference -> reference.get() == null || reference.get() == structure);
+        for (Claim claim : data.owners.values())
+            if (claim.source != null && claim.source.get() == structure) claim.source = null;
     }
 
     private static long chunk(int x, int z) {

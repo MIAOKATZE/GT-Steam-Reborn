@@ -12,7 +12,7 @@
     "src/main/java/com/miaokatze/gtsr/loader/GTSRRecipeLoader.java": "3502b360ab0767642ad77908fbe345753b736e691eb51232849dbe734b48000b",
     "src/main/java/com/miaokatze/gtsr/common/api/enums/GTSRItemList.java": "697ed6d346946a386fa5fa8ab1e44a3327f23ab07ac4fd4d45f190e94177f58c",
     "src/main/java/com/miaokatze/gtsr/common/items/CenterModuleItems.java": "952e4e5689ff536b60220f7b27ee54e6a82b74b1529afccabd44f5e03f554f10",
-    "src/main/java/com/miaokatze/gtsr/common/machine/orecenter/MTEMineralIntegrationCenter.java": "4a91c94e1ed09f9c8909b4763e681ea59398b62c838c94833a8bf8c5239a58e2",
+    "src/main/java/com/miaokatze/gtsr/common/machine/orecenter/MTEMineralIntegrationCenter.java": "2f13092f780ee3931d829a8f38a5bb18d4c71c6bcaa684f594515eda26041bc0",
     "src/main/java/com/miaokatze/gtsr/loader/recipes/OreIntegrationCenterRecipes.java": "6248d13723b4ae8eca9b63be03e6169bb448701c365e7ac1564c4bd9f0efe3f9"
   },
   "providerClassSha256": {

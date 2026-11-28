@@ -1,0 +1,33 @@
+{
+  "schema": "gtsr.material-copy/v1",
+  "mode": "reviewed-offline-copy",
+  "sourceGt": "5.09.54.277",
+  "sourceGtsr": "REPLACE_WITH_PROVEN_SOURCE_VERSION",
+  "targetGt": "5.09.54.277",
+  "targetGtsr": "REPLACE_WITH_REVIEWED_TARGET_VERSION",
+  "sourceGtsrArtifact": "E:/reviewed-evidence/original-gtsr.jar",
+  "sourceGtsrArtifactSha256": "REPLACE_WITH_ORIGINAL_GTSR_ARTIFACT_SHA256",
+  "targetGtsrArtifact": "E:/reviewed-evidence/target-gtsr.jar",
+  "targetGtsrArtifactSha256": "REPLACE_WITH_REVIEWED_TARGET_GTSR_ARTIFACT_SHA256",
+  "gtArtifact": "E:/reviewed-evidence/GT5-Unofficial-5.09.54.277-dev.jar",
+  "gtArtifactSha256": "88a0ac96a01e11fa04f738784722ecf27d4c72488973ff41eeb1399a167801e7",
+  "oldMapping": "E:/reviewed-evidence/original-industrial-material-ids.cfg",
+  "oldMappingSha256": "REPLACE_WITH_ORIGINAL_FILE_SHA256",
+  "newMapping": "E:/reviewed-evidence/proposed-industrial-material-ids.cfg",
+  "newMappingSha256": "REPLACE_WITH_REVIEWED_TARGET_FILE_SHA256",
+  "registryEvidence": "E:/reviewed-evidence/original-item-registry.properties",
+  "registryEvidenceSha256": "REPLACE_WITH_ORIGINAL_REGISTRY_EVIDENCE_SHA256",
+  "occupancyEvidence": "E:/reviewed-evidence/full-target-material-occupancy.properties",
+  "occupancyEvidenceSha256": "REPLACE_WITH_FULL_TARGET_OCCUPANCY_SHA256",
+  "rules": [
+    {
+      "key": "planned:native_acid_cut",
+      "registryName": "gregtech:gt.metaitem.01",
+      "numericItemId": -1,
+      "prefix": "cell",
+      "prefixIndex": 30,
+      "oldId": 705,
+      "newId": -1
+    }
+  ]
+}
