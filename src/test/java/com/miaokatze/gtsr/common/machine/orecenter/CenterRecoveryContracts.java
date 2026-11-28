@@ -99,7 +99,9 @@ public final class CenterRecoveryContracts {
         sparseFootprints();
         optionalPortRecovery();
         reloading();
+        CenterRecoveryReadinessFixture.run();
         controller();
+        CenterRecoveryTransactionFixture.run();
         monitor();
         fullCadence();
         result.put("checks", checks);

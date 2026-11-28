@@ -369,6 +369,9 @@ mapOf(
     "verifyCenterQueueMigration" to "com.miaokatze.gtsr.common.machine.orecenter.CenterQueueMigrationContracts",
     "verifyCenterParallelBalance" to "com.miaokatze.gtsr.common.machine.orecenter.CenterParallelBalanceContracts",
     "verifyCenterRecipes" to "com.miaokatze.gtsr.loader.recipes.OreIntegrationCenterRecipeContracts",
+    "verifyCenterGraphCache" to "com.miaokatze.gtsr.common.machine.orecenter.CenterGraphCacheContracts",
+    "verifyMaterialIdSafety" to "com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdPreflightContracts",
+    "verifyMaterialIdOfflineCopy" to "com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdOfflineCopyContracts",
     "verifyChunkLoadingPolicy" to "com.miaokatze.gtsr.common.util.ChunkLoadingPolicyContracts",
     "verifyCenterRecovery" to "com.miaokatze.gtsr.common.machine.orecenter.CenterRecoveryContracts",
     "verifyRecoveryNativeClock" to "com.miaokatze.gtsr.common.machine.recovery.RecoveryNativeClockContracts",
@@ -394,6 +397,17 @@ mapOf(
         systemProperty("java.awt.headless", "true")
     }
     tasks.named("check") { dependsOn(contract) }
+}
+
+tasks.register<JavaExec>("materialIdOfflineCopy") {
+    group = "verification"
+    description = "Explicit reviewed offline material copy; never opens a game or edits the source world."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath +
+        sourceSets["main"].compileClasspath + portableRecipeContractRuntime
+    mainClass.set("com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdOfflineCopy")
+    maxHeapSize = "1g"
+    systemProperty("java.awt.headless", "true")
 }
 
 tasks.named("check") {

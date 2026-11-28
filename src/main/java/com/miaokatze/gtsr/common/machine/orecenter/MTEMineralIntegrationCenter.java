@@ -132,10 +132,12 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     private final List<MTEHatch> steamHatches = new ArrayList<>();
     private final List<MTESteamCoolingHatch> coolingHatches = new ArrayList<>();
     private final CenterLedger ledger = new CenterLedger();
+    private final CenterPlanner.RouteCache routeCache = new CenterPlanner.RouteCache();
     private CenterPlanner.Session planning;
     private int planningRootLimit = CenterPlanner.MAX_ROOTS;
     private boolean plannedBatchMode;
     private boolean queueMode;
+    private boolean awaitingStructureReview;
     private int queueParallel;
     private CenterStructure.DebugBuild debugBuild;
     private boolean debugIgnoreFluids, debugIgnoreEnergy;
@@ -474,6 +476,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             mirrorBatchOutputs();
             grades[slot] = 0;
             planning = null;
+            routeCache.clear();
             te.markDirty();
             return "Module package queued at the shared output.";
         }
@@ -491,6 +494,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             modules[slot] = module.ordinal();
             grades[slot] = grade;
             planning = null;
+            routeCache.clear();
             te.markDirty();
             return "Installed " + module.key + " " + grade;
         }
@@ -509,7 +513,9 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         tag.setInteger("Sectors", sectors);
         tag.setBoolean("Formed", mMachine);
         IGregTechTileEntity tile = getBaseMetaTileEntity();
-        tag.setBoolean("CheckingFormation", !mMachine && tile != null && structure.isCheckingFormation(tile));
+        tag.setBoolean(
+            "CheckingFormation",
+            awaitingStructureReview || !mMachine && tile != null && structure.isCheckingFormation(tile));
         tag.setBoolean("Active", te.isActive());
         int installed = 0;
         for (int i = 0; i < grades.length; i++) if (grades[i] > 0 && (sectors & 1 << i / 6) != 0) installed++;
@@ -632,6 +638,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         nextGraphId = sequence;
         graphRevision++;
         planning = null;
+        routeCache.clear();
         planningRootLimit = maxPlanningRoots();
         te.markDirty();
         return true;
@@ -727,6 +734,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     private void tickBatch(IGregTechTileEntity te, long tick) {
+        awaitingStructureReview = false;
         if (plannedBatchMode != isBatchModeEnabled()) {
             plannedBatchMode = isBatchModeEnabled();
             planning = null;
@@ -750,6 +758,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             if (structure.moduleBroken(i, module, grades[i])) {
                 grades[i] = 0;
                 planning = null;
+                routeCache.clear();
                 te.markDirty();
             }
         }
@@ -796,6 +805,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             }
             if (tier != plannedTier || mask != plannedMask) {
                 planning = null;
+                routeCache.clear();
                 planningRootLimit = maxPlanningRoots();
                 plannedTier = tier;
                 plannedMask = mask;
@@ -883,7 +893,9 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
                 debugIgnoreFluids,
                 debugIgnoreEnergy,
                 planningRootLimit,
-                plannedBatchMode ? getMaxBatchSize() : 1);
+                plannedBatchMode ? getMaxBatchSize() : 1,
+                routeCache,
+                graphRevision);
             planning.queueMode(queueMode);
         }
         long slice = 350_000;
@@ -895,6 +907,10 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         CenterPlanner.Batch batch = planning.batch();
         // An already-paid batch remains the only transaction allowed to own the output buffer.
         if (batch != null && !allowCommit) return;
+        if (batch != null && !structure.isNewBatchReady(te)) {
+            awaitingStructureReview = true;
+            return;
+        }
         int retryLimit = planning.smallerRootLimit();
         int queueLimit = Math.max(1, planning.parallelLimit());
         planning = null;
@@ -943,7 +959,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     private boolean commit(IGregTechTileEntity te, CenterPlanner.Batch batch, int tier) {
-        if (batch.consumed.isEmpty()) return false;
+        if (!structure.isNewBatchReady(te) || batch.consumed.isEmpty()) return false;
         double capacity = outputCapacityRatio(batch);
         if (capacity < 1) {
             if (batch.roots > 1) planningRootLimit = Math.max(1, (int) (batch.roots * capacity));
@@ -1373,6 +1389,22 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     @Override
+    public void onUnload() {
+        structure.detach(getBaseMetaTileEntity());
+        planning = null;
+        routeCache.clear();
+        super.onUnload();
+    }
+
+    @Override
+    public void onRemoval() {
+        structure.detach(getBaseMetaTileEntity());
+        planning = null;
+        routeCache.clear();
+        super.onRemoval();
+    }
+
+    @Override
     public void loadNBTData(NBTTagCompound tag) {
         super.loadNBTData(tag);
         debugIgnoreFluids = tag.getBoolean("CenterDebugFluids");
@@ -1456,6 +1488,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         }
         structure.load(tag);
         planning = null;
+        routeCache.clear();
         plannedTier = -1;
         plannedMask = 0;
         mMachine = false;

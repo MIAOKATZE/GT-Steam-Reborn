@@ -65,6 +65,7 @@ public final class CriticalRuntime {
 
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
         public void onWorldUnload(net.minecraftforge.event.world.WorldEvent.Unload event) {
+            com.miaokatze.gtsr.common.machine.orecenter.CenterClaims.unload(event.world);
             CriticalBlockProtection.unloadClientWorld(event.world);
         }
 

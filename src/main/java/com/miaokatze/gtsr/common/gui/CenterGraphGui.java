@@ -1430,7 +1430,9 @@ public final class CenterGraphGui {
         private ItemStack sample;
         private ItemStack tracedSample;
         private CenterGraph tracedGraph;
+        private long tracedEnvironment = -1;
         private CenterGraphPreview trace;
+        private final CenterGraphPreview.Resources traceResources = new CenterGraphPreview.Resources();
         private String line = "";
         private int ink = CriticalGuiStyle.TEXT_BODY;
 
@@ -1478,11 +1480,14 @@ public final class CenterGraphGui {
         public void onUpdate() {
             super.onUpdate();
             editor.update();
-            if (sample != tracedSample || tracedGraph != editor.graph) {
+            if (sample != tracedSample || tracedGraph != editor.graph
+                || tracedEnvironment != editor.sync.previewRevision()) {
+                if (sample != tracedSample || tracedGraph != editor.graph) traceResources.clear();
                 tracedGraph = editor.graph;
                 tracedSample = sample;
+                tracedEnvironment = editor.sync.previewRevision();
                 trace = tracedGraph == null || sample == null ? null
-                    : new CenterGraphPreview(tracedGraph, sample, editor.sync.terminal());
+                    : new CenterGraphPreview(tracedGraph, sample, editor.sync.terminal(), traceResources);
             }
             if (trace != null) trace.advance();
         }

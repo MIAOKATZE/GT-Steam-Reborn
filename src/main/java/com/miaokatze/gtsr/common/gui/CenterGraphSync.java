@@ -29,6 +29,7 @@ import com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph.Node;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph.OutletFilter;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterPresets;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterProcess;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
@@ -136,6 +137,7 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
     private NBTTagCompound sentTerminal;
     private long sentLedgerRevision;
     private volatile NBTTagCompound terminal = new NBTTagCompound();
+    private volatile long previewRevision;
     private volatile NBTTagList ledger = new NBTTagList();
     private int nextStatePoll;
 
@@ -161,6 +163,10 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
 
     NBTTagCompound terminal() {
         return terminal;
+    }
+
+    long previewRevision() {
+        return previewRevision;
     }
 
     NBTTagList ledger() {
@@ -275,7 +281,11 @@ final class CenterGraphSync extends SyncHandler<CenterGraphSync> {
             byte[] bytes = new byte[length];
             buffer.readBytes(bytes);
             NBTTagCompound tag = CompressedStreamTools.func_152457_a(bytes, new NBTSizeTracker(2_097_152L));
-            if (tag.hasKey("State")) terminal = tag.getCompoundTag("State");
+            if (tag.hasKey("State")) {
+                NBTTagCompound updated = tag.getCompoundTag("State");
+                if (!CenterGraphPreview.sameEnvironment(terminal, updated)) previewRevision++;
+                terminal = updated;
+            }
             if (tag.hasKey("Ledger")) ledger = tag.getTagList("Ledger", 10);
             return;
         }
