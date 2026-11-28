@@ -61,7 +61,7 @@ public final class GTSRTooltipCatalog {
 
     private GTSRTooltipCatalog() {}
 
-    /** Called after GT has generated its materials. The authoritative NEI catalog supplies the exact stacks. */
+    /** Called after Forge item registration and GT ore binding. The NEI catalog supplies exact registered stacks. */
     public static void initialize() {
         GENERATED.clear();
         NATIVE_CELLS.clear();
@@ -88,12 +88,12 @@ public final class GTSRTooltipCatalog {
                 key = fluidPurpose(fluid);
                 form = "fluid_display";
             } else {
+                if (!GTSRItemOrderCatalog.isOwnedIndustrialDust(stack)) continue;
                 ItemData data = GTOreDictUnificator.getItemData(stack);
                 if (data == null || data.mMaterial == null) continue;
                 key = materialPurpose(data.mMaterial.mMaterial);
                 form = data.mPrefix == OrePrefixes.dustTiny ? "dust_tiny"
-                    : data.mPrefix == OrePrefixes.dustSmall ? "dust_small"
-                        : data.mPrefix == OrePrefixes.dust ? "dust" : "cell";
+                    : data.mPrefix == OrePrefixes.dustSmall ? "dust_small" : "dust";
             }
             GENERATED.computeIfAbsent(stack.getItem(), item -> new HashMap<>())
                 .put(stack.getItemDamage(), new Generated(fluid, key, form));
@@ -146,6 +146,7 @@ public final class GTSRTooltipCatalog {
         }
         Map<Integer, Generated> forms = GENERATED.get(stack.getItem());
         Generated generated = forms == null ? null : forms.get(stack.getItemDamage());
+        if (forms != null && generated == null) return null;
         if (generated != null) {
             if (generated.fluid != null) {
                 // Display NBT is not an ownership hint: decode the real GT item and verify its fluid ID too.
@@ -153,6 +154,8 @@ public final class GTSRTooltipCatalog {
                 if (stack.getItem() != ItemList.Display_Fluid.getItem() || decoded == null
                     || decoded.getFluid() != generated.fluid
                     || stack.getItemDamage() != generated.fluid.getID()) return null;
+            } else if (!GTSRItemOrderCatalog.isOwnedIndustrialDust(stack)) {
+                return null;
             }
             return generatedKeys(generated);
         }

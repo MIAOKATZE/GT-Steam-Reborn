@@ -3,19 +3,11 @@
 
 package com.miaokatze.gtsr.common.dimension.prosperity.air;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 
-import com.miaokatze.gtsr.common.dimension.prosperity.compatibility.LegacyProsperityCells;
 import com.miaokatze.gtsr.common.dimension.prosperity.fluid.ProsperityFluidContainers;
 import com.miaokatze.gtsr.common.dimension.prosperity.fluid.ProsperityNativeFluids;
-import com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdPreflight;
-import com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdRegistration;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
 import gregtech.api.enums.MaterialBuilder;
@@ -27,7 +19,7 @@ import gregtech.api.interfaces.IMaterialHandler;
 /**
  * Existing public Materials facades for the six raw gases and abyssal liquid.
  * The existing GT material handler registers their independent stable-name fluids before init.
- * Only explicitly proven safe historical gas-cell aliases retain a numeric material identity.
+ * All facades remain outside GT numeric material slots; containers use native universal fluid cells.
  */
 public class GTSRProsperityAirMaterials implements IMaterialHandler {
 
@@ -60,7 +52,6 @@ public class GTSRProsperityAirMaterials implements IMaterialHandler {
 
     @Override
     public void onMaterialsInit() {
-        MaterialIdRegistration.prepareEarlyRegistration();
         int registered = 0;
         registered += register("wastesigh", "Waste Sigh", 0x00b08a4a, material -> WastesSigh = material);
         registered += register("thickgrease", "Thick Grease", 0x004a3f28, material -> ThickGrease = material);
@@ -92,27 +83,6 @@ public class GTSRProsperityAirMaterials implements IMaterialHandler {
         return false;
     }
 
-    public static List<MaterialIdPreflight.Definition> cellIdDefinitions() {
-        List<MaterialIdPreflight.Definition> definitions = new ArrayList<>();
-        String[] names = { "wastesigh", "thickgrease", "metalgrit", "umbralmire", "sanzu_residual_steam",
-            "withered_breath" };
-        for (int i = 0; i < names.length; i++) {
-            definitions.add(new MaterialIdPreflight.Definition("air." + names[i], names[i], true, true));
-        }
-        return definitions;
-    }
-
-    public static Map<String, String> cellRegistrationProblems() {
-        Map<String, String> problems = new HashMap<>();
-        List<MaterialIdPreflight.Definition> definitions = cellIdDefinitions();
-        Materials[] materials = rawGases();
-        for (int i = 0; i < materials.length; i++) {
-            if (materials[i] == null || !definitions.get(i).name.equals(materials[i].mName))
-                problems.put(definitions.get(i).name, "raw-gas registration missing or name mismatch");
-        }
-        return problems;
-    }
-
     private static int register(String name, String defaultLocalName, int argb, Holder setter) {
         return registerCommon(name, defaultLocalName, argb, true, setter);
     }
@@ -127,10 +97,7 @@ public class GTSRProsperityAirMaterials implements IMaterialHandler {
             .setIconSet(TextureSet.SET_FLUID)
             .setARGB(argb);
         if (gas) builder.addSubTag(SubTag.TRANSPARENT);
-        int legacyId = gas ? MaterialIdRegistration.legacyFluidId("air", name) : -1;
-        LegacyProsperityCells.enable(builder, legacyId);
         Materials material = builder.constructMaterial();
-        LegacyProsperityCells.remember(material, legacyId);
         ProsperityNativeFluids.register(material, gas, 295);
         setter.accept(material);
         return 1;
@@ -138,7 +105,6 @@ public class GTSRProsperityAirMaterials implements IMaterialHandler {
 
     /** dev 探针（S3 验收②）：回读 FluidRegistry 与静态持有者/mGas，逐材料输出非空证据。 */
     public static void logRegistrationProbe() {
-        LegacyProsperityCells.registerContainers();
         probe("wastesigh", WastesSigh);
         probe("thickgrease", ThickGrease);
         probe("metalgrit", MetalGrit);

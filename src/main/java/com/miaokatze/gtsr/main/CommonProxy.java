@@ -108,18 +108,16 @@ public class CommonProxy {
         Config.synchronizeConfiguration(newConfigFile);
         // 调用方先守卫，关闭时不加载测试维度及 Runtime 类，也不注册监听。
         com.miaokatze.gtsr.common.testlab.TestLabBootstrap.preInit(Config.testLabEnabled);
-        ProsperityIndustrialMaterials
-            .configure(new File(event.getModConfigurationDirectory(), "gtsr/industrial-material-ids.cfg"));
         // dim1 S3：繁荣四空气材料 handler 必须在 GTSR 自身首次触碰 gregtech Materials 类之前登记
         // （此处为 CommonProxy.preInit 最早处）。Materials.add 仅登记；GT 于自身 preInit 的
         // Materials.init()（参考库 GTMod.java:337）末尾回调 onMaterialsInit 完成注册——gtsr 为
         // required-before:gregtech，本时序先于 GT preInit，回调必然可达（plan S3 ①）。
-        try {
+        com.miaokatze.gtsr.loader.RequiredRegistration.run("preInit", "material-handlers", () -> {
             Materials.add(new GTSRProsperityAirMaterials());
             Materials.add(new ProsperityIndustrialMaterials());
-        } catch (Throwable t) {
-            GTSteamReborn.LOG.error("[GTSR] prosperity air material handler registration failed", t);
-        }
+        });
+        // GT initializes its official IDs configuration before running this native preload queue.
+        GregTechAPI.sAfterGTPreload.add(com.miaokatze.gtsr.common.weapons.WeaponEnchantments::init);
         GTSRFXNet.init();
         SpacetimeTravel.init();
         com.miaokatze.gtsr.common.dimension.prosperity.travel.BeaconNavigationNetwork.register();

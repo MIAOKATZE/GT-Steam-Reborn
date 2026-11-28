@@ -112,6 +112,8 @@ stubs = {
     'com.miaokatze.gtsr.register.GTSRItemOrderCatalog': '''public class GTSRItemOrderCatalog {
  public static final java.util.List<net.minecraft.item.ItemStack> ITEMS=new java.util.ArrayList<>();
  public static java.util.List<net.minecraft.item.ItemStack> generatedDimensionItems(){return ITEMS;}
+ public static boolean isOwnedIndustrialDust(net.minecraft.item.ItemStack stack){
+ return ITEMS.contains(stack)&&stack.data!=null&&stack.data.mPrefix!=gregtech.api.enums.OrePrefixes.cell;}
 }''',
     'com.miaokatze.gtsr.common.api.enums.GTSRItemList': '''public enum GTSRItemList {Machine;
  public net.minecraft.item.Item item; public int meta;

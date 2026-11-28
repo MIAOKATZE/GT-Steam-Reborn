@@ -15,7 +15,6 @@ import cpw.mods.fml.common.event.FMLLoadCompleteEvent;
 import cpw.mods.fml.common.event.FMLMissingMappingsEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
-import cpw.mods.fml.common.event.FMLServerAboutToStartEvent;
 import cpw.mods.fml.common.event.FMLServerStartedEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.event.FMLServerStoppedEvent;
@@ -72,19 +71,23 @@ public class GTSteamReborn {
     @Mod.EventHandler
     public void postInit(FMLPostInitializationEvent event) {
         proxy.postInit(event);
-        com.miaokatze.gtsr.common.dimension.prosperity.industrial.compat.MaterialMappingHandshake.register();
+        if (cpw.mods.fml.common.Loader.isModLoaded("postea")) {
+            try {
+                com.miaokatze.gtsr.common.dimension.prosperity.compatibility.ProsperityPosteaMigration.register(
+                    cpw.mods.fml.common.Loader.instance()
+                        .getConfigDir()
+                        .toPath()
+                        .resolve("gtsr/industrial-material-ids.cfg"));
+            } catch (LinkageError incompatiblePostea) {
+                LOG.warn("Optional legacy item migration requires a compatible Postea API", incompatiblePostea);
+            }
+        }
     }
 
     /**
      * 服务器启动阶段
      * 用于注册服务器端命令或处理服务器特有的初始化逻辑。
      */
-    @Mod.EventHandler
-    public void serverAboutToStart(FMLServerAboutToStartEvent event) {
-        com.miaokatze.gtsr.common.dimension.prosperity.industrial.compat.MaterialWorldAdmission
-            .beforeLoad(event.getServer());
-    }
-
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
         proxy.serverStarting(event);
@@ -97,14 +100,12 @@ public class GTSteamReborn {
      */
     @Mod.EventHandler
     public void serverStarted(FMLServerStartedEvent event) {
-        com.miaokatze.gtsr.common.dimension.prosperity.industrial.compat.MaterialWorldAdmission.afterStarted();
         proxy.serverStarted(event);
     }
 
     /** Release terminal state after the final server tick, including integrated-server restarts. */
     @Mod.EventHandler
     public void serverStopped(FMLServerStoppedEvent event) {
-        com.miaokatze.gtsr.common.dimension.prosperity.industrial.compat.MaterialWorldAdmission.clear();
         com.miaokatze.gtsr.common.gui.mui2.Mui2ServerActions.clear();
         com.miaokatze.gtsr.common.terminal.ClusterTerminalData.clearSessions();
         com.miaokatze.gtsr.common.terminal.TerminalNet.clearServerState();

@@ -22,20 +22,19 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.common.dimension.prosperity.fluid.ProsperityFluidContainers;
 import com.miaokatze.gtsr.common.dimension.prosperity.industrial.IndustrialRecipeLedger;
+import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialDusts;
 import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialMaterials;
 import com.miaokatze.miaokatzecore.api.items.ItemOrderCatalog;
 
-import gregtech.api.GregTechAPI;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
-import gregtech.api.items.MetaGeneratedItemX32;
 import gregtech.api.objects.ItemData;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
 
 /**
- * GTSR 的唯一展示目录。创造入口保留原可见集合，NEI 另认领已经生成的自有 GT 材料形态。
+ * GTSR 的唯一展示目录。创造入口保留原可见集合，NEI 另认领真实登记的自有粉末与流体展示。
  * 不扫描整个 GT ItemMachines，也不从枚举补入未展示的冻结控制器或世界内部方块。
  * Core 负责 NEI 比较器；本供应器只读原始注册快照，避免相互调用形成递归。
  */
@@ -93,7 +92,7 @@ public final class GTSRItemOrderCatalog {
 
     private GTSRItemOrderCatalog() {}
 
-    /** NEI 权威原始目录（领域顺序）；晚于 init 的 GT 自动形态通过 postInit invalidate 纳入。 */
+    /** NEI 权威原始目录（领域顺序）；完成材料绑定后通过 postInit invalidate 纳入。 */
     public static List<ItemStack> rawItems() {
         List<ItemStack> registered = rawCreativeItems();
         List<ItemStack> ordinary = new ArrayList<>();
@@ -129,8 +128,8 @@ public final class GTSRItemOrderCatalog {
     }
 
     /**
-     * NEI 专用的自有粉三形态、原生流体 display 与 NBT 通用单元；旧 cell 只纳入真实登记的兼容形态。
-     * 不扫描 OrePrefixes，不接受矿辞替代品，不将潜在但尚未生成的形式塞进创造页。
+     * NEI 专用的自有粉三形态、原生流体 display 与 NBT 通用单元。
+     * 不扫描 OrePrefixes，不接受矿辞替代品，只接受稳定注册名对应的真实自有粉末。
      */
     public static List<ItemStack> generatedDimensionItems() {
         List<ItemStack> result = new ArrayList<>();
@@ -139,7 +138,6 @@ public final class GTSRItemOrderCatalog {
             GTSRProsperityAirMaterials.UmbralMire, GTSRProsperityAirMaterials.SanzuResidualSteam,
             GTSRProsperityAirMaterials.AbyssalObsession, GTSRProsperityAirMaterials.WitheredBreath }) {
             if (material == null) continue;
-            appendGenerated(result, material, OrePrefixes.cell);
             appendFluidForms(result, material.getGas(1));
             appendFluidForms(result, material.getFluid(1));
         }
@@ -152,11 +150,10 @@ public final class GTSRItemOrderCatalog {
             }
             if (!definition.name.equals(material.mName)) continue;
             if ("dust".equals(definition.phase)) {
-                appendGenerated(result, material, OrePrefixes.dustTiny);
-                appendGenerated(result, material, OrePrefixes.dustSmall);
-                appendGenerated(result, material, OrePrefixes.dust);
+                appendIndustrialDust(result, definition.id, OrePrefixes.dustTiny);
+                appendIndustrialDust(result, definition.id, OrePrefixes.dustSmall);
+                appendIndustrialDust(result, definition.id, OrePrefixes.dust);
             } else {
-                appendGenerated(result, material, OrePrefixes.cell);
                 appendFluidForms(result, "gas".equals(definition.phase) ? material.getGas(1) : material.getFluid(1));
             }
         }
@@ -179,22 +176,42 @@ public final class GTSRItemOrderCatalog {
         return ItemList.Cell_Universal_Fluid.hasBeenSet() && stack.getItem() == ItemList.Cell_Universal_Fluid.getItem();
     }
 
-    private static void appendGenerated(List<ItemStack> items, Materials material, OrePrefixes prefix) {
-        int id = material.mMetaItemSubID;
-        if (id < 0 || id >= GregTechAPI.sGeneratedMaterials.length || GregTechAPI.sGeneratedMaterials[id] != material)
+    private static void appendIndustrialDust(List<ItemStack> items, String id, OrePrefixes prefix) {
+        ItemStack stack;
+        try {
+            stack = ProsperityIndustrialDusts.get(id, prefix, 1);
+        } catch (IllegalArgumentException notRegisteredYet) {
             return;
-        ItemStack stack = GTOreDictUnificator.get(prefix, material, 1L);
-        if (stack == null || !(stack.getItem() instanceof MetaGeneratedItemX32)) return;
+        }
+        if (isOwnedIndustrialDust(stack)) appendUnique(items, stack);
+    }
+
+    /** Exact Forge registration and native GT ore binding; no material slot or ore substitute establishes ownership. */
+    public static boolean isOwnedIndustrialDust(ItemStack stack) {
+        if (stack == null || stack.getItem() == null || stack.getItemDamage() != 0) return false;
+        String id = ProsperityIndustrialDusts.ledgerId(stack.getItem());
+        if (id == null) return false;
         ItemData data = GTOreDictUnificator.getItemData(stack);
-        // MetaBaseItem.getMaterial 的确切映射为 sGeneratedMaterials[damage % 1000]；原生矿辞数据确认前缀。
-        // 不直接调用 MetaGeneratedItemX32 方法，避免编译期引入父类可选的 AppleCore IEdible 接口。
-        if (!Materials.isMaterialItem(stack.getItemDamage()) || stack.getItemDamage() % 1000 != id
-            || data == null
-            || data.mPrefix != prefix
-            || data.mMaterial == null
-            || data.mMaterial.mMaterial != material
-            || !prefix.doGenerateItem(material)) return;
-        appendUnique(items, stack);
+        if (data == null || data.mMaterial == null
+            || (data.mPrefix != OrePrefixes.dust && data.mPrefix != OrePrefixes.dustSmall
+                && data.mPrefix != OrePrefixes.dustTiny))
+            return false;
+        Materials material;
+        try {
+            material = ProsperityIndustrialMaterials.get(id);
+        } catch (IllegalStateException notRegisteredYet) {
+            return false;
+        }
+        ItemStack owned = ProsperityIndustrialDusts.get(id, data.mPrefix, 1);
+        ItemStack unified = GTOreDictUnificator.get(data.mPrefix, material, 1L);
+        String name = ProsperityIndustrialDusts.registryName(id, data.mPrefix);
+        return owned != null && owned.isItemEqual(stack)
+            && data.mMaterial.mMaterial == material
+            && data.mMaterial.mAmount == data.mPrefix.getMaterialAmount()
+            && unified != null
+            && unified.isItemEqual(owned)
+            && name.equals(Item.itemRegistry.getNameForObject(stack.getItem()))
+            && Item.itemRegistry.getObject(name) == stack.getItem();
     }
 
     private static void appendFluidDisplay(List<ItemStack> items, FluidStack fluid) {
@@ -219,8 +236,8 @@ public final class GTSRItemOrderCatalog {
     /** 供覆盖核验读取；识别物品类和实际方块类，兼容通用 ItemBlock 包装。 */
     public static boolean isDimensionItem(ItemStack stack) {
         if (stack == null || stack.getItem() == null) return false;
-        if (stack.getItem() instanceof MetaGeneratedItemX32
-            || (ItemList.Display_Fluid.hasBeenSet() && stack.getItem() == ItemList.Display_Fluid.getItem())
+        if (ProsperityIndustrialDusts.ledgerId(stack.getItem()) != null) return isOwnedIndustrialDust(stack);
+        if ((ItemList.Display_Fluid.hasBeenSet() && stack.getItem() == ItemList.Display_Fluid.getItem())
             || (ItemList.Cell_Universal_Fluid.hasBeenSet()
                 && stack.getItem() == ItemList.Cell_Universal_Fluid.getItem())) {
             for (ItemStack generated : generatedDimensionItems()) {

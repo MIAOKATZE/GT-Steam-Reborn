@@ -118,7 +118,6 @@ public enum MetaTileEntityID {
 
     public final int ID;
 
-    private static final int BASE_OLD = 14620;
     private static final int BASE = 14700;
 
     /**
@@ -132,27 +131,4 @@ public enum MetaTileEntityID {
         this.ID = BASE + Config.metaIdOffset + relative;
     }
 
-    /**
-     * 旧 ID → 新 ID 物品映射骨架（历史锚点）：
-     * v1.11.34 之前，本表承载"旧 ID 物品 → 新 ID"映射（旧段基准 14620），供占位转换器、
-     * [OLD] 实机注册、Postea 物品迁移与工作台转换配方等迁移机制查询。
-     * v1.11.34 起上述旧 ID 映射机制已整体移除，两表清空，仅保留数组结构与历史锚点
-     * （旧段基准 14620），getMappedId 查询契约维持不变（空表恒返回 -1）。
-     * 历史明细见 plan/sum/15_MetaV2迁移_sum.md 与 plan/sum/39_机器meta号段整理_sum.md。
-     */
-    public static final int[] LEGACY_TO_NEW_MAP = new int[51];
-    public static final int[] PUBLISHED_REMAP = new int[4];
-
-    /** 查询旧绝对 ID（含已发布段及迁移段）对应的新绝对 ID；无映射返回 -1。 */
-    public static int getMappedId(int oldId) {
-        int publishedIdx = oldId - BASE;
-        if (publishedIdx >= 0 && publishedIdx < PUBLISHED_REMAP.length) {
-            int publishedId = PUBLISHED_REMAP[publishedIdx];
-            if (publishedId != 0) return publishedId;
-        }
-        int idx = oldId - BASE_OLD;
-        if (idx < 0 || idx >= LEGACY_TO_NEW_MAP.length) return -1;
-        int id = LEGACY_TO_NEW_MAP[idx];
-        return id == 0 ? -1 : id;
-    }
 }

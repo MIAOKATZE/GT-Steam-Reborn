@@ -13,7 +13,7 @@ import gregtech.api.enums.Materials;
 import gregtech.api.fluid.GTFluidFactory;
 import gregtech.api.interfaces.fluid.IGTRegisteredFluid;
 
-/** Stable name registration, independent of the optional historical GT cell identity. */
+/** Stable-name official GT fluid registration; facade identity never requires a GT numeric material slot. */
 public final class ProsperityNativeFluids {
 
     private static final Map<String, Fluid> OWNED = new LinkedHashMap<>();

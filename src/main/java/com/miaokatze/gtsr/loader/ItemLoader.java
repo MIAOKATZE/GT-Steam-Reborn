@@ -26,6 +26,7 @@ import com.miaokatze.gtsr.main.GTSteamReborn;
 public class ItemLoader {
 
     public static void initItems() {
+        com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialDusts.registerItems();
         com.miaokatze.gtsr.common.dimension.prosperity.lore.LoreRegistry.register();
         registerPyrolyzerChips();
         registerGeothermalOverheatChip();

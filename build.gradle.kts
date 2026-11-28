@@ -249,7 +249,12 @@ val neiGroupingContractRuntime = configurations.create("neiGroupingContractRunti
 val neiLegacyGroupingContractRuntime = configurations.create("neiLegacyGroupingContractRuntime") {
     isTransitive = false
 }
+// The isolated Java-17 fixture applies lwjgl3ify's official Forge reflection fix, without booting a client.
+val weaponEnchantmentContractRuntime = configurations.create("weaponEnchantmentContractRuntime") {
+    isTransitive = false
+}
 dependencies {
+    add(weaponEnchantmentContractRuntime.name, "com.github.GTNewHorizons:lwjgl3ify:3.1.0")
     add(neiLegacyGroupingContractRuntime.name, "com.github.GTNewHorizons:NotEnoughItems:2.8.171-GTNH:dev")
     add(neiGroupingContractRuntime.name, "com.github.GTNewHorizons:AppleCore:3.3.13:dev")
     add(neiGroupingContractRuntime.name, "com.github.GTNewHorizons:CodeChickenCore:1.4.24:dev")
@@ -370,12 +375,10 @@ mapOf(
     "verifyCenterParallelBalance" to "com.miaokatze.gtsr.common.machine.orecenter.CenterParallelBalanceContracts",
     "verifyCenterRecipes" to "com.miaokatze.gtsr.loader.recipes.OreIntegrationCenterRecipeContracts",
     "verifyCenterGraphCache" to "com.miaokatze.gtsr.common.machine.orecenter.CenterGraphCacheContracts",
-    "verifyMaterialIdSafety" to "com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdPreflightContracts",
-    "verifyMaterialWorldAdmission" to "com.miaokatze.gtsr.common.dimension.prosperity.industrial.compat.MaterialWorldAdmissionContracts",
     "verifyNativeFluidRegistration" to "com.miaokatze.gtsr.common.dimension.prosperity.fluid.NativeFluidRegistrationContracts",
-    "verifyNativeFluidLegacyRegistration" to "com.miaokatze.gtsr.common.dimension.prosperity.fluid.NativeFluidRegistrationContracts",
     "verifyNativeFluidConsumers" to "com.miaokatze.gtsr.loader.recipes.NativeFluidConsumerContracts",
-    "verifyMaterialIdOfflineCopy" to "com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdOfflineCopyContracts",
+    "verifyProsperityPosteaMigration" to "com.miaokatze.gtsr.common.dimension.prosperity.compatibility.ProsperityPosteaMigrationContracts",
+    "verifyWeaponEnchantmentRegistration" to "com.miaokatze.gtsr.common.weapons.WeaponEnchantmentRegistrationContracts",
     "verifyChunkLoadingPolicy" to "com.miaokatze.gtsr.common.util.ChunkLoadingPolicyContracts",
     "verifyCenterRecovery" to "com.miaokatze.gtsr.common.machine.orecenter.CenterRecoveryContracts",
     "verifyRecoveryNativeClock" to "com.miaokatze.gtsr.common.machine.recovery.RecoveryNativeClockContracts",
@@ -389,7 +392,11 @@ mapOf(
             sourceSets["main"].compileClasspath + portableRecipeContractRuntime
         mainClass.set(entry)
         if (name == "verifyNEIGrouping") classpath += neiGroupingContractRuntime
-        if (name == "verifyNativeFluidLegacyRegistration") args("legacy")
+        if (name == "verifyWeaponEnchantmentRegistration") {
+            classpath += weaponEnchantmentContractRuntime
+            systemProperty("gtsr.contract.earlyTransformer",
+                "com.miaokatze.gtsr.common.weapons.WeaponEnchantmentRegistrationContracts\$ForgeReflectionTransformer")
+        }
         if (name.startsWith("verifyNativeFluid")) {
             systemProperty("gtsr.contract.earlyTransformer",
                 "com.miaokatze.gtsr.common.dimension.prosperity.fluid.NativeFluidEventTransformer")
@@ -409,17 +416,6 @@ mapOf(
     if (!name.startsWith("verifyNativeFluid") || providers.gradleProperty("nativeFluidContractIc2Jar").isPresent) {
         tasks.named("check") { dependsOn(contract) }
     }
-}
-
-tasks.register<JavaExec>("materialIdOfflineCopy") {
-    group = "verification"
-    description = "Explicit reviewed offline material copy; never opens a game or edits the source world."
-    dependsOn(tasks.named("testClasses"))
-    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath +
-        sourceSets["main"].compileClasspath + portableRecipeContractRuntime
-    mainClass.set("com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdOfflineCopy")
-    maxHeapSize = "1g"
-    systemProperty("java.awt.headless", "true")
 }
 
 tasks.named("check") {

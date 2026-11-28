@@ -79,6 +79,9 @@ dependencies {
     compileOnly("com.github.GTNewHorizons:BetterQuesting:3.8.94-GTNH:dev") { transitive = false }
     // Native fluid contracts exercise BQ's real NBT retrieval matching, not a placeholder matcher.
     testCompileOnly("com.github.GTNewHorizons:BetterQuesting:3.8.94-GTNH:dev") { transitive = false }
+    // Official GTNH item-load migration API; no custom world scanner or registry allocator.
+    compileOnly("com.github.GTNewHorizons:Postea:1.2.9:dev") { transitive = false }
+    testCompileOnly("com.github.GTNewHorizons:Postea:1.2.9:dev") { transitive = false }
 
     // Optional fixture input: use the selected instance's exact IC2 implementation, remapped by RFG.
     // It is test-only and is never copied into ordinary, dev or sources delivery jars.

@@ -3,7 +3,6 @@
 
 package com.miaokatze.gtsr.common.dimension.prosperity.industrial;
 
-import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -11,12 +10,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 
-import com.miaokatze.gtsr.common.dimension.prosperity.compatibility.LegacyProsperityCells;
 import com.miaokatze.gtsr.common.dimension.prosperity.fluid.ProsperityFluidContainers;
 import com.miaokatze.gtsr.common.dimension.prosperity.fluid.ProsperityNativeFluids;
 import com.miaokatze.gtsr.main.GTSteamReborn;
 
-import gregtech.api.GregTechAPI;
 import gregtech.api.enums.MaterialBuilder;
 import gregtech.api.enums.Materials;
 import gregtech.api.enums.OrePrefixes;
@@ -26,20 +23,15 @@ import gregtech.api.interfaces.IMaterialHandler;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility;
 
-/** Dust identities stay persistent; liquid/gas facades bind stable-name independent fluids. */
+/** Public facades bind Forge-owned dust items and stable-name native fluids without GT numeric slots. */
 public final class ProsperityIndustrialMaterials implements IMaterialHandler {
 
     private static final Map<String, Materials> MATERIALS = new LinkedHashMap<>();
-
-    public static void configure(File file) {
-        MaterialIdRegistration.configure(file);
-    }
 
     @Override
     public void onMaterialsInit() {
         if (!MATERIALS.isEmpty()) throw new IllegalStateException("Industrial material registration called twice");
         IndustrialMaterialColors.verifyCoverage(IndustrialRecipeLedger.get());
-        MaterialIdRegistration.prepareEarlyRegistration();
         for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {
             MaterialBuilder builder = new MaterialBuilder().setName(definition.name)
                 .setDefaultLocalName(definition.en)
@@ -51,23 +43,17 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
                 .addSubTag(SubTag.NO_RECYCLING)
                 .addSubTag(SubTag.NO_RECYCLING_RECIPES);
             if ("dust".equals(definition.phase)) {
-                builder.setIconSet(TextureSet.SET_DULL)
-                    .addDustItems();
+                builder.setIconSet(TextureSet.SET_DULL);
             } else {
                 builder.setIconSet(TextureSet.SET_FLUID);
                 if ("gas".equals(definition.phase)) builder.addSubTag(SubTag.TRANSPARENT);
-                LegacyProsperityCells.enable(builder, MaterialIdRegistration.legacyFluidId("planned", definition.id));
             }
             Materials material = builder.constructMaterial();
-            if ("dust".equals(definition.phase)) {
-                material.mMetaItemSubID = MaterialIdRegistration.idFor(definition.id);
-            } else {
-                LegacyProsperityCells
-                    .remember(material, MaterialIdRegistration.legacyFluidId("planned", definition.id));
+            if (!"dust".equals(definition.phase))
                 ProsperityNativeFluids.register(material, "gas".equals(definition.phase), definition.temperatureK);
-            }
             MATERIALS.put(definition.id, material);
         }
+        ProsperityIndustrialDusts.bindMaterials();
         GTSteamReborn.LOG.info("[GTSR] prosperity industrial materials registered: " + MATERIALS.size());
     }
 
@@ -78,7 +64,6 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
     }
 
     public static void logRegistrationProbe() {
-        LegacyProsperityCells.registerContainers();
         auditRegistration();
     }
 
@@ -93,7 +78,7 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
         }
     }
 
-    /** Post-init live probe: actual generated dust, registered fluid and filled cell; throws on any missing form. */
+    /** Init probe of actual Forge dust registration, independent fluids and native universal cells. */
     public static void auditRegistration() {
         int dust = 0, gas = 0, fluid = 0;
         for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {
@@ -104,20 +89,21 @@ public final class ProsperityIndustrialMaterials implements IMaterialHandler {
             if (materialColor != expectedColor)
                 throw new IllegalStateException("Unexpected material color: " + definition.id);
             if ("dust".equals(definition.phase)) {
-                if (material.mMetaItemSubID != MaterialIdRegistration.idFor(definition.id)
-                    || GregTechAPI.sGeneratedMaterials[material.mMetaItemSubID] != material)
-                    throw new IllegalStateException("Unexpected generated dust identity: " + definition.id);
+                if (material.mMetaItemSubID != -1) throw new IllegalStateException(
+                    "Industrial dust unexpectedly owns a GT numeric ID: " + definition.id);
                 for (OrePrefixes form : new OrePrefixes[] { OrePrefixes.dust, OrePrefixes.dustSmall,
                     OrePrefixes.dustTiny }) {
                     ItemStack stack = GTOreDictUnificator.get(form, material, 1L);
-                    if (stack == null || stack.getItem() == null)
-                        throw new IllegalStateException("Missing generated dust form: " + definition.id + " / " + form);
+                    ItemStack owned = ProsperityIndustrialDusts.get(definition.id, form, 1);
+                    if (stack == null || stack.getItem() != owned.getItem() || stack.getItemDamage() != 0)
+                        throw new IllegalStateException(
+                            "Missing Forge-owned dust form: " + definition.id + " / " + form);
                 }
                 dust++;
             } else {
                 FluidStack stack = "gas".equals(definition.phase) ? material.getGas(1000) : material.getFluid(1000);
-                if (material.mMetaItemSubID != MaterialIdRegistration.legacyFluidId("planned", definition.id))
-                    throw new IllegalStateException("Unexpected fluid numeric alias: " + definition.id);
+                if (material.mMetaItemSubID != -1) throw new IllegalStateException(
+                    "Industrial fluid unexpectedly owns a GT numeric ID: " + definition.id);
                 ProsperityNativeFluids.verify(material);
                 ItemStack cell = ProsperityFluidContainers.filledCell(stack);
                 FluidStack contents = GTUtility.getFluidForFilledItem(cell, true);

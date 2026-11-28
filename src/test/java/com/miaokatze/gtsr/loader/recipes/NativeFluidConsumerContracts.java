@@ -9,7 +9,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import net.minecraft.item.Item;
@@ -25,6 +27,8 @@ import com.miaokatze.gtsr.Tags;
 import com.miaokatze.gtsr.client.tooltip.GTSRTooltipCatalog;
 import com.miaokatze.gtsr.common.dimension.prosperity.air.GTSRProsperityAirMaterials;
 import com.miaokatze.gtsr.common.dimension.prosperity.fluid.ProsperityFluidContainers;
+import com.miaokatze.gtsr.common.dimension.prosperity.industrial.IndustrialRecipeLedger;
+import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialDusts;
 import com.miaokatze.gtsr.common.dimension.prosperity.industrial.ProsperityIndustrialMaterials;
 import com.miaokatze.gtsr.crossmod.bq.BqQuestInjector;
 import com.miaokatze.gtsr.register.GTSRItemOrderCatalog;
@@ -41,7 +45,10 @@ import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.ModMetadata;
 import gregtech.api.enums.ItemList;
 import gregtech.api.enums.Materials;
+import gregtech.api.enums.OrePrefixes;
+import gregtech.api.objects.ItemData;
 import gregtech.api.recipe.RecipeMaps;
+import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 
@@ -63,7 +70,6 @@ public final class NativeFluidConsumerContracts {
             .invoke(null);
         try {
             bootstrapNativeCell();
-            handshakeContracts();
             cellContracts();
             reactionContracts();
             questContracts();
@@ -75,30 +81,6 @@ public final class NativeFluidConsumerContracts {
             registrations.getMethod("cleanupFixture")
                 .invoke(null);
         }
-    }
-
-    private static void handshakeContracts() throws Exception {
-        com.miaokatze.gtsr.common.dimension.prosperity.industrial.compat.MaterialMappingHandshake.register();
-        java.util.Set<String> tokens = com.miaokatze.gtsr.common.dimension.prosperity.industrial.compat.MaterialMappingHandshake
-            .tokens(
-                com.miaokatze.gtsr.common.dimension.prosperity.industrial.MaterialIdRegistration
-                    .startupIdentity().fingerprint);
-        for (cpw.mods.fml.relauncher.Side side : cpw.mods.fml.relauncher.Side.values()) check(
-            cpw.mods.fml.common.network.NetworkRegistry.INSTANCE.channelNamesFor(side)
-                .containsAll(tokens),
-            "native FML handshake advertises complete mapping on " + side);
-        // EventBus otherwise catches constructor errors and prints them without propagating.
-        // Assert the production listener really registered, rather than accepting a quiet fixture.
-        Field listeners = cpw.mods.fml.common.eventhandler.EventBus.class.getDeclaredField("listeners");
-        listeners.setAccessible(true);
-        java.util.Map<?, ?> registered = (java.util.Map<?, ?>) listeners.get(
-            cpw.mods.fml.common.FMLCommonHandler.instance()
-                .bus());
-        boolean found = false;
-        for (java.util.Map.Entry<?, ?> entry : registered.entrySet()) if (entry
-            .getKey() instanceof com.miaokatze.gtsr.common.dimension.prosperity.industrial.compat.MaterialMappingHandshake)
-            found = !((java.util.List<?>) entry.getValue()).isEmpty();
-        check(found, "native FML registration event listener is attached before player login");
     }
 
     /** Calls the real IC2 constructor and uses its native capacity, fill, drain and NBT implementations. */
@@ -376,12 +358,51 @@ public final class NativeFluidConsumerContracts {
 
     private static void presentationContracts() throws Exception {
         List<ItemStack> generated = GTSRItemOrderCatalog.generatedDimensionItems();
-        int cells = 0, displays = 0;
+        int cells = 0, displays = 0, dusts = 0;
         for (ItemStack stack : generated) {
             if (stack.getItem() == ItemList.Cell_Universal_Fluid.getItem()) cells++;
             if (stack.getItem() == ItemList.Display_Fluid.getItem()) displays++;
+            if (GTSRItemOrderCatalog.isOwnedIndustrialDust(stack)) dusts++;
         }
         check(cells == 64 && displays == 64, "all 64 native NBT variants and real GT displays are available");
+        check(dusts == 126 && generated.size() == 254, "exact 126 Forge dust items plus 64 cells and 64 displays");
+        List<ItemStack> ordered = GTSRItemOrderCatalog.rawItems();
+        Set<String> dustNames = new HashSet<>();
+        for (IndustrialRecipeLedger.MaterialDefinition definition : IndustrialRecipeLedger.get().materials) {
+            if (!"dust".equals(definition.phase)) continue;
+            Materials material = ProsperityIndustrialMaterials.get(definition.id);
+            for (OrePrefixes form : new OrePrefixes[] { OrePrefixes.dustTiny, OrePrefixes.dustSmall,
+                OrePrefixes.dust }) {
+                ItemStack owned = ProsperityIndustrialDusts.get(definition.id, form, 1);
+                String name = ProsperityIndustrialDusts.registryName(definition.id, form);
+                ItemData data = GTOreDictUnificator.getItemData(owned);
+                check(
+                    name.startsWith("gtsr:") && dustNames.add(name)
+                        && name.equals(Item.itemRegistry.getNameForObject(owned.getItem()))
+                        && Item.itemRegistry.getObject(name) == owned.getItem()
+                        && owned.getItemDamage() == 0,
+                    "unique stable Forge dust registry name and reverse lookup");
+                check(
+                    data != null && data.mPrefix == form
+                        && data.mMaterial != null
+                        && data.mMaterial.mMaterial == material
+                        && data.mMaterial.mAmount == form.getMaterialAmount(),
+                    "native GT ItemData retains exact powder form, amount and facade");
+                check(
+                    GTSRItemOrderCatalog.isOwnedIndustrialDust(owned) && GTSRItemOrderCatalog.isDimensionItem(owned)
+                        && generated.stream()
+                            .anyMatch(owned::isItemEqual)
+                        && ordered.stream()
+                            .anyMatch(owned::isItemEqual),
+                    "all true registered powders reach both presentation catalogs");
+                ItemStack invalidMeta = new ItemStack(owned.getItem(), 1, 1);
+                check(
+                    !GTSRItemOrderCatalog.isOwnedIndustrialDust(invalidMeta)
+                        && !GTSRItemOrderCatalog.isDimensionItem(invalidMeta),
+                    "unregistered dust metadata is excluded");
+            }
+        }
+        check(dustNames.size() == 126, "all 42 powder definitions have three independently registered names");
         for (ItemStack stack : GTSRItemOrderCatalog.rawItems()) check(
             stack.getItem() != ItemList.Cell_Universal_Fluid.getItem(),
             "Core catalog never claims shared IC2 cell Item/Damage");
@@ -399,6 +420,22 @@ public final class NativeFluidConsumerContracts {
         GTSRTooltipCatalog.initialize();
         for (ItemStack stack : generated)
             check(GTSRTooltipCatalog.descriptionKeys(stack) != null, "catalog form receives content-specific tooltip");
+        ItemStack owned = ProsperityIndustrialDusts.get("planned:prosperity_dust", OrePrefixes.dust, 1);
+        check(
+            GTSRTooltipCatalog.descriptionKeys(new ItemStack(owned.getItem(), 1, 1)) == null,
+            "tooltip does not claim unregistered metadata of a true GTSR dust item");
+        Method itemFactory = PortableWeaponRecipeContracts.class.getDeclaredMethod("item", String.class);
+        itemFactory.setAccessible(true);
+        ItemStack oreLookalike = new ItemStack((Item) itemFactory.invoke(null, "gtsr_native_contract:foreign_dust"));
+        GTOreDictUnificator.addItemData(
+            oreLookalike,
+            new ItemData(OrePrefixes.dust, ProsperityIndustrialMaterials.get("planned:prosperity_dust")));
+        check(
+            GTOreDictUnificator.getItemData(oreLookalike) != null
+                && !GTSRItemOrderCatalog.isOwnedIndustrialDust(oreLookalike)
+                && !GTSRItemOrderCatalog.isDimensionItem(oreLookalike)
+                && GTSRTooltipCatalog.descriptionKeys(oreLookalike) == null,
+            "foreign item with the same real GT ItemData cannot impersonate the registered GTSR powder");
         check(
             GTSRTooltipCatalog.descriptionKeys(ProsperityFluidContainers.emptyCell(1)) == null,
             "empty IC2 cell remains outside GTSR tooltip ownership");
