@@ -34,7 +34,11 @@ import static gregtech.api.util.GTRecipeConstants.SCANNING;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidRegistry;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.oredict.ShapelessOreRecipe;
 
 import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
@@ -58,7 +62,7 @@ public final class OreIntegrationCenterRecipes {
     public static void register() {
         // Nine physical ingredients; the first processing line remains obtainable with steam infrastructure.
         recipe(
-            GTSRItemList.OreIntegrationCenter.get(1),
+            item(GTSRItemList.OreIntegrationCenter, 1),
             0,
             0,
             item(GregtechItemList.Controller_SteamMaceratorMulti, 1),
@@ -396,7 +400,7 @@ public final class OreIntegrationCenterRecipes {
             3,
             7680,
             1800,
-            GTSRItemList.KineticProcessingArray.get(2),
+            item(GTSRItemList.KineticProcessingArray, 2),
             item(ItemList.Machine_IV_Extractor, 8),
             item(ItemList.Machine_IV_FluidExtractor, 8),
             item(ItemList.Casing_RobustTungstenSteel, 32),
@@ -609,25 +613,60 @@ public final class OreIntegrationCenterRecipes {
     }
 
     private static ItemStack ore(OrePrefixes prefix, Materials material, int amount) {
-        ItemStack result = GTOreDictUnificator.get(prefix, material, amount);
-        if (result == null) {
-            throw new IllegalStateException("Missing ore integration recipe input: " + prefix + material.mName);
-        }
-        return result;
+        return requiredItem(GTOreDictUnificator.get(prefix, material, amount), prefix + material.mName, amount);
     }
 
     private static ItemStack item(ItemList item, int amount) {
         if (!item.hasBeenSet()) throw new IllegalStateException("Missing ore integration component: " + item);
-        return item.get(amount);
+        return requiredItem(item.get(amount), "ItemList." + item.name(), amount);
     }
 
     private static ItemStack item(GregtechItemList item, int amount) {
         if (!item.hasBeenSet()) throw new IllegalStateException("Missing ore integration component: " + item);
-        return item.get(amount);
+        return requiredItem(item.get(amount), "GregtechItemList." + item.name(), amount);
+    }
+
+    private static ItemStack item(GTSRItemList item, int amount) {
+        if (!item.hasBeenSet()) throw new IllegalStateException("Missing ore integration component: " + item);
+        return requiredItem(item.get(amount), "GTSRItemList." + item.name(), amount);
+    }
+
+    private static ItemStack requiredItem(ItemStack stack, String name, int amount) {
+        if (RecipeLoaderUtils.hasNull(stack) || Item.getIdFromItem(stack.getItem()) <= 0
+            || amount < 0
+            || stack.stackSize != amount) {
+            throw new IllegalStateException("Missing or invalid ore integration item: " + name);
+        }
+        return stack;
+    }
+
+    private static void requiredInputs(ItemStack[] inputs) {
+        if (RecipeLoaderUtils.hasNull(inputs)) {
+            throw new IllegalStateException("Missing ore integration recipe input");
+        }
+        for (int i = 0; i < inputs.length; i++) {
+            // Zero-size GT circuits are intentional non-consumed selectors.
+            requiredItem(inputs[i], "recipe input " + i, inputs[i].stackSize);
+        }
+    }
+
+    private static FluidStack requiredFluid(FluidStack stack, String name, int amount) {
+        Fluid fluid;
+        try {
+            fluid = stack == null ? null : stack.getFluid();
+        } catch (NullPointerException invalidDelegate) {
+            throw new IllegalStateException("Missing or invalid ore integration fluid: " + name, invalidDelegate);
+        }
+        if (fluid == null || FluidRegistry.getFluid(fluid.getName()) != fluid
+            || amount <= 0
+            || stack.amount != amount) {
+            throw new IllegalStateException("Missing or invalid ore integration fluid: " + name);
+        }
+        return stack;
     }
 
     private static ItemStack singularity(int amount) {
-        return GTSRItemList.SteamEntangledSingularity.get(amount);
+        return item(GTSRItemList.SteamEntangledSingularity, amount);
     }
 
     private static void module(CenterModule module, int level, int eut, int duration, ItemStack... components) {
@@ -645,12 +684,15 @@ public final class OreIntegrationCenterRecipes {
             // The line itself needs LuV infrastructure; ordinary recipes draw IV, the dryer draws LuV.
             int researchEut = module == CenterModule.DRYER ? 30720 : 7680;
             int researchTicks = module == CenterModule.DRYER ? 3600 : 2400;
+            requiredInputs(inputs);
             GTValues.RA.stdBuilder()
-                .metadata(RESEARCH_ITEM, CenterModuleItems.stack(module, 2))
+                .metadata(RESEARCH_ITEM, requiredItem(CenterModuleItems.stack(module, 2), "research " + module, 1))
                 .metadata(SCANNING, new Scanning(researchTicks, researchEut))
                 .itemInputs(inputs)
-                .fluidInputs(Materials.SolderingAlloy.getMolten(1440), Materials.Lubricant.getFluid(1000))
-                .itemOutputs(CenterModuleItems.stack(module, level))
+                .fluidInputs(
+                    requiredFluid(Materials.SolderingAlloy.getMolten(1440), "SolderingAlloy", 1440),
+                    requiredFluid(Materials.Lubricant.getFluid(1000), "Lubricant", 1000))
+                .itemOutputs(requiredItem(CenterModuleItems.stack(module, level), "module " + module, 1))
                 .duration(duration)
                 .eut(eut)
                 .addTo(AssemblyLine);
@@ -684,6 +726,8 @@ public final class OreIntegrationCenterRecipes {
     }
 
     private static void recipe(ItemStack output, int eut, int duration, ItemStack... inputs) {
+        requiredInputs(inputs);
+        requiredItem(output, "recipe output", 1);
         if (eut != 0) {
             GTValues.RA.stdBuilder()
                 .itemInputs(inputs)
