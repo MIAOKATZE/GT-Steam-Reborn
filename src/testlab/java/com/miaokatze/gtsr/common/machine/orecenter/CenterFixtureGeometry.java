@@ -25,7 +25,7 @@ import gregtech.api.interfaces.tileentity.IGregTechTileEntity;
 import gregtech.api.util.GTOreDictUnificator;
 import gregtech.api.util.GTUtility.ItemId;
 
-/** Derives the North-facing test fixture's journal footprint from the shipped layout. */
+/** Derives real tower/wing journal and loading footprints; virtual modules own no world cells. */
 public final class CenterFixtureGeometry {
 
     private CenterFixtureGeometry() {}
@@ -34,8 +34,6 @@ public final class CenterFixtureGeometry {
         List<int[]> positions = new ArrayList<>();
         add(positions, "tower-service-0", 0, -2, 0, 0);
         add(positions, "outer-0", 0, -2, 0, 0);
-        addModule(positions, 1, "crusher");
-        addModule(positions, 3, "logistics");
         return positions;
     }
 
@@ -43,8 +41,6 @@ public final class CenterFixtureGeometry {
         List<int[]> positions = new ArrayList<>();
         add(positions, "tower-service-1", 0, -2, 0, 0);
         add(positions, "outer-full", 0, -2, 0, 0);
-        addModule(positions, 1, "crusher");
-        addModule(positions, 3, "logistics");
         return positions;
     }
 
@@ -52,12 +48,6 @@ public final class CenterFixtureGeometry {
         List<int[]> positions = new ArrayList<>();
         add(positions, "tower-service-3", 0, -2, 0, 0);
         add(positions, "outer-full", 0, -2, 0, 0);
-        for (int slot = 0; slot < modules.length; slot++) {
-            if (modules[slot] == null) continue;
-            int[] at = CenterStructure.SLOTS[slot];
-            String key = modules[slot].key.toLowerCase(java.util.Locale.ROOT);
-            add(positions, "module-" + slot % 6 + "-" + key + "-3", at[0], at[1] - 66, at[2], at[3]);
-        }
         return positions;
     }
 
@@ -248,11 +238,6 @@ public final class CenterFixtureGeometry {
         throw new IllegalStateException("No unused chunk inside the sector bounds");
     }
 
-    private static void addModule(List<int[]> positions, int slot, String module) {
-        int[] at = CenterStructure.SLOTS[slot];
-        add(positions, "module-" + slot + "-" + module + "-1", at[0], at[1] - 66, at[2], at[3]);
-    }
-
     private static void add(List<int[]> positions, String resource, int x, int y, int z, int direction) {
         Shape shape = CenterStructure.optionalShape(resource);
         if (shape == null) throw new IllegalStateException("Missing fixture layout " + resource);
@@ -263,10 +248,20 @@ public final class CenterFixtureGeometry {
         }
     }
 
-    /** Leaves terrain regeneration to the fixture journal and removes only claims created by this fixture. */
+    /** Confirms the formal installation produced virtual ownership without any legacy voxel claim. */
+    public static void verifyVirtualModule(IGregTechTileEntity controller, int slot, CenterModule module, int grade) {
+        if (!(controller.getMetaTileEntity() instanceof MTEMineralIntegrationCenter center)
+            || center.installedModuleTypes()[slot] != module.ordinal()
+            || center.installedModuleGrades()[slot] != grade
+            || CenterClaims.get(controller.getWorld())
+                .hasLegacy(new Frame(controller), slot))
+            throw new IllegalStateException("Expected virtual package without generated ownership at slot " + slot);
+    }
+
+    /** Fixture restoration owns the controller journal; only the migration layer may retire old voxel claims. */
     public static void release(IGregTechTileEntity controller, int slot) {
-        Frame frame = new Frame(controller);
-        CenterClaims.get(frame.world)
-            .release(frame, slot);
+        if (CenterClaims.get(controller.getWorld())
+            .hasLegacy(new Frame(controller), slot))
+            throw new IllegalStateException("Legacy module migration is incomplete at fixture cleanup slot " + slot);
     }
 }

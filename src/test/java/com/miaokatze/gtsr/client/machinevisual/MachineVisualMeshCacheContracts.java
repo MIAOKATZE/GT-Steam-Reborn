@@ -5,7 +5,7 @@ package com.miaokatze.gtsr.client.machinevisual;
 import java.util.HashSet;
 import java.util.Set;
 
-/** Exercises native-list ownership and resampling policy without creating a GL context. */
+/** Exercises VBO ownership and resampling policy without creating a GL context. */
 public final class MachineVisualMeshCacheContracts {
 
     private static int checks;
@@ -21,7 +21,7 @@ public final class MachineVisualMeshCacheContracts {
         boolean unavailable, failDelete;
         final Set<Integer> live = new HashSet<>();
 
-        public int compile(Runnable commands) {
+        public Object compile(Runnable commands) {
             if (unavailable) throw new IllegalStateException("no native allocation");
             commands.run();
             int id = ++compiles;
@@ -29,12 +29,12 @@ public final class MachineVisualMeshCacheContracts {
             return id;
         }
 
-        public void draw(int list) {
+        public void draw(Object list) {
             check(live.contains(list), "only live published lists replay");
             draws++;
         }
 
-        public void delete(int list) {
+        public void delete(Object list) {
             check(live.remove(list), "each list released once");
             deletes++;
             if (failDelete) throw new IllegalStateException("driver cleanup failure");
@@ -76,9 +76,18 @@ public final class MachineVisualMeshCacheContracts {
         unavailable.unavailable = true;
         MachineVisualMeshCache fallback = new MachineVisualMeshCache(unavailable);
         int before = samples[0];
+        try {
+            fallback.draw(0, 0, sample);
+            throw new AssertionError("failed upload was hidden");
+        } catch (IllegalStateException expected) {
+            check(
+                samples[0] == before && unavailable.draws == 0,
+                "unavailable upload never falls back to per-frame voxel rendering");
+        }
+        unavailable.unavailable = false;
         fallback.draw(0, 0, sample);
-        fallback.draw(0, 0, sample);
-        check(samples[0] == before + 2 && unavailable.draws == 0, "unsupported allocation keeps immediate rendering");
+        check(fallback.draw(0, 0, sample), "successful retry publishes exactly one immutable mesh");
+        fallback.clear();
 
         Driver failed = new Driver();
         MachineVisualMeshCache broken = new MachineVisualMeshCache(failed);

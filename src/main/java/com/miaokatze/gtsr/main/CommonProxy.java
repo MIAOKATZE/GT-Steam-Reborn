@@ -84,6 +84,13 @@ public class CommonProxy {
 
     public void receiveMachineVisual(com.miaokatze.gtsr.common.machinevisual.MachineVisualSnapshot snapshot) {}
 
+    public void receiveVirtualStructure(com.miaokatze.gtsr.common.machinevisual.VirtualStructureFrame frame,
+        Object connection) {}
+
+    public boolean isLogicalCriticalVisual(com.miaokatze.gtsr.common.critical.CriticalMachineState state) {
+        return false;
+    }
+
     public void receiveCriticalDamageHighlights(com.miaokatze.gtsr.common.critical.CriticalDamageHighlights.Frame frame,
         Object connection) {}
 

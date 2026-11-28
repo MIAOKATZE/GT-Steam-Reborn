@@ -5496,7 +5496,7 @@ gtsr.wand.debug.build_done=快速建造完成，正在进行结构检测。
 gtsr.wand.debug.build_busy=中心正在加工或建造。完成后可重新触发。
 gtsr.wand.debug.build_unloaded=快速建造暂停：范围内有未加载的区块。加载后用调试棒继续。
 gtsr.wand.debug.build_blocked=快速建造停止：有受保护的方块、方块实体或无法放置的位置。处理后可重新触发。
-gtsr.wand.debug.build_ports=主体和模块已建好。请补齐空缺的输入仓、输出仓和总线。
+gtsr.wand.debug.build_ports=主体已建好，模块包已安装。请补齐空缺的输入仓、输出仓和总线。
 
 gtsr.ore_center.status.overview=等级 %s · 扇区 %s/6 · 模块 %s · 图谱 %s
 gtsr.ore_center.status.progress=进度 %s/%s tick · 供电上限 %s EU/t
@@ -5517,6 +5517,7 @@ gtsr.ore_center.graph.preset.use_outlet=加到出口白名单
 gtsr.ore_center.graph.preset.select_outlet=请先选择允许筛选的工序出口
 gtsr.ore_center.graph.preset.branch=分流 %s
 gtsr.ore_center.tooltip.terminal=手持机器终端右击，打开装配、图谱、统计和状态计算。
+gtsr.ore_center.tooltip.virtual=模块外观不占用方块、没有碰撞；主体与功能仓口仍需建造。
 gtsr.ore_center.status.native.structure=结构 %s · %s · 扇区 %s/6
 gtsr.ore_center.status.native.formed=已成型
 gtsr.ore_center.status.native.unformed=未成型

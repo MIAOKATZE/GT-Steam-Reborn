@@ -6,9 +6,7 @@ package com.miaokatze.gtsr.client.critical;
 import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -17,24 +15,20 @@ import java.util.WeakHashMap;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.client.resources.IResourceManager;
 import net.minecraft.client.resources.IResourceManagerReloadListener;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ResourceLocation;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 
 import com.google.gson.JsonObject;
-import com.miaokatze.gtsr.client.render.ClientDisplayList;
+import com.miaokatze.gtsr.client.render.ClientRenderFrame;
 import com.miaokatze.gtsr.common.critical.CriticalGeometry;
-import com.miaokatze.gtsr.common.critical.CriticalGeometry.Voxel;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
-import com.miaokatze.gtsr.common.critical.CriticalMaterials;
 import com.miaokatze.gtsr.common.critical.TileEntityCriticalRenderAnchor;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
@@ -46,7 +40,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     implements IResourceManagerReloadListener {
 
-    private final Map<String, List<Mesh>> meshes = new HashMap<>();
+    private static CriticalControllerRenderer instance;
     private final CriticalMeshCache nativeMeshes = new CriticalMeshCache();
     private final Map<TileEntityCriticalRenderAnchor, CriticalLightCache> lightCaches = new WeakHashMap<>();
     private final Map<TileEntityCriticalRenderAnchor, VisualClock> clocks = new WeakHashMap<>();
@@ -65,26 +59,38 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     private String constructionMode = "idle";
     private double cameraX, cameraY, cameraZ;
     private static final double[] IDENTITY = { 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
-    private static final int[][] NEIGHBOR = { { 0, -1, 0 }, { 0, 1, 0 }, { 0, 0, -1 }, { 0, 0, 1 }, { -1, 0, 0 },
-        { 1, 0, 0 } };
-    private static final double[][][] CORNERS = { { { 0, 0, 1 }, { 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 1 } },
-        { { 0, 1, 0 }, { 0, 1, 1 }, { 1, 1, 1 }, { 1, 1, 0 } }, { { 1, 1, 0 }, { 1, 0, 0 }, { 0, 0, 0 }, { 0, 1, 0 } },
-        { { 0, 1, 1 }, { 0, 0, 1 }, { 1, 0, 1 }, { 1, 1, 1 } }, { { 0, 1, 0 }, { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 1 } },
-        { { 1, 1, 1 }, { 1, 0, 1 }, { 1, 0, 0 }, { 1, 1, 0 } } };
 
     public static void register() {
+        if (instance != null) return;
+        ClientRenderFrame.register();
         CriticalControllerRenderer renderer = new CriticalControllerRenderer();
+        instance = renderer;
         CriticalFXBudget.register();
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCriticalRenderAnchor.class, renderer);
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(renderer);
         ((IReloadableResourceManager) Minecraft.getMinecraft()
             .getResourceManager()).registerReloadListener(renderer);
     }
 
+    public static CriticalControllerRenderer sharedInstance() {
+        register();
+        return instance;
+    }
+
+    @cpw.mods.fml.common.eventhandler.SubscribeEvent
+    public void worldUnloaded(net.minecraftforge.event.world.WorldEvent.Unload event) {
+        if (!event.world.isRemote) return;
+        try {
+            onResourceManagerReload(null);
+        } finally {
+            clocks.clear();
+            loomClocks.clear();
+            motionClocks.clear();
+        }
+    }
+
     @Override
     public void onResourceManagerReload(IResourceManager manager) {
-        for (List<Mesh> model : meshes.values()) for (Mesh mesh : model) GL11.glDeleteLists(mesh.list, 1);
-        meshes.clear();
-        nativeMeshes.clear();
         lightCaches.clear();
         visibility.clear();
         groupMatrices.clear();
@@ -93,6 +99,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             clock.motionFrame = Long.MIN_VALUE;
         }
         CriticalFX.clear();
+        nativeMeshes.clear();
     }
 
     @Override
@@ -110,12 +117,32 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         }
     }
 
+    /** Same renderer and clocks for a descriptor-owned anchor which is never inserted into the world. */
+    public void renderLogicalAnchor(TileEntityCriticalRenderAnchor anchor, double x, double y, double z,
+        float partialTicks) {
+        ClientRenderFrame.register();
+        renderTileEntityAt(anchor, x, y, z, partialTicks);
+    }
+
+    public void releaseLogicalAnchor(TileEntityCriticalRenderAnchor anchor) {
+        try {
+            nativeMeshes.release(anchor.getVisualState());
+        } finally {
+            lightCaches.remove(anchor);
+            clocks.remove(anchor);
+            loomClocks.remove(anchor);
+            motionClocks.remove(anchor);
+            visibility.remove(anchor);
+            com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility.remove(anchor);
+        }
+    }
+
     private void renderAnchor(TileEntityCriticalRenderAnchor anchor, CriticalMachineState controller, double x,
         double y, double z, float partialTicks) {
         TileEntity tile = anchor;
         boolean installation = !controller.getStructureId()
             .isEmpty() && controller.getState() != 0;
-        if (!installation && !anchor.isLoomVisible()) return;
+        if (!installation && !anchor.isLoomVisible() && !controller.hasVirtualVisualGeometry()) return;
         boolean complete = controller.isStructureComplete();
         CriticalGroupVisibility checked = visibility.get(anchor);
         if (checked == null || !checked.matches(controller)) {
@@ -133,14 +160,13 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         activeGroups = checked.readyGroups(activeGroups, geometryReady, loomReady);
         com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility.publishVisibleGroups(anchor, activeGroups);
         boolean hasBatch = controller.hasVisualBatch();
-        double wallSeconds = System.nanoTime() / 1_000_000_000D;
+        double wallSeconds = ClientRenderFrame.seconds();
         boolean gamePaused = Minecraft.getMinecraft()
             .isGamePaused();
         VisualClock visualClock = clocks.computeIfAbsent(anchor, ignored -> new VisualClock());
-        double seconds = visualClock
-            .update(CriticalRenderMetrics.frameStarts, wallSeconds, gamePaused || !geometryReady);
+        double seconds = visualClock.update(ClientRenderFrame.id(), wallSeconds, gamePaused || !geometryReady);
         constructionSeconds = loomClocks.computeIfAbsent(anchor, ignored -> new CriticalContinuousMotion.FrameClock())
-            .update(CriticalRenderMetrics.frameStarts, wallSeconds, gamePaused || !loomReady);
+            .update(ClientRenderFrame.id(), wallSeconds, gamePaused || !loomReady);
         double phase = controller.getVisualBatchPhase(partialTicks);
         cameraX = controller
             .localPointX(Minecraft.getMinecraft().thePlayer.posX, Minecraft.getMinecraft().thePlayer.posZ);
@@ -184,8 +210,8 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             String machineMode = machineMode(controller, geometryReady, design, slug);
             CriticalContinuousMotion.Context motion = motionClocks
                 .computeIfAbsent(anchor, ignored -> new CriticalContinuousMotion.Context());
-            if (visualClock.motionFrame != CriticalRenderMetrics.frameStarts) {
-                visualClock.motionFrame = CriticalRenderMetrics.frameStarts;
+            if (visualClock.motionFrame != ClientRenderFrame.id()) {
+                visualClock.motionFrame = ClientRenderFrame.id();
                 motion.beginFrame(seconds, visualClock.groups(slug, baseSlug, loomSlug), machineMode);
             }
             CriticalAnimation.beginFrame(motion);
@@ -203,6 +229,24 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                 renderModel(baseSlug, phase, seconds, design ? machineMode : hasBatch ? "build" : "idle");
                 renderModel(slug, phase, seconds, machineMode);
             }
+            if (controller.hasVirtualVisualGeometry()) {
+                // Paid visual cells have no proxy blocks. Their installed mask is the visibility authority;
+                // the legacy group checker continues to own only the still-real loom/migrating geometry.
+                Set<String> physicalGroups = activeGroups;
+                activeGroups = null;
+                try {
+                    renderNativeMeshes(
+                        nativeMeshes.getVirtual(controller, baseSlug),
+                        phase,
+                        seconds,
+                        design ? machineMode : hasBatch ? "build" : "idle");
+                    renderNativeMeshes(nativeMeshes.getVirtual(controller, slug), phase, seconds, machineMode);
+                    renderNativeMeshes(nativeMeshes.getVirtual(controller, "plugins"), phase, seconds, "idle");
+                    renderNativeMeshes(nativeMeshes.getVirtual(controller, "supply"), 0, seconds, "idle");
+                } finally {
+                    activeGroups = physicalGroups;
+                }
+            } else nativeMeshes.releaseVirtual(controller);
             if (installation && geometryReady && controller.hasInstalledPlugins())
                 renderPlugins(controller, phase, seconds);
             if (installation && complete && controller.isGeometryValidated()) {
@@ -243,7 +287,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     private void renderPlugins(CriticalMachineState controller, double phase, double seconds) {
         // V2 generic contacts are actual fixed blocks; chunk rendering owns them, never a duplicate TESR mesh.
         if (controller.hasPhysicalPlugins()) {
-            List<CriticalMeshCache.Mesh> plugins = nativeMeshes.getPlugins(controller);
+            List<CriticalMeshCache.Mesh> plugins = nativeMeshes.getPhysical(controller, "plugins");
             if (!plugins.isEmpty()) renderNativeMeshes(plugins, phase, seconds, "idle");
             return;
         }
@@ -273,62 +317,17 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     }
 
     private void renderModel(String slug, double phase, double seconds, String mode) {
-        if (slug.startsWith("v2_")) {
+        Set<String> groups = activeGroups;
+        if (slug.startsWith("plugin_")) activeGroups = null;
+        try {
             renderNativeModel(slug, phase, seconds, mode);
-            return;
+        } finally {
+            activeGroups = groups;
         }
-        List<Mesh> model = meshes.computeIfAbsent(slug, this::compile);
-        List<Mesh> blended = new ArrayList<>();
-        for (Mesh mesh : model) if (mesh.pass == 2 && visible(slug, mesh)) blended.add(mesh);
-        blended.sort(
-            Comparator.comparingDouble((Mesh mesh) -> distanceSquared(mesh, phase, seconds, mode))
-                .reversed());
-        for (int pass = 0; pass < 3; pass++) {
-            GL11.glDepthMask(pass != 2);
-            if (pass == 2) GL11.glEnable(GL11.GL_BLEND);
-            else GL11.glDisable(GL11.GL_BLEND);
-            GL11.glAlphaFunc(GL11.GL_GREATER, pass == 1 ? .5F : .01F);
-            for (Mesh mesh : pass == 2 ? blended : model) {
-                if (mesh.pass != pass || !visible(slug, mesh)) continue;
-                GL11.glPushMatrix();
-                try {
-                    affine(mesh.animation, phase, seconds, mode);
-                    bindTexture(mesh.texture);
-                    if (mesh.animated) animateTexture(true, seconds);
-                    GL11.glCallList(mesh.list);
-                    CriticalRenderMetrics.displayListDraws++;
-                    if (mesh.animated) finishTexture();
-                    if (mesh.emission != null) {
-                        float oldX = OpenGlHelper.lastBrightnessX, oldY = OpenGlHelper.lastBrightnessY;
-                        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240, 240);
-                        GL11.glDepthMask(false);
-                        GL11.glEnable(GL11.GL_BLEND);
-                        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-                        GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
-                        GL11.glPolygonOffset(-1, -1);
-                        GL11.glColor4f(mesh.strength, mesh.strength, mesh.strength, 1);
-                        bindTexture(mesh.emission);
-                        if (mesh.animated) animateTexture(true, seconds);
-                        GL11.glCallList(mesh.list);
-                        CriticalRenderMetrics.displayListDraws++;
-                        if (mesh.animated) finishTexture();
-                        GL11.glColor4f(1, 1, 1, 1);
-                        GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
-                        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                        GL11.glDepthMask(pass != 2);
-                        if (pass != 2) GL11.glDisable(GL11.GL_BLEND);
-                        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, oldX, oldY);
-                    }
-                } finally {
-                    GL11.glPopMatrix();
-                }
-            }
-        }
-        GL11.glDepthMask(true);
     }
 
     private void renderNativeModel(String slug, double phase, double seconds, String mode) {
-        List<CriticalMeshCache.Mesh> model = nativeMeshes.get(slug);
+        List<CriticalMeshCache.Mesh> model = nativeMeshes.getPhysical(renderingController, slug);
         renderNativeMeshes(model, phase, seconds, mode);
     }
 
@@ -353,6 +352,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             GL11.glAlphaFunc(GL11.GL_GREATER, pass == 1 ? .5F : .01F);
             for (CriticalMeshCache.Mesh mesh : pass == 2 ? nativeBlended : model) {
                 if (mesh.pass != pass || activeGroups != null && !activeGroups.contains(mesh.visibilityKey)) continue;
+                if (!mesh.prepare()) continue;
                 GL11.glPushMatrix();
                 try {
                     double[] transform = nativePose(mesh, phase, seconds, mode);
@@ -373,16 +373,16 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                             .flip();
                         GL11.glMultMatrix(matrix);
                     }
-                    GL11.glCallList(mesh.albedo);
+                    mesh.albedo.draw();
                     CriticalRenderMetrics.displayListDraws++;
-                    if (mesh.emission != 0) {
+                    if (mesh.emission != null) {
                         OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240, 240);
                         GL11.glEnable(GL11.GL_BLEND);
                         GL11.glDepthMask(false);
                         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
                         GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL);
                         GL11.glPolygonOffset(-1, -1);
-                        GL11.glCallList(mesh.emission);
+                        mesh.emission.draw();
                         CriticalRenderMetrics.displayListDraws++;
                         GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL);
                         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -409,40 +409,6 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             transferredLoom ? constructionMode : mode);
     }
 
-    private void animateTexture(boolean animated, double seconds) {
-        GL11.glMatrixMode(GL11.GL_TEXTURE);
-        GL11.glPushMatrix();
-        if (animated) GL11.glTranslated(0, (Math.floor(seconds * 20 / 10) % 8) / 8D, 0);
-        GL11.glMatrixMode(GL11.GL_MODELVIEW);
-    }
-
-    private void finishTexture() {
-        GL11.glMatrixMode(GL11.GL_TEXTURE);
-        GL11.glPopMatrix();
-        GL11.glMatrixMode(GL11.GL_MODELVIEW);
-    }
-
-    private boolean visible(String slug, Mesh mesh) {
-        return activeGroups == null || slug.startsWith("plugin_") || activeGroups.contains(mesh.visibilityKey);
-    }
-
-    private double distanceSquared(Mesh mesh, double phase, double seconds, String mode) {
-        double[] pose = pose(mesh.animation, phase, seconds, mode);
-        double cx = mesh.center[0] + .5, cy = mesh.center[1] + .5, cz = mesh.center[2] + .5;
-        double dx = pose[0] * cx + pose[4] * cy + pose[8] * cz + pose[12] - cameraX;
-        double dy = pose[1] * cx + pose[5] * cy + pose[9] * cz + pose[13] - cameraY;
-        double dz = pose[2] * cx + pose[6] * cy + pose[10] * cz + pose[14] - cameraZ;
-        return dx * dx + dy * dy + dz * dz;
-    }
-
-    private void affine(JsonObject animation, double phase, double seconds, String mode) {
-        if (idleIdentity(animation, mode)) return;
-        matrix.clear();
-        matrix.put(pose(animation, phase, seconds, mode))
-            .flip();
-        GL11.glMultMatrix(matrix);
-    }
-
     private double[] pose(JsonObject animation, double phase, double seconds, String mode) {
         if (idleIdentity(animation, mode)) return IDENTITY;
         CachedPose cached = groupMatrices.get(animation);
@@ -460,112 +426,6 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             && !animation.has("ambientOrbit")
             && !animation.has("continuousMotion")
             && !animation.has("levitationBob");
-    }
-
-    private List<Mesh> compile(String slug) {
-        CriticalRenderMetrics.meshCompiles++;
-        CriticalGeometry.Model model = CriticalGeometry.getModel(slug);
-        Map<String, List<Face>> batches = new LinkedHashMap<>();
-        Map<Long, Voxel> occupied = new HashMap<>();
-        for (Voxel voxel : model.voxels) occupied.put(voxel.positionKey(), voxel);
-        for (Voxel voxel : model.voxels) {
-            if (!model.animations.has(voxel.group) && !slug.startsWith("plugin_")) continue;
-            for (int side = 0; side < 6; side++) {
-                int[] d = NEIGHBOR[side];
-                Voxel next = occupied.get(Voxel.positionKey(voxel.x + d[0], voxel.y + d[1], voxel.z + d[2]));
-                // Cull only within the same rigid group; another group can move away.
-                if (next != null && next.group.equals(voxel.group)
-                    && ("opaque".equals(
-                        CriticalMaterials.properties(next.material)
-                            .get("alphaMode")
-                            .getAsString())
-                        || next.material.equals(voxel.material)))
-                    continue;
-                String key = voxel.group + ":" + voxel.material + ":" + (side < 2 ? "top" : "side");
-                batches.computeIfAbsent(key, ignored -> new ArrayList<>())
-                    .add(new Face(voxel, side));
-            }
-        }
-        List<Mesh> result = new ArrayList<>();
-        List<Integer> unpublished = new ArrayList<>();
-        try {
-            for (List<Face> faces : batches.values()) {
-                Face first = faces.get(0);
-                JsonObject properties = CriticalMaterials.properties(first.voxel.material);
-                String id = properties.get("id")
-                    .getAsString();
-                boolean animated = first.side >= 2 && properties.get("animated")
-                    .getAsBoolean();
-                String suffix = first.side < 2 ? "__top" : "";
-                int list = ClientDisplayList.compile(() -> {
-                    Tessellator t = Tessellator.instance;
-                    t.startDrawingQuads();
-                    for (Face face : faces) {
-                        int[] normal = NEIGHBOR[face.side];
-                        t.setNormal(normal[0], normal[1], normal[2]);
-                        double shade = face.side == 0 ? .58 : face.side == 1 ? 1 : face.side < 4 ? .78 : .88;
-                        t.setColorOpaque_F((float) shade, (float) shade, (float) shade);
-                        for (int vertex = 0; vertex < 4; vertex++) {
-                            double[] c = CORNERS[face.side][vertex];
-                            t.addVertexWithUV(
-                                face.voxel.x + c[0],
-                                face.voxel.y + c[1],
-                                face.voxel.z + c[2],
-                                vertex >= 2 ? 1 : 0,
-                                (vertex == 0 || vertex == 3 ? 0 : 1) / (animated ? 8D : 1D));
-                        }
-                    }
-                    t.draw();
-                });
-                unpublished.add(list);
-                float strength = properties.get("emissionStrength")
-                    .getAsFloat();
-                result.add(
-                    new Mesh(
-                        list,
-                        model.animations.has(first.voxel.group) ? model.animations.getAsJsonObject(first.voxel.group)
-                            : new JsonObject(),
-                        texture(id + suffix),
-                        strength > 0 && suffix.isEmpty() ? texture(id + "_emission") : null,
-                        animated,
-                        properties.get("alphaMode")
-                            .getAsString(),
-                        strength,
-                        first.voxel.group,
-                        slug + ":" + first.voxel.group,
-                        meshCenter(faces)));
-            }
-            return result;
-        } catch (RuntimeException | Error failure) {
-            ClientDisplayList.rollback(unpublished, failure);
-            throw failure;
-        }
-    }
-
-    private static double[] meshCenter(List<Face> faces) {
-        double[] center = new double[3];
-        for (Face face : faces) {
-            center[0] += face.voxel.x;
-            center[1] += face.voxel.y;
-            center[2] += face.voxel.z;
-        }
-        for (int axis = 0; axis < 3; axis++) center[axis] /= faces.size();
-        return center;
-    }
-
-    private static ResourceLocation texture(String id) {
-        return new ResourceLocation("gtsr", "textures/blocks/critical/" + id + ".png");
-    }
-
-    private static final class Face {
-
-        final Voxel voxel;
-        final int side;
-
-        Face(Voxel voxel, int side) {
-            this.voxel = voxel;
-            this.side = side;
-        }
     }
 
     private static final class VisualClock extends CriticalContinuousMotion.FrameClock {
@@ -606,30 +466,4 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         }
     }
 
-    private static final class Mesh {
-
-        final int list;
-        final JsonObject animation;
-        final ResourceLocation texture, emission;
-        final boolean animated, transparent;
-        final int pass;
-        final String group, visibilityKey;
-        final double[] center;
-        final float strength;
-
-        Mesh(int list, JsonObject animation, ResourceLocation texture, ResourceLocation emission, boolean animated,
-            String alphaMode, float strength, String group, String visibilityKey, double[] center) {
-            this.list = list;
-            this.animation = animation;
-            this.texture = texture;
-            this.emission = emission;
-            this.animated = animated;
-            this.transparent = "blend".equals(alphaMode);
-            this.pass = "blend".equals(alphaMode) ? 2 : "cutout".equals(alphaMode) ? 1 : 0;
-            this.group = group;
-            this.visibilityKey = visibilityKey;
-            this.center = center;
-            this.strength = strength;
-        }
-    }
 }

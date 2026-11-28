@@ -86,6 +86,7 @@ public final class CriticalBlockProtection {
 
     /** A stale visual object must not protect a later manually rebuilt installation at the same coordinates. */
     private static boolean isClientSourceLoaded(CriticalMachineState source) {
+        if (com.miaokatze.gtsr.main.GTSteamReborn.proxy.isLogicalCriticalVisual(source)) return true;
         World world = source.worldObj;
         if (world.getChunkProvider()
             .chunkExists(source.xCoord >> 4, source.zCoord >> 4)

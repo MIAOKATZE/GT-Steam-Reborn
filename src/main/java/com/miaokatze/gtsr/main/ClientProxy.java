@@ -52,6 +52,17 @@ public class ClientProxy extends CommonProxy {
     }
 
     @Override
+    public void receiveVirtualStructure(com.miaokatze.gtsr.common.machinevisual.VirtualStructureFrame frame,
+        Object connection) {
+        com.miaokatze.gtsr.client.machinevisual.VirtualStructureClient.receive(frame, connection);
+    }
+
+    @Override
+    public boolean isLogicalCriticalVisual(com.miaokatze.gtsr.common.critical.CriticalMachineState state) {
+        return com.miaokatze.gtsr.client.machinevisual.VirtualStructureClient.isRegistered(state);
+    }
+
+    @Override
     public void receiveCriticalDamageHighlights(com.miaokatze.gtsr.common.critical.CriticalDamageHighlights.Frame frame,
         Object connection) {
         com.miaokatze.gtsr.client.critical.CriticalDamageHighlightClient.receive(frame, connection);
@@ -66,6 +77,7 @@ public class ClientProxy extends CommonProxy {
         // 调用父类的 init 方法，确保通用逻辑正常执行
         super.init(event);
         com.miaokatze.gtsr.client.machinevisual.MachineVisualClient.register();
+        com.miaokatze.gtsr.client.machinevisual.VirtualStructureClient.register();
         com.miaokatze.gtsr.client.critical.CriticalDamageHighlightClient.register();
         com.miaokatze.gtsr.client.workeffects.WorkEffectRenderer.listen();
         FMLCommonHandler.instance()

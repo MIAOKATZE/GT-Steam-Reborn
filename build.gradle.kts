@@ -297,6 +297,24 @@ val verifyTurbineMeshContracts = tasks.register<JavaExec>("verifyTurbineMeshCont
     maxHeapSize = "256m"
 }
 
+val verifySharedMeshContracts = tasks.register<JavaExec>("verifySharedMeshContracts") {
+    group = "verification"
+    description = "Check shared GTNHLib buffer ownership, failure cleanup and resource reload without OpenGL."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.client.render.ClientMeshContracts")
+    maxHeapSize = "256m"
+}
+
+val verifyVirtualStructureContracts = tasks.register<JavaExec>("verifyVirtualStructureContracts") {
+    group = "verification"
+    description = "Check bounded virtual installation snapshots and stale owner generation rejection."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.common.machinevisual.VirtualStructureContracts")
+    maxHeapSize = "256m"
+}
+
 val verifyMachineDecorationContracts = tasks.register<JavaExec>("verifyMachineDecorationContracts") {
     group = "verification"
     description = "Verify client animation admission and geometry without querying the world for clearance."
@@ -481,6 +499,39 @@ val testlabSourceSet = sourceSets.create("testlab") {
 configurations.named(testlabSourceSet.implementationConfigurationName) { extendsFrom(configurations.implementation.get()) }
 configurations.named(testlabSourceSet.compileOnlyConfigurationName) { extendsFrom(configurations.compileOnly.get()) }
 configurations.named(testlabSourceSet.annotationProcessorConfigurationName) { extendsFrom(configurations.annotationProcessor.get()) }
+
+// Detached CPU contracts: no product-class overlays and no game/runtime probe registration.
+val virtualConstructionContracts = sourceSets.create("virtualConstructionContracts") {
+    java.setSrcDirs(listOf("tools/tests", "tools/critical"))
+    java.include("CriticalConstructionEconomyContract.java", "CriticalVirtualConstructionContract.java", "CriticalV32Fixture.java")
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath + sourceSets["patchedMc"].output
+    runtimeClasspath += output + compileClasspath
+}
+configurations.named(virtualConstructionContracts.implementationConfigurationName) { extendsFrom(configurations.implementation.get()) }
+configurations.named(virtualConstructionContracts.compileOnlyConfigurationName) { extendsFrom(configurations.compileOnly.get()) }
+configurations.named(virtualConstructionContracts.annotationProcessorConfigurationName) { extendsFrom(configurations.annotationProcessor.get()) }
+listOf(
+    "verifyCriticalVirtualConstruction" to "com.miaokatze.gtsr.common.critical.CriticalVirtualConstructionContract",
+    "verifyCriticalVirtualEconomy" to "com.miaokatze.gtsr.common.critical.CriticalConstructionEconomyContract"
+).forEach { (taskName, entry) ->
+    tasks.register<JavaExec>(taskName) {
+        group = "verification"
+        description = "Verify virtual construction against the current production classes or an explicit built candidate."
+        dependsOn(tasks.named(virtualConstructionContracts.classesTaskName))
+        val candidate = providers.gradleProperty("criticalContractJar")
+        classpath = virtualConstructionContracts.output +
+            (if (candidate.isPresent) files(candidate.get()) else sourceSets.main.get().output) +
+            sourceSets.main.get().compileClasspath + sourceSets["patchedMc"].output
+        if (candidate.isPresent) args(candidate.get())
+        mainClass.set(entry)
+        providers.gradleProperty("gtnhContractJava").orNull?.let { setExecutable(it) }
+        maxHeapSize = "1g"
+        systemProperty("java.awt.headless", "true")
+        val runtime = layout.buildDirectory.dir("virtual-construction-contract/runtime").get().asFile
+        workingDir(runtime)
+        doFirst { runtime.mkdirs() }
+    }
+}
 sourceSets.test {
     compileClasspath += testlabSourceSet.output
     runtimeClasspath += testlabSourceSet.output

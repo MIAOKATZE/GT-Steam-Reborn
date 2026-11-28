@@ -24,10 +24,6 @@ public interface MachineVisualHost extends IMetaTileEntity, IMTERenderer {
         return getExtendedFacing();
     }
 
-    default boolean cacheMotionMeshes() {
-        return false;
-    }
-
     /** Retain an already published mesh through a short queue transition while showing its static pose. */
     default int motionIdleGraceTicks() {
         return 0;

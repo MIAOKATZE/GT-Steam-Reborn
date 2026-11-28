@@ -118,7 +118,12 @@ public final class CriticalLoomProxyVisibility {
             + ','
             + state.getSpeedPlugins()
             + ','
-            + state.getEfficiencyPlugins();
+            + state.getEfficiencyPlugins()
+            + "#virtual="
+            + state.getVirtualConstructionVersion()
+            // A paid construction increment cannot change the physical index. During old-save migration,
+            // the mask does remove formerly physical cells, so only that compatibility phase uses it.
+            + (state.getVirtualConstructionVersion() == 0 ? "#migration=" + state.getVirtualVisualRevision() : "");
     }
 
     private static String modelSlugs(CriticalMachineState state) {
@@ -130,22 +135,31 @@ public final class CriticalLoomProxyVisibility {
 
     private static List<CriticalGeometry.Voxel> proxies(CriticalMachineState state) {
         String slug = modelSlugs(state);
-        List<CriticalGeometry.Voxel> models = PROXIES.computeIfAbsent(slug, ignored -> {
+        String layout = slug + "#virtual=" + state.getVirtualConstructionVersion();
+        List<CriticalGeometry.Voxel> models = PROXIES.computeIfAbsent(layout, ignored -> {
             List<CriticalGeometry.Voxel> result = new ArrayList<>();
             for (String modelSlug : slug.split("\\|"))
                 for (CriticalGeometry.Voxel voxel : CriticalGeometry.getModel(modelSlug).voxels)
-                    if (CriticalGeometry.isDynamic(modelSlug, voxel.group)) result.add(voxel);
-            return result;
+                    if (CriticalGeometry.isDynamic(modelSlug, voxel.group) && !state.isVirtualConstructionVoxel(voxel))
+                        result.add(voxel);
+            return Collections.unmodifiableList(result);
         });
-        if (state.getStructureId()
-            .isEmpty() || state.getState() == 0
-            || !state.hasPhysicalPlugins()) return models;
         // Plugin templates have no authored dynamic groups: the installed, integer-sampled cells
         // inherit the slot's base carrier. Registration owns these exact cells for both add/remove.
-        List<CriticalGeometry.Voxel> result = new ArrayList<>(models);
-        for (CriticalGeometry.Voxel voxel : CriticalGeometry.physicalPlugins(state))
-            if (CriticalGeometry.isDynamic(voxel.model, voxel.group)) result.add(voxel);
+        List<CriticalGeometry.Voxel> result = new ArrayList<>();
+        for (CriticalGeometry.Voxel voxel : models) if (isPhysicalProxy(state, voxel)) result.add(voxel);
+        if (!state.getStructureId()
+            .isEmpty() && state.getState() != 0 && state.hasPhysicalPlugins())
+            for (CriticalGeometry.Voxel voxel : CriticalGeometry.physicalPlugins(state))
+                if (CriticalGeometry.isDynamic(voxel.model, voxel.group) && isPhysicalProxy(state, voxel))
+                    result.add(voxel);
         return Collections.unmodifiableList(result);
+    }
+
+    /** Same admission rule for registration and its immutable removal journal. */
+    public static boolean isPhysicalProxy(CriticalMachineState state, CriticalGeometry.Voxel voxel) {
+        return !state.isVirtualConstructionVoxel(voxel)
+            && (state.getVirtualConstructionVersion() != 0 || !state.isVirtualVoxelInstalled(voxel));
     }
 
     private static long chunkKey(int x, int z) {

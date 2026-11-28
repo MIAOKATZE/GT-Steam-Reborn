@@ -166,6 +166,7 @@ public final class MachineVisualClient {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.theWorld != world) {
             for (Entry entry : ENTRIES.values()) MachineVisualVisibility.remove(entry);
+            for (Entry entry : RETIRING.values()) MachineVisualRenderer.clearMesh(entry);
             ENTRIES.clear();
             CANDIDATES.clear();
             RETIRING.clear();

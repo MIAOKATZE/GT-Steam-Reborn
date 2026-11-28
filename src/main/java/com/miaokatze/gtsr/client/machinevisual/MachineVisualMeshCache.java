@@ -5,34 +5,32 @@ package com.miaokatze.gtsr.client.machinevisual;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.lwjgl.opengl.GL11;
-
-import com.miaokatze.gtsr.client.render.ClientDisplayList;
+import com.miaokatze.gtsr.client.render.ClientMesh;
 
 /** Native GT geometry is compiled on admission; only its motion matrix changes while the group is published. */
 final class MachineVisualMeshCache {
 
     interface Driver {
 
-        int compile(Runnable commands);
+        Object compile(Runnable commands);
 
-        void draw(int list);
+        void draw(Object list);
 
-        void delete(int list);
+        void delete(Object list);
     }
 
     private static final Driver NATIVE = new Driver() {
 
-        public int compile(Runnable commands) {
-            return ClientDisplayList.compile(commands);
+        public Object compile(Runnable commands) {
+            return ClientMesh.capture(commands);
         }
 
-        public void draw(int list) {
-            GL11.glCallList(list);
+        public void draw(Object list) {
+            ((ClientMesh) list).draw();
         }
 
-        public void delete(int list) {
-            GL11.glDeleteLists(list, 1);
+        public void delete(Object list) {
+            ((ClientMesh) list).close();
         }
     };
 
@@ -42,16 +40,14 @@ final class MachineVisualMeshCache {
 
     private static final class Mesh {
 
-        final int list;
+        final Object list;
         final long revision;
 
-        Mesh(int list, long revision) {
+        Mesh(Object list, long revision) {
             this.list = list;
             this.revision = revision;
         }
     }
-
-    private boolean disabled;
 
     MachineVisualMeshCache() {
         this(NATIVE);
@@ -69,10 +65,6 @@ final class MachineVisualMeshCache {
 
     /** Returns true for a replay. Compilation publishes only a successfully completed native batch. */
     boolean draw(int group, long revision, Runnable commands) {
-        if (disabled) {
-            commands.run();
-            return false;
-        }
         long key = ((long) pass << 32) | (group & 0xffffffffL);
         Mesh mesh = groups.get(key);
         if (mesh != null && mesh.revision != revision) {
@@ -82,21 +74,8 @@ final class MachineVisualMeshCache {
         }
         boolean replay = mesh != null;
         if (mesh == null) {
-            int list;
-            boolean[] entered = { false };
-            try {
-                list = driver.compile(() -> {
-                    entered[0] = true;
-                    commands.run();
-                });
-            } catch (RuntimeException unavailable) {
-                // Allocation/capture unavailable before any native block draw: retain immediate rendering.
-                // A native renderer failure is propagated after ClientDisplayList restores its owned state.
-                if (entered[0]) throw unavailable;
-                disabled = true;
-                commands.run();
-                return false;
-            }
+            if (driver == NATIVE && !com.miaokatze.gtsr.client.render.ClientRenderFrame.tryBuild()) return false;
+            Object list = driver.compile(commands);
             mesh = new Mesh(list, revision);
             groups.put(key, mesh);
         }
@@ -105,15 +84,24 @@ final class MachineVisualMeshCache {
     }
 
     void invalidate(int group) {
+        java.util.List<Object> owned = new java.util.ArrayList<>();
         java.util.Iterator<Map.Entry<Long, Mesh>> iterator = groups.entrySet()
             .iterator();
         while (iterator.hasNext()) {
             Map.Entry<Long, Mesh> item = iterator.next();
             if ((int) (long) item.getKey() != group) continue;
-            int list = item.getValue().list;
+            Object list = item.getValue().list;
             iterator.remove();
-            driver.delete(list);
+            owned.add(list);
         }
+        RuntimeException primary = null;
+        for (Object list : owned) try {
+            driver.delete(list);
+        } catch (RuntimeException failure) {
+            if (primary == null) primary = failure;
+            else primary.addSuppressed(failure);
+        }
+        if (primary != null) throw primary;
     }
 
     void clear() {

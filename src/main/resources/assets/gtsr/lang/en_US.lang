@@ -5500,7 +5500,7 @@ gtsr.wand.debug.build_done=Quick Build complete. Structure validation is in prog
 gtsr.wand.debug.build_busy=The center is processing or building. Try again after it finishes.
 gtsr.wand.debug.build_unloaded=Quick Build stopped at an unloaded chunk. Load the area and apply the wand again.
 gtsr.wand.debug.build_blocked=Quick Build stopped at a protected block, block entity or unplaceable position. Clear the obstruction before retrying.
-gtsr.wand.debug.build_ports=The shell and modules are built. Add any missing input/output hatches or buses.
+gtsr.wand.debug.build_ports=The shell is built and module packages are installed. Add any missing input/output hatches or buses.
 
 gtsr.ore_center.status.overview=Tier %s · Sectors %s/6 · Modules %s · Graphs %s
 gtsr.ore_center.status.progress=Progress %s/%s ticks · Supply %s EU/t
@@ -5521,6 +5521,7 @@ gtsr.ore_center.graph.preset.use_outlet=Add to Outlet
 gtsr.ore_center.graph.preset.select_outlet=Select an outlet that accepts filters
 gtsr.ore_center.graph.preset.branch=Branch %s
 gtsr.ore_center.tooltip.terminal=Use a Machine Terminal on the controller to open Assembly, Routes, Statistics and Calculations.
+gtsr.ore_center.tooltip.virtual=Module visuals have no world blocks or collision. Build the real frame and functional ports.
 gtsr.ore_center.status.native.structure=Structure %s · %s · Sectors %s/6
 gtsr.ore_center.status.native.formed=Formed
 gtsr.ore_center.status.native.unformed=Incomplete

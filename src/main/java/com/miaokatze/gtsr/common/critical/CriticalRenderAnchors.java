@@ -4,16 +4,16 @@
 package com.miaokatze.gtsr.common.critical;
 
 import net.minecraft.block.Block;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.common.util.ForgeDirection;
 
 import cpw.mods.fml.common.registry.GameRegistry;
 
-/** One empty canonical cell is reserved; revision 30 leaves the entire upper chamber row free. */
+/** Logical render origin. The registered block remains only to identify and remove old owned anchors. */
 public final class CriticalRenderAnchors {
 
     public static final Block BLOCK = new BlockCriticalRenderAnchor();
     private static boolean registered;
+    private static final java.util.Map<CriticalMachineState, Boolean> LEGACY_CHECKED = new java.util.WeakHashMap<>();
 
     private CriticalRenderAnchors() {}
 
@@ -52,19 +52,15 @@ public final class CriticalRenderAnchors {
             remove(state);
             return;
         }
-        int x = getX(state), y = getY(state), z = getZ(state);
-        if (!state.worldObj.blockExists(x, y, z)) return;
-        if (state.getGeometryVersion() == 2 && state.getV2LayoutRevision() >= 30
-            && state.worldObj.getTileEntity(x, y - 1, z) instanceof TileEntityCriticalRenderAnchor previous
-            && previous.ownedBy(state)) state.worldObj.setBlockToAir(x, y - 1, z);
-        TileEntity tile = state.worldObj.getTileEntity(x, y, z);
-        if (tile instanceof TileEntityCriticalRenderAnchor anchor && anchor.ownedBy(state)) {
-            anchor.syncFrom(state, independentLoomPresent || installation);
-        } else if (state.worldObj.isAirBlock(x, y, z)) {
-            if (state.worldObj.setBlock(x, y, z, BLOCK, 0, 3)
-                && state.worldObj.getTileEntity(x, y, z) instanceof TileEntityCriticalRenderAnchor anchor)
-                anchor.syncFrom(state, independentLoomPresent || installation);
+        if (!LEGACY_CHECKED.containsKey(state)) {
+            int x = getX(state), z = getZ(state);
+            if (state.worldObj.getChunkProvider()
+                .chunkExists(x >> 4, z >> 4)) {
+                removeOwnedLegacy(state, state.getStructureFacing());
+                LEGACY_CHECKED.put(state, Boolean.TRUE);
+            }
         }
+        com.miaokatze.gtsr.common.machinevisual.VirtualStructureNetwork.observeCritical(state, independentLoomPresent);
     }
 
     public static void remove(CriticalMachineState state) {
@@ -74,6 +70,13 @@ public final class CriticalRenderAnchors {
     /** An uncommissioned controller may turn; remove the previous frame's owned visual before rebinding. */
     static void remove(CriticalMachineState state, ForgeDirection frame) {
         if (state.worldObj == null || state.worldObj.isRemote) return;
+        com.miaokatze.gtsr.common.machinevisual.VirtualStructureNetwork.remove(state.getHost());
+        LEGACY_CHECKED.remove(state);
+        removeOwnedLegacy(state, frame);
+    }
+
+    /** One-time compatibility writes only; never replaces an unrelated block or TileEntity. */
+    private static void removeOwnedLegacy(CriticalMachineState state, ForgeDirection frame) {
         int depth = (state.getGeometryVersion() == 2 ? 34 : 32) - state.getControllerZ();
         int x = state.xCoord + CriticalStructureAlignment.rotateX(0, depth, frame), y = getY(state),
             z = state.zCoord + CriticalStructureAlignment.rotateZ(0, depth, frame);

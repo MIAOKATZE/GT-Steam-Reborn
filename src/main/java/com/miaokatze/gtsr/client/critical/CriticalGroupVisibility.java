@@ -27,6 +27,8 @@ final class CriticalGroupVisibility {
     private final int originY, parallelPlugins, speedPlugins, efficiencyPlugins;
     private final net.minecraftforge.common.util.ForgeDirection facing;
     private final boolean installation;
+    private final int virtualVersion;
+    private final long migrationRevision;
     private Set<String> snapshot = Collections.emptySet(), filteredSource, filteredSnapshot;
     private boolean filteredGeometryReady, filteredLoomReady;
     private int nextGroup;
@@ -46,15 +48,18 @@ final class CriticalGroupVisibility {
         speedPlugins = controller.getSpeedPlugins();
         efficiencyPlugins = controller.getEfficiencyPlugins();
         installation = hasInstallation(controller);
+        virtualVersion = controller.getVirtualConstructionVersion();
+        migrationRevision = virtualVersion == 0 ? controller.getVirtualVisualRevision() : 0;
         lastValidated = controller.isStructureValidated();
-        add(CriticalGeometry.visualLoomSlug(controller));
+        add(controller, CriticalGeometry.visualLoomSlug(controller));
         if (hasInstallation(controller)) {
-            add(CriticalGeometry.visualBaseSlug(controller));
-            add(CriticalGeometry.visualMachineSlug(controller));
+            add(controller, CriticalGeometry.visualBaseSlug(controller));
+            add(controller, CriticalGeometry.visualMachineSlug(controller));
             if (controller.hasPhysicalPlugins()) {
                 Map<String, List<CriticalGeometry.Voxel>> plugins = new LinkedHashMap<>();
                 for (CriticalGeometry.Voxel voxel : CriticalGeometry.physicalPlugins(controller))
-                    if (CriticalGeometry.isDynamic(voxel.model, voxel.group))
+                    if (com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility
+                        .isPhysicalProxy(controller, voxel) && CriticalGeometry.isDynamic(voxel.model, voxel.group))
                         plugins.computeIfAbsent(voxel.model + ':' + voxel.group, ignored -> new ArrayList<>())
                             .add(voxel);
                 for (Map.Entry<String, List<CriticalGeometry.Voxel>> entry : plugins.entrySet())
@@ -74,6 +79,8 @@ final class CriticalGroupVisibility {
             && machineKind == controller.getMachineKind()
             && tier == controller.getTier()
             && installation == hasInstallation(controller)
+            && virtualVersion == controller.getVirtualConstructionVersion()
+            && (virtualVersion != 0 || migrationRevision == controller.getVirtualVisualRevision())
             && facing == controller.getStructureFacing()
             && originX == controller.getMeshOriginX()
             && originY == controller.getOriginY()
@@ -83,13 +90,15 @@ final class CriticalGroupVisibility {
             && efficiencyPlugins == controller.getEfficiencyPlugins();
     }
 
-    private void add(String slug) {
+    private void add(CriticalMachineState controller, String slug) {
         CriticalGeometry.Model model = CriticalGeometry.getModel(slug);
         Map<String, List<CriticalGeometry.Voxel>> indexed = new LinkedHashMap<>();
-        for (CriticalGeometry.Voxel voxel : model.voxels) if (CriticalGeometry.isDynamic(slug, voxel.group)) {
-            indexed.computeIfAbsent(voxel.group, ignored -> new ArrayList<>())
-                .add(voxel);
-        }
+        for (CriticalGeometry.Voxel voxel : model.voxels)
+            if (com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility.isPhysicalProxy(controller, voxel)
+                && CriticalGeometry.isDynamic(slug, voxel.group)) {
+                    indexed.computeIfAbsent(voxel.group, ignored -> new ArrayList<>())
+                        .add(voxel);
+                }
         for (Map.Entry<String, List<CriticalGeometry.Voxel>> entry : indexed.entrySet()) {
             groups.add(new Group(slug + ":" + entry.getKey(), entry.getValue()));
         }

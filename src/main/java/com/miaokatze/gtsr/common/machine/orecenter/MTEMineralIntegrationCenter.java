@@ -114,11 +114,6 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
     }
 
     @Override
-    public boolean cacheMotionMeshes() {
-        return true;
-    }
-
-    @Override
     public int motionIdleGraceTicks() {
         return 8;
     }
@@ -388,6 +383,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             .addMachineType(StatCollector.translateToLocal("gtsr.ore_center.tooltip.type"))
             .addInfo("The controller plans and runs whole processing batches.")
             .addInfo(StatCollector.translateToLocal("gtsr.ore_center.tooltip.terminal"))
+            .addInfo(StatCollector.translateToLocal("gtsr.ore_center.tooltip.virtual"))
             .addInfo("Sneak-screwdriver selects a module pad. Use screwdriver to install or return a package.")
             .addInfo(StatCollector.translateToLocal("gtsr.ore_center.structure.tier"))
             .addStructureInfo(StatCollector.translateToLocal("gtsr.ore_center.structure.tier"))
@@ -489,8 +485,17 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             int grade = CenterModuleItems.gradeOf(pack);
             if (choice != null && (module != choice || grade != choiceGrade)) continue;
             if (module == null || module.kind != kind || !module.acceptsGrade(grade, tier)) continue;
-            if (!structure.install(te, slot, module, grade)) return "The module pad could not be built.";
-            input.take(1);
+            if (!structure.canInstall(te, slot, module, grade)) return "The module installation is not ready.";
+            if (!input.takePackage(pack)) return "No compatible package in the input bus.";
+            if (!structure.install(te, slot, module, grade)) {
+                // Same-thread validation normally cannot change, but a failed commit must retain the paid item.
+                ItemStack returned = pack.copy();
+                returned.stackSize = 1;
+                pendingItems.add(returned);
+                mirrorBatchOutputs();
+                te.markDirty();
+                return "The module installation is not ready.";
+            }
             modules[slot] = module.ordinal();
             grades[slot] = grade;
             planning = null;
@@ -501,9 +506,31 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         return "No compatible package in the input bus.";
     }
 
+    /** Visual snapshots contain only installed virtual ownership; real-sector pauses do not erase the model. */
+    public int[] installedModuleTypes() {
+        int[] snapshot = modules.clone();
+        for (int i = 0; i < snapshot.length; i++)
+            if (grades[i] <= 0 || !structure.moduleIntact(getBaseMetaTileEntity(), i, MODULES[modules[i]], grades[i]))
+                snapshot[i] = -1;
+        return snapshot;
+    }
+
+    public int[] installedModuleGrades() {
+        int[] snapshot = grades.clone();
+        for (int i = 0; i < snapshot.length; i++) if (snapshot[i] > 0
+            && !structure.moduleIntact(getBaseMetaTileEntity(), i, MODULES[modules[i]], snapshot[i])) snapshot[i] = 0;
+        return snapshot;
+    }
+
+    public long moduleVisualRevision() {
+        return structure.moduleRevision();
+    }
+
     public NBTTagCompound operationStatus() {
         IGregTechTileEntity te = getBaseMetaTileEntity();
         NBTTagCompound tag = new NBTTagCompound();
+        tag.setBoolean("ModuleMigrationPending", isModuleMigrationPending());
+        if (isModuleMigrationPending()) tag.setString("ModuleMigrationProblem", moduleMigrationProblem());
         tag.setBoolean("QueueMode", queueMode);
         tag.setBoolean("BatchMode", isBatchModeEnabled());
         tag.setInteger("ConfiguredBatchModifier", isBatchModeEnabled() ? getMaxBatchSize() : 1);
@@ -1236,6 +1263,16 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             return te.getStackInSlot(index);
         }
 
+        boolean takePackage(ItemStack expected) {
+            ItemStack current = get();
+            if (current == null || current.stackSize < 1 || !ItemStack.areItemStacksEqual(current, expected))
+                return false;
+            ItemStack taken = te.decrStackSize(index, 1);
+            return taken != null && taken.stackSize == 1
+                && taken.isItemEqual(expected)
+                && ItemStack.areItemStackTagsEqual(taken, expected);
+        }
+
         void take(int count) {
             te.decrStackSize(index, count);
         }
@@ -1255,6 +1292,20 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             var stock = bus.getAEInventory()
                 .getAEStackInSlot(index);
             return stock == null ? null : stock.getItemStack();
+        }
+
+        @Override
+        boolean takePackage(ItemStack expected) {
+            var current = bus.getAEInventory()
+                .getAEStackInSlot(index);
+            if (current == null || current.getStackSize() < 1
+                || !current.getItemStack()
+                    .isItemEqual(expected)
+                || !ItemStack.areItemStackTagsEqual(current.getItemStack(), expected)) return false;
+            var taken = bus.getAEInventory()
+                .extractAEItem(index, 1, false, true);
+            bus.markDirty();
+            return taken != null && taken.getStackSize() == 1;
         }
 
         @Override
@@ -1342,6 +1393,35 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
             "Buffered outputs " + pendingItems.size() + "/" + pendingFluids.size() };
     }
 
+    public boolean isModuleMigrationPending() {
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        return te != null && te.getWorld() != null
+            && !te.getWorld().isRemote
+            && (structure.hasUnconvertedModules() || CenterClaims.get(te.getWorld())
+                .migrationPending(new CenterStructure.Frame(te)));
+    }
+
+    public String moduleMigrationProblem() {
+        IGregTechTileEntity te = getBaseMetaTileEntity();
+        return te == null ? ""
+            : CenterClaims.migrationProblem(te.getWorld(), te.getXCoord(), te.getYCoord(), te.getZCoord());
+    }
+
+    @Override
+    public void setItemNBT(NBTTagCompound tag) {
+        super.setItemNBT(tag);
+        // Native GT drops call this once before controller removal. Ownership travels in the existing journal.
+        NBTTagCompound saved = new NBTTagCompound();
+        saveNBTData(saved);
+        for (Object key : saved.func_150296_c()) {
+            String name = (String) key;
+            if (name.startsWith("Center") || name.equals("oreCenterStructure")) tag.setTag(
+                name,
+                saved.getTag(name)
+                    .copy());
+        }
+    }
+
     @Override
     public void saveNBTData(NBTTagCompound tag) {
         super.saveNBTData(tag);
@@ -1390,6 +1470,7 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
 
     @Override
     public void onUnload() {
+        com.miaokatze.gtsr.common.machinevisual.VirtualStructureNetwork.remove(getBaseMetaTileEntity());
         structure.detach(getBaseMetaTileEntity());
         planning = null;
         routeCache.clear();
@@ -1398,7 +1479,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
 
     @Override
     public void onRemoval() {
-        structure.detach(getBaseMetaTileEntity());
+        com.miaokatze.gtsr.common.machinevisual.VirtualStructureNetwork.remove(getBaseMetaTileEntity());
+        structure.controllerRemoved(getBaseMetaTileEntity());
         planning = null;
         routeCache.clear();
         super.onRemoval();
@@ -1411,6 +1493,8 @@ public final class MTEMineralIntegrationCenter extends MTEGTSRExtendedPowerMulti
         debugIgnoreEnergy = tag.getBoolean("CenterDebugEnergy");
         queueMode = tag.getBoolean("CenterQueueMode");
         queueParallel = 0;
+        java.util.Arrays.fill(modules, 0);
+        java.util.Arrays.fill(grades, 0);
         int[] types = tag.getIntArray("CenterModules"), levels = tag.getIntArray("CenterGrades");
         for (int i = 0; i < types.length && i < levels.length && i < grades.length; i++) {
             if (types[i] >= 0 && types[i] < MODULES.length && levels[i] > 0 && levels[i] <= 3) {

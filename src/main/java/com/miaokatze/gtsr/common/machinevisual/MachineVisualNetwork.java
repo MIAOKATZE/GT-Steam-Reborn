@@ -40,6 +40,8 @@ public final class MachineVisualNetwork {
     public static void register() {
         NETWORK.registerMessage(SubscribeHandler.class, Subscribe.class, 0, Side.SERVER);
         NETWORK.registerMessage(FrameHandler.class, Frame.class, 1, Side.CLIENT);
+        NETWORK.registerMessage(VirtualStructureNetwork.Handler.class, VirtualStructureFrame.class, 2, Side.CLIENT);
+        VirtualStructureNetwork.register();
         FMLCommonHandler.instance()
             .bus()
             .register(new MachineVisualNetwork());
@@ -64,6 +66,10 @@ public final class MachineVisualNetwork {
         Frame message = new Frame();
         message.snapshot = snapshot;
         NETWORK.sendTo(message, player);
+    }
+
+    static void sendVirtual(EntityPlayerMP player, VirtualStructureFrame frame) {
+        NETWORK.sendTo(frame, player);
     }
 
     static boolean canObserve(EntityPlayerMP player, MachineVisualHost host) {

@@ -36,6 +36,8 @@ public final class MachineVisualState {
             GTSteamReborn.proxy.observeMachineVisual(host, tick);
             return;
         }
+        if (host instanceof com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter center)
+            VirtualStructureNetwork.observe(center);
         // A successful advance can finish and restart a one-tick recipe before postTick observes it.
         boolean advancing = formed && lastAdvanceTick == tick;
         int flags = (formed ? 1 : 0) | (motionShape ? 2 : 0) | (advancing ? 4 : 0) | (!tile.isAllowedToWork() ? 8 : 0);

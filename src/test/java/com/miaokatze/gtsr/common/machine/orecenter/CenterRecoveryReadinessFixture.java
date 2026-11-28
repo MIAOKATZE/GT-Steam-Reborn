@@ -56,20 +56,8 @@ final class CenterRecoveryReadinessFixture {
         check(
             structure.install(te, 0, CenterModule.SPEED, 1),
             "real installation succeeds on the newly verified structure");
-        check(!structure.isNewBatchReady(te), "an installed module still requires its original initial validation");
-        Shape module = shape(0, CenterModule.SPEED, 1);
-        int slices = 0;
-        while (slices < 1000 && !structure.isNewBatchReady(te)) {
-            scan(structure, te, 0, module);
-            slices++;
-        }
-        check(
-            structure.isNewBatchReady(te) && slices < 1000,
-            "real module installation becomes eligible after its fast validation without the 6000-tick steady cadence");
-        prime.invoke(moduleMonitor(structure, 0), module.count());
-        check(
-            moduleMonitor(structure, 0).getCompletedRounds() == 0 && structure.isNewBatchReady(te),
-            "a voxel-verified module's zero-round native construction state also authorizes new work");
+        check(structure.isNewBatchReady(te), "a virtual install requires no decorative monitor round");
+        check(world.writes == 0, "virtual installation writes no world blocks");
         CenterClaims.unload(world);
     }
 
@@ -174,19 +162,17 @@ final class CenterRecoveryReadinessFixture {
         world.now++;
         structure.tick(te);
         check(structure.install(te, 0, CenterModule.SPEED, 1), "fixture installs a real claimed module");
-        CriticalStructureMonitor monitor = moduleMonitor(structure, 0);
-        monitor.restoreValidation(shape(0, CenterModule.SPEED, 1).count());
         structure.invalidateModule(0);
-        check(monitor.hasKnownDamage(), "module damage is recorded by the native monitor");
         check(
-            !structure.isExecutionReady(te) && !structure.isNewBatchReady(te),
-            "known module damage cannot use cached paid/new authorization while review is pending");
+            !structure.moduleBroken(0, CenterModule.SPEED, 1),
+            "obsolete decorative invalidation cannot damage virtual ownership");
         NBTTagCompound again = new NBTTagCompound();
         structure.save(again, te);
         CenterStructure loaded = new CenterStructure();
         loaded.load(again);
-        check(((Long) get(loaded, "reviewModules") & 1L) != 0, "known damaged-module review survives NBT reload");
-        check(loaded.moduleBroken(0, CenterModule.SPEED, 1), "known module damage survives NBT reload");
+        check(
+            loaded.moduleIntact(te, 0, CenterModule.SPEED, 1),
+            "virtual ownership survives NBT independently of world voxels");
         CenterClaims.unload(world);
     }
 
@@ -219,11 +205,17 @@ final class CenterRecoveryReadinessFixture {
         check(waiters.size() == 1, "detach removes only the departing controller's queue entry");
         check(claims.allowsScan(second, 11), "remaining center retains its next fair scan slice");
         world.now = 12;
+        for (int i = 0; i < module.count(); i++) {
+            int[] at = pos(frame, module, i, 0);
+            world.missing.add(chunk(at[0] >> 4, at[2] >> 4));
+        }
         first.tick(te);
         boolean trackedAgain = false;
         for (Object reference : ((Map<?, ?>) get(claims, "centers")).values())
             trackedAgain |= ((WeakReference<?>) reference).get() == first;
         check(trackedAgain, "same controller object reattaches its event subscription without a facing change");
+        before = new NBTTagCompound();
+        claims.writeToNBT(before);
         first.detach(te);
         NBTTagCompound detached = new NBTTagCompound();
         claims.writeToNBT(detached);

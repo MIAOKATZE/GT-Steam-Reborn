@@ -78,6 +78,16 @@ public final class CriticalRuntime {
         @cpw.mods.fml.common.eventhandler.SubscribeEvent
         public void onControllerBreak(net.minecraftforge.event.world.BlockEvent.BreakEvent event) {
             if (event.world.isRemote) return;
+            if (com.miaokatze.gtsr.common.machine.orecenter.CenterClaims
+                .blocksControllerRemoval(event.world, event.x, event.y, event.z)) {
+                event.setCanceled(true);
+                event.getPlayer()
+                    .addChatMessage(
+                        new net.minecraft.util.ChatComponentText(
+                            "矿处旧模块结构迁移尚未完成：" + com.miaokatze.gtsr.common.machine.orecenter.CenterClaims
+                                .migrationProblem(event.world, event.x, event.y, event.z)));
+                return;
+            }
             if (CriticalBlockProtection.protects(event.world, event.x, event.y, event.z)) {
                 event.setCanceled(true);
                 return;
@@ -101,6 +111,21 @@ public final class CriticalRuntime {
             if (event.world.isRemote
                 || event.action == net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.RIGHT_CLICK_AIR)
                 return;
+            if (com.miaokatze.gtsr.common.machine.orecenter.CenterClaims
+                .blocksControllerRemoval(event.world, event.x, event.y, event.z)) {
+                boolean destructive = event.action
+                    == net.minecraftforge.event.entity.player.PlayerInteractEvent.Action.LEFT_CLICK_BLOCK
+                    || event.entityPlayer != null && gregtech.api.util.GTUtility
+                        .isStackInList(event.entityPlayer.getHeldItem(), gregtech.api.GregTechAPI.sWrenchList);
+                if (destructive) {
+                    event.setCanceled(true);
+                    if (event.entityPlayer != null) event.entityPlayer.addChatMessage(
+                        new net.minecraft.util.ChatComponentText(
+                            "矿处旧模块结构迁移尚未完成：" + com.miaokatze.gtsr.common.machine.orecenter.CenterClaims
+                                .migrationProblem(event.world, event.x, event.y, event.z)));
+                    return;
+                }
+            }
             if (!CriticalBlockProtection.protects(event.world, event.x, event.y, event.z)) return;
             // Rotating a generated GT controller would invalidate its exact paid-voxel identity.
             // Ordinary right-click still reaches its GUI, including the internal dismantle/repair controls.

@@ -3,15 +3,12 @@
 
 package com.miaokatze.gtsr.common.dimension.testlab;
 
-import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
@@ -28,6 +25,7 @@ import com.miaokatze.gtsr.common.api.enums.GTSRItemList;
 import com.miaokatze.gtsr.common.items.CenterModuleItems;
 import com.miaokatze.gtsr.common.machine.base.MTESteamCoolingHatch;
 import com.miaokatze.gtsr.common.machine.cluster.ClusterParams.SteamGrade;
+import com.miaokatze.gtsr.common.machine.orecenter.CenterFixtureGeometry;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraph;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterGraphPreview;
 import com.miaokatze.gtsr.common.machine.orecenter.CenterModule;
@@ -49,11 +47,10 @@ import gregtech.api.util.GTRecipe;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.shutdown.ShutDownReasonRegistry;
 
-/** Natural world ticks with owned structure, assembled packs and ordinary GT hatches. */
+/** Natural world ticks with real tower/wings, virtual paid packages and ordinary GT hatches. */
 final class TestLabIntegrationCenterMachine implements TestLabTask {
 
     static final String ID = "ore_integration_center.machine";
-    private static final String PREFIX = "/assets/gtsr/orecenter/";
     private static final int ORE_COUNT = 8, STEAM_FILL = 4096;
 
     private final List<int[]> positions = new ArrayList<>();
@@ -93,7 +90,7 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
     public void start(WorldServer world, int originX, int originY, int originZ) throws IOException {
         require(world.provider instanceof TestLabWorldProvider, "Expected the owned Lab dimension");
         x = originX + 120;
-        // The Lab's immutable quartz floor is Y64. Keep the logistics module's lowest paid voxel above it.
+        // Preserve the established real-tower mounting height; virtual packages have no floor collision.
         y = originY + 2;
         z = originZ + 36;
         cursor = phase = 0;
@@ -103,10 +100,8 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
         reloadedController = false;
         positions.clear();
         hatchTexturesByTier.clear();
-        addOwnership("tower-service-0", 0, 0, 0, 0, false);
-        addOwnership("outer-0", 0, 0, 0, 0, false);
-        addOwnership("module-1-crusher-1", -46, 9, 49, 0, true);
-        addOwnership("module-3-logistics-1", -76, 1, 66, 3, true);
+        for (int[] relative : CenterFixtureGeometry.oneSector())
+            positions.add(new int[] { x + relative[0], y + relative[1], z + relative[2] });
 
         ore = GTOreDictUnificator.get(OrePrefixes.rawOre, Materials.Copper, ORE_COUNT);
         require(ore != null, "Missing GT copper");
@@ -222,10 +217,12 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                 phase = 1;
             } else if (phase == 1 && center.installModuleFromBus(1)) {
                 require(input.getStackInSlot(0) == null, "Crusher pack was not charged through real input bus");
+                CenterFixtureGeometry.verifyVirtualModule(controller, 1, CenterModule.CRUSHER, 1);
                 input.setInventorySlotContents(0, CenterModuleItems.stack(CenterModule.LOGISTICS, 1));
                 phase = 2;
             } else if (phase == 2 && center.installModuleFromBus(3)) {
                 require(input.getStackInSlot(0) == null, "Logistics pack was not charged through real input bus");
+                CenterFixtureGeometry.verifyVirtualModule(controller, 3, CenterModule.LOGISTICS, 1);
                 CenterGraph graph = new CenterGraph(
                     7,
                     true,
@@ -400,6 +397,9 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
                     report.put("nativeGtBatchDisplay", true);
                     report.put("steamAtCheckpoint", steamAtPause);
                     report.put("condensedDistilledWater", waterAmount);
+                    CenterFixtureGeometry.verifyVirtualModule(controller, 1, CenterModule.CRUSHER, 1);
+                    CenterFixtureGeometry.verifyVirtualModule(controller, 3, CenterModule.LOGISTICS, 1);
+                    report.put("virtualPaidPackagesAfterReload", true);
                     report.put("footprintSamples", positions.size());
                     report.put("constructNanos", buildNanos);
                     report.put("restoreScope", "in-place checkpoint and native chunk reload into a new controller");
@@ -517,25 +517,6 @@ final class TestLabIntegrationCenterMachine implements TestLabTask {
         require(
             higher != null && ordinaryInput.fill(ForgeDirection.UNKNOWN, higher, true) == STEAM_FILL,
             "Ordinary input rejected dense superheated steam");
-    }
-
-    private void addOwnership(String key, int ox, int oy, int oz, int rotation, boolean module) throws IOException {
-        InputStream asset = TestLabIntegrationCenterMachine.class.getResourceAsStream(PREFIX + key + ".gz");
-        if (asset == null) throw new IOException("No packaged fixture geometry " + key);
-        try (DataInputStream in = new DataInputStream(new GZIPInputStream(asset))) {
-            int palette = in.readUnsignedShort(), count = in.readInt();
-            for (int i = 0; i < palette; i++) {
-                byte[] entry = new byte[in.readUnsignedByte() + 1];
-                in.readFully(entry);
-            }
-            for (int i = 0; i < count; i++) {
-                int px = in.readShort(), py = in.readUnsignedByte(), pz = in.readShort();
-                in.readUnsignedByte();
-                int rx = rotation == 3 ? pz : px;
-                int rz = rotation == 3 ? -px : pz;
-                positions.add(new int[] { x + ox + rx, y + oy + py - (module ? 66 : 2), z + oz + rz + 19 });
-            }
-        }
     }
 
     private static int quantity(IGregTechTileEntity bus, ItemStack stack) {

@@ -22,7 +22,6 @@ import java.util.zip.GZIPInputStream;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -84,7 +83,8 @@ public final class CenterStructure {
     private int towerTier = -1;
     private int formedSectors;
     private int scanCursor;
-    private final long[] lastScan = new long[43];
+    private final long[] lastScan = new long[7];
+    private long moduleRevision;
     private boolean attachClaims = true;
     private int survivalCursor, survivalTier = -1, survivalMask;
     private boolean serviceFront;
@@ -168,28 +168,18 @@ public final class CenterStructure {
         int expectedSectors = formedSectors | (lastFormation == null ? 0 : lastFormation.sectors);
         for (int i = 0; i < sectors.length; i++)
             if ((reviewSectors & 1 << i) != 0 && sectors[i].hasKnownDamage()) return false;
-        for (int i = 0; i < modules.length; i++)
-            if ((reviewModules & 1L << i) != 0 && modules[i] != null && modules[i].monitor.hasKnownDamage())
-                return false;
         for (int i = 0; i < sectors.length; i++) if ((expectedSectors & 1 << i) != 0) {
             if (sectors[i].getStatus() == Status.PENDING || sectors[i].getStatus() == Status.UNLOADED
                 || !footprintLoaded(shape("sector-" + i), frame, 0, 0, 0)) return false;
-        }
-        for (int i = 0; i < modules.length; i++) if (modules[i] != null && !modules[i].damaged) {
-            int[] at = SLOTS[i];
-            if (modules[i].monitor.getStatus() != Status.VALID
-                || !footprintLoaded(shape(modules[i].resource), frame, at[0], at[2], at[3])) return false;
         }
         return true;
     }
 
     /** A cached verdict may protect paid work, but cannot authorize a fresh debit before its full recheck. */
     boolean isNewBatchReady(IGregTechTileEntity te) {
-        if (!isExecutionReady(te) || reviewSectors != 0 || reviewModules != 0 || !verified(tower)) return false;
+        if (!isExecutionReady(te) || reviewSectors != 0 || !verified(tower)) return false;
         for (int i = 0; i < sectors.length; i++)
             if ((formedSectors & 1 << i) != 0 && !verified(sectors[i])) return false;
-        for (ModuleCheck module : modules)
-            if (module != null && !module.damaged && !verified(module.monitor)) return false;
         return true;
     }
 
@@ -206,15 +196,23 @@ public final class CenterStructure {
     private void finishReviews() {
         for (int i = 0; i < sectors.length; i++)
             if ((reviewSectors & 1 << i) != 0 && reviewed(sectors[i])) reviewSectors &= ~(1 << i);
-        for (int i = 0; i < modules.length; i++)
-            if ((reviewModules & 1L << i) != 0 && modules[i] != null && reviewed(modules[i].monitor))
-                reviewModules &= ~(1L << i);
     }
 
     /** Release only runtime references. Generated voxel ownership and paid batch state are unchanged. */
     public void detach(IGregTechTileEntity te) {
         if (te != null && te.getWorld() != null) CenterClaims.detach(te.getWorld(), this);
         clearRuntimeReferences();
+    }
+
+    boolean hasUnconvertedModules() {
+        for (ModuleCheck module : modules) if (module != null && !module.virtual) return true;
+        return false;
+    }
+
+    public void controllerRemoved(IGregTechTileEntity te) {
+        if (te != null && te.getWorld() != null && !te.getWorld().isRemote) CenterClaims.get(te.getWorld())
+            .retireCompleted(new Frame(te));
+        detach(te);
     }
 
     void clearRuntimeReferences() {
@@ -357,6 +355,7 @@ public final class CenterStructure {
         if (!claims.allowsScan(this, world.getTotalWorldTime())) return;
         long started = System.nanoTime();
         try {
+            migrateLegacy(te, claims);
             scanStructure(te, new Frame(te), claims);
             if (tower.hasKnownDamage() && te.getMetaTileEntity() instanceof MTEMultiBlockBase machine)
                 GtsrStructureRecovery.confirmedDamage(machine);
@@ -369,8 +368,6 @@ public final class CenterStructure {
     private void scanStructure(IGregTechTileEntity te, Frame frame, CenterClaims claims) {
         if (attachClaims || te.getFrontFacing() != facing) claims.track(frame, this);
         if (attachClaims) {
-            for (int slot = 0; slot < modules.length; slot++)
-                if (modules[slot] != null) claims.attach(frame, slot, this);
             attachClaims = false;
         }
         if (te.getFrontFacing() != facing) {
@@ -378,7 +375,6 @@ public final class CenterStructure {
             towerTier = -1;
             tower.reset();
             for (CriticalStructureMonitor sector : sectors) sector.reset();
-            for (ModuleCheck module : modules) if (module != null) module.monitor.reset();
             formedSectors = 0;
             survivalCursor = 0;
         }
@@ -464,27 +460,7 @@ public final class CenterStructure {
                 remaining -= sectors[i].getLastChecks();
                 continue;
             }
-            int slot = i - sectors.length;
-            ModuleCheck module = modules[slot];
-            if (module == null) continue;
-            int[] at = SLOTS[slot];
-            claims.attach(frame, slot, this);
-            boolean fast = module.monitor.isFastSweep();
-            scan(
-                module.monitor,
-                shape(module.resource),
-                frame,
-                at[0],
-                at[1],
-                at[2],
-                at[3],
-                true,
-                elapsed(frame, monitor),
-                fast ? CriticalStructureMonitor.MAX_INITIAL_CHECKS_PER_TICK
-                    - (CriticalStructureMonitor.MAX_CHECKS_PER_TICK - remaining) : remaining);
-            if (module.monitor.hasKnownDamage()) invalidateModule(slot);
-            if (fast) return;
-            remaining -= module.monitor.getLastChecks();
+
         }
     }
 
@@ -535,23 +511,6 @@ public final class CenterStructure {
                 sectors[i].restoreValidation(wing.count());
                 formedSectors |= 1 << i;
             }
-        }
-        for (int slot = 0; slot < modules.length; slot++) {
-            ModuleCheck module = modules[slot];
-            if (module == null || module.damaged || (saved.modules & 1L << slot) == 0) continue;
-            int sector = 1 << (slot / 6);
-            if ((waitingSectors & sector) != 0) {
-                waitingModules |= 1L << slot;
-                continue;
-            }
-            if ((formedSectors & sector) == 0) continue;
-            Shape piece = shape(module.resource);
-            int[] at = SLOTS[slot];
-            Sample marker = sample(piece, 0, frame, at[0], at[1], at[2], at[3], true);
-            if (marker == Sample.BROKEN) invalidateModule(slot);
-            else if (marker == Sample.UNLOADED || !footprintLoaded(piece, frame, at[0], at[2], at[3]))
-                waitingModules |= 1L << slot;
-            else module.monitor.restoreValidation(piece.count());
         }
         savedFormation = waitingSectors == 0 && waitingModules == 0 ? null
             : new SavedFormation(
@@ -859,18 +818,18 @@ public final class CenterStructure {
 
     boolean moduleBroken(int slot, CenterModule module, int grade) {
         ModuleCheck check = checkModule(slot, module, grade);
-        return check != null && (check.damaged || check.monitor.getStatus() == Status.BROKEN);
+        return check != null && check.damaged;
     }
 
     public boolean moduleLoaded(IGregTechTileEntity te, int slot, CenterModule module, int grade) {
         ModuleCheck check = checkModule(slot, module, grade);
-        return check != null && (check.damaged || check.monitor.getStatus() == Status.VALID
-            || check.monitor.getStatus() == Status.BROKEN);
+        return check != null && (check.virtual || check.damaged);
     }
 
+    /** Installed ownership is independent of decorative world blocks and their loaded chunks. */
     public boolean moduleIntact(IGregTechTileEntity te, int slot, CenterModule module, int grade) {
         ModuleCheck check = checkModule(slot, module, grade);
-        return check != null && !check.damaged && check.monitor.getStatus() == Status.VALID;
+        return check != null && check.virtual && !check.damaged;
     }
 
     private ModuleCheck checkModule(int slot, CenterModule module, int grade) {
@@ -879,118 +838,83 @@ public final class CenterStructure {
         return modules[slot] != null && modules[slot].resource.equals(key) ? modules[slot] : null;
     }
 
+    public boolean canInstall(IGregTechTileEntity te, int slot, CenterModule module, int grade) {
+        return te != null && !te.getWorld().isRemote
+            && slot >= 0
+            && slot < 36
+            && grade >= 1
+            && grade <= 3
+            && module != null
+            && module.acceptsGrade(grade, tier(te))
+            && (sectorMask(te) & 1 << (slot / 6)) != 0
+            && (modules[slot] == null || modules[slot].damaged)
+            && !CenterClaims.get(te.getWorld())
+                .hasLegacy(new Frame(te), slot);
+    }
+
+    /** Records a paid package without reading a template, clearing terrain, or writing any world voxel. */
     public boolean install(IGregTechTileEntity te, int slot, CenterModule module, int grade) {
-        if (slot < 0 || slot >= 36
-            || grade < 1
-            || grade > 3
-            || module == null
-            || (sectorMask(te) & 1 << (slot / 6)) == 0
-            || modules[slot] != null && !modules[slot].damaged) return false;
-        String key = moduleKey(slot, module, grade);
-        Shape piece = optionalShape(key);
-        if (piece == null) return false;
-        Frame frame = new Frame(te);
-        if (frame.world.isRemote) return false;
-        CenterClaims claims = CenterClaims.get(frame.world);
-        // A different package may not release the old package's surviving, free decorative blocks.
-        if (claims.hasRemainingDifferent(frame, slot, key) || !writeModule(frame, slot, key, piece, false))
-            return false;
-        modules[slot] = new ModuleCheck(key);
-        claims.claim(frame, slot, key, piece);
-        claims.attach(frame, slot, this);
+        if (!canInstall(te, slot, module, grade)) return false;
+        modules[slot] = new ModuleCheck(moduleKey(slot, module, grade));
+        modules[slot].virtual = true;
+        moduleRevision++;
         return true;
     }
 
+    /** The caller owns the single pending-output refund transaction. */
     public boolean remove(IGregTechTileEntity te, int slot, CenterModule module, int grade) {
-        ModuleCheck check = checkModule(slot, module, grade);
-        if (check == null || te.getWorld().isRemote || !moduleIntact(te, slot, module, grade)) return false;
-        Frame frame = new Frame(te);
-        if (!writeModule(frame, slot, check.resource, shape(check.resource), true)) return false;
-        CenterClaims.get(frame.world)
-            .release(frame, slot);
+        if (te == null || te.getWorld().isRemote || !moduleIntact(te, slot, module, grade)) return false;
         modules[slot] = null;
+        moduleRevision++;
         reviewModules &= ~(1L << slot);
         return true;
     }
 
-    private boolean writeModule(Frame frame, int slot, String resource, Shape shape, boolean remove) {
-        int[] at = SLOTS[slot];
-        int n = shape.count();
-        int[] xs = new int[n], ys = new int[n], zs = new int[n];
-        Block[] previous = new Block[n];
-        byte[] metadata = new byte[n];
-        boolean[] change = new boolean[n];
-        CenterClaims claims = CenterClaims.get(frame.world);
-        for (int i = 0; i < n; i++) {
-            int rx = at[0] + rotateX(shape.x[i], shape.z[i], at[3]);
-            int rz = at[2] + rotateZ(shape.x[i], shape.z[i], at[3]) + 19;
-            int x = xs[i] = frame.x(rx, rz), y = ys[i] = frame.y + at[1] + shape.y[i] - 66, z = zs[i] = frame.z(rx, rz);
-            if (shape.block(i) == null || y < 0
-                || y >= frame.world.getHeight()
-                || !frame.loaded(x, z)
-                || frame.world.getTileEntity(x, y, z) != null) return false;
-            if (!remove && CriticalBlockProtection.protects(frame.world, x, y, z) && !claims.owns(frame, slot, x, y, z))
-                return false;
-            previous[i] = frame.world.getBlock(x, y, z);
-            metadata[i] = (byte) frame.world.getBlockMetadata(x, y, z);
-            boolean expected = previous[i] == shape.block(i) && metadata[i] == shape.metadata(i);
-            // A matching player-built voxel is still their material, never a free package refund.
-            if (!remove && !claims.owns(frame, slot, x, y, z)
-                && !previous[i].isAir(frame.world, x, y, z)
-                && !previous[i].isReplaceable(frame.world, x, y, z)) return false;
-            // Voluntary dismantling only refunds a whole intact module.
-            if (remove && (!expected || !claims.owns(frame, slot, x, y, z))) return false;
-            change[i] = remove || !expected;
+    long moduleRevision() {
+        return moduleRevision;
+    }
+
+    private void migrateLegacy(IGregTechTileEntity te, CenterClaims claims) {
+        Frame frame = new Frame(te);
+        for (int slot = 0; slot < modules.length; slot++) {
+            ModuleCheck module = modules[slot];
+            if (module != null && module.receiptLoaded) claims.retireLegacy(frame, slot, module.resource);
         }
-        int attempted = -1;
-        boolean success = false;
-        claims.beginInternalWrite();
-        try {
-            for (int i = 0; i < n; i++) if (change[i]) {
-                attempted = i;
-                Block block = remove ? Blocks.air : shape.block(i);
-                int meta = remove ? 0 : shape.metadata(i);
-                if (!setModuleVoxel(frame, claims, xs[i], ys[i], zs[i], block, meta)
-                    || frame.world.getBlock(xs[i], ys[i], zs[i]) != block
-                    || frame.world.getBlockMetadata(xs[i], ys[i], zs[i]) != meta) return false;
-            }
-            success = true;
-            return true;
-        } catch (RuntimeException failedWrite) {
-            return false;
-        } finally {
-            boolean rollbackComplete = true;
-            try {
-                if (!success) for (int i = attempted; i >= 0; i--) if (change[i]) {
-                    try {
-                        setModuleVoxel(frame, claims, xs[i], ys[i], zs[i], previous[i], metadata[i]);
-                        if (frame.world.getBlock(xs[i], ys[i], zs[i]) != previous[i]
-                            || frame.world.getBlockMetadata(xs[i], ys[i], zs[i]) != metadata[i])
-                            rollbackComplete = false;
-                    } catch (RuntimeException failedRollback) {
-                        rollbackComplete = false;
-                    }
-                }
-            } finally {
-                claims.endInternalWrite();
-            }
-            if (!rollbackComplete) {
-                claims.retainAfterFailedWrite(frame, slot, resource, shape);
-                modules[slot] = new ModuleCheck(resource);
-                claims.attach(frame, slot, this);
-                invalidateModule(slot);
-            }
+        long revision = moduleRevision;
+        claims.migrateLegacy(frame, this, CriticalStructureMonitor.MAX_INITIAL_CHECKS_PER_TICK);
+        if (revision != moduleRevision) te.markDirty();
+        for (int slot = 0; slot < modules.length; slot++) {
+            ModuleCheck module = modules[slot];
+            if (module == null || module.virtual || claims.hasLegacy(frame, slot)) continue;
+            // Completion is recorded in the controller before the claim can be retired. Missing proof is loss.
+            if (!module.migrationComplete) module.damaged = true;
+            module.virtual = true;
+            moduleRevision++;
+            te.markDirty();
         }
     }
 
-    private static boolean setModuleVoxel(Frame frame, CenterClaims claims, int x, int y, int z, Block block,
-        int meta) {
-        claims.beginVoxelWrite(x, y, z);
-        try {
-            return frame.world.setBlock(x, y, z, block, meta, 2);
-        } finally {
-            claims.endVoxelWrite();
+    boolean legacyRecord(int slot, String resource) {
+        return slot >= 0 && slot < modules.length && modules[slot] != null && modules[slot].resource.equals(resource);
+    }
+
+    void legacyDamage(int slot) {
+        if (slot >= 0 && slot < modules.length
+            && modules[slot] != null
+            && !modules[slot].virtual
+            && !modules[slot].damaged) {
+            modules[slot].damaged = true;
+            moduleRevision++;
         }
+    }
+
+    void legacyComplete(int slot, String resource, boolean damaged) {
+        ModuleCheck module = slot >= 0 && slot < modules.length ? modules[slot] : null;
+        if (module == null || module.virtual || !module.resource.equals(resource)) return;
+        module.damaged |= damaged;
+        module.migrationComplete = true;
+        module.virtual = true;
+        moduleRevision++;
     }
 
     boolean permitsExternalRemoval(int slot) {
@@ -999,13 +923,9 @@ public final class CenterStructure {
     }
 
     void invalidateModule(int slot) {
-        if (modules[slot] == null) return;
-        if (!modules[slot].damaged) {
-            reviewModules |= 1L << slot;
-            modules[slot].monitor.requestFastSweep();
-        }
-        modules[slot].monitor.invalidate();
+        if (modules[slot] == null || modules[slot].virtual) return;
         modules[slot].damaged = true;
+        moduleRevision++;
         lastFormation = without(lastFormation, 0, 1L << slot);
         savedFormation = without(savedFormation, 0, 1L << slot);
     }
@@ -1088,11 +1008,15 @@ public final class CenterStructure {
 
     public void save(NBTTagCompound tag, IGregTechTileEntity te) {
         NBTTagCompound app = new NBTTagCompound();
+        app.setInteger("ModuleFormat", 1);
+        app.setLong("ModuleRevision", moduleRevision);
         app.setInteger("ReviewSectors", reviewSectors);
         app.setLong("ReviewModules", reviewModules);
         for (int i = 0; i < modules.length; i++) if (modules[i] != null) {
             app.setString(Integer.toString(i), modules[i].resource);
             if (modules[i].damaged) app.setBoolean("d" + i, true);
+            app.setBoolean("v" + i, modules[i].virtual);
+            app.setBoolean("m" + i, modules[i].migrationComplete);
         }
         SavedFormation saved = lastFormation;
         if (saved != null && (te == null || !saved.matches(new Frame(te))
@@ -1101,13 +1025,11 @@ public final class CenterStructure {
         for (int i = 0; i < sectors.length; i++)
             if (sectors[i].hasKnownDamage()) saved = without(saved, 1 << i, 63L << (i * 6));
         for (int i = 0; i < modules.length; i++)
-            if (modules[i] == null || modules[i].damaged || modules[i].monitor.hasKnownDamage())
-                saved = without(saved, 0, 1L << i);
+            if (modules[i] == null || modules[i].damaged) saved = without(saved, 0, 1L << i);
         if (te != null && facing == te.getFrontFacing() && tower.getStatus() == Status.VALID && formedSectors != 0) {
             long verifiedModules = 0;
             for (int i = 0; i < modules.length; i++)
-                if (modules[i] != null && !modules[i].damaged && modules[i].monitor.getStatus() == Status.VALID)
-                    verifiedModules |= 1L << i;
+                if (modules[i] != null && !modules[i].damaged && modules[i].virtual) verifiedModules |= 1L << i;
             saved = new SavedFormation(
                 facing,
                 te.getWorld().provider.dimensionId,
@@ -1189,8 +1111,15 @@ public final class CenterStructure {
         for (int i = 0; i < modules.length; i++) {
             String key = app.getString(Integer.toString(i));
             modules[i] = key.matches("module-" + i % 6 + "-[a-z]+-[123]") ? new ModuleCheck(key) : null;
-            if (modules[i] != null) modules[i].damaged = app.getBoolean("d" + i);
+            if (modules[i] != null) {
+                modules[i].damaged = app.getBoolean("d" + i);
+                modules[i].virtual = app.getInteger("ModuleFormat") == 1 && app.getBoolean("v" + i);
+                modules[i].migrationComplete = app.getBoolean("m" + i);
+                modules[i].receiptLoaded = modules[i].virtual && modules[i].migrationComplete;
+            }
         }
+        moduleRevision = Math.max(0, app.getLong("ModuleRevision"));
+        reviewModules = 0;
         attachClaims = true;
     }
 
@@ -1231,7 +1160,6 @@ public final class CenterStructure {
         private final CenterClaims claims;
         private final boolean service;
         private int piece, cursor;
-        private boolean clearing;
         private String resource;
 
         private DebugBuild(Frame frame, EntityPlayer player, int[] types, int[] grades) {
@@ -1256,59 +1184,37 @@ public final class CenterStructure {
                     : slot % 6 < 3 ? DEBUG_MODULES[slot / 6][slot % 6] : CenterModule.LOGISTICS;
             String target = piece == 0 ? (service ? SERVICE_TOWER : "tower-") + "3"
                 : piece == 1 ? "outer-full" : moduleKey(slot, module, 3);
-            if (resource == null) {
-                String previous = slot < 0 ? null : claims.moduleResource(frame, slot);
-                clearing = previous != null && !previous.equals(target);
-                resource = clearing ? previous : target;
-            }
-            Shape layout = shape(resource);
-            Shape replacement = clearing ? shape(target) : null;
-            if (replacement != null) replacement.prepareLookup();
-            int[] at = slot < 0 ? null : SLOTS[slot];
-            for (int i = 0; cursor < layout.count() && i < 2048 && System.nanoTime() < deadline; i++, cursor++) {
-                int dx = at == null ? layout.x[cursor] : at[0] + rotateX(layout.x[cursor], layout.z[cursor], at[3]);
-                int dz = at == null ? layout.z[cursor] : at[2] + rotateZ(layout.x[cursor], layout.z[cursor], at[3]);
-                int x = frame.x(dx, dz + 19), z = frame.z(dx, dz + 19);
-                int y = frame.y + layout.y[cursor] - 2 + (at == null ? 0 : at[1] - 64);
-                if (!frame.loaded(x, z)) return finish("gtsr.wand.debug.build_unloaded");
-                Block block = layout.block(cursor);
-                int meta = layout.metadata(cursor);
-                if (block == null || y < 0 || y >= frame.world.getHeight())
-                    return finish("gtsr.wand.debug.build_blocked");
-                boolean matches = frame.world.getBlock(x, y, z) == block
-                    && frame.world.getBlockMetadata(x, y, z) == meta;
-                if (clearing) {
-                    if (!matches || !claims.owns(frame, slot, x, y, z)) continue;
-                    int next = replacement.lookup(layout.x[cursor], layout.y[cursor], layout.z[cursor]);
-                    if (next >= 0 && replacement.block(next) == block && replacement.metadata(next) == meta) continue;
-                } else if (matches || substitutedPort(layout, cursor, frame, x, y, z)) continue;
-                if (!frame.world.canMineBlock(player, x, y, z) || frame.world.getTileEntity(x, y, z) != null
-                    || CriticalBlockProtection.protects(frame.world, x, y, z) && !claims.owns(frame, slot, x, y, z)
-                    || !frame.world.setBlock(x, y, z, clearing ? Blocks.air : block, clearing ? 0 : meta, 2))
-                    return finish("gtsr.wand.debug.build_blocked");
-            }
-            if (cursor < layout.count()) return null;
-            cursor = 0;
-            if (clearing) {
-                claims.claim(frame, slot, target, shape(target));
-                modules[slot] = new ModuleCheck(target);
-                claims.attach(frame, slot, CenterStructure.this);
-                types[slot] = module.ordinal();
-                grades[slot] = 3;
-                te.markDirty();
-                resource = target;
-                clearing = false;
-                return null;
-            }
             if (slot >= 0) {
-                if (!target.equals(claims.moduleResource(frame, slot))) claims.claim(frame, slot, target, layout);
+                if (claims.hasLegacy(frame, slot)) return finish("gtsr.wand.debug.build_blocked");
                 modules[slot] = new ModuleCheck(target);
-                claims.attach(frame, slot, CenterStructure.this);
+                modules[slot].virtual = true;
                 types[slot] = module.ordinal();
                 grades[slot] = 3;
+                moduleRevision++;
                 te.markDirty();
+            } else {
+                if (resource == null) resource = target;
+                Shape layout = shape(resource);
+                for (int i = 0; cursor < layout.count() && i < 2048 && System.nanoTime() < deadline; i++, cursor++) {
+                    int x = frame.x(layout.x[cursor], layout.z[cursor] + 19);
+                    int z = frame.z(layout.x[cursor], layout.z[cursor] + 19);
+                    int y = frame.y + layout.y[cursor] - 2;
+                    if (!frame.loaded(x, z)) return finish("gtsr.wand.debug.build_unloaded");
+                    Block block = layout.block(cursor);
+                    int meta = layout.metadata(cursor);
+                    if (block == null || y < 0 || y >= frame.world.getHeight())
+                        return finish("gtsr.wand.debug.build_blocked");
+                    if (frame.world.getBlock(x, y, z) == block && frame.world.getBlockMetadata(x, y, z) == meta
+                        || substitutedPort(layout, cursor, frame, x, y, z)) continue;
+                    if (!frame.world.canMineBlock(player, x, y, z) || frame.world.getTileEntity(x, y, z) != null
+                        || CriticalBlockProtection.protects(frame.world, x, y, z)
+                        || !frame.world.setBlock(x, y, z, block, meta, 2))
+                        return finish("gtsr.wand.debug.build_blocked");
+                }
+                if (cursor < layout.count()) return null;
+                cursor = 0;
+                resource = null;
             }
-            resource = null;
             return ++piece < grades.length + 2 ? null
                 : finish(placeMissingPorts() ? "gtsr.wand.debug.build_done" : "gtsr.wand.debug.build_ports");
         }
@@ -1366,6 +1272,100 @@ public final class CenterStructure {
         if (mask == 63) result.add(shape("outer-full"));
         else for (int i = 0; i < 6; i++) if ((mask & 1 << i) != 0) result.add(shape("outer-" + i));
         return result;
+    }
+
+    /** Immutable placement; y/z include the historical controller offsets exactly once. */
+    public static final class ModulePlacement {
+
+        private final int x, y, z, turns;
+
+        private ModulePlacement(int x, int y, int z, int turns) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.turns = turns;
+        }
+
+        public int offsetX() {
+            return x;
+        }
+
+        public int offsetY() {
+            return y;
+        }
+
+        public int offsetZ() {
+            return z;
+        }
+
+        public int quarterTurns() {
+            return turns;
+        }
+    }
+
+    public static ModulePlacement modulePlacement(int slot) {
+        if (slot < 0 || slot >= SLOTS.length) throw new IllegalArgumentException("slot");
+        int[] at = SLOTS[slot];
+        return new ModulePlacement(at[0], at[1] - 66, at[2] + 19, at[3]);
+    }
+
+    /** Read-only shared template view. Arrays stay private to the structure loader. */
+    public static final class ModuleTemplate {
+
+        private final Shape shape;
+
+        private ModuleTemplate(Shape shape) {
+            this.shape = shape;
+        }
+
+        public int count() {
+            return shape.count();
+        }
+
+        public int x(int i) {
+            return shape.x[i];
+        }
+
+        public int y(int i) {
+            return shape.y[i];
+        }
+
+        public int z(int i) {
+            return shape.z[i];
+        }
+
+        public Block block(int i) {
+            return shape.block(i);
+        }
+
+        public int meta(int i) {
+            return shape.metadata(i);
+        }
+    }
+
+    public static ModuleTemplate moduleTemplate(int slot, int type, int grade) {
+        if (slot < 0 || slot >= 36 || type < 0 || type >= CenterModule.values().length || grade < 1 || grade > 3)
+            return null;
+        Shape shape = optionalShape(moduleKey(slot, CenterModule.values()[type], grade));
+        return shape == null ? null : new ModuleTemplate(shape);
+    }
+
+    /** Only real tower/wing chunks participate in block-change notifications. */
+    long[] realStructureChunks(Frame frame) {
+        java.util.Set<Long> chunks = new HashSet<>();
+        List<Shape> pieces = new ArrayList<>();
+        for (int tier = 0; tier <= 3; tier++) {
+            pieces.add(towerShape(tier, true));
+            pieces.add(towerShape(tier, false));
+        }
+        for (int i = 0; i < 6; i++) pieces.add(shape("sector-" + i));
+        for (Shape piece : pieces) for (int column : piece.columns()) {
+            int x = (short) (column >> 16), z = (short) column;
+            chunks.add(((long) (frame.x(x, z + 19) >> 4) << 32) | ((frame.z(x, z + 19) >> 4) & 0xFFFFFFFFL));
+        }
+        return chunks.stream()
+            .mapToLong(Long::longValue)
+            .toArray();
     }
 
     @FunctionalInterface
@@ -1642,8 +1642,7 @@ public final class CenterStructure {
     private static final class ModuleCheck {
 
         final String resource;
-        final CriticalStructureMonitor monitor = new CriticalStructureMonitor();
-        boolean damaged;
+        boolean damaged, virtual, migrationComplete, receiptLoaded;
 
         ModuleCheck(String resource) {
             this.resource = resource;

@@ -31,7 +31,27 @@ final class CriticalConstructionLedger {
     private FluidStack[] stageFluids = new FluidStack[0], paidFluids = new FluidStack[0];
     private CriticalConstructionEconomy physicalJob;
     private final List<Account> accounts = new ArrayList<>();
+    // The old set continues to mean physical installations; virtual installations have their own versioned journal.
     private final Set<Long> installedPositions = new HashSet<>();
+    private final Set<Long> virtualInstalledPositions = new HashSet<>();
+
+    private boolean isInstalled(long position) {
+        return installedPositions.contains(position) || virtualInstalledPositions.contains(position);
+    }
+
+    /** Moves an existing paid entitlement without changing any balance or creating salvage. */
+    void virtualizePhysicalInstallation(CriticalGeometry.Voxel voxel) {
+        if (installedPositions.remove(voxel.positionKey())) virtualInstalledPositions.add(voxel.positionKey());
+    }
+
+    void markVirtualInstalled(CriticalGeometry.Voxel voxel) {
+        markInstalled(voxel, virtualInstalledPositions);
+    }
+
+    boolean hasVirtualInstallation(long position) {
+        return virtualInstalledPositions.contains(position);
+    }
+
     private ItemStack[] physicalNext = new ItemStack[0];
     private List<CriticalGeometry.Voxel> previewStage;
     private ItemStack[] previewStageCosts;
@@ -81,6 +101,7 @@ final class CriticalConstructionLedger {
         physicalJob = null;
         accounts.clear();
         installedPositions.clear();
+        virtualInstalledPositions.clear();
         resetStage();
     }
 
@@ -166,7 +187,7 @@ final class CriticalConstructionLedger {
         FluidStack[] fluids = snapshot ? stageFluids : physicalJob.fluidCosts(current, 0, current.size());
         int steps = stageRoundCount(totals, fluids, current.isEmpty() ? 9 : physicalJob.stage(current.get(0)));
         List<ItemStack> installed = new ArrayList<>();
-        for (CriticalGeometry.Voxel voxel : current) if (installedPositions.contains(voxel.positionKey()))
+        for (CriticalGeometry.Voxel voxel : current) if (isInstalled(voxel.positionKey()))
             for (ItemStack item : physicalJob.bill(voxel)) CriticalConstructionEconomy.merge(installed, item);
         List<ItemStack> debit = new ArrayList<>();
         for (ItemStack item : totals) {
@@ -193,7 +214,7 @@ final class CriticalConstructionLedger {
         for (ItemStack item : debit) CriticalConstructionEconomy.merge(budget, item);
         int end = 0;
         for (CriticalGeometry.Voxel voxel : current) {
-            if (!installedPositions.contains(voxel.positionKey())) {
+            if (!isInstalled(voxel.positionKey())) {
                 ItemStack[] bill = physicalJob.bill(voxel);
                 for (ItemStack wanted : bill) {
                     boolean covered = false;
@@ -223,16 +244,20 @@ final class CriticalConstructionLedger {
 
     /** Called only after a genuinely new placement. Existing player repairs leave their paid allocation in escrow. */
     void markPhysicalInstalled(CriticalGeometry.Voxel voxel) {
-        if (physicalJob == null || installedPositions.contains(voxel.positionKey())) return;
+        markInstalled(voxel, installedPositions);
+    }
+
+    private void markInstalled(CriticalGeometry.Voxel voxel, Set<Long> destination) {
+        if (physicalJob == null || isInstalled(voxel.positionKey())) return;
         ItemStack[] bill = physicalJob.bill(voxel);
-        // Creative/debug placements never manufacture a salvage entitlement.
+        // Creative/debug installations never manufacture a salvage entitlement.
         for (ItemStack item : bill) if (account(item).escrow < item.stackSize) return;
         for (ItemStack item : bill) {
             Account account = account(item);
             account.escrow -= item.stackSize;
             account.installed += item.stackSize;
         }
-        installedPositions.add(voxel.positionKey());
+        destination.add(voxel.positionKey());
     }
 
     /** Called once when the repair scan confirms a missing economic carrier; adjacent panels cost only themselves. */
@@ -530,6 +555,7 @@ final class CriticalConstructionLedger {
             account.escrow = account.installed = 0;
         }
         installedPositions.clear();
+        virtualInstalledPositions.clear();
     }
 
     void clearPaidFluids() {
@@ -550,6 +576,14 @@ final class CriticalConstructionLedger {
         n.setTag("constructionStageFluidCosts", writeFluids(stageFluids));
         n.setTag("constructionPaidFluids", writeFluids(paidFluids));
         n.setInteger("constructionEconomyVersion", economyVersion());
+        n.setInteger("constructionInstallationVersion", 1);
+        long[] virtualPositions = new long[virtualInstalledPositions.size()];
+        int virtualIndex = 0;
+        for (long position : virtualInstalledPositions) virtualPositions[virtualIndex++] = position;
+        Arrays.sort(virtualPositions);
+        java.nio.ByteBuffer virtualInstalled = java.nio.ByteBuffer.allocate(virtualPositions.length * Long.BYTES);
+        for (long position : virtualPositions) virtualInstalled.putLong(position);
+        n.setByteArray("constructionVirtualInstalled", virtualInstalled.array());
         if (physicalJob != null) {
             NBTTagCompound job = new NBTTagCompound();
             physicalJob.write(job);
@@ -579,7 +613,8 @@ final class CriticalConstructionLedger {
             // Keep the complete original machine record as evidence, and preserve every original economic field.
             n.setTag("constructionEconomyQuarantine", unreadableEconomy.copy());
             for (String key : new String[] { "constructionEconomyVersion", "constructionPhysicalJob",
-                "constructionPhysicalBalances", "constructionPhysicalInstalled" }) {
+                "constructionPhysicalBalances", "constructionPhysicalInstalled", "constructionInstallationVersion",
+                "constructionVirtualInstalled" }) {
                 if (unreadableEconomy.hasKey(key)) n.setTag(
                     key,
                     unreadableEconomy.getTag(key)
@@ -599,13 +634,18 @@ final class CriticalConstructionLedger {
         stageFluids = readFluids(n.getTagList("constructionStageFluidCosts", 10), -1);
         paidFluids = readFluids(n.getTagList("constructionPaidFluids", 10), -1);
         int version = n.getInteger("constructionEconomyVersion");
-        integrityError = n.getBoolean("constructionEconomyUncertain")
+        integrityError = n.getInteger("constructionInstallationVersion") < 0
+            || n.getInteger("constructionInstallationVersion") > 1
+            || !n.hasKey("constructionInstallationVersion")
+                && n.getByteArray("constructionVirtualInstalled").length != 0
+            || n.getBoolean("constructionEconomyUncertain")
             || version != 0 && !CriticalConstructionEconomy.supportsVersion(version)
             || version >= 2 && !n.hasKey("constructionPhysicalJob");
         unreadableEconomy = null;
         physicalJob = null;
         accounts.clear();
         installedPositions.clear();
+        virtualInstalledPositions.clear();
         previewStage = null;
         previewStageCosts = null;
         physicalNext = new ItemStack[0];
@@ -650,15 +690,25 @@ final class CriticalConstructionLedger {
                 accounts.add(account);
             }
             installedPositions.clear();
+            virtualInstalledPositions.clear();
             java.nio.ByteBuffer positions = java.nio.ByteBuffer.wrap(n.getByteArray("constructionPhysicalInstalled"));
             if (physicalJob != null)
                 while (positions.remaining() >= Long.BYTES) installedPositions.add(positions.getLong());
             if (physicalJob != null && positions.remaining() != 0) integrityError = true;
+            java.nio.ByteBuffer virtualPositions = java.nio.ByteBuffer
+                .wrap(n.getByteArray("constructionVirtualInstalled"));
+            if (physicalJob != null) while (virtualPositions.remaining() >= Long.BYTES) {
+                long position = virtualPositions.getLong();
+                if (installedPositions.contains(position) || !virtualInstalledPositions.add(position))
+                    integrityError = true;
+            }
+            if (virtualPositions.remaining() != 0) integrityError = true;
         } catch (RuntimeException invalidEconomy) {
             integrityError = true;
             physicalJob = null;
             accounts.clear();
             installedPositions.clear();
+            virtualInstalledPositions.clear();
         }
         if (integrityError) {
             unreadableEconomy = (NBTTagCompound) (n.hasKey("constructionEconomyQuarantine")

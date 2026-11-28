@@ -90,12 +90,7 @@ public final class CenterRecoveryContracts {
             "gtSource",
             gregtech.api.metatileentity.implementations.MTEMultiBlockBase.class.getResource("MTEMultiBlockBase.class")
                 .toString());
-        modules();
-        assembledCenterFloorBoundary();
-        failedTransactions();
-        worldMutations();
-        neighboringCallback();
-        knownUnknownReadiness();
+        CenterVirtualModuleFixture.run();
         sparseFootprints();
         optionalPortRecovery();
         reloading();
@@ -273,32 +268,11 @@ public final class CenterRecoveryContracts {
         return s;
     }
 
-    static CriticalStructureMonitor moduleMonitor(CenterStructure s, int slot) throws Exception {
-        return (CriticalStructureMonitor) get(((Object[]) get(s, "modules"))[slot], "monitor");
-    }
-
     static int[] pos(Frame f, Shape shape, int i, int slot) {
         int[] a = CenterStructure.SLOTS[slot];
         int x = a[0] + CenterStructure.rotateX(shape.x[i], shape.z[i], a[3]),
             z = a[2] + CenterStructure.rotateZ(shape.x[i], shape.z[i], a[3]) + 19;
         return new int[] { f.x(x, z), f.y + a[1] + shape.y[i] - 66, f.z(x, z) };
-    }
-
-    static boolean scan(CenterStructure s, IGregTechTileEntity te, int slot, Shape shape) throws Exception {
-        Method m = CenterStructure.class.getDeclaredMethod(
-            "scan",
-            CriticalStructureMonitor.class,
-            Shape.class,
-            Frame.class,
-            int.class,
-            int.class,
-            int.class,
-            int.class,
-            boolean.class,
-            int.class);
-        m.setAccessible(true);
-        int[] a = CenterStructure.SLOTS[slot];
-        return (Boolean) m.invoke(null, moduleMonitor(s, slot), shape, new Frame(te), a[0], a[1], a[2], a[3], true, 1);
     }
 
     static Shape shape(int slot, CenterModule mod, int grade) {
@@ -307,84 +281,6 @@ public final class CenterRecoveryContracts {
     }
 
     /** Reproduce the real Lab's quartz floor and the actual one-sector crusher/logistics assembly. */
-    static void assembledCenterFloorBoundary() throws Exception {
-        Shape body = CenterStructure.optionalShape("tower-service-0");
-        Shape outer = CenterStructure.optionalShape("outer-0");
-        Shape crusher = shape(1, CenterModule.CRUSHER, 1);
-        Shape logistics = shape(3, CenterModule.LOGISTICS, 1);
-        for (int controllerY : new int[] { 65, 67 }) {
-            SparseWorld world = world();
-            for (int x = -110; x <= 110; x++)
-                for (int z = -110; z <= 150; z++) world.cells.put(key(x, 64, z), new Cell(Blocks.quartz_block, 0));
-            IGregTechTileEntity te = tile(world, ForgeDirection.NORTH, controllerY);
-            Frame frame = new Frame(te);
-            fill(world, frame, body);
-            fill(world, frame, outer);
-            Map<String, Cell> canonical = new HashMap<>(world.cells);
-            CenterStructure center = ready(te);
-            set(center, "towerTier", 0);
-            set(center, "serviceFront", true);
-            set(center, "formedSectors", 1);
-            ((CriticalStructureMonitor) get(center, "tower")).restoreValidation(body.count());
-            ((CriticalStructureMonitor[]) get(center, "sectors"))[0].restoreValidation(
-                CenterStructure.optionalShape("sector-0")
-                    .count());
-            check(
-                center.install(te, 1, CenterModule.CRUSHER, 1),
-                "full service tower and outer wing accept the first crusher");
-            for (int i = 0; i < 100 && !center.moduleIntact(te, 1, CenterModule.CRUSHER, 1); i++)
-                scan(center, te, 1, crusher);
-            check(
-                center.moduleIntact(te, 1, CenterModule.CRUSHER, 1),
-                "the real crusher geometry validates above the Lab floor");
-            Map<String, Cell> withCrusher = new HashMap<>(world.cells);
-            int writes = world.writes;
-            if (controllerY == 65) {
-                int floorVoxels = 0;
-                for (int i = 0; i < logistics.count(); i++) {
-                    int[] at = pos(frame, logistics, i, 3);
-                    if (at[1] == 64) {
-                        floorVoxels++;
-                        check(
-                            world.getBlock(at[0], at[1], at[2]) == Blocks.quartz_block,
-                            "the low logistics pad collides with the Lab's foreign quartz floor");
-                    }
-                }
-                check(floorVoxels > 0, "Y65 reproduces the real logistics pad's floor collision");
-                check(
-                    !center.install(te, 3, CenterModule.LOGISTICS, 1) && world.writes == writes,
-                    "a logistics package never overwrites the foreign floor or partially writes its pad");
-                check(
-                    sameNonAirCells(world, withCrusher),
-                    "refused floor placement preserves the tower, crusher and entire floor");
-            } else {
-                check(
-                    center.install(te, 3, CenterModule.LOGISTICS, 1),
-                    "Y67 full assembly accepts the logistics package without foreign voxel adoption");
-                for (int i = 0; i < 100 && !center.moduleIntact(te, 3, CenterModule.LOGISTICS, 1); i++)
-                    scan(center, te, 3, logistics);
-                check(
-                    center.moduleIntact(te, 3, CenterModule.LOGISTICS, 1),
-                    "the raised logistics module validates in the actual tower/wing/crusher assembly");
-                check(
-                    center.remove(te, 3, CenterModule.LOGISTICS, 1),
-                    "raised logistics dismantles only its paid generated voxels");
-                check(
-                    sameNonAirCells(world, withCrusher) && center.moduleIntact(te, 1, CenterModule.CRUSHER, 1),
-                    "logistics removal preserves the main tower, outer wing and already installed crusher");
-                check(!center.remove(te, 3, CenterModule.LOGISTICS, 1), "raised logistics cannot be refunded twice");
-            }
-            check(
-                center.remove(te, 1, CenterModule.CRUSHER, 1),
-                "the original crusher remains independently removable");
-            check(
-                sameNonAirCells(world, canonical),
-                "module lifecycle leaves the canonical tower, wing and foreign floor unchanged");
-        }
-        result.put(
-            "assembledFloorBoundary",
-            "Y65 quartz floor rejected without writes; Y67 tower/wing/crusher/logistics install and removal preserve foreign materials");
-    }
 
     static boolean sameNonAirCells(SparseWorld world, Map<String, Cell> expected) {
         long count = expected.values()
@@ -399,262 +295,6 @@ public final class CenterRecoveryContracts {
             if (actual == null || actual.block() != want.block() || actual.meta() != want.meta()) return false;
         }
         return true;
-    }
-
-    static void modules() throws Exception {
-        for (ForgeDirection dir : new ForgeDirection[] { ForgeDirection.NORTH, ForgeDirection.EAST,
-            ForgeDirection.SOUTH, ForgeDirection.WEST })
-            for (CenterModule mod : CenterModule.values()) for (int grade = 1; grade <= 3; grade++) {
-                int slot = mod.kind == 0 ? 0 : mod.kind == 1 ? 1 : 3;
-                SparseWorld w = world();
-                IGregTechTileEntity te = tile(w, dir);
-                CenterStructure s = ready(te);
-                Shape p = shape(slot, mod, grade);
-                check(p != null, "package resource exists");
-                check(s.install(te, slot, mod, grade), "install package");
-                check(!s.install(te, slot, mod, grade), "reject duplicate install");
-                for (int t = 0; t < 100 && !s.moduleIntact(te, slot, mod, grade); t++) scan(s, te, slot, p);
-                check(s.moduleIntact(te, slot, mod, grade), "complete module validation");
-                check(s.remove(te, slot, mod, grade), "intact removal");
-                check(!s.remove(te, slot, mod, grade), "no double refund/removal");
-                check(w.nonAir() == 0, "remove all generated voxels");
-                NBTTagCompound claims = new NBTTagCompound();
-                CenterClaims.get(w)
-                    .writeToNBT(claims);
-                check(
-                    claims.getTagList("modules", 10)
-                        .tagCount() == 0,
-                    "claims released");
-                cycles++;
-            }
-        for (ForgeDirection dir : new ForgeDirection[] { ForgeDirection.NORTH, ForgeDirection.EAST,
-            ForgeDirection.SOUTH, ForgeDirection.WEST }) for (int slot = 0; slot < 36; slot++) {
-                CenterModule mod = slot % 6 == 0 ? CenterModule.SPEED
-                    : slot % 6 <= 2 ? CenterModule.CRUSHER : CenterModule.LOGISTICS;
-                SparseWorld pw = world();
-                IGregTechTileEntity pt = tile(pw, dir);
-                CenterStructure ps = ready(pt);
-                Shape piece = shape(slot, mod, 3);
-                check(ps.install(pt, slot, mod, 3), "install every pad and facing");
-                for (int t = 0; t < 100 && !ps.moduleIntact(pt, slot, mod, 3); t++) scan(ps, pt, slot, piece);
-                check(ps.remove(pt, slot, mod, 3) && pw.nonAir() == 0, "remove every pad and facing");
-                cycles++;
-            }
-        SparseWorld w = world();
-        IGregTechTileEntity te = tile(w, ForgeDirection.NORTH);
-        CenterStructure s = ready(te);
-        Shape p = shape(0, CenterModule.SPEED, 1);
-        Frame f = new Frame(te);
-        int[] first = pos(f, p, 0, 0);
-        w.cells.put(key(first), new Cell(Blocks.diamond_block, 0));
-        check(!s.install(te, 0, CenterModule.SPEED, 1), "ordinary solid obstacle rejects before overwrite");
-        check(
-            w.getBlock(first[0], first[1], first[2]) == Blocks.diamond_block && w.writes == 0,
-            "ordinary solid obstacle remains untouched");
-        w.cells.put(key(first), new Cell(p.block(0), p.metadata(0)));
-        check(
-            !s.install(te, 0, CenterModule.SPEED, 1) && w.writes == 0,
-            "matching player material is never adopted for a free refund");
-        w.cells.remove(key(first));
-        check(s.install(te, 0, CenterModule.SPEED, 1), "empty pad accepts a paid installation");
-        for (int t = 0; t < 30 && !s.moduleIntact(te, 0, CenterModule.SPEED, 1); t++) scan(s, te, 0, p);
-        long missing = chunk(first[0] >> 4, first[2] >> 4);
-        w.missing.add(missing);
-        int before = w.writes;
-        check(!s.remove(te, 0, CenterModule.SPEED, 1) && w.writes == before, "unloaded removal refuses all writes");
-        for (int t = 0; t < 30; t++) scan(s, te, 0, p);
-        check(!s.moduleBroken(0, CenterModule.SPEED, 1), "unloaded is not damaged");
-        check(w.unloadedReads == 0, "no unloaded block reads");
-        w.missing.clear();
-        for (int t = 0; t < 50 && !s.moduleIntact(te, 0, CenterModule.SPEED, 1); t++) scan(s, te, 0, p);
-        check(s.moduleIntact(te, 0, CenterModule.SPEED, 1), "reloaded module recovers");
-        w.cells.put(key(first), new Cell(Blocks.air, 0));
-        before = w.writes;
-        check(!s.remove(te, 0, CenterModule.SPEED, 1) && before == w.writes, "damaged module cannot refund");
-        for (int t = 0; t < 7000 && !s.moduleBroken(0, CenterModule.SPEED, 1); t++) scan(s, te, 0, p);
-        check(s.moduleBroken(0, CenterModule.SPEED, 1), "true mismatch breaks module");
-        SparseWorld rollback = world();
-        IGregTechTileEntity rt = tile(rollback, ForgeDirection.NORTH);
-        CenterStructure rs = ready(rt);
-        rollback.failAt = 20;
-        check(
-            !rs.install(rt, 0, CenterModule.SPEED, 1) && rollback.nonAir() == 0,
-            "failed installation rolls back changed cells");
-        check(!rs.moduleLoaded(rt, 0, CenterModule.SPEED, 1), "failed install never claims module");
-        SparseWorld occupied = world();
-        IGregTechTileEntity ot = tile(occupied, ForgeDirection.NORTH);
-        CenterStructure os = ready(ot);
-        int[] op = pos(new Frame(ot), p, 0, 0);
-        occupied.tiles.put(key(op), new gregtech.api.metatileentity.BaseMetaTileEntity());
-        check(
-            !os.install(ot, 0, CenterModule.SPEED, 1) && occupied.writes == 0,
-            "tile entity obstacle rejects before write");
-        result.put("moduleUnloadedReads", w.unloadedReads);
-    }
-
-    static void failedTransactions() throws Exception {
-        for (int mode = 0; mode < 3; mode++) {
-            SparseWorld w = world();
-            IGregTechTileEntity te = tile(w, ForgeDirection.NORTH);
-            CenterStructure center = ready(te);
-            if (mode == 0) w.mutateThenFailAt = 20;
-            else if (mode == 1) w.throwAt = 20;
-            else w.corruptAt = 20;
-            check(
-                !center.install(te, 0, CenterModule.SPEED, 1),
-                "false/throw/wrong-result installation never succeeds");
-            check(w.nonAir() == 0, "failed and partially applied writes roll back every attempted voxel");
-            check(
-                (Integer) get(CenterClaims.get(w), "internalWrites") == 0,
-                "transaction notification guard always releases");
-        }
-        SparseWorld removal = world();
-        IGregTechTileEntity removalTile = tile(removal, ForgeDirection.NORTH);
-        CenterStructure removable = ready(removalTile);
-        check(removable.install(removalTile, 0, CenterModule.SPEED, 1), "install removal rollback fixture");
-        Shape removalShape = shape(0, CenterModule.SPEED, 1);
-        for (int i = 0; i < 100 && !removable.moduleIntact(removalTile, 0, CenterModule.SPEED, 1); i++)
-            scan(removable, removalTile, 0, removalShape);
-        long original = removal.nonAir();
-        removal.mutateThenFailAt = removal.writes + 20;
-        check(
-            !removable.remove(removalTile, 0, CenterModule.SPEED, 1) && removal.nonAir() == original,
-            "partially applied removal rolls back and gives no refund");
-        check(
-            removable.remove(removalTile, 0, CenterModule.SPEED, 1) && removal.nonAir() == 0,
-            "a fully restored removal can be retried exactly once");
-        SparseWorld refused = world();
-        IGregTechTileEntity te = tile(refused, ForgeDirection.NORTH);
-        CenterStructure center = ready(te);
-        refused.failAt = 20;
-        refused.refuseRollback = true;
-        check(!center.install(te, 0, CenterModule.SPEED, 1), "refused rollback cannot acknowledge installation");
-        check(
-            refused.nonAir() > 0 && center.moduleBroken(0, CenterModule.SPEED, 1),
-            "unreverted generated remnants are quarantined as damaged");
-        Shape shape = shape(0, CenterModule.SPEED, 1);
-        int[] first = pos(new Frame(te), shape, 0, 0);
-        check(
-            CenterClaims.suppressDrops(refused, first[0], first[1], first[2], shape.block(0), shape.metadata(0)),
-            "unpaid remnants remain no-drop");
-        check(!center.remove(te, 0, CenterModule.SPEED, 1), "partial rollback never grants a package refund");
-        check(
-            (Integer) get(CenterClaims.get(refused), "internalWrites") == 0,
-            "refused rollback releases notification guard");
-    }
-
-    static void worldMutations() throws Exception {
-        SparseWorld world = world();
-        world.notifyClaims = true;
-        IGregTechTileEntity te = tile(world, ForgeDirection.NORTH);
-        CenterStructure center = ready(te);
-        Shape module = shape(0, CenterModule.SPEED, 1);
-        Frame frame = new Frame(te);
-        check(
-            center.install(te, 0, CenterModule.SPEED, 1),
-            "self-notifying world accepts installation without invalidating ownership");
-        for (int i = 0; i < 100 && !center.moduleIntact(te, 0, CenterModule.SPEED, 1); i++) scan(center, te, 0, module);
-        check(
-            center.moduleIntact(te, 0, CenterModule.SPEED, 1),
-            "internal generated writes leave installed module intact");
-        NBTTagCompound saved = new NBTTagCompound();
-        center.save(saved, te);
-        int[] at = pos(frame, module, module.count() - 1, 0);
-        world.setBlock(
-            at[0],
-            at[1],
-            at[2],
-            module.block(module.count() - 1),
-            module.metadata(module.count() - 1) ^ 1,
-            2);
-        check(
-            center.moduleBroken(0, CenterModule.SPEED, 1),
-            "non-player metadata mutation immediately revokes module authorization");
-        saved = new NBTTagCompound();
-        center.save(saved, te);
-        check(
-            (saved.getCompoundTag("oreCenterStructure")
-                .getLong("VerifiedModules") & 1) == 0,
-            "damaged module cannot survive through a stale saved authorization");
-        NBTTagCompound ownership = new NBTTagCompound();
-        CenterClaims.get(world)
-            .writeToNBT(ownership);
-        check(
-            ownership.getTagList("modules", 10)
-                .getCompoundTagAt(0)
-                .getByteArray("removed").length > 0,
-            "non-player mutation persists exact removed ownership");
-        Shape tower = CenterStructure.optionalShape("tower-3");
-        fill(world, frame, tower);
-        ((CriticalStructureMonitor) get(center, "tower")).restoreValidation(tower.count());
-        int index = tower.count() - 1;
-        center.changed(frame, tower.x[index], tower.y[index], tower.z[index]);
-        check(center.tier(te) == 3, "matching-state world notification preserves cached formation");
-        world.cells.put(
-            key(
-                frame.x(tower.x[index], tower.z[index] + 19),
-                frame.y + tower.y[index] - 2,
-                frame.z(tower.x[index], tower.z[index] + 19)),
-            new Cell(Blocks.air, 0));
-        center.changed(frame, tower.x[index], tower.y[index], tower.z[index]);
-        check(
-            center.tier(te) < 0 && !center.isCheckingFormation(te),
-            "real loaded tower damage skips the native recovery grace immediately");
-    }
-
-    static void neighboringCallback() throws Exception {
-        SparseWorld world = world();
-        world.notifyClaims = true;
-        IGregTechTileEntity te = tile(world, ForgeDirection.NORTH);
-        CenterStructure center = ready(te);
-        Shape original = shape(0, CenterModule.SPEED, 1);
-        Frame frame = new Frame(te);
-        check(center.install(te, 0, CenterModule.SPEED, 1), "install callback neighbor fixture");
-        for (int i = 0; i < 100 && !center.moduleIntact(te, 0, CenterModule.SPEED, 1); i++)
-            scan(center, te, 0, original);
-        int[] neighbor = pos(frame, original, 0, 0);
-        world.callbackAt = world.writes + 1;
-        world.callback = () -> {
-            check(
-                !CenterClaims.suppressDrops(world, 300, 80, 300, Blocks.diamond_block, 0),
-                "module transaction never suppresses unrelated drops from a synchronous callback");
-            world.setBlock(neighbor[0], neighbor[1], neighbor[2], Blocks.air, 0, 2);
-        };
-        check(
-            center.install(te, 1, CenterModule.CRUSHER, 1),
-            "nested neighbor mutation does not reject the current module write");
-        check(
-            world.callback == null && center.moduleBroken(0, CenterModule.SPEED, 1),
-            "synchronous callback mutation still revokes the neighboring module immediately");
-        Shape installed = shape(1, CenterModule.CRUSHER, 1);
-        for (int i = 0; i < 100 && !center.moduleIntact(te, 1, CenterModule.CRUSHER, 1); i++)
-            scan(center, te, 1, installed);
-        check(
-            center.moduleIntact(te, 1, CenterModule.CRUSHER, 1),
-            "coordinate guard resumes its own outer write after a callback");
-        check(
-            (Integer) get(CenterClaims.get(world), "internalWrites") == 0,
-            "nested world callback leaves no transaction guard");
-    }
-
-    static void knownUnknownReadiness() throws Exception {
-        SparseWorld world = world();
-        IGregTechTileEntity te = tile(world, ForgeDirection.NORTH);
-        CenterStructure center = ready(te);
-        readyForExecution(center, te);
-        check(
-            ((CriticalStructureMonitor) get(center, "tower")).isFastSweep() && center.isExecutionReady(te),
-            "cached valid background fast sweeps remain executable");
-        check(center.install(te, 0, CenterModule.SPEED, 1), "install known-unknown module fixture");
-        check(
-            !center.isExecutionReady(te),
-            "a cold pending module is a known unknown before a native successful check");
-        Shape piece = shape(0, CenterModule.SPEED, 1);
-        for (int i = 0; i < 100 && !center.moduleIntact(te, 0, CenterModule.SPEED, 1); i++) scan(center, te, 0, piece);
-        check(center.isExecutionReady(te), "fully loaded verified module releases the readiness gate");
-        int[] at = pos(new Frame(te), piece, 0, 0);
-        world.missing.add(chunk(at[0] >> 4, at[2] >> 4));
-        check(!center.isExecutionReady(te), "unloaded footprint is a known unknown despite a cached valid monitor");
     }
 
     static Set<Long> expectedFootprint(Shape shape, Frame frame, int x, int z, int rotation) {
@@ -826,7 +466,6 @@ public final class CenterRecoveryContracts {
         fill(w, f, wing);
         check(s.install(te, 0, CenterModule.SPEED, 1), "install before save");
         Shape pack = shape(0, CenterModule.SPEED, 1);
-        for (int t = 0; t < 50 && !s.moduleIntact(te, 0, CenterModule.SPEED, 1); t++) scan(s, te, 0, pack);
         NBTTagCompound tag = new NBTTagCompound();
         s.save(tag, te);
         check(
@@ -1034,7 +673,6 @@ public final class CenterRecoveryContracts {
             CenterModule mod = slot % 6 == 0 ? CenterModule.SPEED
                 : slot % 6 <= 2 ? CenterModule.CRUSHER : CenterModule.LOGISTICS;
             check(s.install(te, slot, mod, 3), "full footprint accepts 36 representative modules");
-            moduleMonitor(s, slot).restoreValidation(shape(slot, mod, 3).count());
         }
         CriticalStructureMonitor tower = (CriticalStructureMonitor) get(s, "tower");
         tower.restoreValidation(body.count());
@@ -1050,7 +688,6 @@ public final class CenterRecoveryContracts {
         for (int t = 0; t < 4000; t++) {
             boolean pending = tower.isFastSweep();
             for (CriticalStructureMonitor wing : sectors) pending |= wing.isFastSweep();
-            for (int slot = 0; slot < 36; slot++) pending |= moduleMonitor(s, slot).isFastSweep();
             if (!pending) break;
             w.now++;
             s.tick(te);
@@ -1118,10 +755,15 @@ public final class CenterRecoveryContracts {
             "busy batch rejects module edits without debit");
         set(m, "totalTicks", 0);
         set(m, "elapsed", 0);
-        check(m.installModuleFromBus(0) && pack.stackSize == 1, "controller consumes exactly one package after build");
-        CenterStructure s = (CenterStructure) get(m, "structure");
-        Shape p = shape(0, CenterModule.SPEED, 1);
-        for (int i = 0; i < 50 && !s.moduleIntact(te, 0, CenterModule.SPEED, 1); i++) scan(s, te, 0, p);
+        check(
+            m.installModuleFromBus(0) && pack.stackSize == 1,
+            "controller consumes exactly one package for virtual installation");
+        check(w.writes == 0, "real package debit creates no module world blocks");
+        NBTTagCompound carried = new NBTTagCompound();
+        m.setItemNBT(carried);
+        MTEMineralIntegrationCenter moved = center(w);
+        moved.loadNBTData(carried);
+        check(moved.installedModuleGrades()[0] == 1, "native GT item NBT carries the paid virtual package");
         check(
             edit.invoke(m, te, 0)
                 .toString()
@@ -1130,6 +772,14 @@ public final class CenterRecoveryContracts {
         List<net.minecraft.item.ItemStack> pending = (List) get(m, "pendingItems");
         check(pending.size() == 1 && pending.get(0).stackSize == 1, "one refund queued");
         check(((int[]) get(m, "grades"))[0] == 0, "refunded slot is cleared");
+        check(w.writes == 0, "real package refund creates no module world writes");
+        NBTTagCompound refundItem = new NBTTagCompound();
+        m.setItemNBT(refundItem);
+        MTEMineralIntegrationCenter movedRefund = center(w);
+        movedRefund.loadNBTData(refundItem);
+        check(
+            ((List<?>) get(movedRefund, "pendingItems")).size() == 1 && movedRefund.installedModuleGrades()[0] == 0,
+            "controller item carries exactly one pending refund without recreating installation");
         Method eject = MTEMineralIntegrationCenter.class.getDeclaredMethod("ejectBatch", IGregTechTileEntity.class);
         eject.setAccessible(true);
         eject.invoke(m, te);
