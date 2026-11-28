@@ -91,6 +91,11 @@ public final class VirtualStructureContracts {
         }, "unsupported orientation rejected");
         rejected(() -> {
             VirtualStructureFrame f = frame();
+            f.kind = 2;
+            f.validate();
+        }, "critical machines cannot use the center virtual scene route");
+        rejected(() -> {
+            VirtualStructureFrame f = frame();
             f.sequence = 0;
             f.validate();
         }, "sequence required");

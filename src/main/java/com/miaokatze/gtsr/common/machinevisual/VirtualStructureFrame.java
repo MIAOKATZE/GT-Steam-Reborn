@@ -12,7 +12,7 @@ import io.netty.buffer.ByteBuf;
 /** Read-only visual installation. Neither this packet nor its client consumer grants machine capabilities. */
 public final class VirtualStructureFrame implements IMessage {
 
-    public static final int REMOVED = 0, CENTER = 1, CRITICAL = 2;
+    public static final int REMOVED = 0, CENTER = 1;
     public static final int MAX_BYTES = 1024 * 1024;
     private static final int HEADER_BYTES = 48;
     public int dimension, x, y, z, kind;
@@ -35,7 +35,7 @@ public final class VirtualStructureFrame implements IMessage {
     }
 
     public void validate() {
-        if (kind < REMOVED || kind > CRITICAL
+        if (kind < REMOVED || kind > CENTER
             || Math.abs((long) x) > 30_000_000L
             || Math.abs((long) z) > 30_000_000L
             || y < 0

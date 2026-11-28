@@ -929,7 +929,12 @@ public final class CenterRecoveryContracts {
 
         @Override
         public net.minecraft.world.chunk.Chunk getChunkFromChunkCoords(int x, int z) {
-            return null;
+            // Native hatch discovery reads loaded chunk TE maps. This fixture never performs disk chunk IO.
+            net.minecraft.world.chunk.Chunk chunk = new net.minecraft.world.chunk.Chunk(this, x, z);
+            for (TileEntity tile : tiles.values())
+                if (tile.xCoord >> 4 == x && tile.zCoord >> 4 == z) chunk.chunkTileEntityMap
+                    .put(new net.minecraft.world.ChunkPosition(tile.xCoord & 15, tile.yCoord, tile.zCoord & 15), tile);
+            return chunk;
         }
 
         @Override

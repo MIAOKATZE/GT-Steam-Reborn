@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.MinecraftForge;
@@ -21,7 +20,6 @@ import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.ChunkWatchEvent;
 import net.minecraftforge.event.world.WorldEvent;
 
-import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.machine.orecenter.MTEMineralIntegrationCenter;
 import com.miaokatze.gtsr.common.network.ServerPacketAuthority;
 import com.miaokatze.gtsr.main.GTSteamReborn;
@@ -75,23 +73,6 @@ public final class VirtualStructureNetwork {
             tile.zCoord + 176);
         source.revision = revision;
         source.facing = facing;
-        source.update(visual);
-    }
-
-    public static void observeCritical(CriticalMachineState state, boolean loomVisible) {
-        TileEntity owner = state.getHost();
-        if (owner == null || !(owner.getWorldObj() instanceof WorldServer world)) return;
-        Index index = WORLDS.computeIfAbsent(world, ignored -> new Index(world));
-        AxisAlignedBB bounds = state.getRenderBoundingBox();
-        Source source = index.ensure(
-            owner,
-            VirtualStructureFrame.CRITICAL,
-            (int) Math.floor(bounds.minX),
-            (int) Math.floor(bounds.minZ),
-            (int) Math.ceil(bounds.maxX),
-            (int) Math.ceil(bounds.maxZ));
-        NBTTagCompound visual = state.getVisualData();
-        visual.setBoolean("loomVisible", loomVisible);
         source.update(visual);
     }
 

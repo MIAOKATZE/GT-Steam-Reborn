@@ -6,7 +6,7 @@
   "reviewBasis": "Manual exact .277 registration producer and normal lifecycle audit; fingerprints prevent silent drift. Not full mod initialization, not runtime-transformed class proof, and not arbitrary-config availability.",
   "noAutomaticRefresh": true,
   "sourceSha256": {
-    "src/main/java/com/miaokatze/gtsr/main/CommonProxy.java": "216a0ff3647b5d086273152d9c36d57dda2e66c2d2e860f9b86259bf0d4861ad",
+    "src/main/java/com/miaokatze/gtsr/main/CommonProxy.java": "187569bb30199a6f04c6b35b0ea3626ab7fe5e8e3a4df6be51165a625e3bd1e5",
     "src/main/java/com/miaokatze/gtsr/loader/ItemLoader.java": "ea0d0a3a254e34be81ee6318740e0eab2c9ee7558a601bc2235bbe45f578b4aa",
     "src/main/java/com/miaokatze/gtsr/loader/MachineLoader.java": "194284a2d466815cd51d3d799e68a7669dc70972b8b7ffdf83389b430858578e",
     "src/main/java/com/miaokatze/gtsr/loader/GTSRRecipeLoader.java": "3502b360ab0767642ad77908fbe345753b736e691eb51232849dbe734b48000b",

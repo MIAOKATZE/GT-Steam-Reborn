@@ -20,36 +20,10 @@ import com.miaokatze.gtsr.common.critical.CriticalGeometry.Voxel;
 import com.miaokatze.gtsr.common.critical.CriticalMachineState;
 import com.miaokatze.gtsr.common.critical.CriticalMaterials;
 
-/** Immutable V2 terrain-atlas lists: one compilation, same-rigid-group CTM, native sprite ticking. */
+/** Shared dynamic terrain-atlas VBOs; real static structure remains in native chunk rendering. */
 final class CriticalMeshCache {
 
     private final Map<String, List<Mesh>> models = new HashMap<>();
-    private final Map<CriticalMachineState, VirtualInstallation> installations = new java.util.IdentityHashMap<>();
-    private final Map<CriticalMachineState, VirtualInstallation> physicalInstallations = new java.util.IdentityHashMap<>();
-    private final Map<String, SharedVirtualModel> sharedVirtualModels = new HashMap<>();
-
-    private static final class VirtualInstallation {
-
-        final long revision;
-        final Map<String, SharedVirtualModel> models = new HashMap<>();
-
-        VirtualInstallation(long revision) {
-            this.revision = revision;
-        }
-    }
-
-    private static final class SharedVirtualModel {
-
-        final String key;
-        final List<Mesh> meshes;
-        int references;
-
-        SharedVirtualModel(String key, List<Mesh> meshes) {
-            this.key = key;
-            this.meshes = meshes;
-        }
-    }
-
     private static final double[][][] CORNERS = { { { 0, 0, 1 }, { 0, 0, 0 }, { 1, 0, 0 }, { 1, 0, 1 } },
         { { 0, 1, 0 }, { 0, 1, 1 }, { 1, 1, 1 }, { 1, 1, 0 } }, { { 1, 1, 0 }, { 1, 0, 0 }, { 0, 0, 0 }, { 0, 1, 0 } },
         { { 0, 1, 1 }, { 0, 0, 1 }, { 1, 0, 1 }, { 1, 1, 1 } }, { { 0, 1, 0 }, { 0, 0, 0 }, { 0, 0, 1 }, { 0, 1, 1 } },
@@ -69,136 +43,14 @@ final class CriticalMeshCache {
             + state.getEfficiencyPlugins();
         return models.computeIfAbsent(key, ignored -> {
             List<Voxel> voxels = CriticalGeometry.physicalPlugins(state);
-            return compile(key, voxels, CriticalGeometry.getModel(base).animations, true, false);
+            return compile(key, voxels, CriticalGeometry.getModel(base).animations, true);
         });
-    }
-
-    /** Only descriptor changes inspect installed cells. Stable frames retain local, shared rigid meshes. */
-    List<Mesh> getVirtual(CriticalMachineState state, String slug) {
-        VirtualInstallation installation = installations.get(state);
-        if (installation == null || installation.revision != state.getVirtualVisualRevision()) {
-            release(installations, state);
-            installation = new VirtualInstallation(state.getVirtualVisualRevision());
-            installations.put(state, installation);
-        }
-        SharedVirtualModel shared = installation.models.get(slug);
-        if (shared == null) {
-            List<Voxel> voxels = state.virtualVisualVoxels(slug);
-            String key = fingerprint(slug, voxels);
-            shared = sharedVirtualModels.get(key);
-            if (shared == null) {
-                boolean plugins = "plugins".equals(slug);
-                String animationSlug = plugins ? CriticalGeometry.visualBaseSlug(state) : slug;
-                JsonObject animations = "supply".equals(slug) ? new JsonObject()
-                    : CriticalGeometry.getModel(animationSlug).animations;
-                shared = new SharedVirtualModel(key, compile(slug, voxels, animations, plugins, true));
-                sharedVirtualModels.put(key, shared);
-            }
-            shared.references++;
-            installation.models.put(slug, shared);
-        }
-        return shared.meshes;
-    }
-
-    List<Mesh> getPhysical(CriticalMachineState state, String slug) {
-        long stamp = (long) state.getVirtualConstructionVersion() << 56 | (long) state.getParallelPlugins() << 48
-            | (long) state.getSpeedPlugins() << 40
-            | (long) state.getEfficiencyPlugins() << 32;
-        if (state.getVirtualConstructionVersion() == 0) stamp ^= state.getVirtualVisualRevision();
-        VirtualInstallation installation = physicalInstallations.get(state);
-        if (installation == null || installation.revision != stamp) {
-            release(physicalInstallations, state);
-            installation = new VirtualInstallation(stamp);
-            physicalInstallations.put(state, installation);
-        }
-        SharedVirtualModel shared = installation.models.get(slug);
-        if (shared == null) {
-            boolean plugins = "plugins".equals(slug);
-            boolean decorativePlugin = slug.startsWith("plugin_");
-            List<Voxel> voxels = new ArrayList<>();
-            for (Voxel voxel : plugins ? CriticalGeometry.physicalPlugins(state)
-                : CriticalGeometry.getModel(slug).voxels)
-                if ((decorativePlugin || CriticalGeometry.isDynamic(plugins ? voxel.model : slug, voxel.group))
-                    && (decorativePlugin || com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility
-                        .isPhysicalProxy(state, voxel)))
-                    voxels.add(voxel);
-            String key = fingerprint(slug + ":physical", voxels);
-            shared = sharedVirtualModels.get(key);
-            if (shared == null) {
-                JsonObject animations = CriticalGeometry
-                    .getModel(plugins ? CriticalGeometry.visualBaseSlug(state) : slug).animations;
-                shared = new SharedVirtualModel(key, compile(slug, voxels, animations, plugins, true));
-                sharedVirtualModels.put(key, shared);
-            }
-            shared.references++;
-            installation.models.put(slug, shared);
-        }
-        return shared.meshes;
-    }
-
-    void release(CriticalMachineState state) {
-        RuntimeException cleanup = new IllegalStateException("Failed to release installation meshes");
-        try {
-            release(installations, state);
-        } catch (RuntimeException | Error failure) {
-            cleanup.addSuppressed(failure);
-        }
-        try {
-            release(physicalInstallations, state);
-        } catch (RuntimeException | Error failure) {
-            cleanup.addSuppressed(failure);
-        }
-        if (cleanup.getSuppressed().length != 0) throw cleanup;
-    }
-
-    void releaseVirtual(CriticalMachineState state) {
-        release(installations, state);
-    }
-
-    private void release(Map<CriticalMachineState, VirtualInstallation> owners, CriticalMachineState state) {
-        VirtualInstallation installation = owners.remove(state);
-        if (installation == null) return;
-        List<ClientMesh> owned = new ArrayList<>();
-        for (SharedVirtualModel shared : installation.models.values()) if (--shared.references == 0) {
-            sharedVirtualModels.remove(shared.key, shared);
-            collect(shared.meshes, owned);
-        }
-        close(owned);
-    }
-
-    private static String fingerprint(String slug, List<Voxel> voxels) {
-        try {
-            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
-            for (Voxel voxel : voxels) {
-                String cell = voxel.x + ","
-                    + voxel.y
-                    + ","
-                    + voxel.z
-                    + ","
-                    + voxel.model
-                    + ","
-                    + voxel.group
-                    + ","
-                    + voxel.material
-                    + ";";
-                digest.update(cell.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            }
-            StringBuilder key = new StringBuilder(slug).append(':');
-            for (byte value : digest.digest()) key.append(String.format(java.util.Locale.ROOT, "%02x", value & 255));
-            return key.toString();
-        } catch (java.security.NoSuchAlgorithmException impossible) {
-            throw new IllegalStateException(impossible);
-        }
     }
 
     void clear() {
         List<ClientMesh> owned = new ArrayList<>();
         for (List<Mesh> model : models.values()) collect(model, owned);
-        for (SharedVirtualModel model : sharedVirtualModels.values()) collect(model.meshes, owned);
         models.clear();
-        installations.clear();
-        physicalInstallations.clear();
-        sharedVirtualModels.clear();
         close(owned);
     }
 
@@ -217,20 +69,17 @@ final class CriticalMeshCache {
 
     private List<Mesh> compile(String slug) {
         CriticalGeometry.Model model = CriticalGeometry.getModel(slug);
-        return compile(slug, model.voxels, model.animations, false, false);
+        return compile(slug, model.voxels, model.animations, false);
     }
 
-    private List<Mesh> compile(String slug, List<Voxel> voxels, JsonObject animations, boolean plugins,
-        boolean virtual) {
+    private List<Mesh> compile(String slug, List<Voxel> voxels, JsonObject animations, boolean plugins) {
         Map<Long, Voxel> occupied = new HashMap<>();
         for (Voxel voxel : voxels) occupied.put(voxel.positionKey(), voxel);
         Map<String, List<Face>> groups = new LinkedHashMap<>();
         for (Voxel voxel : voxels) {
-            if (!virtual && !CriticalGeometry.isDynamic(plugins ? voxel.model : slug, voxel.group)) continue;
+            if (!proxyVoxel(plugins ? voxel.model : slug, voxel)) continue;
             // Controller markers are real GT hosts. Hatch/bus materials are decorative MaterialBlocks;
             // their fixed interface group stays in chunk rendering, never in this moving mesh.
-            if (voxel.material.equals("v2_gt_controller") || voxel.material.equals("v2_loom_machine_controller"))
-                continue;
             JsonObject material = CriticalMaterials.properties(voxel.material);
             String mode = material.get("alphaMode")
                 .getAsString();
@@ -281,6 +130,14 @@ final class CriticalMeshCache {
         }
         CriticalRenderMetrics.meshCompiles++;
         return result;
+    }
+
+    static boolean proxyVoxel(String model, Voxel voxel) {
+        // Historical geometry1 plugin models were already standalone paid upgrade displays in v88.
+        // Main/base static material zones never become proxy geometry.
+        return (model.startsWith("plugin_") || CriticalGeometry.isDynamic(model, voxel.group))
+            && !voxel.material.equals("v2_gt_controller")
+            && !voxel.material.equals("v2_loom_machine_controller");
     }
 
     private static ClientMesh compileList(List<Face> faces, boolean emission) {

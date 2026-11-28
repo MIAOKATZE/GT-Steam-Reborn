@@ -192,11 +192,6 @@ public final class CriticalConstructionEconomyContract {
 
     private static CriticalConstructionLedger build(CriticalConstructionLedger ledger, List<CriticalGeometry.Voxel> stage,
         boolean install) {
-        return build(ledger, stage, install, false);
-    }
-
-    private static CriticalConstructionLedger build(CriticalConstructionLedger ledger, List<CriticalGeometry.Voxel> stage,
-        boolean install, boolean virtualInstall) {
         ledger.snapshotPhysicalStage(stage);
         int rounds = ledger.stageRoundCount(ledger.stageItems(), ledger.stageFluids(), ledger.physicalJob().stage(stage.get(0))), cursor = 0;
         for (int r = 0; r < rounds; r++) {
@@ -207,11 +202,9 @@ public final class CriticalConstructionEconomyContract {
             CriticalConstructionLedger.Round retry = ledger.planPhysicalRound(400, stage);
             check(retry.items().length == 0 && retry.fluids().length == 0, "Reloaded paid round requests no second item or fluid debit");
             if (install) for (; cursor < round.voxelEnd; cursor++) {
-                if (virtualInstall) ledger.markVirtualInstalled(stage.get(cursor));
-                else ledger.markPhysicalInstalled(stage.get(cursor));
+                ledger.markPhysicalInstalled(stage.get(cursor));
                 ledger = reload(ledger); // Includes partially placed multi-voxel rounds, not just paid boundaries.
-                if (virtualInstall) ledger.markVirtualInstalled(stage.get(cursor));
-                else ledger.markPhysicalInstalled(stage.get(cursor));
+                ledger.markPhysicalInstalled(stage.get(cursor));
             }
             conservation(ledger);
             ledger.completeRound();
@@ -219,66 +212,35 @@ public final class CriticalConstructionEconomyContract {
         ledger.resetStage(); return ledger;
     }
 
-    private static void virtualInstallations(CriticalGeometry.Voxel carrier) throws Exception {
-        List<CriticalGeometry.Voxel> cells = new ArrayList<>();
-        for (int i = 0; i < 11; i++) cells.add(voxel(100 + i, 4, false));
-        cells.add(carrier);
-        CriticalConstructionLedger virtual = new CriticalConstructionLedger();
-        virtual.freezeJob(manifest(carrier, 12));
-        virtual.snapshotPhysicalStage(cells);
-        int rounds = virtual.stageRoundCount(virtual.stageItems(), virtual.stageFluids(), 4), cursor = 0;
-        for (int r = 0; r < rounds; r++) {
-            CriticalConstructionLedger.Round round = virtual.planPhysicalRound(400, cells);
-            virtual.recordRoundPayment(round.items(), round.fluids());
-            virtual.advanceElapsed(round.next);
-            virtual = reload(virtual);
-            check(virtual.planPhysicalRound(400, cells).items().length == 0,
-                "Paid logical work resumes without a second debit");
-            for (; cursor < round.voxelEnd; cursor++) {
-                CriticalGeometry.Voxel cell = cells.get(cursor);
-                virtual.markVirtualInstalled(cell);
-                virtual = reload(virtual);
-                virtual.markVirtualInstalled(cell);
-                virtual.markPhysicalInstalled(cell);
-                virtual.markPhysicalDamaged(cell);
-                check(virtual.hasVirtualInstallation(cell.positionKey()),
-                    "World damage/replayed physical callbacks cannot destroy or duplicate a virtual paid installation");
-            }
-            conservation(virtual);
-            virtual.completeRound();
+    private static void failedPlacementCheckpoint(CriticalGeometry.Voxel carrier) {
+        List<CriticalGeometry.Voxel> target = Arrays.asList(carrier);
+        CriticalConstructionLedger ledger = new CriticalConstructionLedger(); ledger.freezeJob(manifest(carrier, 1));
+        ledger.snapshotPhysicalStage(target);
+        int rounds = ledger.stageRoundCount(ledger.stageItems(), ledger.stageFluids(), ledger.physicalJob().stage(carrier));
+        for (int round = 0; round < rounds; round++) {
+            CriticalConstructionLedger.Round payment = ledger.planPhysicalRound(400, target);
+            ledger.recordRoundPayment(payment.items(), payment.fluids()); ledger.advanceElapsed(payment.next);
+            if (round + 1 < rounds) ledger.completeRound();
         }
-        NBTTagCompound installed = save(virtual);
-        check(installed.getInteger("constructionInstallationVersion") == 1
-            && installed.getByteArray("constructionPhysicalInstalled").length == 0
-            && installed.getByteArray("constructionVirtualInstalled").length == cells.size() * Long.BYTES,
-            "Versioned virtual positions never silently acquire the physical journal meaning");
-        check(balance(virtual, SHELL, "paid") == 12 && balance(virtual, SHELL, "installed") == 12
-            && balance(virtual, SHELL, "destroyed") == 0,
-            "Logical installation conserves paid shell/equipment assets through partial reloads");
-        CriticalConstructionLedger legacy = new CriticalConstructionLedger();
-        legacy.freezeJob(manifest(carrier, 12));
-        legacy = build(legacy, cells, true);
-        NBTTagCompound old = save(legacy);
-        old.removeTag("constructionInstallationVersion"); old.removeTag("constructionVirtualInstalled");
-        legacy.read(old);
-        NBTTagList balances = (NBTTagList) save(legacy).getTagList("constructionPhysicalBalances", 10).copy();
-        for (CriticalGeometry.Voxel cell : cells) {
-            legacy.virtualizePhysicalInstallation(cell);
-            legacy = reload(legacy);
-            legacy.virtualizePhysicalInstallation(cell);
-        }
-        check(save(legacy).getTagList("constructionPhysicalBalances", 10).equals(balances),
-            "Legacy conversion moves physical entitlement without charging, forgiving damage or changing salvage");
-        check(count(legacy.recoveryItems(1), SHELL) == count(virtual.recoveryItems(1), SHELL)
-            && count(legacy.recoveryItems(1), EQUIPMENT) == count(virtual.recoveryItems(1), EQUIPMENT),
-            "Migrated and directly virtual jobs recover the same frozen-price salvage");
-        legacy.clearSpentItems(); legacy = reload(legacy); conservation(legacy);
-        check(legacy.recoveryItems(1).length == 0 && !legacy.hasVirtualInstallation(carrier.positionKey()),
-            "Saving a prepared refund consumes logical entitlement once without restoring blocks");
-        NBTTagCompound unsupported = installed;
-        unsupported.setInteger("constructionInstallationVersion", 99);
-        CriticalConstructionLedger isolated = new CriticalConstructionLedger(); isolated.read(unsupported);
-        check(isolated.hasIntegrityError(), "Unknown virtual installation versions quarantine payment history");
+        // A failed setBlock has no markPhysicalInstalled callback; payment/time remain persisted for retry.
+        NBTTagCompound failed = save(ledger); ledger = reload(ledger);
+        check(ledger.funded() && ledger.planPhysicalRound(400, target).items().length == 0
+            && save(ledger).getByteArray("constructionPhysicalInstalled").length == 0
+            && balance(ledger, SHELL, "escrow") == 1 && balance(ledger, EQUIPMENT, "escrow") == 13,
+            "A failed physical placement reloads its paid checkpoint without installing or debiting twice");
+        check(count(ledger.recoveryItems(1), SHELL) == 1 && count(ledger.recoveryItems(1), EQUIPMENT) == 13,
+            "Cancellation before actual placement returns every uninstalled escrow identity");
+        ledger.markPhysicalInstalled(carrier); ledger = reload(ledger); ledger.markPhysicalInstalled(carrier);
+        check(balance(ledger, SHELL, "installed") == 1 && balance(ledger, EQUIPMENT, "installed") == 13
+            && balance(ledger, SHELL, "paid") == 1 && balance(ledger, EQUIPMENT, "paid") == 13,
+            "Successful physical retry installs the already-paid allocation exactly once across reloads");
+        ledger.markPhysicalDamaged(carrier); ledger = reload(ledger); ledger.markPhysicalDamaged(carrier);
+        check(balance(ledger, SHELL, "destroyed") == 1 && balance(ledger, EQUIPMENT, "destroyed") == 13
+            && count(ledger.recoveryItems(1), SHELL) == 0 && count(ledger.recoveryItems(1), EQUIPMENT) == 0,
+            "A destroyed real carrier cannot refund or destroy its former allocation a second time");
+        conservation(ledger); ledger.clearSpentItems(); ledger = reload(ledger); conservation(ledger);
+        check(ledger.recoveryItems(1).length == 0 && !failed.hasKey("constructionVirtualInstalled"),
+            "Settled physical refunds have no replayable entitlement or withdrawn virtual journal");
     }
 
     @SuppressWarnings("unchecked")
@@ -621,12 +583,6 @@ public final class CriticalConstructionEconomyContract {
         for (CriticalGeometry.Voxel voxel : local) ledger.markPhysicalInstalled(voxel);
         ledger.resetStage(); ledger = reload(ledger);
         check(count(ledger.recoveryItems(1), SINGULARITY) == count / 10, "Installed singularities follow deterministic ten-percent salvage");
-        CriticalConstructionLedger virtual = new CriticalConstructionLedger(); virtual.freezeJob(frozen);
-        virtual = build(virtual, local, true, true);
-        check(balance(virtual, SINGULARITY, "paid") == count && balance(virtual, SINGULARITY, "installed") == count
-            && count(virtual.recoveryItems(1), SINGULARITY) == count / 10,
-            "Current exact-step schedules install virtual allocations without recharging prior paid logical cells");
-        conservation(virtual);
         ledger.markPhysicalDamaged(main);
         check(count(ledger.recoveryItems(1), SINGULARITY) == (count - damaged) / 10,
             "Destroyed local commissioning allocation cannot be salvaged again");
@@ -1023,7 +979,7 @@ public final class CriticalConstructionEconomyContract {
         List<CriticalGeometry.Voxel> first = new ArrayList<>(); first.add(main);
         for (int i = 0; i < 9; i++) first.add(voxel(i, 1, false));
         List<CriticalGeometry.Voxel> last = Arrays.asList(voxel(10, 4, false), voxel(11, 4, false), carrier);
-        virtualInstallations(carrier);
+        failedPlacementCheckpoint(carrier);
         fluidStages(carrier, first, last);
         currentFluidStages(carrier, main);
         CriticalConstructionLedger ledger = new CriticalConstructionLedger();

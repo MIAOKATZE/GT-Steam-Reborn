@@ -72,11 +72,6 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
             .getResourceManager()).registerReloadListener(renderer);
     }
 
-    public static CriticalControllerRenderer sharedInstance() {
-        register();
-        return instance;
-    }
-
     @cpw.mods.fml.common.eventhandler.SubscribeEvent
     public void worldUnloaded(net.minecraftforge.event.world.WorldEvent.Unload event) {
         if (!event.world.isRemote) return;
@@ -105,6 +100,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     @Override
     public void renderTileEntityAt(TileEntity tile, double x, double y, double z, float partialTicks) {
         if (!(tile instanceof TileEntityCriticalRenderAnchor anchor)) return;
+        if (!worldAnchor(anchor)) return;
         CriticalMachineState controller = anchor.getVisualState();
         CriticalRenderMetrics.renderCalls++;
         try {
@@ -117,24 +113,10 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         }
     }
 
-    /** Same renderer and clocks for a descriptor-owned anchor which is never inserted into the world. */
-    public void renderLogicalAnchor(TileEntityCriticalRenderAnchor anchor, double x, double y, double z,
-        float partialTicks) {
-        ClientRenderFrame.register();
-        renderTileEntityAt(anchor, x, y, z, partialTicks);
-    }
-
-    public void releaseLogicalAnchor(TileEntityCriticalRenderAnchor anchor) {
-        try {
-            nativeMeshes.release(anchor.getVisualState());
-        } finally {
-            lightCaches.remove(anchor);
-            clocks.remove(anchor);
-            loomClocks.remove(anchor);
-            motionClocks.remove(anchor);
-            visibility.remove(anchor);
-            com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility.remove(anchor);
-        }
+    static boolean worldAnchor(TileEntityCriticalRenderAnchor anchor) {
+        return anchor.getWorldObj() != null && !anchor.isInvalid()
+            && anchor.getWorldObj()
+                .getTileEntity(anchor.xCoord, anchor.yCoord, anchor.zCoord) == anchor;
     }
 
     private void renderAnchor(TileEntityCriticalRenderAnchor anchor, CriticalMachineState controller, double x,
@@ -142,7 +124,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         TileEntity tile = anchor;
         boolean installation = !controller.getStructureId()
             .isEmpty() && controller.getState() != 0;
-        if (!installation && !anchor.isLoomVisible() && !controller.hasVirtualVisualGeometry()) return;
+        if (!installation && !anchor.isLoomVisible()) return;
         boolean complete = controller.isStructureComplete();
         CriticalGroupVisibility checked = visibility.get(anchor);
         if (checked == null || !checked.matches(controller)) {
@@ -158,7 +140,6 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
         boolean geometryReady = controller.getState() != 2 || controller.isGeometryValidated();
         boolean loomReady = anchor.isLoomVisible();
         activeGroups = checked.readyGroups(activeGroups, geometryReady, loomReady);
-        com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility.publishVisibleGroups(anchor, activeGroups);
         boolean hasBatch = controller.hasVisualBatch();
         double wallSeconds = ClientRenderFrame.seconds();
         boolean gamePaused = Minecraft.getMinecraft()
@@ -224,29 +205,27 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
                 buildPhase = Math.min(1, controller.getCursor() / Math.max(1D, controller.getJobTotal()));
             constructionPhase = buildPhase;
             constructionMode = controller.getConstructionVisualMode();
+            // Real cells remain in chunk rendering until every material pass of their rigid group
+            // has an uploaded replacement. The shared first-upload budget cannot make a group vanish.
+            java.util.Set<String> pending = new java.util.HashSet<>();
+            prepareGroups(nativeMeshes.get(loomSlug), activeGroups, pending);
+            if (installation) {
+                prepareGroups(nativeMeshes.get(baseSlug), activeGroups, pending);
+                prepareGroups(nativeMeshes.get(slug), activeGroups, pending);
+                if (controller.hasPhysicalPlugins())
+                    prepareGroups(nativeMeshes.getPlugins(controller), activeGroups, pending);
+            }
+            if (!pending.isEmpty()) {
+                java.util.Set<String> uploaded = new java.util.HashSet<>(activeGroups);
+                uploaded.removeAll(pending);
+                activeGroups = java.util.Collections.unmodifiableSet(uploaded);
+            }
+            com.miaokatze.gtsr.common.critical.CriticalLoomProxyVisibility.publishVisibleGroups(anchor, activeGroups);
             if (loomReady) renderModel(loomSlug, buildPhase, constructionSeconds, constructionMode);
             if (installation) {
                 renderModel(baseSlug, phase, seconds, design ? machineMode : hasBatch ? "build" : "idle");
                 renderModel(slug, phase, seconds, machineMode);
             }
-            if (controller.hasVirtualVisualGeometry()) {
-                // Paid visual cells have no proxy blocks. Their installed mask is the visibility authority;
-                // the legacy group checker continues to own only the still-real loom/migrating geometry.
-                Set<String> physicalGroups = activeGroups;
-                activeGroups = null;
-                try {
-                    renderNativeMeshes(
-                        nativeMeshes.getVirtual(controller, baseSlug),
-                        phase,
-                        seconds,
-                        design ? machineMode : hasBatch ? "build" : "idle");
-                    renderNativeMeshes(nativeMeshes.getVirtual(controller, slug), phase, seconds, machineMode);
-                    renderNativeMeshes(nativeMeshes.getVirtual(controller, "plugins"), phase, seconds, "idle");
-                    renderNativeMeshes(nativeMeshes.getVirtual(controller, "supply"), 0, seconds, "idle");
-                } finally {
-                    activeGroups = physicalGroups;
-                }
-            } else nativeMeshes.releaseVirtual(controller);
             if (installation && geometryReady && controller.hasInstalledPlugins())
                 renderPlugins(controller, phase, seconds);
             if (installation && complete && controller.isGeometryValidated()) {
@@ -287,7 +266,7 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     private void renderPlugins(CriticalMachineState controller, double phase, double seconds) {
         // V2 generic contacts are actual fixed blocks; chunk rendering owns them, never a duplicate TESR mesh.
         if (controller.hasPhysicalPlugins()) {
-            List<CriticalMeshCache.Mesh> plugins = nativeMeshes.getPhysical(controller, "plugins");
+            List<CriticalMeshCache.Mesh> plugins = nativeMeshes.getPlugins(controller);
             if (!plugins.isEmpty()) renderNativeMeshes(plugins, phase, seconds, "idle");
             return;
         }
@@ -327,8 +306,13 @@ public final class CriticalControllerRenderer extends TileEntitySpecialRenderer
     }
 
     private void renderNativeModel(String slug, double phase, double seconds, String mode) {
-        List<CriticalMeshCache.Mesh> model = nativeMeshes.getPhysical(renderingController, slug);
+        List<CriticalMeshCache.Mesh> model = nativeMeshes.get(slug);
         renderNativeMeshes(model, phase, seconds, mode);
+    }
+
+    static void prepareGroups(List<CriticalMeshCache.Mesh> model, Set<String> candidates, Set<String> pending) {
+        for (CriticalMeshCache.Mesh mesh : model)
+            if (candidates.contains(mesh.visibilityKey) && !mesh.prepare()) pending.add(mesh.visibilityKey);
     }
 
     private void renderNativeMeshes(List<CriticalMeshCache.Mesh> model, double phase, double seconds, String mode) {

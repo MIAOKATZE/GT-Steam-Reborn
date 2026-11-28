@@ -306,6 +306,15 @@ val verifySharedMeshContracts = tasks.register<JavaExec>("verifySharedMeshContra
     maxHeapSize = "256m"
 }
 
+val verifyCriticalDynamicRenderContracts = tasks.register<JavaExec>("verifyCriticalDynamicRenderContracts") {
+    group = "verification"
+    description = "Check real critical group admission and dynamic-only mesh lifecycle without OpenGL."
+    dependsOn(tasks.named("testClasses"))
+    classpath = files(layout.buildDirectory.dir("classes/java/patchedMc")) + sourceSets["test"].runtimeClasspath + sourceSets["main"].compileClasspath
+    mainClass.set("com.miaokatze.gtsr.client.critical.CriticalDynamicRenderContracts")
+    maxHeapSize = "512m"
+}
+
 val verifyVirtualStructureContracts = tasks.register<JavaExec>("verifyVirtualStructureContracts") {
     group = "verification"
     description = "Check bounded virtual installation snapshots and stale owner generation rejection."
@@ -501,25 +510,25 @@ configurations.named(testlabSourceSet.compileOnlyConfigurationName) { extendsFro
 configurations.named(testlabSourceSet.annotationProcessorConfigurationName) { extendsFrom(configurations.annotationProcessor.get()) }
 
 // Detached CPU contracts: no product-class overlays and no game/runtime probe registration.
-val virtualConstructionContracts = sourceSets.create("virtualConstructionContracts") {
+val physicalConstructionContracts = sourceSets.create("physicalConstructionContracts") {
     java.setSrcDirs(listOf("tools/tests", "tools/critical"))
-    java.include("CriticalConstructionEconomyContract.java", "CriticalVirtualConstructionContract.java", "CriticalV32Fixture.java")
+    java.include("CriticalConstructionEconomyContract.java", "CriticalPhysicalConstructionContract.java", "CriticalV32Fixture.java")
     compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath + sourceSets["patchedMc"].output
     runtimeClasspath += output + compileClasspath
 }
-configurations.named(virtualConstructionContracts.implementationConfigurationName) { extendsFrom(configurations.implementation.get()) }
-configurations.named(virtualConstructionContracts.compileOnlyConfigurationName) { extendsFrom(configurations.compileOnly.get()) }
-configurations.named(virtualConstructionContracts.annotationProcessorConfigurationName) { extendsFrom(configurations.annotationProcessor.get()) }
+configurations.named(physicalConstructionContracts.implementationConfigurationName) { extendsFrom(configurations.implementation.get()) }
+configurations.named(physicalConstructionContracts.compileOnlyConfigurationName) { extendsFrom(configurations.compileOnly.get()) }
+configurations.named(physicalConstructionContracts.annotationProcessorConfigurationName) { extendsFrom(configurations.annotationProcessor.get()) }
 listOf(
-    "verifyCriticalVirtualConstruction" to "com.miaokatze.gtsr.common.critical.CriticalVirtualConstructionContract",
-    "verifyCriticalVirtualEconomy" to "com.miaokatze.gtsr.common.critical.CriticalConstructionEconomyContract"
+    "verifyCriticalPhysicalConstruction" to "com.miaokatze.gtsr.common.critical.CriticalPhysicalConstructionContract",
+    "verifyCriticalPhysicalEconomy" to "com.miaokatze.gtsr.common.critical.CriticalConstructionEconomyContract"
 ).forEach { (taskName, entry) ->
     tasks.register<JavaExec>(taskName) {
         group = "verification"
-        description = "Verify virtual construction against the current production classes or an explicit built candidate."
-        dependsOn(tasks.named(virtualConstructionContracts.classesTaskName))
+        description = "Verify physical construction against the current production classes or an explicit built candidate."
+        dependsOn(tasks.named(physicalConstructionContracts.classesTaskName))
         val candidate = providers.gradleProperty("criticalContractJar")
-        classpath = virtualConstructionContracts.output +
+        classpath = physicalConstructionContracts.output +
             (if (candidate.isPresent) files(candidate.get()) else sourceSets.main.get().output) +
             sourceSets.main.get().compileClasspath + sourceSets["patchedMc"].output
         if (candidate.isPresent) args(candidate.get())
@@ -527,7 +536,7 @@ listOf(
         providers.gradleProperty("gtnhContractJava").orNull?.let { setExecutable(it) }
         maxHeapSize = "1g"
         systemProperty("java.awt.headless", "true")
-        val runtime = layout.buildDirectory.dir("virtual-construction-contract/runtime").get().asFile
+        val runtime = layout.buildDirectory.dir("physical-construction-contract/runtime").get().asFile
         workingDir(runtime)
         doFirst { runtime.mkdirs() }
     }

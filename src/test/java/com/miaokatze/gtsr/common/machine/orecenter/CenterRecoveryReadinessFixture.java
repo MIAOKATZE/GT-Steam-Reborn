@@ -24,6 +24,7 @@ final class CenterRecoveryReadinessFixture {
     static void run() throws Exception {
         paidVersusNewAndOfflineDamage();
         newConstructionAndInstallation();
+        virtualRecordCannotRestorePhysicalFormation();
         knownModuleDamage();
         unloadAndDetach();
         result.put(
@@ -53,11 +54,40 @@ final class CenterRecoveryReadinessFixture {
         check(
             structure.isNewBatchReady(te),
             "just-verified construction does not wait 6000 ticks for a redundant monitor round");
+        long physicalCells = world.nonAir();
+        check(physicalCells > body.count(), "real tower and wing geometry exist before package registration");
         check(
             structure.install(te, 0, CenterModule.SPEED, 1),
-            "real installation succeeds on the newly verified structure");
+            "virtual package registration succeeds on the newly verified physical structure");
         check(structure.isNewBatchReady(te), "a virtual install requires no decorative monitor round");
-        check(world.writes == 0, "virtual installation writes no world blocks");
+        check(
+            world.writes == 0 && world.nonAir() == physicalCells,
+            "virtual installation writes no world blocks and preserves the real tower/wing");
+        CenterClaims.unload(world);
+    }
+
+    private static void virtualRecordCannotRestorePhysicalFormation() throws Exception {
+        SparseWorld world = world();
+        IGregTechTileEntity tile = tile(world, ForgeDirection.NORTH);
+        CenterStructure previous = ready(tile);
+        check(
+            previous.install(tile, 3, CenterModule.LOGISTICS, 1),
+            "prepare a paid module journal independently of chunk contents");
+        NBTTagCompound saved = new NBTTagCompound();
+        previous.save(saved, tile);
+        CenterStructure reloaded = new CenterStructure();
+        reloaded.load(saved);
+        check(reloaded.moduleIntact(tile, 3, CenterModule.LOGISTICS, 1), "virtual paid ownership survives reload");
+        world.now++;
+        reloaded.tick(tile);
+        check(
+            reloaded.tier(tile) < 0 && reloaded.sectorMask(tile) == 0
+                && !reloaded.isExecutionReady(tile)
+                && !reloaded.isNewBatchReady(tile),
+            "saved module and cached formation records cannot authorize an empty physical site");
+        check(
+            reloaded.moduleIntact(tile, 3, CenterModule.LOGISTICS, 1) && world.writes == 0 && world.nonAir() == 0,
+            "missing real structure neither destroys paid ownership nor regenerates a tower from its journal");
         CenterClaims.unload(world);
     }
 

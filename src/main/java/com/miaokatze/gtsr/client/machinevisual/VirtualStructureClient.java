@@ -12,7 +12,6 @@ import net.minecraft.client.renderer.culling.Frustrum;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.resources.IReloadableResourceManager;
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -20,9 +19,6 @@ import net.minecraftforge.event.world.WorldEvent;
 
 import org.lwjgl.opengl.GL11;
 
-import com.miaokatze.gtsr.client.critical.CriticalControllerRenderer;
-import com.miaokatze.gtsr.common.critical.CriticalRenderAnchors;
-import com.miaokatze.gtsr.common.critical.TileEntityCriticalRenderAnchor;
 import com.miaokatze.gtsr.common.machinevisual.VirtualStructureFrame;
 
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -40,8 +36,6 @@ public final class VirtualStructureClient {
     private static final int MAX_SCENES = 512;
     private final Map<Long, Entry> entries = new LinkedHashMap<>();
     private final Map<Long, long[]> versions = new LinkedHashMap<>();
-    private final java.util.Set<com.miaokatze.gtsr.common.critical.CriticalMachineState> criticalStates = java.util.Collections
-        .synchronizedSet(java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>()));
     private World world;
     private Object connection;
     private long session;
@@ -68,10 +62,6 @@ public final class VirtualStructureClient {
                 || frame.dimension != receivedWorld.provider.dimensionId) return;
             INSTANCE.accept(frame, receivedWorld, connection);
         });
-    }
-
-    public static boolean isRegistered(com.miaokatze.gtsr.common.critical.CriticalMachineState state) {
-        return state.worldObj == Minecraft.getMinecraft().theWorld && INSTANCE.criticalStates.contains(state);
     }
 
     private void accept(VirtualStructureFrame frame, World nextWorld, Object nextConnection) {
@@ -151,16 +141,6 @@ public final class VirtualStructureClient {
             }
             RenderHelper.disableStandardItemLighting();
             GL11.glDepthMask(true);
-            for (Entry entry : entries.values())
-                if (entry.anchor != null && camera.isBoundingBoxInFrustum(entry.anchor.getRenderBoundingBox())) {
-                    CriticalControllerRenderer.sharedInstance()
-                        .renderLogicalAnchor(
-                            entry.anchor,
-                            entry.anchor.xCoord - cx,
-                            entry.anchor.yCoord - cy,
-                            entry.anchor.zCoord - cz,
-                            event.partialTicks);
-                }
         } finally {
             net.minecraft.client.renderer.OpenGlHelper.setLightmapTextureCoords(
                 net.minecraft.client.renderer.OpenGlHelper.lightmapTexUnit,
@@ -195,7 +175,6 @@ public final class VirtualStructureClient {
     private void clear() {
         for (Entry entry : entries.values()) entry.close();
         entries.clear();
-        criticalStates.clear();
         versions.clear();
         world = null;
         connection = null;
@@ -215,7 +194,6 @@ public final class VirtualStructureClient {
 
         VirtualStructureFrame frame;
         CenterModuleRenderer center;
-        TileEntityCriticalRenderAnchor anchor;
 
         Entry(VirtualStructureFrame frame) {
             update(frame);
@@ -227,39 +205,13 @@ public final class VirtualStructureClient {
             if (next.kind == VirtualStructureFrame.CENTER && geometryChanged) {
                 if (center != null) center.close();
                 center = new CenterModuleRenderer(next);
-            } else if (next.kind == VirtualStructureFrame.CRITICAL) {
-                if (anchor == null) {
-                    anchor = new TileEntityCriticalRenderAnchor();
-                    anchor.setWorldObj(world);
-                }
-                NBTTagCompound n = new NBTTagCompound();
-                // TileEntity.readFromNBT reads these too. Omitting them would move the logical
-                // origin to (0,0,0), retire its hidden-cell index, then rebuild that index every update.
-                n.setInteger("x", anchor.xCoord);
-                n.setInteger("y", anchor.yCoord);
-                n.setInteger("z", anchor.zCoord);
-                n.setInteger("ownerX", next.x);
-                n.setInteger("ownerY", next.y);
-                n.setInteger("ownerZ", next.z);
-                n.setTag("visual", next.visual.copy());
-                anchor.readFromNBT(n);
-                anchor.xCoord = CriticalRenderAnchors.getX(anchor.getVisualState());
-                anchor.yCoord = CriticalRenderAnchors.getY(anchor.getVisualState());
-                anchor.zCoord = CriticalRenderAnchors.getZ(anchor.getVisualState());
-                anchor.validate();
-                criticalStates.add(anchor.getVisualState());
             }
         }
 
         @Override
         public void close() {
             if (center != null) center.close();
-            if (anchor != null) {
-                criticalStates.remove(anchor.getVisualState());
-                CriticalControllerRenderer.sharedInstance()
-                    .releaseLogicalAnchor(anchor);
-                anchor.invalidate();
-            }
+
         }
     }
 }

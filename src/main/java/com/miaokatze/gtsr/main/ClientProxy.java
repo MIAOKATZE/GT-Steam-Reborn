@@ -58,11 +58,6 @@ public class ClientProxy extends CommonProxy {
     }
 
     @Override
-    public boolean isLogicalCriticalVisual(com.miaokatze.gtsr.common.critical.CriticalMachineState state) {
-        return com.miaokatze.gtsr.client.machinevisual.VirtualStructureClient.isRegistered(state);
-    }
-
-    @Override
     public void receiveCriticalDamageHighlights(com.miaokatze.gtsr.common.critical.CriticalDamageHighlights.Frame frame,
         Object connection) {
         com.miaokatze.gtsr.client.critical.CriticalDamageHighlightClient.receive(frame, connection);
